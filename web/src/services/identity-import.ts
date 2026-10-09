@@ -12,6 +12,23 @@ export class IdentityImportError extends Error {
   }
 }
 
+/**
+ * The nickname attached to a TeamSpeak identity INI, if any. Advisory only:
+ * SDK material strings carry no nickname and malformed values yield null
+ * instead of failing the import.
+ */
+export function extractIdentityNickname(input: string): string | null {
+  if (input.length > MAX_IDENTITY_TEXT) return null;
+  for (const line of input.replace(/^\uFEFF/, "").split(/\r?\n/)) {
+    const match = line.match(/^\s*nickname\s*=\s*(.*?)\s*(?:[;#].*)?$/i);
+    if (!match) continue;
+    const quoted = match[1]!.trim().replace(/^(?:"(.*)"|'(.*)')$/, (_all, doubleQuoted, singleQuoted) => doubleQuoted ?? singleQuoted);
+    const nickname = unescapeTeamSpeakText(quoted).trim();
+    return nickname || null;
+  }
+  return null;
+}
+
 /** Parse a TeamSpeak 3 identity INI/value or a WebSpeak SDK identity string locally. */
 export async function importIdentityText(input: string): Promise<string> {
   if (input.length > MAX_IDENTITY_TEXT) throw new IdentityImportError("too-large");
@@ -56,7 +73,7 @@ export async function importIdentityText(input: string): Promise<string> {
 }
 
 /** Export a WebSpeak identity as a TeamSpeak-compatible .ini file, in-browser. */
-export async function exportTeamSpeakIdentity(privateMaterial: string): Promise<string> {
+export async function exportTeamSpeakIdentity(privateMaterial: string, nickname = ""): Promise<string> {
   const normalized = await normalizeSdkMaterial(privateMaterial);
   const splitAt = normalized.lastIndexOf(":");
   const privateScalar = decodeBase64(normalized.slice(0, splitAt));
@@ -78,12 +95,59 @@ export async function exportTeamSpeakIdentity(privateMaterial: string): Promise<
   for (let i = 0; i < 20; i++) obfuscated[i] ^= digest[i]!;
 
   const identity = `${offset}V${bytesToBase64(obfuscated)}`;
-  return `[Identity]\r\nid=WebSpeak\r\nidentity="${identity}"\r\nnickname=WebSpeak\r\nphonetic_nickname=\r\n`;
+  return `[Identity]\r\nid=WebSpeak\r\nidentity="${identity}"\r\nnickname=${escapeTeamSpeakText(nickname)}\r\nphonetic_nickname=\r\n`;
 }
 
 function extractSdkMaterial(text: string): string | null {
   const match = text.match(/^(?:identity\s*=\s*)?["']?([A-Za-z0-9+/_=-]{4,64}):(\d+)["']?$/i);
   return match ? `${match[1]}:${match[2]}` : null;
+}
+
+/** TeamSpeak INI text escaping: `\x` + 4 lowercase hex digits of the UTF-16
+ *  code unit for everything outside printable ASCII (plus `\` and `"`).
+ *  Astral characters escape as two surrogate units, mirroring the native client. */
+function escapeTeamSpeakText(value: string): string {
+  let out = "";
+  for (let i = 0; i < value.length; i += 1) {
+    const code = value.charCodeAt(i);
+    if (code === 0x5c) out += "\\x5c";
+    else if (code === 0x22) out += "\\x22";
+    else if (code >= 0x20 && code <= 0x7e) out += value[i]!;
+    else out += `\\x${code.toString(16).padStart(4, "0")}`;
+  }
+  return out;
+}
+
+function unescapeTeamSpeakText(value: string): string {
+  if (!value.includes("\\x")) return value;
+  let out = "";
+  for (let i = 0; i < value.length;) {
+    if (value[i] === "\\" && value[i + 1] === "x") {
+      const high = parseUtf16Unit(value, i + 2);
+      if (high !== null) {
+        // Combine a high surrogate with a following low one.
+        if (high >= 0xd800 && high < 0xdc00 && value[i + 6] === "\\" && value[i + 7] === "x") {
+          const low = parseUtf16Unit(value, i + 8);
+          if (low !== null && low >= 0xdc00 && low < 0xe000) {
+            out += String.fromCharCode(high, low);
+            i += 12;
+            continue;
+          }
+        }
+        out += String.fromCharCode(high);
+        i += 6;
+        continue;
+      }
+    }
+    out += value[i]!;
+    i += 1;
+  }
+  return out;
+}
+
+function parseUtf16Unit(value: string, start: number): number | null {
+  const hex = value.slice(start, start + 4);
+  return /^[0-9a-fA-F]{4}$/.test(hex) ? Number.parseInt(hex, 16) : null;
 }
 
 function extractTeamSpeakIdentity(text: string): string | null {

@@ -1,17 +1,18 @@
 import { onScopeDispose, ref, watch, type Ref } from "vue";
-import { exportTeamSpeakIdentity, IdentityImportError, importIdentityText } from "../services/identity-import.js";
+import { exportTeamSpeakIdentity, extractIdentityNickname, IdentityImportError, importIdentityText } from "../services/identity-import.js";
 
 interface IdentityOptions {
   identityMaterial: Ref<string>;
   rememberIdentity: Ref<boolean>;
+  nickname?: Ref<string>;
   t: (key: string) => string;
   showToast: (message: string) => void;
   parse?: (text: string) => Promise<string>;
-  serialize?: (material: string) => Promise<string>;
+  serialize?: (material: string, nickname: string) => Promise<string>;
 }
 
 /** Page-owned identity operations; the dialog only renders state and emits input. */
-export function useWebClientIdentity({ identityMaterial, rememberIdentity, t, showToast,
+export function useWebClientIdentity({ identityMaterial, rememberIdentity, nickname, t, showToast,
   parse = importIdentityText, serialize = exportTeamSpeakIdentity }: IdentityOptions) {
   const open = ref(false);
   const text = ref("");
@@ -96,6 +97,11 @@ export function useWebClientIdentity({ identityMaterial, rememberIdentity, t, sh
       invalidate();
       rememberIdentity.value = true;
       identityMaterial.value = material;
+      // Moving an identity brings its name along: an INI nickname becomes the
+      // join form's nickname (WebSpeak/SDK material carries none and keeps
+      // whatever the user had).
+      const importedNickname = extractIdentityNickname(text.value);
+      if (importedNickname && nickname) nickname.value = importedNickname;
       open.value = false;
       text.value = "";
       showToast(t("identityImportSuccess"));
@@ -117,7 +123,7 @@ export function useWebClientIdentity({ identityMaterial, rememberIdentity, t, sh
     let url: string | undefined;
     let link: HTMLAnchorElement | undefined;
     try {
-      const content = await serialize(identityMaterial.value);
+      const content = await serialize(identityMaterial.value, nickname?.value ?? "");
       if (!current()) return;
       url = URL.createObjectURL(new Blob([content], { type: "text/plain;charset=utf-8" }));
       downloads.set(url, undefined);

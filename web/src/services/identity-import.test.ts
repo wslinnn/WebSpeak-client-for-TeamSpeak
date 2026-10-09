@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createECDH, createHash, webcrypto } from "node:crypto";
 import test from "node:test";
-import { exportTeamSpeakIdentity, IdentityImportError, importIdentityText } from "./identity-import.js";
+import { exportTeamSpeakIdentity, extractIdentityNickname, IdentityImportError, importIdentityText } from "./identity-import.js";
 
 if (!globalThis.crypto?.subtle) Object.defineProperty(globalThis, "crypto", { value: webcrypto });
 
@@ -67,6 +67,27 @@ test("exports an interoperable TeamSpeak INI and imports it back without changin
 
   assert.match(ini, /^\[Identity\]\r?\nid=WebSpeak\r?\nidentity="42V[A-Za-z0-9+/]+=*"/);
   assert.equal(await importIdentityText(ini), material);
+});
+
+test("adopting an INI nickname survives escaping on export and import", () => {
+  assert.equal(extractIdentityNickname(createReferenceTeamSpeakIni().ini), "Fixture");
+  assert.equal(extractIdentityNickname('[Identity]\nnickname="\\x673a\\x5668\\x4eba"\n'), "机器人");
+  // Surrogate pair: U+20BB7 (𠮷) escapes as two UTF-16 units.
+  assert.equal(extractIdentityNickname("[Identity]\nnickname=\\xd842\\xdfb7\n"), "𠮷");
+  assert.equal(extractIdentityNickname("[Identity]\nnickname=   \n"), null);
+  assert.equal(extractIdentityNickname("[Identity]\nidentity=\"1Vabc\"\n"), null);
+  assert.equal(extractIdentityNickname(`${"abc"}:42`), null);
+});
+
+test("exporting writes the current nickname in escaped TeamSpeak INI form", async () => {
+  const material = await createSdkMaterial();
+  const ini = await exportTeamSpeakIdentity(material, "机器人");
+
+  assert.match(ini, /\r?\nnickname=\\x673a\\x5668\\x4eba\r?\n/);
+  assert.equal(extractIdentityNickname(ini), "机器人");
+  // Backslash and double quote take named escapes; an empty nickname stays empty.
+  assert.match(await exportTeamSpeakIdentity(material, 'a\\b"c'), /nickname=a\\x5cb\\x22c/);
+  assert.match(await exportTeamSpeakIdentity(material), /nickname=\r?\n/);
 });
 
 test("imports a TeamSpeak-format keypair produced independently of the WebSpeak exporter", async () => {

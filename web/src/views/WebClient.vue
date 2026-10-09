@@ -876,7 +876,7 @@ const {
   busy: identityImportBusy, reading: identityFileReading, exporting: identityExportBusy,
   show: openIdentityImport, close: closeIdentityImport, reset: resetIdentityOperations, restore: restoreIdentity,
   readFile: readIdentityFile, submit: importIdentity, exportIdentity,
-} = useWebClientIdentity({ identityMaterial, rememberIdentity, t, showToast });
+} = useWebClientIdentity({ identityMaterial, rememberIdentity, nickname, t, showToast });
 const {
   favoriteServers,
   recentServers,
