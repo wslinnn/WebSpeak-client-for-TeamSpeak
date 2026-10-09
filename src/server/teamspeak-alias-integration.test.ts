@@ -133,7 +133,7 @@ test("schema 8 settings and invites survive the nickname migration", async (cont
   legacy.close();
   const migrated = new WebSpeakDatabase(file);
   try {
-    assert.equal(migrated.schemaVersion, 10);
+    assert.equal(migrated.schemaVersion, 11);
     assert.equal(migrated.getSettings().tsHost, "127.0.0.1");
     assert.equal(migrated.getSettings().tsTarget, null);
     const invite = migrated.consumeManagedInvite("legacy-token");

@@ -6,7 +6,7 @@ import type { AdminCredential } from "../security/admin-password.js";
 import type { TeamSpeakProtocol } from "../server/teamspeak-adapter.js";
 import { DEFAULT_WEBRTC_UDP_PORT_RANGE } from "../server/webrtc-config.js";
 
-export const DATABASE_SCHEMA_VERSION = 10;
+export const DATABASE_SCHEMA_VERSION = 11;
 export type AccessMode = "fixed" | "open";
 
 export interface PersistedSettings {
@@ -538,6 +538,17 @@ export class WebSpeakDatabase {
         this.database.exec("PRAGMA user_version = 10");
       });
       version = 10;
+    }
+    // WebRTC is this fork's primary voice path. The opt-in column defaults to
+    // off for upgrade compatibility; this one-time migration promotes it so a
+    // deployment does not silently stay on the compatibility transport. An
+    // administrator who disables it afterwards keeps that choice.
+    if (version === 10) {
+      this.transaction(() => {
+        this.database.exec("UPDATE settings SET webrtc_enabled = 1 WHERE id = 1 AND webrtc_enabled = 0");
+        this.database.exec("PRAGMA user_version = 11");
+      });
+      version = 11;
     }
   }
 

@@ -85,13 +85,17 @@ export class TeamSpeakAdapter {
     private readonly protocolCache: EndpointProtocolCache = endpointProtocolCache,
   ) {
     this.identity = options.identity ?? generateIdentity(8);
+    // SDK debug output is raw protocol chatter that can embed credentials and
+    // arrives at voice-message rate. It stays off unless explicitly requested
+    // with WEBSPEAK_SDK_DEBUG=1; info/warn/error always pass through.
+    const sdkDebugEnabled = process.env.WEBSPEAK_SDK_DEBUG?.trim() === "1";
     const clientOptions: ClientOptions = {
       resolver: new WebSpeakTeamSpeakResolver(),
       serverPassword: options.serverPassword,
       defaultChannel: options.defaultChannel,
       defaultChannelPassword: options.channelPassword,
       logger: {
-        debug: (msg: string) => this.logger.debug(msg),
+        debug: (msg: string) => { if (sdkDebugEnabled) this.logger.debug(msg); },
         info: (msg: string) => this.logger.info(msg),
         warn: (msg: string) => this.logger.warn(msg),
         error: (msg: string) => this.logger.error(msg),

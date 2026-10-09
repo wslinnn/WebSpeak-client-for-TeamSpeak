@@ -9,7 +9,7 @@ import {
 import type { Logger as LoggerType } from "../logger.js";
 import type { TSVoiceData } from "./ts-client.js";
 import { WEBRTC_UDP_PORT_RANGE } from "./webrtc-config.js";
-import { OpusEncoder } from "./opus-codec.js";
+import { createVoiceEncoder, OpusEncoder } from "./opus-codec.js";
 import type { WebRtcSessionDescription } from "../shared/webrtc.js";
 export type { WebRtcSessionDescription } from "../shared/webrtc.js";
 
@@ -25,6 +25,11 @@ const MAX_MIXER_QUEUE_FRAMES = 4;
 const MAX_MIXER_PACER_LAG_MS = AUDIO_CLOCK_INTERVAL_MS * 2;
 const MAX_MIXER_FRAME_AGE_MS = MAX_MIXER_QUEUE_FRAMES * AUDIO_CLOCK_INTERVAL_MS;
 const MIXER_UNDERRUN_WINDOW_MS = 200;
+// Coarse idle downshift: after the mixer queues have stayed empty for this
+// long, the 50 Hz clock stops instead of encoding and sending silence frames.
+// Incoming TeamSpeak audio restarts it (see pushTeamSpeakVoice). Frames are
+// never dropped by silence gating — the whole clock pauses and resumes.
+const MIXER_IDLE_STOP_MS = 200;
 // This threshold is used only for the speaking indicator. It must never decide
 // whether a media packet is forwarded or queued: quiet/comfort-noise Opus
 // packets are still valid media and dropping them can break decoder continuity.
@@ -194,7 +199,9 @@ export class WebRtcAudioSession {
     });
 
     try {
-      this.encoder = new OpusEncoder(AUDIO_SAMPLE_RATE, 1);
+      // The mixer re-encodes every outbound frame, so the shared quality pin
+      // (bitrate/FEC) applies here. Decoders below stay untouched.
+      this.encoder = createVoiceEncoder(AUDIO_SAMPLE_RATE, 1);
     } catch (error: unknown) {
       this.encoder = null;
       this.logger.error({ err: error instanceof Error ? error.message : String(error) }, "Could not create WebRTC mixer encoder");
@@ -293,6 +300,12 @@ export class WebRtcAudioSession {
       if (enqueued) {
         this.lastQueueEnqueuedAt = performance.now();
         this.stats.webrtcQueuePeakFrames = Math.max(this.stats.webrtcQueuePeakFrames, this.getQueueFrameCount());
+        // Restart the idle-stopped pacer clock aligned to now so the first
+        // queued frame goes out on the immediate next tick without added delay.
+        if (this.audioTimer === null && !this.closed) {
+          this.nextAudioDeadline = performance.now();
+          this.scheduleAudioTick();
+        }
       }
     } catch {
       this.stats.webrtcDownlinkDecodeErrors++;
@@ -346,6 +359,11 @@ export class WebRtcAudioSession {
     this.nextAudioDeadline += AUDIO_CLOCK_INTERVAL_MS;
     this.audioTimer = null;
     this.mixAndSendAudio();
+    // Coarse idle downshift: an idle mixer stops its 50 Hz clock entirely
+    // instead of encoding and sending silence frames. Any later enqueue
+    // restarts the clock, so no frame is ever gated or dropped here.
+    const idleSince = this.lastQueueEnqueuedAt;
+    if (this.pendingFrames.size === 0 && (idleSince === null || now - idleSince >= MIXER_IDLE_STOP_MS)) return;
     this.scheduleAudioTick();
   }
 

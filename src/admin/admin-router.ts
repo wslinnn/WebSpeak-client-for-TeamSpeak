@@ -1,5 +1,5 @@
 import { Router, raw as expressRaw, type NextFunction, type Request, type Response } from "express";
-import { existsSync, readFileSync } from "node:fs";
+import { closeSync, existsSync, fstatSync, openSync, readSync } from "node:fs";
 import type { Logger } from "../logger.js";
 import { AdminInputError, AdminService, type AdminSettingsInput } from "./admin-service.js";
 import { AdminSessionStore, isSecureRequest } from "./admin-session.js";
@@ -499,31 +499,74 @@ interface AdminLogEntry {
   context: Record<string, string | number | boolean>;
 }
 
+/** Per-file scan budget for log tails; keeps the synchronous read bounded. */
+const LOG_TAIL_MAX_LINES = 1_200;
+const LOG_TAIL_MAX_BYTES = 384 * 1024;
+const LOG_TAIL_CHUNK_BYTES = 64 * 1024;
+
+/**
+ * Reads the newest `maxLines` lines of a log file without loading the file:
+ * chunks are walked backwards from the end until the line budget or a byte
+ * cap is reached. Returns lines newest-first. The whole endpoint used to
+ * readFileSync entire rotations twice per request, which blocked the event
+ * loop (and with it live audio) for tens of megabytes.
+ */
+function readLogTail(filePath: string, maxLines: number, maxBytes = LOG_TAIL_MAX_BYTES): string[] {
+  let descriptor: number;
+  try { descriptor = openSync(filePath, "r"); } catch { return []; }
+  const lines: string[] = [];
+  try {
+    const size = fstatSync(descriptor).size;
+    let position = size;
+    let scanned = 0;
+    let carry = "";
+    while (position > 0 && lines.length < maxLines && scanned < maxBytes) {
+      const length = Math.min(LOG_TAIL_CHUNK_BYTES, position, maxBytes - scanned);
+      position -= length;
+      const buffer = Buffer.alloc(length);
+      readSync(descriptor, buffer, 0, length, position);
+      scanned += length;
+      const parts = (buffer.toString("utf8") + carry).split("\n");
+      carry = parts[0] ?? "";
+      for (let index = parts.length - 1; index >= 1 && lines.length < maxLines; index--) {
+        const line = parts[index]!.trim();
+        if (line) lines.push(line);
+      }
+    }
+    if (position === 0 && lines.length < maxLines) {
+      const first = carry.trim();
+      if (first) lines.push(first);
+    }
+  } catch {
+    // A rotated file can disappear or shrink between open and read; return
+    // whatever was collected.
+  } finally {
+    closeSync(descriptor);
+  }
+  return lines;
+}
+
 function readRecentLogs(logFile: string | undefined, limit: number): AdminLogEntry[] {
   if (!logFile) return [];
-  try {
-    const lines = readFileSync(logFile, "utf8").split(/\r?\n/).filter(Boolean).slice(-limit);
-    return lines.map((line) => {
-      try {
-        const raw = JSON.parse(line) as Record<string, unknown>;
-        const context: Record<string, string | number | boolean> = {};
-        for (const key of ["component", "entryId", "code", "reason", "attempt", "target", "nickname", "clientIp", "channel", "reconnect", "port"]) {
-          const value = raw[key];
-          if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") context[key] = value;
-        }
-        return {
-          timestamp: typeof raw.time === "string" ? raw.time : null,
-          level: logLevelName(raw.level),
-          message: typeof raw.msg === "string" ? raw.msg : "",
-          context,
-        };
-      } catch {
-        return { timestamp: null, level: "INFO", message: line.slice(0, 1000), context: {} };
+  const lines = readLogTail(logFile, limit).reverse();
+  return lines.map((line) => {
+    try {
+      const raw = JSON.parse(line) as Record<string, unknown>;
+      const context: Record<string, string | number | boolean> = {};
+      for (const key of ["component", "entryId", "code", "reason", "attempt", "target", "nickname", "clientIp", "channel", "reconnect", "port"]) {
+        const value = raw[key];
+        if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") context[key] = value;
       }
-    });
-  } catch {
-    return [];
-  }
+      return {
+        timestamp: typeof raw.time === "string" ? raw.time : null,
+        level: logLevelName(raw.level),
+        message: typeof raw.msg === "string" ? raw.msg : "",
+        context,
+      };
+    } catch {
+      return { timestamp: null, level: "INFO", message: line.slice(0, 1000), context: {} };
+    }
+  });
 }
 
 interface StructuredLogEntry {
@@ -630,26 +673,24 @@ export function readConnectionHistory(logFile: string | undefined, limit: number
 }
 
 function readStructuredLogs(logFile: string): StructuredLogEntry[] {
+  // Recent sessions live at the tail of the current log; older rotations are
+  // scanned with the same bounded budget so history reaches back a little
+  // further without ever loading whole files.
   const paths = [logFile, `${logFile}.1`, `${logFile}.2`, `${logFile}.3`].filter((value, index, all) => value && all.indexOf(value) === index);
   const entries: StructuredLogEntry[] = [];
   for (const path of paths) {
-    if (!existsSync(path)) continue;
-    try {
-      for (const line of readFileSync(path, "utf8").split(/\r?\n/).filter(Boolean)) {
-        try {
-          const raw = JSON.parse(line) as Record<string, unknown>;
-          entries.push({
-            timestamp: typeof raw.time === "string" ? raw.time : null,
-            message: typeof raw.msg === "string" ? raw.msg : "",
-            raw,
-          });
-        } catch {
-          // Non-JSON lines are still shown by the normal log viewer, but cannot
-          // be associated with a user session safely.
-        }
+    for (const line of readLogTail(path, LOG_TAIL_MAX_LINES)) {
+      try {
+        const raw = JSON.parse(line) as Record<string, unknown>;
+        entries.push({
+          timestamp: typeof raw.time === "string" ? raw.time : null,
+          message: typeof raw.msg === "string" ? raw.msg : "",
+          raw,
+        });
+      } catch {
+        // Non-JSON lines are still shown by the normal log viewer, but cannot
+        // be associated with a user session safely.
       }
-    } catch {
-      // A rotated file can disappear between existsSync and readFileSync.
     }
   }
   return entries.sort((left, right) => Date.parse(left.timestamp ?? "") - Date.parse(right.timestamp ?? ""));

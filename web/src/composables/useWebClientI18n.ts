@@ -235,6 +235,18 @@ function localizedAudioNotice(code: string, message: string) {
       ru: `Голосовая связь WebRTC недоступна (код ошибки: ${normalizedCode}). Используется совместимый транспорт; задержка и качество звука могут быть ниже`,
       ja: `WebRTC のリアルタイム音声は利用できません（エラーコード: ${normalizedCode}）。互換トランスポートを使用するため、遅延や音質が低下する場合があります`,
     },
+    WEBRTC_DISABLED: {
+      en: "The gateway has WebRTC disabled; voice uses the compatibility transport (WebSocket). Latency and audio quality may be lower — WebRTC can be enabled in the admin console",
+      de: "Der Gateway hat WebRTC deaktiviert; die Stimme verwendet den Kompatibilitätstransport (WebSocket). Latenz und Audioqualität können schlechter sein – WebRTC lässt sich in der Verwaltungskonsole aktivieren",
+      ru: "На шлюзе отключён WebRTC; голос передаётся через совместимый транспорт (WebSocket). Задержка и качество звука могут быть ниже — WebRTC можно включить в консоли администратора",
+      ja: "ゲートウェイで WebRTC が無効のため、音声は互換トランスポート（WebSocket）を使用します。遅延や音質が低下する場合があります。管理コンソールで有効化できます",
+    },
+    WEBRTC_UNSUPPORTED: {
+      en: "This browser does not support WebRTC; voice uses the compatibility transport (WebSocket). Latency and audio quality may be lower",
+      de: "Dieser Browser unterstützt kein WebRTC; die Stimme verwendet den Kompatibilitätstransport (WebSocket). Latenz und Audioqualität können schlechter sein",
+      ru: "Этот браузер не поддерживает WebRTC; голос передаётся через совместимый транспорт (WebSocket). Задержка и качество звука могут быть ниже",
+      ja: "このブラウザは WebRTC に対応していないため、音声は互換トランスポート（WebSocket）を使用します。遅延や音質が低下する場合があります",
+    },
     PLAYBACK_BLOCKED: {
       en: "The browser blocked automatic audio playback. Click the page or allow audio playback for this site",
       de: "Der Browser hat die automatische Audiowiedergabe blockiert. Klicke auf die Seite oder erlaube die Audiowiedergabe für diese Website",

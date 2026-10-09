@@ -13,7 +13,9 @@ function fixture() {
   const encoded: Buffer[] = [];
   const forwarded: Array<{ data: Buffer; codec: number; targets?: number[] }> = [];
   const notices: ServerMessage[] = [];
-  const socket = { readyState: 1 as 0 | 1 | 2 | 3, bufferedAmount: 0, send: (packet: Buffer) => { packets.push(packet); } };
+  const closes: Array<{ code: number; reason: string }> = [];
+  const socket = { readyState: 1 as 0 | 1 | 2 | 3, bufferedAmount: 0, send: (packet: Buffer) => { packets.push(packet); },
+    close: (code: number, reason: string) => { closes.push({ code, reason }); } };
   const client = {
     sendVoice: (data: Buffer, codec: number) => { forwarded.push({ data, codec }); },
     sendWhisper: (data: Buffer, targets: number[], codec: number) => { forwarded.push({ data, codec, targets }); },
@@ -28,7 +30,7 @@ function fixture() {
     sendJson: message => { notices.push(message); },
   }, encoder, () => state.now);
   const remote = (clientId = 513) => ({ clientId, codec: 4, data: Buffer.from([11, 12, 13]) });
-  return { transport, audio, state, socket, client, encoder, packets, encoded, forwarded, notices, remote };
+  return { transport, audio, state, socket, client, encoder, packets, encoded, forwarded, notices, closes, remote };
 }
 
 test("PCM framing preserves codec, whisper routing and timing counters", () => {
@@ -46,20 +48,25 @@ test("PCM framing preserves codec, whisper routing and timing counters", () => {
   assert.equal(f.audio.tsEncodeMaxMs, 3);
 });
 
-test("invalid PCM is rejected and reconnecting sessions do not encode audio", () => {
+test("invalid PCM replies are rate limited and a sustained streak closes the socket", () => {
   const f = fixture();
-  f.transport.receivePcm(Buffer.alloc(1_919));
-  f.transport.receivePcm(Buffer.alloc(1_921));
-  assert.equal(f.notices.length, 2);
+  // 20 malformed frames in the same second: one reply, then a protocol close.
+  for (let i = 0; i < 20; i++) f.transport.receivePcm(Buffer.alloc(1_919));
+  assert.equal(f.notices.length, 1);
   assert.deepEqual(f.notices[0], { type: "error", error: { code: "INVALID_AUDIO_FRAME", message: "音频帧格式无效", recoverable: false } });
-  f.state.ready = false;
+  assert.deepEqual(f.closes, [{ code: 1008, reason: "INVALID_AUDIO_FRAME" }]);
+  assert.equal(f.audio.ingressDroppedFrames, 20);
+  // A later valid frame resets the streak: occasional garbage must never
+  // accumulate into a close while real audio keeps flowing.
+  f.state.now = 5_000;
   f.transport.receivePcm(Buffer.alloc(1_920));
-  f.transport.receiveWebRtc(Buffer.from([1]), 4);
-  f.transport.receiveTeamSpeak(f.remote());
-  assert.equal(f.audio.ingressDroppedFrames, 3);
-  assert.equal(f.encoded.length, 0);
-  assert.equal(f.forwarded.length, 0);
-  assert.equal(f.packets.length, 0);
+  assert.equal(f.encoded.length, 1);
+  // An unready session still drops frames silently, without error replies.
+  f.state.ready = false;
+  const droppedBefore = f.audio.ingressDroppedFrames;
+  f.transport.receivePcm(Buffer.alloc(1_920));
+  assert.equal(f.audio.ingressDroppedFrames, droppedBefore + 1);
+  assert.equal(f.notices.length, 1);
 });
 
 test("WebRTC ingress excludes queued PCM and fallback re-enables PCM", () => {

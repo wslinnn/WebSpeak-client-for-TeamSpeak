@@ -128,6 +128,25 @@ function fixture() {
   return { session, resources, released };
 }
 
+test("the mixer pacer stops while idle and restarts on incoming TeamSpeak audio", async t => {
+  const session = new WebRtcAudioSession({ connectionId: "idle-pacer", logger: pino({ enabled: false }), onVoiceFrame() {}, onVoiceActivity() {} });
+  const source = new OpusEncoder(48_000, 1);
+  t.after(async () => { source.dispose(); await session.close(); });
+  const mixer = session as unknown as {
+    audioTimer: ReturnType<typeof setTimeout> | null; activityTimer: ReturnType<typeof setInterval>;
+    lastQueueEnqueuedAt: number | null; flushAudio(): void;
+  };
+  clearTimeout(mixer.audioTimer!);
+  clearInterval(mixer.activityTimer);
+  mixer.audioTimer = null;
+  mixer.lastQueueEnqueuedAt = performance.now() - 1_000;
+  mixer.flushAudio();
+  assert.equal(mixer.audioTimer, null, "an idle mixer must stop the 50 Hz clock instead of sending silence");
+  session.pushTeamSpeakVoice({ clientId: 2, codec: 4, data: source.encode(Buffer.alloc(1_920)) });
+  assert.notEqual(mixer.audioTimer, null, "incoming audio must restart the pacer clock");
+  clearTimeout(mixer.audioTimer!);
+});
+
 test("WebRTC close releases remaining codecs, track and peer after disposal failures", async () => {
   const f = fixture();
   await f.session.close();

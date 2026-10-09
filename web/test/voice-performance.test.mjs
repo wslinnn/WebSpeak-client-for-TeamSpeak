@@ -55,7 +55,13 @@ after(async () => {
   else delete globalThis.window;
 });
 async function mount() {
-  app = renderer.createApp({ setup() { monitor = useWebClientPerformance(connected, () => measure()); return () => null; } });
+  // Sampling is panel-owned since the gating change: most tests open the
+  // panel immediately; the dedicated gating test covers the closed case.
+  app = renderer.createApp({ setup() {
+    monitor = useWebClientPerformance(connected, () => measure());
+    monitor.panelOpen.value = true;
+    return () => null;
+  } });
   app.mount({});
   await nextTurn();
 }
@@ -64,6 +70,23 @@ async function refresh(value) {
   monitor.refresh();
   await nextTurn();
 }
+
+test("probes only run while the performance panel is open", async () => {
+  let calls = 0;
+  measure = async () => { calls++; return sample(); };
+  app = renderer.createApp({ setup() { monitor = useWebClientPerformance(connected, () => measure()); return () => null; } });
+  app.mount({});
+  await nextTurn();
+  assert.equal(intervals.size, 0, "a connected session with a closed panel must not poll");
+  assert.equal(monitor.stats.value.ready, false);
+  monitor.panelOpen.value = true;
+  await nextTurn();
+  assert.equal(intervals.size, 1, "opening the panel starts sampling");
+  assert.equal(calls, 1, "the first probe fires immediately");
+  monitor.panelOpen.value = false;
+  await nextTick();
+  assert.equal(intervals.size, 0, "closing the panel stops sampling");
+});
 
 test("transport changes do not subtract RTP packets from compatibility frames", async () => {
   measure = async () => sample({}, {}, { inboundPackets: 20 });

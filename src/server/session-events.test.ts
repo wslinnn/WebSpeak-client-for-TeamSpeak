@@ -12,7 +12,8 @@ const snapshot = (...clients: ClientInfo[]): TSDirectorySnapshot => ({ channels:
 
 function fixture(t: TestContext) {
   const phase = { current: true, accepting: true, published: false, connected: false, selfId: 1, channelId: 1n };
-  const state: SessionDirectoryState = { channelTree: [], members: new Map(), avatarCache: new Map(), whisperTargetIds: new Set(), whisperActive: false };
+  const state: SessionDirectoryState = { channelTree: [], members: new Map(), whisperTargetIds: new Set(), whisperActive: false };
+  const avatarCache = new Map<string, string | null>();
   const messages: ServerMessage[] = [];
   const events: Array<{ kind: string; message: string }> = [];
   const callbacks: Array<{ kind: string; value?: unknown }> = [];
@@ -21,7 +22,7 @@ function fixture(t: TestContext) {
     getClientAvatar: async () => null,
   });
   const coordinator = new SessionEventCoordinator({
-    state, client, nickname: "Self", requestedChannel: "Lobby",
+    state, client, avatarCache, nickname: "Self", requestedChannel: "Lobby",
     isCurrent: () => phase.current, acceptsDirectory: () => phase.accepting,
     isPublished: () => phase.published, isConnected: () => phase.connected,
     sendJson: message => messages.push(message), addEvent: (kind, message) => events.push({ kind, message }),
@@ -35,7 +36,7 @@ function fixture(t: TestContext) {
     onAvatarError: (_id, _uid, value) => callbacks.push({ kind: "avatar-error", value }),
   });
   t.after(() => coordinator.close());
-  return { phase, state, messages, events, callbacks, client, coordinator };
+  return { phase, state, avatarCache, messages, events, callbacks, client, coordinator };
 }
 
 test("welcome events reconcile before publication and self follows the connected SDK channel", t => {
@@ -57,7 +58,23 @@ test("welcome events reconcile before publication and self follows the connected
   f.phase.published = true;
   f.client.emit("clientUpdated", { ...member(3), nickname: "Renamed" });
   assert.equal(f.state.members.get(3)?.nickname, "Renamed");
-  assert.equal(f.messages.at(-1)?.type, "channelList");
+  assert.deepEqual(f.messages.at(-1), { type: "memberUpdated", id: 3, nickname: "Renamed" });
+});
+
+test("directory changes publish member-level deltas instead of a full channel list", t => {
+  const f = fixture(t);
+  f.client.emit("directorySnapshot", snapshot(member(1), member(2)));
+  f.coordinator.syncSelf(); f.phase.published = true;
+  f.messages.length = 0;
+  f.client.emit("clientUpdated", { ...member(2), away: true });
+  assert.deepEqual(f.messages.filter(message => message.type === "memberUpdated"), [{ type: "memberUpdated", id: 2, away: true }]);
+  assert.equal(f.messages.some(message => message.type === "channelList"), false);
+  f.client.emit("clientMoved", { id: 2, targetChannelID: 0n });
+  f.client.emit("clientMoved", { id: 2, targetChannelID: 2n });
+  assert.deepEqual(f.messages.filter(message => message.type === "memberMoved"), [{ type: "memberMoved", id: 2, channelId: "2" }]);
+  f.messages.length = 0;
+  f.client.emit("clientLeave", { id: 2 });
+  assert.deepEqual(f.messages, [{ type: "memberLeave", id: 2 }]);
 });
 
 test("live movement and departure update directory, sharing callbacks and whisper targets", t => {
@@ -83,6 +100,17 @@ test("live movement and departure update directory, sharing callbacks and whispe
   assert.deepEqual(f.events.map(item => item.kind), ["moved", "left"]);
 });
 
+test("client enter publishes a single memberEnter carrying the channel id", t => {
+  const f = fixture(t);
+  f.client.emit("directorySnapshot", snapshot(member(1)));
+  f.coordinator.syncSelf(); f.phase.published = true;
+  f.messages.length = 0;
+  f.client.emit("clientEnter", member(3, 2n));
+  assert.deepEqual(f.messages, [{ type: "memberEnter", id: 3, nickname: "Member 3", uid: "uid-3", isSelf: false,
+    away: undefined, awayMessage: undefined, inputMuted: undefined, outputMuted: undefined, channelCommander: undefined, channelId: "2" }]);
+  assert.equal(f.state.channelTree.find(item => item.id === "2")?.members?.some(item => item.id === 3), true);
+});
+
 test("channel changes preserve large identifiers and publish only actual create, rename and delete events", t => {
   const f = fixture(t);
   f.client.emit("directorySnapshot", snapshot(member(1)));
@@ -93,23 +121,26 @@ test("channel changes preserve large identifiers and publish only actual create,
   assert.equal(f.state.channelTree[1]?.id, String(large));
   assert.equal(f.state.channelTree[1]?.members?.[0]?.id, 3);
   assert.doesNotThrow(() => JSON.stringify(f.messages));
-  f.events.length = 0;
+  const deltas = f.messages.filter(message => message.type !== "whisperTargets");
+  assert.deepEqual(deltas.map(message => message.type), ["channelUpdated", "channelCreated", "channelRemoved", "memberEnter"]);
+  f.events.length = 0; f.messages.length = 0;
   f.client.emit("directorySnapshot", { channels: [channel(1n, "Renamed"), channel(large, "Large")], clients: [] });
   assert.equal(f.events.length, 0);
+  assert.equal(f.messages.length, 0);
 });
 
-test("reset rejects backoff events and close detaches only owned listeners including captured callbacks", t => {
+test("reset rejects backoff events, keeps shared avatar positives and close detaches only owned listeners", t => {
   const f = fixture(t);
   f.client.emit("directorySnapshot", snapshot(member(1), member(2)));
   const captured = f.client.listeners("clientEnter")[0]!;
   let externalEvents = 0;
   f.client.on("clientEnter", () => externalEvents++);
-  f.state.avatarCache.set("uid-2", "cached");
+  f.avatarCache.set("uid-2", "cached");
   f.coordinator.reset(); f.phase.accepting = false;
   f.client.emit("directorySnapshot", snapshot(member(9)));
   assert.equal(f.coordinator.ready, false);
   assert.equal(f.state.members.size, 0);
-  assert.equal(f.state.avatarCache.size, 0);
+  assert.deepEqual([...f.avatarCache], [["uid-2", "cached"]]);
   f.phase.accepting = true;
   f.client.emit("directorySnapshot", snapshot(member(1)));
   assert.equal(f.state.members.has(9), false);

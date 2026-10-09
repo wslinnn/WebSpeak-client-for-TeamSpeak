@@ -5,13 +5,15 @@ import type { ChannelInfo, ChannelMember } from "../shared/voice-models.js";
 import type { ServerMessage } from "../shared/server-messages.js";
 import { DirectorySynchronizer } from "./directory-sync.js";
 import { mapChannelTree, normalizeDirectorySnapshot } from "./directory-view.js";
+import type { AvatarCache } from "./member-avatars.js";
 import { MemberAvatarLoader } from "./member-avatars.js";
 import type { TSClient, TSChatMessage, TSDirectoryClient, TSDirectorySnapshot, TSRawNotification, TSVoiceData } from "./ts-client.js";
 
+type SessionMember = ChannelMember & { uid: string };
+
 export interface SessionDirectoryState {
   channelTree: ChannelInfo[];
-  members: Map<number, ChannelMember & { uid: string }>;
-  avatarCache: Map<string, string | null>;
+  members: Map<number, SessionMember>;
   whisperTargetIds: Set<number>;
   whisperActive: boolean;
 }
@@ -34,6 +36,8 @@ interface SdkEvents {
 export interface SessionEventOptions {
   state: SessionDirectoryState;
   client: Pick<TSClient, "getClientId" | "getChannelId" | "getClientAvatar"> & Partial<Pick<TSClient, "refreshDirectoryClients">> & Pick<EventEmitter, "on" | "off">;
+  /** Avatar bytes shared across sessions; positives outlive this session. */
+  avatarCache: AvatarCache;
   nickname: string;
   requestedChannel?: string;
   isCurrent(): boolean;
@@ -65,23 +69,30 @@ export class SessionEventCoordinator {
   constructor(private readonly options: SessionEventOptions) {
     const { state, client } = options;
     this.avatars = new MemberAvatarLoader({
-      members: state.members, cache: state.avatarCache,
+      members: state.members, cache: options.avatarCache,
       isCurrent: () => this.isCurrent() && options.isConnected(),
       load: (id, uid) => client.getClientAvatar(id, uid),
-      publish: (id, uid, avatar) => options.sendJson({ type: "memberAvatar", id, uid, avatar }),
+      publish: (uid, avatar) => options.sendJson({ type: "memberAvatar", uid, avatar }),
       onError: options.onAvatarError,
     });
     // Subscribe before connect(): welcome events may precede the first snapshot.
     this.listenDirectory("directorySnapshot", snapshot => {
-      const previousChannels = state.channelTree;
+      const previousTree = state.channelTree;
+      const previousMembers = new Map(state.members);
       this.directory.applySnapshot(snapshot);
       this.refresh();
-      this.trackChannelEvents(previousChannels);
+      this.trackChannelEvents(previousTree);
+      const wasPublished = this.options.isPublished();
       options.onDirectoryReady();
-      this.publishDirectory();
+      // sendInitialState answers the first snapshot with the one full channel
+      // list a connection ever receives; a delta right after it would repeat
+      // every member. Later snapshots continue with deltas only.
+      if (wasPublished) this.publishDelta(previousTree, previousMembers);
       this.avatars.schedule();
     });
     this.listenDirectory("clientEnter", info => {
+      const previousTree = state.channelTree;
+      const previousMembers = new Map(state.members);
       const candidateSelfId = client.getClientId();
       if (candidateSelfId > 0 && info.id === candidateSelfId) {
         this.clientId = candidateSelfId;
@@ -96,8 +107,7 @@ export class SessionEventCoordinator {
         void options.client.refreshDirectoryClients?.();
       }, 300);
       if (options.isPublished()) {
-        this.publishDirectory();
-        if (!wasKnown) options.sendJson({ type: "memberEnter", id: info.id, nickname: info.nickname, uid: info.uid, isSelf: info.id === this.clientId });
+        this.publishDelta(previousTree, previousMembers);
         if (!wasKnown && info.id !== this.clientId) options.addEvent("joined", `${info.nickname || "未知用户"} 加入了服务器`);
         this.avatars.schedule();
       }
@@ -105,11 +115,12 @@ export class SessionEventCoordinator {
     this.listenDirectory("clientLeave", info => {
       options.onClientLeave(info.id);
       const member = state.members.get(info.id);
+      const previousTree = state.channelTree;
+      const previousMembers = new Map(state.members);
       this.directory.applyClientLeave(info.id);
       this.refresh();
       if (options.isPublished() && member) {
-        options.sendJson({ type: "memberLeave", id: info.id });
-        this.publishDirectory();
+        this.publishDelta(previousTree, previousMembers);
         if (info.id !== this.clientId) options.addEvent("left", `${member.nickname || "用户"} 离开了服务器`);
       }
     });
@@ -117,23 +128,29 @@ export class SessionEventCoordinator {
       if (info.targetChannelID === undefined || info.targetChannelID === 0n) return;
       options.onClientMove(info.id, info.targetChannelID);
       const member = state.members.get(info.id);
+      const previousTree = state.channelTree;
+      const previousMembers = new Map(state.members);
       if (info.id === this.clientId) this.channelId = info.targetChannelID;
       this.directory.applyClientMoved(info.id, info.targetChannelID);
       this.refresh();
       if (options.isPublished()) {
-        this.publishDirectory();
+        this.publishDelta(previousTree, previousMembers);
         if (info.id !== this.clientId) options.addEvent("moved", `${member?.nickname || "用户"} 移动到了其他频道`);
       }
     });
     this.listenDirectory("clientUpdated", info => {
+      const previousTree = state.channelTree;
+      const previousMembers = new Map(state.members);
       this.directory.applyClientUpdated(info);
       this.refresh();
-      this.publishDirectory();
+      this.publishDelta(previousTree, previousMembers);
     });
     this.listenDirectory("directoryClientsSnapshot", clients => {
+      const previousTree = state.channelTree;
+      const previousMembers = new Map(state.members);
       this.directory.applyClientListSnapshot(clients);
       this.refresh();
-      this.publishDirectory();
+      this.publishDelta(previousTree, previousMembers);
     });
     this.listen("rawNotification", options.onNotification);
     this.listen("voiceData", options.onVoice);
@@ -194,12 +211,11 @@ export class SessionEventCoordinator {
     const sdkChannelId = client.getChannelId();
     if (this.channelId === 0n && sdkChannelId !== 0n) this.channelId = sdkChannelId;
     const normalized = normalizeDirectorySnapshot(snapshot, selfId, this.channelId, this.options.nickname, this.options.requestedChannel);
-    state.channelTree = mapChannelTree(normalized, state.avatarCache);
+    state.channelTree = mapChannelTree(normalized);
     state.members.clear();
     for (const member of normalized.clients) {
-      const avatar = member.uid ? state.avatarCache.get(member.uid) : undefined;
       state.members.set(member.id, { id: member.id, nickname: member.nickname, uid: member.uid,
-        ...(avatar ? { avatar } : {}), away: member.away, awayMessage: member.awayMessage,
+        away: member.away, awayMessage: member.awayMessage,
         inputMuted: member.inputMuted, outputMuted: member.outputMuted, channelCommander: member.channelCommander,
       });
     }
@@ -213,8 +229,53 @@ export class SessionEventCoordinator {
     }
   }
 
-  private publishDirectory(): void {
-    if (this.options.isPublished()) this.options.sendJson({ type: "channelList", channels: this.options.state.channelTree });
+  /** Diffs the rebuilt directory against the caller's snapshot and sends only the changes. */
+  private publishDelta(previousTree: ChannelInfo[], previousMembers: ReadonlyMap<number, SessionMember>): void {
+    if (!this.options.isPublished()) return;
+    const { state } = this.options;
+    const deltas: ServerMessage[] = [];
+    const previousChannels = new Map(previousTree.map(channel => [channel.id, channel]));
+    for (const channel of state.channelTree) {
+      const before = previousChannels.get(channel.id);
+      if (!before) deltas.push({ type: "channelCreated", channel });
+      else if (before.name !== channel.name || before.description !== channel.description) {
+        deltas.push({ type: "channelUpdated", id: channel.id, name: channel.name, ...(channel.description ? { description: channel.description } : {}) });
+      }
+    }
+    for (const channel of previousTree) {
+      if (!state.channelTree.some(current => current.id === channel.id)) deltas.push({ type: "channelRemoved", id: channel.id });
+    }
+
+    const channelOfMember = (tree: ChannelInfo[], id: number): string | undefined =>
+      tree.find(channel => channel.members?.some(member => member.id === id))?.id;
+    const previousById = previousMembers;
+    for (const member of state.members.values()) {
+      const before = previousById.get(member.id);
+      const channelId = channelOfMember(state.channelTree, member.id);
+      if (!before) {
+        deltas.push({ type: "memberEnter", id: member.id, nickname: member.nickname, uid: member.uid,
+          isSelf: member.id === this.clientId, away: member.away, awayMessage: member.awayMessage,
+          inputMuted: member.inputMuted, outputMuted: member.outputMuted, channelCommander: member.channelCommander,
+          ...(channelId ? { channelId } : {}) });
+        continue;
+      }
+      if (channelOfMember(previousTree, member.id) !== channelId) {
+        deltas.push({ type: "memberMoved", id: member.id, ...(channelId ? { channelId } : {}) });
+      }
+      const changes: Partial<Pick<ChannelMember, "nickname" | "uid" | "away" | "awayMessage" | "inputMuted" | "outputMuted" | "channelCommander">> = {};
+      if (before.nickname !== member.nickname) changes.nickname = member.nickname;
+      if (before.uid !== member.uid) changes.uid = member.uid;
+      if (before.away !== member.away) changes.away = member.away;
+      if (before.awayMessage !== member.awayMessage) changes.awayMessage = member.awayMessage;
+      if (before.inputMuted !== member.inputMuted) changes.inputMuted = member.inputMuted;
+      if (before.outputMuted !== member.outputMuted) changes.outputMuted = member.outputMuted;
+      if (before.channelCommander !== member.channelCommander) changes.channelCommander = member.channelCommander;
+      if (Object.keys(changes).length) deltas.push({ type: "memberUpdated", id: member.id, ...changes });
+    }
+    for (const member of previousById.values()) {
+      if (!state.members.has(member.id)) deltas.push({ type: "memberLeave", id: member.id });
+    }
+    for (const delta of deltas) this.options.sendJson(delta);
   }
 
   private trackChannelEvents(previous: ChannelInfo[]): void {

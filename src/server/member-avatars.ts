@@ -4,22 +4,36 @@ import type { TSClientAvatar } from "./ts-client.js";
 interface AvatarMember {
   id: number;
   uid: string;
-  avatar?: string;
+}
+
+/** Only the cache surface the loader needs; plain Maps and AvatarLruCache both fit. */
+export interface AvatarCache {
+  get(uid: string): string | null | undefined;
+  set(uid: string, avatar: string | null): unknown;
+  has(uid: string): boolean;
+  delete(uid: string): unknown;
 }
 
 export interface MemberAvatarOptions {
   members: ReadonlyMap<number, AvatarMember>;
-  cache: Map<string, string | null>;
+  /** Shared across sessions; positives survive reconnects, negatives do not. */
+  cache: AvatarCache;
   isCurrent(): boolean;
   load(id: number, uid: string): Promise<TSClientAvatar | null>;
-  publish(id: number, uid: string, avatar: string): void;
+  publish(uid: string, avatar: string): void;
   onError(id: number, uid: string, error: unknown): void;
 }
 
-/** Optional SDK downloads belong to one connected directory generation. */
+/**
+ * Optional SDK downloads belong to one connected directory generation.
+ * Positive results land in the shared cross-session cache; failures are
+ * negative-cached for the current session only so a transient file-transfer
+ * problem is retried after the next reconnect.
+ */
 export class MemberAvatarLoader {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private batch: symbol | null = null;
+  private readonly attempted = new Set<string>();
   private closed = false;
 
   constructor(private readonly options: MemberAvatarOptions) {}
@@ -31,7 +45,9 @@ export class MemberAvatarLoader {
   private pendingMembers(): AvatarMember[] {
     const byUid = new Map<string, AvatarMember>();
     for (const member of this.options.members.values()) {
-      if (member.uid && !this.options.cache.has(member.uid)) byUid.set(member.uid, member);
+      if (!member.uid || this.attempted.has(member.uid)) continue;
+      if (this.options.cache.has(member.uid)) continue;
+      byUid.set(member.uid, member);
     }
     return [...byUid.values()];
   }
@@ -55,6 +71,7 @@ export class MemberAvatarLoader {
       for (const member of this.pendingMembers().slice(0, 50)) {
         if (!isCurrent()) return;
         if (this.options.members.get(member.id)?.uid !== member.uid) continue;
+        this.attempted.add(member.uid);
         try {
           const loaded = await this.options.load(member.id, member.uid);
           if (!isCurrent()) return;
@@ -62,13 +79,7 @@ export class MemberAvatarLoader {
           if (current?.uid !== member.uid) continue;
           const avatar = loaded ? avatarDataUrl(loaded.data) : null;
           this.options.cache.set(member.uid, avatar);
-          if (avatar) {
-            for (const candidate of this.options.members.values()) {
-              if (candidate.uid !== member.uid) continue;
-              candidate.avatar = avatar;
-              this.options.publish(candidate.id, candidate.uid, avatar);
-            }
-          }
+          if (avatar) this.options.publish(member.uid, avatar);
         } catch (error: unknown) {
           if (!isCurrent()) return;
           if (this.options.members.get(member.id)?.uid !== member.uid) continue;
@@ -90,7 +101,12 @@ export class MemberAvatarLoader {
     if (this.timer !== null) clearTimeout(this.timer);
     this.timer = null;
     this.batch = null;
-    this.options.cache.clear();
+    // Negative entries expire with the session so the next connection retries
+    // them; positive entries stay in the shared cache.
+    for (const uid of this.attempted) {
+      if (this.options.cache.get(uid) === null) this.options.cache.delete(uid);
+    }
+    this.attempted.clear();
   }
 
   close(): void {

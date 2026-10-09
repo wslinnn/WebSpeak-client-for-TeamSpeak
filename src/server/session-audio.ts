@@ -7,6 +7,11 @@ import type { WebRtcAudioSession } from "./webrtc-audio.js";
 const AUDIO_FRAME_BYTES = 1_920; // 20 ms of 48 kHz mono Int16 PCM.
 // Keep the established byte guard; the browser also bounds playback by time.
 const MAX_BUFFERED_BYTES = 4_096;
+// A malformed frame at voice rate is one error per 20 ms; replying per frame
+// turns a bad client into a 100x reply amplifier. Report at most once per
+// second and drop the connection after a full second of consecutive garbage.
+const INVALID_FRAME_REPORT_INTERVAL_MS = 1_000;
+const INVALID_FRAME_CLOSE_THRESHOLD = 20;
 
 export interface VoiceEncoder {
   encode(frame: Buffer): Buffer;
@@ -15,7 +20,7 @@ export interface VoiceEncoder {
 
 export interface SessionAudioOptions {
   audio: AudioFlowStats;
-  socket: Pick<WebSocket, "readyState" | "bufferedAmount"> & { send(packet: Buffer): void };
+  socket: Pick<WebSocket, "readyState" | "bufferedAmount" | "close"> & { send(packet: Buffer): void };
   client: Pick<TSClient, "sendVoice" | "sendWhisper">;
   isCurrent(): boolean;
   isReady(): boolean;
@@ -30,6 +35,8 @@ export class SessionAudioTransport {
   private encoder: VoiceEncoder | null;
   private closed = false;
   private warnedAt: number | null = null;
+  private invalidFrameStreak = 0;
+  private lastInvalidFrameReportAt = Number.NEGATIVE_INFINITY;
 
   constructor(private readonly options: SessionAudioOptions, encoder: VoiceEncoder, private readonly clock: () => number = Date.now) {
     this.encoder = encoder;
@@ -78,9 +85,21 @@ export class SessionAudioTransport {
     const stats = this.options.audio;
     if (frame.length !== AUDIO_FRAME_BYTES) {
       stats.ingressDroppedFrames++;
-      this.options.sendJson({ type: "error", error: { code: "INVALID_AUDIO_FRAME", message: "音频帧格式无效", recoverable: false } });
+      this.invalidFrameStreak++;
+      const now = this.clock();
+      if (this.invalidFrameStreak >= INVALID_FRAME_CLOSE_THRESHOLD) {
+        try { this.options.socket.close(1008, "INVALID_AUDIO_FRAME"); } catch { /* the socket may already be closing */ }
+        return;
+      }
+      if (now - this.lastInvalidFrameReportAt >= INVALID_FRAME_REPORT_INTERVAL_MS) {
+        this.lastInvalidFrameReportAt = now;
+        try {
+          this.options.sendJson({ type: "error", error: { code: "INVALID_AUDIO_FRAME", message: "音频帧格式无效", recoverable: false } });
+        } catch { /* the socket may have closed while reporting the failure */ }
+      }
       return;
     }
+    this.invalidFrameStreak = 0;
     // Late TCP frames from before a WebRTC switch must not duplicate RTP audio.
     if (!this.options.isReady() || this.options.peer()) { stats.ingressDroppedFrames++; return; }
     this.recordIngress();

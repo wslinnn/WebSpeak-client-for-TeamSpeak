@@ -18,8 +18,15 @@ export function createVoiceSessionState(options: SessionStateOptions) {
   let sequence = 0;
   const memberKeys = reactive(new Map<number, string>());
   const unknownSenders = new Map<number, string>();
+  // Avatars arrive once per uid (memberAvatar) and never ride the directory.
+  // Keyed by uid so reconnects and later joins restore images without a new
+  // download; survives session resets on purpose.
+  const avatars = new Map<string, string>();
   const nextId = (kind: string) => `${kind}-${epoch.value}-${sequence++}`;
-  const normalize = (member: ChannelMember): ChannelMember => ({ ...member, isSelf: member.id === options.selfId() });
+  const normalize = (member: ChannelMember): ChannelMember => {
+    const cached = !member.avatar && member.uid ? avatars.get(member.uid) : undefined;
+    return { ...member, ...(cached ? { avatar: cached } : {}), isSelf: member.id === options.selfId() };
+  };
   function conversationKey(id: number, uid?: string): string {
     if (uid) return `uid:${uid}`;
     const key = memberKeys.get(id) ?? nextId("member");
@@ -70,6 +77,15 @@ export function createVoiceSessionState(options: SessionStateOptions) {
     channels.splice(0, channels.length, ...nextChannels);
   }
 
+  /** Puts a member into a channel's roster without duplicating them. */
+  function placeMember(id: number, channelId: string): void {
+    const member = members.find(candidate => candidate.id === id);
+    const target = channels.find(channel => channel.id === channelId);
+    if (!member || !target) return;
+    const list = target.members ?? (target.members = []);
+    if (!list.some(candidate => candidate.id === id)) list.push(member);
+  }
+
   function enter(member: ChannelMember): void {
     const index = members.findIndex(candidate => candidate.id === member.id);
     const previous = members[index];
@@ -88,6 +104,14 @@ export function createVoiceSessionState(options: SessionStateOptions) {
       if (position >= 0) channel.members!.splice(position, 1, canonical);
     }
     options.onMembersChanged();
+  }
+
+  /** Moves a member out of every channel roster; caller re-places them. */
+  function unplaceMember(id: number): void {
+    for (const channel of channels) {
+      const position = channel.members?.findIndex(candidate => candidate.id === id) ?? -1;
+      if (position >= 0) channel.members!.splice(position, 1);
+    }
   }
 
   function leave(id: number): void {
@@ -116,15 +140,61 @@ export function createVoiceSessionState(options: SessionStateOptions) {
   function receive(message: ServerMessage): boolean {
     switch (message.type) {
       case "memberEnter": {
-        const { type: _type, ...member } = message;
+        const { type: _type, channelId, ...member } = message;
         enter(member);
+        if (channelId !== undefined) placeMember(member.id, String(channelId));
         break;
       }
       case "memberLeave": leave(message.id); break;
+      case "memberUpdated": {
+        const member = members.find(candidate => candidate.id === message.id);
+        if (!member) break;
+        if (message.nickname !== undefined) member.nickname = message.nickname;
+        if (message.uid !== undefined) member.uid = message.uid;
+        if (message.away !== undefined) member.away = message.away;
+        if (message.awayMessage !== undefined) member.awayMessage = message.awayMessage;
+        if (message.inputMuted !== undefined) member.inputMuted = message.inputMuted;
+        if (message.outputMuted !== undefined) member.outputMuted = message.outputMuted;
+        if (message.channelCommander !== undefined) member.channelCommander = message.channelCommander;
+        break;
+      }
+      case "memberMoved": {
+        unplaceMember(message.id);
+        if (message.channelId !== undefined) placeMember(message.id, String(message.channelId));
+        break;
+      }
       case "channelList": applyChannels(message.channels); break;
+      case "channelCreated": {
+        const incoming = message.channel;
+        if (channels.some(channel => channel.id === incoming.id)) break;
+        for (const member of incoming.members ?? []) enter(member);
+        const canonical = new Map(members.map(member => [member.id, member]));
+        const placed = (incoming.members ?? []).flatMap(member => {
+          const current = canonical.get(member.id);
+          return current ? [current] : [];
+        });
+        channels.push({ ...incoming, members: placed });
+        break;
+      }
+      case "channelUpdated": {
+        const channel = channels.find(candidate => candidate.id === message.id);
+        if (!channel) break;
+        channel.name = message.name;
+        if (message.description !== undefined) channel.description = message.description;
+        break;
+      }
+      case "channelRemoved": {
+        const index = channels.findIndex(channel => channel.id === message.id);
+        if (index >= 0) channels.splice(index, 1);
+        break;
+      }
       case "memberAvatar": {
-        const member = members.find(candidate => candidate.id === message.id && (!message.uid || candidate.uid === message.uid));
-        if (member) member.avatar = message.avatar || undefined;
+        const uid = message.uid;
+        if (!uid || !message.avatar) break;
+        avatars.set(uid, message.avatar);
+        for (const member of members) {
+          if (member.uid === uid) member.avatar = message.avatar;
+        }
         break;
       }
       case "chatMessage": {

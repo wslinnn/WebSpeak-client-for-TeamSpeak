@@ -26,7 +26,10 @@ async function main() {
     import("./admin/admin-service.js"),
     import("./server/join-ticket.js"),
   ]);
-  const logger = createLogger(LOG_DIR);
+  // WEBSPEAK_LOG_LEVEL=debug restores verbose file logging (SDK protocol
+  // chatter included); the default keeps the rotating file at info.
+  const fileLevel = process.env.WEBSPEAK_LOG_LEVEL?.trim().toLowerCase() === "debug" ? "debug" as const : "info" as const;
+  const logger = createLogger(LOG_DIR, { fileLevel });
   const database = new WebSpeakDatabase(path.join(DATA_DIR, "webspeak.db"));
   const masterSecret = loadOrCreateMasterSecret(path.join(DATA_DIR, "master.key"));
   const adminService = new AdminService(

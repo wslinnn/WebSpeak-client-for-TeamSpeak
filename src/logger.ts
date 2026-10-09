@@ -17,7 +17,16 @@ export interface Logger {
   child(bindings: Record<string, unknown>): Logger;
 }
 
-export function createLogger(logDir?: string): Logger {
+export interface LoggerOptions {
+  /**
+   * Disk level for the rotating log file. Debug is opt-in: the SDK logs full
+   * protocol chatter (including credentials embedded in protocol messages) at
+   * debug, so the default keeps the file at info.
+   */
+  fileLevel?: "debug" | "info";
+}
+
+export function createLogger(logDir?: string, options: LoggerOptions = {}): Logger {
   const loggerOptions = {
     level: "debug",
     timestamp: pino.stdTimeFunctions.isoTime,
@@ -27,7 +36,7 @@ export function createLogger(logDir?: string): Logger {
     },
   };
   const baseLogger = logDir
-    ? createFileLogger(loggerOptions, `${logDir}/webspeak.log`)
+    ? createFileLogger(loggerOptions, `${logDir}/webspeak.log`, options.fileLevel ?? "info")
     : pino(loggerOptions, pino.destination(1));
 
   function wrap(l: pino.Logger): Logger {
@@ -59,11 +68,11 @@ export function createLogger(logDir?: string): Logger {
   return wrap(baseLogger);
 }
 
-function createFileLogger(options: { level: string; timestamp: typeof pino.stdTimeFunctions.isoTime }, logPath: string): pino.Logger {
+function createFileLogger(options: { level: string; timestamp: typeof pino.stdTimeFunctions.isoTime }, logPath: string, fileLevel: "debug" | "info"): pino.Logger {
   mkdirSync(logPath.replace(/[\\/][^\\/]+$/, ""), { recursive: true });
   return pino(options, pino.multistream([
     { level: "info", stream: process.stdout },
-    { level: "debug", stream: new RotatingFileStream(logPath) },
+    { level: fileLevel, stream: new RotatingFileStream(logPath) },
   ]));
 }
 

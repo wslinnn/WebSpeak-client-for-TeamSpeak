@@ -27,14 +27,14 @@ test("partial welcome data can restore self by channel name without duplicating 
   assert.equal(source.clients.length, 1);
 });
 
-test("directory presentation survives JSON transport with large IDs, member flags and cached avatars", () => {
+test("directory presentation survives JSON transport with large IDs and member flags, avatars excluded", () => {
   const source = directory();
-  const channels = mapChannelTree(source, new Map([["uid-2", "data:image/png;base64,test"]]));
+  const channels = mapChannelTree(source);
   const decoded = parseServerMessage(JSON.parse(JSON.stringify({ type: "channelList", channels })));
   assert.ok(decoded?.type === "channelList");
   assert.equal(decoded.channels[1]?.id, "18446744073709551615");
   assert.equal(decoded.channels[0]?.members?.[0]?.inputMuted, true);
   assert.equal(decoded.channels[0]?.members?.[0]?.away, true);
-  assert.equal(decoded.channels[0]?.members?.[0]?.avatar, "data:image/png;base64,test");
+  assert.equal(decoded.channels[0]?.members?.[0]?.avatar, undefined);
   assert.deepEqual(decoded.channels[1]?.members, []);
 });

@@ -7,12 +7,18 @@ interface RemotePlaybackOptions {
 
 interface SpeakerPlayback {
   context: AudioContext;
+  codec: number;
   decoder: AudioDecoder | null;
   gain: GainNode;
   sources: Set<AudioBufferSourceNode>;
   playTime: number;
   timestamp: number;
 }
+
+// Codec 5 marks TeamSpeak stereo Opus — the accompaniment share path. The
+// decoder must match the channel count or stereo accompaniment decodes as
+// garbage, so a codec switch rebuilds the per-speaker decoder.
+const CODEC_CHANNELS: Record<number, number> = { 4: 1, 5: 2 };
 
 // Preserve the compatibility path's bounded jitter buffer and decoder queue.
 const MAX_PLAY_AHEAD_SECONDS = 0.08;
@@ -73,9 +79,9 @@ export function createRemotePlayback(options: RemotePlaybackOptions) {
     }
   }
 
-  function create(clientId: number, context: AudioContext): SpeakerPlayback {
+  function create(clientId: number, context: AudioContext, codec: number): SpeakerPlayback {
     const stream: SpeakerPlayback = {
-      context, decoder: null, gain: context.createGain(), sources: new Set(),
+      context, codec, decoder: null, gain: context.createGain(), sources: new Set(),
       playTime: context.currentTime, timestamp: 0,
     };
     speakers.set(clientId, stream);
@@ -89,20 +95,20 @@ export function createRemotePlayback(options: RemotePlaybackOptions) {
         clear(clientId);
       },
     });
-    stream.decoder.configure({ codec: "opus", sampleRate: 48000, numberOfChannels: 1 });
+    stream.decoder.configure({ codec: "opus", sampleRate: 48000, numberOfChannels: CODEC_CHANNELS[codec] ?? 1 });
     return stream;
   }
 
-  function play(clientId: number, opusData: Uint8Array): void {
+  function play(clientId: number, opusData: Uint8Array, codec = 4): void {
     if (opusData.length < 3) { options.onDrop(); return; }
     try {
       const context = options.getContext();
       let stream = speakers.get(clientId);
-      if (stream && (stream.context !== context || stream.playTime > context.currentTime + MAX_PLAY_AHEAD_SECONDS || (stream.decoder?.decodeQueueSize ?? 0) >= MAX_DECODE_QUEUE_FRAMES)) {
+      if (stream && (stream.context !== context || stream.codec !== codec || stream.playTime > context.currentTime + MAX_PLAY_AHEAD_SECONDS || (stream.decoder?.decodeQueueSize ?? 0) >= MAX_DECODE_QUEUE_FRAMES)) {
         clear(clientId);
         stream = undefined;
       }
-      stream ??= create(clientId, context);
+      stream ??= create(clientId, context, codec);
       if (speakers.get(clientId) !== stream) return;
       stream.decoder?.decode(new EncodedAudioChunk({ type: "key", timestamp: stream.timestamp, duration: 20_000, data: opusData }));
       stream.timestamp += 20_000;

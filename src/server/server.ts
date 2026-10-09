@@ -1,4 +1,6 @@
 import express from "express";
+import compression from "compression";
+import { createHash } from "node:crypto";
 import { createServer as createHttpsServer } from "node:https";
 import { createServer as createHttpServer } from "node:http";
 import { readFileSync } from "node:fs";
@@ -14,6 +16,7 @@ import { AdminSessionStore } from "../admin/admin-session.js";
 import { isSafeOpenTargetForPrefill, resolveSafeOpenTarget } from "../security/open-target-policy.js";
 import { identityFromString } from "@echosixhiya/teamspeak-client";
 import { JoinRateLimiter } from "./join-rate-limit.js";
+import { SkinDownloadRateLimiter } from "./skin-download-rate-limit.js";
 import type { SkinRegistry } from "../admin/skin-registry.js";
 
 export interface WebServerOptions {
@@ -49,10 +52,16 @@ export function createWebServer(options: WebServerOptions): WebServer {
   }
 
   app.use(express.json({ limit: "100kb" }));
+  // Voice and API traffic shares a 3 Mbit/s uplink; compressing the JSON API
+  // and static assets is close to a free tripling of its capacity. WebSocket
+  // upgrades and binary downloads (skins) are not compressible types and stay
+  // untouched by the default filter.
+  app.use(compression());
 
   const voiceBridge = new VoiceBridge(options.voiceBridgeOptions, logger);
   const adminSessions = new AdminSessionStore();
   const joinRateLimiter = new JoinRateLimiter();
+  const skinDownloadLimiter = new SkinDownloadRateLimiter();
   const startedAt = Date.now();
 
   const healthHandler: express.RequestHandler = (_request, response) => {
@@ -91,12 +100,28 @@ export function createWebServer(options: WebServerOptions): WebServer {
 
   app.get("/api/skins/:id/package", async (request, response) => {
     const id = typeof request.params.id === "string" ? request.params.id : "";
+    // Skins are unauthenticated downloads of up to 20 MB; without a per-peer
+    // bound a looping client monopolizes the 3 Mbit/s uplink for minutes.
+    const peer = request.socket.remoteAddress ?? "unknown";
+    if (!skinDownloadLimiter.allow(peer)) {
+      response.status(429).json({ ok: false, code: "RATE_LIMITED" });
+      return;
+    }
     const archive = await options.skinRegistry?.readArchive(id);
     if (!archive) {
       response.status(404).json({ ok: false, code: "SKIN_NOT_FOUND" });
       return;
     }
-    response.setHeader("Cache-Control", "no-cache");
+    // A package for a given id only changes when an administrator re-uploads
+    // it, so browsers may revalidate with the content hash instead of paying
+    // for the full download again.
+    const etag = `"${createHash("sha256").update(archive).digest("hex").slice(0, 32)}"`;
+    response.setHeader("Cache-Control", "public, max-age=300");
+    response.setHeader("ETag", etag);
+    if (request.headers["if-none-match"] === etag) {
+      response.status(304).end();
+      return;
+    }
     response.setHeader("Content-Type", "application/octet-stream");
     response.setHeader("Content-Disposition", `attachment; filename="${id}.wskin"`);
     response.setHeader("X-Content-Type-Options", "nosniff");
@@ -218,8 +243,20 @@ export function createWebServer(options: WebServerOptions): WebServer {
 
   // Serve static frontend
   if (options.staticDir) {
-    app.use(express.static(options.staticDir));
+    app.use(express.static(options.staticDir, {
+      setHeaders(res, filePath) {
+        // Vite emits content-hashed filenames for build outputs (assets/ and
+        // other bundles); they can be cached forever. Everything else —
+        // index.html and plain public/ files — must revalidate.
+        if (/-[A-Za-z0-9_-]{8}\.[A-Za-z0-9]+$/.test(path.basename(filePath))) {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else {
+          res.setHeader("Cache-Control", "no-cache");
+        }
+      },
+    }));
     app.get(/^(?!\/api|\/ws)/, (_req, res) => {
+      res.setHeader("Cache-Control", "no-cache");
       res.sendFile(path.join(options.staticDir!, "index.html"));
     });
   }

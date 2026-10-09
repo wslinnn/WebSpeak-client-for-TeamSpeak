@@ -1,4 +1,4 @@
-import { SessionAudioTransport } from "./session-audio.js";
+import { SessionAudioTransport, type VoiceEncoder } from "./session-audio.js";
 import { SessionEventCoordinator, type SessionDirectoryState } from "./session-events.js";
 import { ScreenShareCoordinator } from "./screen-share-coordinator.js";
 import { handleCommand } from "./voice-commands.js";
@@ -23,9 +23,13 @@ import { parseClientCommand } from "./voice-protocol.js";
 import { isRecoverable, reconnectDelayMs, reconnectWindowOpen } from "./reconnect-policy.js";
 import { WebRtcAudioSession, type WebRtcAudioOptions, type WebRtcAudioSessionOptions, type WebRtcSessionDescription } from "./webrtc-audio.js";
 import { normalizeScreenShareIceServers, parseScreenShareMessage, type ScreenShareIceServer } from "./screen-share.js";
-import { OpusEncoder } from "./opus-codec.js";
+import { createVoiceEncoder } from "./opus-codec.js";
+import { AvatarLruCache } from "./avatar-cache.js";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
+// Avatars are rare downloads for a self-hosted deployment; the cap bounds
+// worst-case memory (cap × 256KB SDK transfer ceiling) well below concern.
+const AVATAR_CACHE_CAPACITY = 128;
 function publicFailureDetail(error: ReturnType<typeof normalizeTeamSpeakError>): string | undefined {
   const serverMessage = error.diagnostics.serverMessage?.trim();
   const serverId = error.diagnostics.id?.trim();
@@ -42,7 +46,7 @@ export interface VoiceBridgeOptions {
 
 interface VoiceBridgeDependencies {
   createTeamSpeakClient?(options: TSClientOptions, logger: LoggerType): TSClient;
-  createEncoder?(): Pick<OpusEncoder, "encode" | "dispose">;
+  createEncoder?(): VoiceEncoder;
 }
 
 export interface AdminSessionSummary {
@@ -90,6 +94,9 @@ export class VoiceBridge {
   private readonly entries = new Map<string, WebClientEntry>();
   private readonly screenShares: ScreenShareCoordinator;
   private readonly identityLeases = new IdentityLeaseStore();
+  // One cache serves every session: avatars are keyed by TeamSpeak uid, so a
+  // reconnection or a second browser reuses the same download.
+  private readonly avatarCache = new AvatarLruCache(AVATAR_CACHE_CAPACITY);
   private wss: WebSocketServer | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private logger: LoggerType;
@@ -191,7 +198,6 @@ export class VoiceBridge {
         ...(webrtcPublicHost ? { webrtcPublicHost } : {}),
         channelTree: [],
         members: new Map(),
-        avatarCache: new Map(),
         events: null,
         eventLog: [],
         audioTransport: null,
@@ -220,7 +226,7 @@ export class VoiceBridge {
           peer: () => entry!.webrtc,
           whisperTargets: () => entry!.whisperActive ? [...entry!.whisperTargetIds] : null,
           sendJson: message => sendJson(message),
-        }, this.dependencies.createEncoder?.() ?? new OpusEncoder(48000, 1));
+        }, this.dependencies.createEncoder?.() ?? createVoiceEncoder());
       } catch (error: unknown) {
         this.logger.error({ err: error, entryId }, "Could not create Opus encoder");
         void this.teardown(entryId, "teamSpeak-connect-failed");
@@ -381,6 +387,7 @@ export class VoiceBridge {
 
       const events = new SessionEventCoordinator({
         state: entry, client: tsClient, nickname, requestedChannel: channelName,
+        avatarCache: this.avatarCache,
         isCurrent: () => this.entries.get(entryId) === entry && session.state !== "disconnecting" && session.state !== "idle" && session.state !== "failed",
         acceptsDirectory: () => session.state === "authenticating" || session.state === "syncing" || session.state === "connected",
         isPublished: () => tsReady && initialStateSent,
@@ -523,6 +530,11 @@ export class VoiceBridge {
 
   getCreatedCount(): number {
     return this.sessionManager.createdCount;
+  }
+
+  /** Diagnostic visibility into the shared cross-session avatar cache. */
+  get avatarCacheSize(): number {
+    return this.avatarCache.size;
   }
 
   getSessionSummaries(): AdminSessionSummary[] {

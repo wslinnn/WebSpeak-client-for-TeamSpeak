@@ -173,7 +173,7 @@ test("avatar completion after teardown cannot refill the cache or start another 
   await f.bridge.terminateSession(f.entry.id);
   f.release();
   await nextTurn();
-  assert.equal(f.entry.avatarCache.size, 0);
+  assert.equal(f.bridge.avatarCacheSize, 0);
   assert.deepEqual(f.calls, [2]);
 });
 
@@ -183,7 +183,7 @@ test("pending heartbeat acknowledgement does not cancel a live avatar refresh", 
   f.release();
   await nextTurn();
   assert.deepEqual(f.calls, [2, 3]);
-  assert.equal(f.entry.avatarCache.size, 2);
+  assert.equal(f.bridge.avatarCacheSize, 2);
 });
 
 test("an interrupted SDK connection invalidates its pending avatar results", { timeout: 5_000 }, async t => {
@@ -191,7 +191,7 @@ test("an interrupted SDK connection invalidates its pending avatar results", { t
   f.sdk.emit("disconnected");
   f.release();
   await nextTurn();
-  assert.equal(f.entry.avatarCache.size, 0);
+  assert.equal(f.bridge.avatarCacheSize, 0);
   assert.deepEqual(f.calls, [2]);
 });
 

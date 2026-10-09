@@ -74,7 +74,6 @@ export async function handleCommand(
       return;
     }
     sendJson({ type: "channelSwitched", requestId: command.requestId, channelId: rawId });
-    sendJson({ type: "channelList", channels: entry.channelTree });
     return;
   }
 

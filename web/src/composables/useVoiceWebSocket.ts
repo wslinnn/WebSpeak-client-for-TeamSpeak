@@ -1024,6 +1024,24 @@ export function useVoiceWebSocket() {
     whisperActive.value = false;
   }
 
+  /** WebRTC is the primary voice path; a compatibility notice must not survive it. */
+  function startWebRtcVoice(): Promise<void> {
+    clearAudioNotice("WEBRTC_DISABLED");
+    clearAudioNotice("WEBRTC_UNSUPPORTED");
+    const socket = ws.value;
+    return socket ? startWebRtcTransport(voiceConnection.generation, socket) : Promise.resolve();
+  }
+
+  /** The WebSocket fallback must never degrade silently: say why voice is on PCM. */
+  function startCompatibilityVoice(): Promise<void> {
+    if (typeof RTCPeerConnection === "undefined") {
+      setAudioNotice("WEBRTC_UNSUPPORTED", "此浏览器不支持 WebRTC，语音使用兼容传输（WebSocket）：延迟与音质可能下降");
+    } else {
+      setAudioNotice("WEBRTC_DISABLED", "网关未启用 WebRTC，语音使用兼容传输（WebSocket）：延迟与音质可能下降，可在管理台开启");
+    }
+    return ensureMicrophone();
+  }
+
   function handleMessage(raw: unknown): void {
     const msg = parseServerMessage(raw);
     if (!msg || screenShare.handleMessage(msg) || sessionState.receive(msg)) return;
@@ -1054,15 +1072,15 @@ export function useVoiceWebSocket() {
         }
         if (wasReconnecting) {
           const start = msg.webrtcAvailable === true && typeof RTCPeerConnection !== "undefined"
-            ? (ws.value ? startWebRtcTransport(voiceConnection.generation, ws.value) : Promise.resolve())
-            : ensureMicrophone();
+            ? startWebRtcVoice()
+            : startCompatibilityVoice();
           // A failed microphone must not look like a failed connection: record it
           // as an audio diagnostic so the room stays visible with a clear reason.
           start.catch((error: unknown) => { setMicrophoneError(error); });
         } else if (msg.webrtcAvailable === true && typeof RTCPeerConnection !== "undefined" && ws.value) {
-          void startWebRtcTransport(voiceConnection.generation, ws.value).catch((error: unknown) => { setMicrophoneError(error); });
+          void startWebRtcVoice().catch((error: unknown) => { setMicrophoneError(error); });
         } else {
-          void ensureMicrophone().catch((error: unknown) => { setMicrophoneError(error); });
+          void startCompatibilityVoice().catch((error: unknown) => { setMicrophoneError(error); });
         }
         screenShare.refreshStreams();
         break;
@@ -1169,7 +1187,9 @@ export function useVoiceWebSocket() {
     if (clientId === state.tsClientId) return;
     audioDiagnostics.count("framesReceived");
     markSpeaking(clientId);
-    remotePlayback.play(clientId, data.slice(3));
+    // The leading byte carries the TeamSpeak codec (4 mono / 5 stereo); the
+    // playback decoder needs it to decode stereo accompaniment correctly.
+    remotePlayback.play(clientId, data.slice(3), data[0]);
   }
 
   function sendCmd<K extends ClientCommandType>(type: K, payload: ClientCommandPayloads[K]): void {

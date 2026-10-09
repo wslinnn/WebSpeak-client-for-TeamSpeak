@@ -34,7 +34,7 @@ function fixture(webRtc = { enabled: true } as import("./webrtc-audio.js").WebRt
   const peers: PeerStub[] = [];
   const messages: ServerMessage[] = [];
   const entry = {
-    id: "session", session: { state: "connected" }, ws: { readyState: 1 as 0 | 1 | 2 | 3, bufferedAmount: 0, send() {} },
+    id: "session", session: { state: "connected" }, ws: { readyState: 1 as 0 | 1 | 2 | 3, bufferedAmount: 0, send() {}, close() {} },
     webrtc: null as PeerStub | null, webrtcGeneration: 0,
     tsClient: { isConnected: () => true, setInputMuted: async (_muted: boolean) => {}, setAccompanimentActive: async (_active: boolean) => {}, sendVoice: () => { forwarded++; }, sendWhisper: () => { forwarded++; } },
     whisperActive: false, whisperTargetIds: new Set<number>(), audio: createAudioFlowStats(),

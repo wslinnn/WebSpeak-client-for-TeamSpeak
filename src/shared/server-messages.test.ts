@@ -9,10 +9,15 @@ const stream = {
 const event = { id: "event-1", kind: "joined", message: "Member joined", timestamp: 1_000 };
 const samples: Record<ServerMessage["type"], ServerMessage> = {
   connected: { type: "connected", tsClientId: 1, members: [{ id: 1, nickname: "Owner" }], serverEventLog: [event] },
-  memberEnter: { type: "memberEnter", id: 2, nickname: "Visitor", uid: "uid-2", isSelf: false },
+  memberEnter: { type: "memberEnter", id: 2, nickname: "Visitor", uid: "uid-2", isSelf: false, channelId: "1" },
   memberLeave: { type: "memberLeave", id: 2 },
-  memberAvatar: { type: "memberAvatar", id: 2, avatar: "data:image/png;base64,test" },
+  memberUpdated: { type: "memberUpdated", id: 2, nickname: "Renamed", away: true },
+  memberMoved: { type: "memberMoved", id: 2, channelId: "1" },
+  memberAvatar: { type: "memberAvatar", uid: "uid-2", avatar: "data:image/png;base64,test" },
   channelList: { type: "channelList", channels: [{ id: "1", parentID: "0", name: "Lobby", members: [{ id: 1, nickname: "Owner" }] }] },
+  channelCreated: { type: "channelCreated", channel: { id: "2", parentID: "0", name: "Room", members: [] } },
+  channelUpdated: { type: "channelUpdated", id: "2", name: "Renamed" },
+  channelRemoved: { type: "channelRemoved", id: "2" },
   chatMessage: { type: "chatMessage", scope: "channel", targetId: "1", invokerId: 2, message: "hello" },
   pokeReceived: { type: "pokeReceived", invokerId: 2, message: "poke" },
   serverEvent: { type: "serverEvent", event },

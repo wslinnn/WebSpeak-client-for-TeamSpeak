@@ -22,12 +22,14 @@
   "dependencies": {
     "@discordjs/opus": "^0.10.0",
     "@echosixhiya/teamspeak-client": "file:vendor/teamspeak-client",
+    "compression": "^1.8.2",
     "express": "^5.2.1",
     "pino": "^10.3.1",
     "werift": "0.24.4",
     "ws": "^8.20.0"
   },
   "devDependencies": {
+    "@types/compression": "^1.8.1",
     "@types/express": "^5.0.3",
     "@types/node": "^22.15.0",
     "@types/ws": "^8.18.1",

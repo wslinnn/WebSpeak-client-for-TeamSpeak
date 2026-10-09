@@ -319,6 +319,51 @@ test("omitted channel members preserve known data and avatars reject a different
   assert.equal(voice.channels[0].members[0].avatar, "correct");
 });
 
+test("member deltas patch fields in place and move members between channels", async () => {
+  const socket = await connect();
+  socket.receive({ type: "connected", tsClientId: 1 });
+  socket.receive({ type: "channelList", channels: [
+    { id: "1", parentID: "0", name: "Lobby", members: [{ id: 7, uid: "user", nickname: "Visitor" }] },
+    { id: "2", parentID: "0", name: "Room", members: [] },
+  ] });
+  const memberRef = voice.members[0];
+  socket.receive({ type: "memberUpdated", id: 7, nickname: "Renamed", away: true });
+  assert.equal(voice.members[0], memberRef, "memberUpdated must patch the member object in place");
+  assert.equal(memberRef.nickname, "Renamed");
+  assert.equal(voice.channels[0].members[0].nickname, "Renamed", "channel projections share the member object");
+  socket.receive({ type: "memberMoved", id: 7, channelId: "2" });
+  assert.equal(voice.channels[0].members.length, 0);
+  assert.deepEqual(voice.channels[1].members.map(member => member.id), [7]);
+});
+
+test("channel deltas create, rename and remove channels without touching members", async () => {
+  const socket = await connect();
+  socket.receive({ type: "connected", tsClientId: 1 });
+  socket.receive({ type: "channelCreated", channel: { id: "3", parentID: "0", name: "New", members: [] } });
+  assert.deepEqual(voice.channels.map(channel => channel.name), ["New"]);
+  socket.receive({ type: "channelCreated", channel: { id: "3", parentID: "0", name: "Duplicate", members: [] } });
+  assert.equal(voice.channels.length, 1, "a repeated create must not duplicate the channel");
+  socket.receive({ type: "channelUpdated", id: "3", name: "Renamed" });
+  assert.equal(voice.channels[0].name, "Renamed");
+  socket.receive({ type: "channelRemoved", id: "3" });
+  assert.equal(voice.channels.length, 0);
+});
+
+test("member avatars are keyed by uid, warm later joins and survive reconnects", async () => {
+  const socket = await connect();
+  socket.receive({ type: "connected", tsClientId: 1 });
+  socket.receive({ type: "memberAvatar", uid: "user", avatar: "data:image/png;base64,ok" });
+  assert.equal(voice.members.length, 0, "an avatar for an unknown member only warms the cache");
+  socket.receive({ type: "memberEnter", id: 7, uid: "user", nickname: "Later", channelId: "1" });
+  assert.equal(voice.members[0].avatar, "data:image/png;base64,ok", "a later join restores the warm avatar");
+  socket.receive({ type: "channelList", channels: [{ id: "1", parentID: "0", name: "Lobby", members: [...voice.members.map(({ avatar, ...rest }) => rest)] }] });
+  assert.equal(voice.members[0].avatar, "data:image/png;base64,ok", "a directory without avatars keeps warm ones");
+  socket.receive({ type: "disconnected", recoverable: true });
+  socket.receive({ type: "connected", tsClientId: 2 });
+  socket.receive({ type: "channelList", channels: [{ id: "1", parentID: "0", name: "Lobby", members: [{ id: 8, uid: "user", nickname: "Reconnected" }] }] });
+  assert.equal(voice.members[0].avatar, "data:image/png;base64,ok", "avatars survive a reconnect reset");
+});
+
 test("explicit disconnect and replacement target clear all session history and notifications", async () => {
   const socket = await connect();
   socket.receive({ type: "connected", tsClientId: 1 });

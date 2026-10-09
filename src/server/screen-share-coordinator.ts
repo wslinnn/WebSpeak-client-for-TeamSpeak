@@ -11,7 +11,7 @@ export interface ScreenShareParticipant {
   screenPeerId: string;
   nickname: string;
   target: TeamSpeakTarget;
-  members: ReadonlyMap<number, { avatar?: string }>;
+  members: ReadonlyMap<number, { uid?: string }>;
   channelTree: ChannelInfo[];
   tsClient: Pick<TSClient, "getClientId" | "getChannelId" | "isConnected" | "sendProtocolCommand">;
 }
@@ -228,18 +228,17 @@ export class ScreenShareCoordinator {
   }
 
   private describeScreenViewers(stream: ScreenStreamRecord): ScreenShareViewerDescription[] {
+    // The roster rides on every viewer-count broadcast. Keeping base64 avatars
+    // out of it holds each broadcast to nicknames only instead of scaling with
+    // the largest avatar in the channel.
     return [...stream.viewerEntryIds.keys()]
       .map((entryId) => this.entries.get(entryId))
       .filter((entry): entry is ScreenShareParticipant => Boolean(entry))
       .slice(0, 64)
-      .map((entry) => {
-        const avatar = entry.members.get(entry.tsClient.getClientId())?.avatar;
-        return {
-          peerId: entry.screenPeerId,
-          nickname: entry.nickname,
-          ...(avatar && avatar.length <= 128 * 1024 ? { avatar } : {}),
-        };
-      });
+      .map((entry) => ({
+        peerId: entry.screenPeerId,
+        nickname: entry.nickname,
+      }));
   }
 
   private screenShareViewerCountMessage(stream: ScreenStreamRecord): ServerMessage {

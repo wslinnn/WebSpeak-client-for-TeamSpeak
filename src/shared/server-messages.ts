@@ -13,10 +13,15 @@ type ChatFields = { invokerId?: number; invokerName?: string; message: string; t
 /** Public JSON messages. Internal sockets, SDK clients and media objects stay out. */
 export type ServerMessage =
   | Message<"connected", { tsClientId: number; members?: ChannelMember[]; serverEventLog?: ServerEvent[]; identity?: string; webrtcAvailable?: boolean; webRtcStunServer?: string; whisperTargetIds?: number[]; whisperActive?: boolean; screenShareIceServers?: ScreenShareIceServer[] }>
-  | Message<"memberEnter", ChannelMember>
+  | Message<"memberEnter", ChannelMember & { channelId?: string }>
   | Message<"memberLeave", { id: number }>
-  | Message<"memberAvatar", { id: number; uid?: string; avatar?: string }>
+  | Message<"memberUpdated", { id: number } & Partial<Pick<ChannelMember, "nickname" | "uid" | "away" | "awayMessage" | "inputMuted" | "outputMuted" | "channelCommander">>>
+  | Message<"memberMoved", { id: number; channelId?: string }>
+  | Message<"memberAvatar", { id?: number; uid: string; avatar?: string }>
   | Message<"channelList", { channels: ChannelInfo[] }>
+  | Message<"channelCreated", { channel: ChannelInfo }>
+  | Message<"channelUpdated", { id: string; name: string; description?: string }>
+  | Message<"channelRemoved", { id: string }>
   | Message<"chatMessage", ChatFields & { scope?: string; senderUid?: string; targetId?: string | number }>
   | Message<"pokeReceived", ChatFields & { invokerUid?: string }>
   | Message<"serverEvent", { event: ServerEvent }>
@@ -112,10 +117,18 @@ const valid: Record<ServerMessage["type"], (message: RecordValue) => boolean> = 
   connected: m => clientId(m.tsClientId) && optional(m.members, v => arrayOf(v, member)) && optional(m.serverEventLog, v => arrayOf(v, event))
     && optional(m.identity, v => text(v) && v.length <= 8192) && optional(m.webrtcAvailable, boolean) && optional(m.webRtcStunServer, v => normalizeVoiceStunServer(v) !== null)
     && optional(m.whisperTargetIds, v => arrayOf(v, clientId)) && optional(m.whisperActive, boolean),
-  memberEnter: member,
+  memberEnter: m => member(m) && optional(m.channelId, channelId),
   memberLeave: m => clientId(m.id),
-  memberAvatar: m => clientId(m.id) && optional(m.uid, text) && optional(m.avatar, text),
+  memberUpdated: m => clientId(m.id)
+    && optional(m.nickname, v => text(v) && v.length <= 128) && optional(m.uid, identifier)
+    && optional(m.away, boolean) && optional(m.awayMessage, text) && optional(m.inputMuted, boolean)
+    && optional(m.outputMuted, boolean) && optional(m.channelCommander, boolean),
+  memberMoved: m => clientId(m.id) && optional(m.channelId, channelId),
+  memberAvatar: m => optional(m.id, clientId) && identifier(m.uid) && optional(m.avatar, text),
   channelList: m => arrayOf(m.channels, channel),
+  channelCreated: m => channel(m.channel),
+  channelUpdated: m => channelId(m.id) && text(m.name) && optional(m.description, text),
+  channelRemoved: m => channelId(m.id),
   chatMessage: m => text(m.message) && optional(m.invokerId, finite) && optional(m.invokerName, text) && optional(m.timestamp, finite)
     && optional(m.scope, text) && optional(m.senderUid, text) && optional(m.targetId, channelId),
   pokeReceived: m => text(m.message) && optional(m.invokerId, finite) && optional(m.invokerName, text) && optional(m.timestamp, finite) && optional(m.invokerUid, text),

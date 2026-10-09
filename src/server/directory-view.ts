@@ -1,7 +1,11 @@
 import type { ChannelInfo } from "../shared/voice-models.js";
 import type { TSDirectorySnapshot } from "./ts-client.js";
 
-export function mapChannelTree(snapshot: TSDirectorySnapshot, avatarCache = new Map<string, string | null>()): ChannelInfo[] {
+// Avatars are intentionally absent from the directory projection: embedding
+// base64 images in every channelList resends multiplied directory traffic by
+// the largest avatar in the tree. They travel once per uid via memberAvatar
+// messages from the shared cross-session cache instead.
+export function mapChannelTree(snapshot: TSDirectorySnapshot): ChannelInfo[] {
   return snapshot.channels.map((channel) => ({
     id: String(channel.id),
     parentID: String(channel.parentID),
@@ -10,20 +14,16 @@ export function mapChannelTree(snapshot: TSDirectorySnapshot, avatarCache = new 
     description: channel.description || "",
     members: snapshot.clients
       .filter((client) => client.channelID === channel.id)
-      .map((client) => {
-        const avatar = client.uid ? avatarCache.get(client.uid) : undefined;
-        return {
-          id: client.id,
-          nickname: client.nickname || "未知用户",
-          uid: client.uid,
-          ...(avatar ? { avatar } : {}),
-          away: client.away,
-          awayMessage: client.awayMessage,
-          inputMuted: client.inputMuted,
-          outputMuted: client.outputMuted,
-          channelCommander: client.channelCommander,
-        };
-      }),
+      .map((client) => ({
+        id: client.id,
+        nickname: client.nickname || "未知用户",
+        uid: client.uid,
+        away: client.away,
+        awayMessage: client.awayMessage,
+        inputMuted: client.inputMuted,
+        outputMuted: client.outputMuted,
+        channelCommander: client.channelCommander,
+      })),
   }));
 }
 

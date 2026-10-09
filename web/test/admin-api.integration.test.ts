@@ -80,7 +80,9 @@ test("browser admin API consumes the actual HTTP router and preserves keep/repla
   const updated = await api.saveSettings({ ...original, ...network });
   assert.equal(updated.settings.webRtcPublicHost, "media.example.com");
   assert.equal(updated.settings.webRtcStunServer, "stun:stun.example.com:3478");
-  assert.deepEqual(service.getWebRtcAudioOptions(), { enabled: false, publicHost: "media.example.com", ipv6Enabled: true, stunServer: "stun:stun.example.com:3478", udpPortRange: [40000, 40099] });
+  // Schema v11 promotes WebRTC to the default voice path; the admin can still
+  // disable it and the setting persists.
+  assert.deepEqual(service.getWebRtcAudioOptions(), { enabled: true, publicHost: "media.example.com", ipv6Enabled: true, stunServer: "stun:stun.example.com:3478", udpPortRange: [40000, 40099] });
   const { webRtcPublicHost, webRtcIpv6Enabled, webRtcStunServer, ...legacyInput } = original;
   await api.saveSettings(legacyInput);
   assert.equal((await api.settings()).webRtcPublicHost, "media.example.com", "older clients must preserve the new settings");

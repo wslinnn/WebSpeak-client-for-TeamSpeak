@@ -178,8 +178,11 @@ export function useWebClientPerformance(
     panelOpen.value = !panelOpen.value;
   }
 
-  watch(connected, (isConnected) => {
-    if (isConnected) start();
+  watch([connected, panelOpen], ([isConnected, isOpen]) => {
+    // The probe loop is panel-owned: sampling getStats and bridge counters
+    // only while the panel can display them, instead of polling for the
+    // whole connection.
+    if (isConnected && isOpen) start();
     else stop();
   }, { immediate: true });
 
