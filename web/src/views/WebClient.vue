@@ -1015,6 +1015,7 @@ const screenShareControls = useWebClientScreenShare({
   remoteVolume: screenShareRemoteVolume,
   error: screenShareError,
   errorCode: screenShareErrorCode,
+  selectedOutputDeviceId,
   startScreenShare,
   joinScreenShare,
   leaveScreenShare,

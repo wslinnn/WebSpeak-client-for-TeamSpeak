@@ -19,6 +19,7 @@ interface Playback {
 // capture AudioContext. Each element owns its play attempt and retry listeners.
 export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
   let current: Playback | null = null;
+  let currentLevel = 1;
   const isCurrent = (record: Playback): boolean => current === record && !record.disposed;
   const clean = (operation: () => void): void => { try { operation(); } catch { /* continue teardown */ } };
 
@@ -62,7 +63,7 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       }
       if (!isCurrent(record)) return;
       try {
-        record.output.muted = false;
+        record.output.muted = currentLevel <= 0;
         await record.output.play();
         if (!isCurrent(record)) return;
         record.removeRetry?.();
@@ -79,6 +80,15 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     finally { if (record.pending === task) record.pending = null; }
   }
 
+  // iOS Safari ignores element.volume for playback; `muted` is honored
+  // everywhere, so silence must go through it, with volume as best effort.
+  function applyOutputLevel(record: Playback, value: number): void {
+    const level = Math.max(0, Math.min(1, value));
+    currentLevel = level;
+    clean(() => { record.output.muted = level <= 0; });
+    clean(() => { record.output.volume = level; });
+  }
+
   function attach(stream: MediaStream): void {
     const output = document.createElement("audio") as SinkAudioElement;
     const candidate: Playback = { output, disposed: false, pending: null, removeRetry: null };
@@ -86,7 +96,7 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       output.autoplay = true;
       output.muted = false;
       output.setAttribute("playsinline", "");
-      output.volume = options.volume();
+      applyOutputLevel(candidate, options.volume());
       output.setAttribute("aria-hidden", "true");
       output.tabIndex = -1;
       output.style.position = "fixed";
@@ -109,6 +119,6 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
   return {
     attach, stop,
     get output(): SinkAudioElement | null { return current?.output ?? null; },
-    setVolume(value: number): void { if (current) current.output.volume = value; },
+    setVolume(value: number): void { if (current) applyOutputLevel(current, value); },
   };
 }

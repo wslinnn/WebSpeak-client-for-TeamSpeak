@@ -3,6 +3,8 @@ import type { ChannelMember, ScreenShareOutputSettings, ScreenShareStream } from
 
 export type ScreenShareResolutionPreset = "source" | "720p" | "1080p";
 
+type SinkVideoElement = HTMLVideoElement & { setSinkId?: (deviceId: string) => Promise<void> };
+
 interface ScreenShareResolutionOption {
   value: ScreenShareResolutionPreset;
   width?: number;
@@ -18,6 +20,7 @@ interface UseWebClientScreenShareOptions {
   remoteVolume: Ref<number>;
   error: Ref<string>;
   errorCode: Ref<string>;
+  selectedOutputDeviceId: Ref<string>;
   startScreenShare: (audio?: boolean, settings?: ScreenShareOutputSettings) => Promise<void>;
   joinScreenShare: (streamId: string) => void;
   leaveScreenShare: () => void;
@@ -34,6 +37,7 @@ export function useWebClientScreenShare({
   remoteVolume,
   error,
   errorCode,
+  selectedOutputDeviceId,
   startScreenShare,
   joinScreenShare,
   leaveScreenShare,
@@ -125,10 +129,17 @@ export function useWebClientScreenShare({
     await startScreenShare(true, settings);
   }
 
-  watch([videoElement, remoteStream, remoteVolume], ([video, stream, volume]) => {
+  // The shared-screen <video> is its own playback endpoint: follow the chosen
+  // output device, otherwise speaker selection misses this audio entirely.
+  watch([videoElement, remoteStream, remoteVolume, selectedOutputDeviceId], async ([video, stream, volume, sinkId]) => {
     if (!video) return;
     if (video.srcObject !== stream) video.srcObject = stream;
     video.volume = Math.max(0, Math.min(1, volume ?? 1));
+    const sinkTarget = video as SinkVideoElement;
+    if (sinkId && typeof sinkTarget.setSinkId === "function") {
+      try { await sinkTarget.setSinkId(sinkId); }
+      catch { /* the default output remains the fallback */ }
+    }
     if (stream) void video.play().catch(() => undefined);
   }, { flush: "post", immediate: true });
   watch(viewing, (isViewing) => {

@@ -38,7 +38,7 @@
             ><select
               id="input-device"
               class="settings-select"
-              :value="selectedInputDeviceId"
+              :value="inputSelectValue"
               :disabled="!inputDevices.length"
               @change="onInputDeviceChange"
               ><option value="">{{ t("defaultMicrophone") }}</option
@@ -141,6 +141,7 @@
               ><p class="settings-hint">{{ t("localMicTestHint") }}</p
               ><audio
                 v-if="testAudioUrl"
+                ref="testAudioElement"
                 class="test-audio"
                 :src="testAudioUrl"
                 controls
@@ -164,7 +165,7 @@
               v-if="outputDeviceSupported"
               id="output-device"
               class="settings-select"
-              :value="selectedOutputDeviceId"
+              :value="outputSelectValue"
               :disabled="!outputDevices.length"
               @change="onOutputDeviceChange"
               ><option value="">{{ t("defaultOutput") }}</option
@@ -241,11 +242,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, type CSSProperties } from "vue";
+import { computed, ref, watch, type CSSProperties } from "vue";
 import Icon from "../Icon.vue";
 import { useDialogFocus } from "../../composables/useDialogFocus.js";
 import type { useVoiceWebSocket } from "../../composables/useVoiceWebSocket.js";
 import type { useWebClientAudioControls } from "../../composables/useWebClientAudioControls.js";
+import type { SinkAudioElement } from "../../voice/webrtc-playback.js";
 
 type AudioSettingsState = Pick<ReturnType<typeof useVoiceWebSocket>,
   | "inputDevices"
@@ -325,4 +327,22 @@ const {
   meterBarHeight,
   toggleMicrophone,
 } = props.controls;
+
+// A persisted deviceId may have left the enumerated list (unplugged device,
+// rotated Safari ids); falling back to the default option beats a blank select.
+const listedValue = (deviceId: string, devices: { deviceId: string }[]): string =>
+  deviceId && devices.some((device) => device.deviceId === deviceId) ? deviceId : "";
+const inputSelectValue = computed(() => listedValue(selectedInputDeviceId.value, inputDevices));
+const outputSelectValue = computed(() => listedValue(selectedOutputDeviceId.value, outputDevices));
+
+// The test-audio element is its own playback endpoint: keep it on the chosen
+// output device too, or speaker selection would miss half of what users hear.
+const testAudioElement = ref<SinkAudioElement | null>(null);
+watch([testAudioUrl, testAudioElement, outputSelectValue], async ([url, element]) => {
+  if (!url || !element?.setSinkId) return;
+  const deviceId = outputSelectValue.value;
+  try {
+    await element.setSinkId(deviceId);
+  } catch { /* fall back to the default output for the preview clip */ }
+}, { flush: "post" });
 </script>

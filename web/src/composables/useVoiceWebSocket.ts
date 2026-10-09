@@ -357,6 +357,7 @@ export function useVoiceWebSocket() {
       context: () => audioCtx,
       volume: effectiveOutputVolume,
       onEndpoint(output) {
+        clearAudioNotice("OUTPUT_DEVICE_PENDING_WEBRTC");
         if (!selectedOutputDeviceId.value || !output.setSinkId) return;
         const deviceId = selectedOutputDeviceId.value;
         const generation = outputDeviceGeneration;
@@ -550,8 +551,23 @@ export function useVoiceWebSocket() {
       return;
     }
     outputDeviceSupported.value = true;
-    if (ctx.setSinkId) await audioSinkRouter.set(ctx, deviceId, isCurrent);
-    if (output?.setSinkId) await audioSinkRouter.set(output, deviceId, () => isCurrent() && output === webrtc.output);
+    let routed = false;
+    if (ctx.setSinkId) {
+      await audioSinkRouter.set(ctx, deviceId, isCurrent);
+      routed = true;
+    }
+    if (output?.setSinkId) {
+      await audioSinkRouter.set(output, deviceId, () => isCurrent() && output === webrtc.output);
+      routed = true;
+    }
+    if (!routed) {
+      // element-only sink browsers (e.g. Firefox) before the WebRTC endpoint
+      // exists: the choice is stored but nothing can follow it yet — say so
+      // instead of reporting a success the ears cannot confirm.
+      setAudioNotice("OUTPUT_DEVICE_PENDING_WEBRTC", "输出设备将在语音通道建立后生效，当前连接尚未建立音频输出");
+      return;
+    }
+    clearAudioNotice("OUTPUT_DEVICE_PENDING_WEBRTC");
   }
 
   function checkSupport(): string | null {
@@ -679,11 +695,27 @@ export function useVoiceWebSocket() {
     let nextStream: MediaStream | null = null;
     let nextCapture: MicrophoneCapture | null = null;
     let factoryOwnsStream = false;
+    const resumeSuspendedContext = (): Promise<void> => ctx.state === "suspended" ? ctx.resume() : Promise.resolve();
     try {
-      nextStream = await requestMediaBeforeAudioResume(
-        () => navigator.mediaDevices.getUserMedia({ audio: microphoneConstraints() }),
-        () => ctx.state === "suspended" ? ctx.resume() : Promise.resolve(),
-      );
+      try {
+        nextStream = await requestMediaBeforeAudioResume(
+          () => navigator.mediaDevices.getUserMedia({ audio: microphoneConstraints() }),
+          resumeSuspendedContext,
+        );
+      } catch (error) {
+        // A persisted deviceId outlives its device (unplugged headset, rotated
+        // Safari ids). Fall back to the default input once before failing: the
+        // dead id must not wedge the microphone for the whole page session.
+        const staleDeviceId = error instanceof DOMException
+          && (error.name === "OverconstrainedError" || error.name === "NotFoundError");
+        if (!staleDeviceId || !selectedInputDeviceId.value || controller.signal.aborted) throw error;
+        selectedInputDeviceId.value = "";
+        try { localStorage.setItem("webspeak:input-device", ""); } catch { /* storage optional */ }
+        nextStream = await requestMediaBeforeAudioResume(
+          () => navigator.mediaDevices.getUserMedia({ audio: microphoneConstraints() }),
+          resumeSuspendedContext,
+        );
+      }
       assertCurrent();
       audioPermission.value = "granted";
       factoryOwnsStream = true;
@@ -704,6 +736,7 @@ export function useVoiceWebSocket() {
       // if device enumeration or WebRTC negotiation is still in progress.
       committedInputDeviceId = selectedInputDeviceId.value;
       committedNoiseSuppressionEnabled = noiseSuppressionEnabled.value;
+      watchMicrophoneTrack(nextStream);
       clearMicrophoneError();
     } catch (error) {
       nextCapture?.dispose();
@@ -717,6 +750,28 @@ export function useVoiceWebSocket() {
       if (pendingMicrophoneCapture === controller) pendingMicrophoneCapture = null;
     }
     syncAudioContextNotice();
+  }
+
+  /**
+   * A revoked permission or unplugged device kills the track silently. Surface
+   * it: the capture graph keeps "working" with no audio and no error anywhere.
+   * Stale handlers no-op via the stream identity check after a reconfiguration.
+   */
+  function watchMicrophoneTrack(stream: MediaStream): void {
+    const track = stream.getAudioTracks()[0];
+    if (!track) return;
+    track.addEventListener("ended", () => {
+      if (micStream !== stream) return;
+      setAudioNotice("MIC_TRACK_LOST", "麦克风设备已断开或权限被回收，采集已停止：请在音频设置中重新选择设备或重新授权");
+    });
+    track.addEventListener("mute", () => {
+      if (micStream !== stream) return;
+      setAudioNotice("MIC_TRACK_MUTED", "麦克风被系统或浏览器静音，其他成员暂时听不到你");
+    });
+    track.addEventListener("unmute", () => {
+      if (micStream !== stream) return;
+      clearAudioNotice("MIC_TRACK_MUTED");
+    });
   }
 
   // 导出给 WebClient：开麦前先 await 此函数完成真实采集，避免出现“假成功”
