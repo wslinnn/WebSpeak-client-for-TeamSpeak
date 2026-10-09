@@ -317,10 +317,7 @@ const { operations, operationsLoading, terminatingSession, inviteSubmitting, rev
 const { tr, formatDate, formatAge, sessionStateLabel, connectionStatusLabel, inviteStatusLabel, eventName, connectionFailureText } = props.i18n;
 
 function connectionRoute(record: AdminConnectionRecord) {
-  const route = tr("connectionFromTo", { ip: record.clientIp || "—", target: record.target || "—" });
-  if (!record.relayName && !record.relayTarget) return route;
-  const relay = [record.relayName, record.relayTarget].filter(Boolean).join(" · ") || "—";
-  return `${route} · ${tr("connectionViaRelay", { relay })}`;
+  return tr("connectionFromTo", { ip: record.clientIp || "—", target: record.target || "—" });
 }
 function formatContext(context: Record<string, string | number | boolean>) { return Object.entries(context).map(([key, value]) => `${key}=${value}`).join(" · "); }
 </script>

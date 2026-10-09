@@ -33,9 +33,6 @@ interface UseWebClientAudioControlsOptions {
 export function useWebClientAudioControls({
   settingsOpen,
   microphoneMuted,
-  inputVolume,
-  voxThreshold,
-  notificationVolume,
   micLevel,
   microphoneTestActive,
   accompanimentActive,

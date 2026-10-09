@@ -25,7 +25,6 @@
         v-model:skin-id="activeSkinId"
         :brand-name="skinHomeCopy.brandName || siteName"
         :app-version="appVersion"
-        :mobile="mobileMode"
         :skin-options="skinOptions"
         :t="t"
         @open-qq="qqModalOpen = true"
@@ -74,41 +73,6 @@
                 ><b>{{ feature.title }}</b
                 ><small>{{ feature.description }}</small></span
               ></div
-            >
-          </div>
-          <div
-            v-if="visitorNumber !== null"
-            class="visitor-count"
-            data-ws-part="home.visitors"
-            role="status"
-            aria-live="polite"
-          >
-            <span
-              class="visitor-count-orbit"
-              aria-hidden="true"
-            ></span>
-            <span class="visitor-count-icon"
-              ><Icon
-                name="users"
-                :size="15"
-            /></span>
-            <span class="visitor-count-label">{{
-              t("visitorCount", { count: visitorNumber })
-            }}</span>
-            <span
-              v-if="visitorTotal !== null"
-              class="visitor-count-divider"
-              aria-hidden="true"
-            ></span>
-            <span
-              v-if="visitorTotal !== null"
-              class="visitor-count-total"
-              >{{ t("visitorTotal", { count: visitorTotal }) }}</span
-            >
-            <span
-              class="visitor-count-spark"
-              aria-hidden="true"
-              >✦</span
             >
           </div>
         </div>
@@ -196,10 +160,8 @@
             v-model:nickname="nickname"
             v-model:channel="channel"
             v-model:remember-identity="rememberIdentity"
-            v-model:acceleration-relay-id="accelerationRelayId"
             :access-mode="accessMode"
             :open-target-prefill-blocked="openTargetPrefillBlocked"
-            :acceleration-relays="accelerationRelays"
             :favorite-servers="favoriteServers"
             :recent-servers="recentServers"
             :is-favorite="isFavorite"
@@ -788,10 +750,10 @@ import LanguageSwitcher from "../components/LanguageSwitcher.vue";
 import SkinSwitcher, { type SkinOption } from "../components/SkinSwitcher.vue";
 import { useWebClientChat } from "../composables/useWebClientChat.js";
 import { useWebClientAudioControls } from "../composables/useWebClientAudioControls.js";
-import { useWebClientChannels, type TreeChannel } from "../composables/useWebClientChannels.js";
+import { useWebClientChannels } from "../composables/useWebClientChannels.js";
 import { useWebClientConnection } from "../composables/useWebClientConnection.js";
 import { useWebClientMembers } from "../composables/useWebClientMembers.js";
-import { useVoiceWebSocket, type ChannelMember, type ChatMessage } from "../composables/useVoiceWebSocket.js";
+import { useVoiceWebSocket, type ChatMessage } from "../composables/useVoiceWebSocket.js";
 import { useWebClientScreenShare } from "../composables/useWebClientScreenShare.js";
 import { useWebClientPerformance } from "../composables/useWebClientPerformance.js";
 import { useWebClientI18n } from "../composables/useWebClientI18n.js";
@@ -810,7 +772,6 @@ import { combineTeamSpeakTarget, DEFAULT_TEAM_SPEAK_PORT, splitTeamSpeakTarget }
 const {
   state: voiceState,
   sessionEpoch,
-  memberConversationKey,
   members,
   channels,
   chatMessages,
@@ -900,7 +861,6 @@ const serverHost = ref(initialTarget.address);
 const serverPort = ref(initialTarget.port);
 const serverPassword = ref("");
 const rememberIdentity = ref(localStorage.getItem("webspeak:remember-identity") !== "0");
-const accelerationRelayId = ref("");
 const browserError = ref("");
 const memberQuery = ref("");
 const selectedChannelId = ref("");
@@ -952,17 +912,13 @@ const {
 const {
   accessMode,
   initialized,
-  mobileMode,
   siteName,
   appVersion,
-  visitorNumber,
-  visitorTotal,
-  accelerationRelays,
   openTargetPrefillBlocked,
   serverConfigLoading,
   localizedWelcomeText,
   loadPublicConfig,
-} = useWebClientPublicConfig({ serverHost, serverPort, accelerationRelayId, language, t });
+} = useWebClientPublicConfig({ serverHost, serverPort, language, t });
 const themeMode = ref<ThemeMode>(getStoredTheme());
 applyTheme(themeMode.value);
 const publicSkin = usePublicSkin({ activeSkin, themeMode, appVersion: () => appVersion.value });
@@ -1094,7 +1050,6 @@ const {
   channelTree,
   currentChannel,
   currentChannelName,
-  currentChannelDescription,
   currentMembers,
   memberChannels,
   filteredMemberChannels,
@@ -1157,7 +1112,6 @@ const {
   selectChannel,
   submitChannelPassword,
   cancelChannelPassword,
-  selectChannelById,
 } = useWebClientConnection({
   initialized,
   accessMode,
@@ -1172,7 +1126,6 @@ const {
   serverPassword,
   rememberIdentity,
   identityMaterial,
-  accelerationRelayId,
   inviteToken,
   selectedChannelId,
   channels: channelTree,
@@ -1295,10 +1248,6 @@ function selectMobileSection(section: typeof mobileSection.value): void {
   if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   memberMenu.value = null;
   mobileSection.value = section;
-}
-
-function channelLabel(item: TreeChannel) {
-  return `${"　".repeat(item.depth)}${item.name}`;
 }
 
 function doShare() {

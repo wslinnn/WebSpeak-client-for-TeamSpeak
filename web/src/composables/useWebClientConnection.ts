@@ -31,7 +31,6 @@ interface UseWebClientConnectionOptions {
   serverPassword: Ref<string>;
   rememberIdentity: Readonly<Ref<boolean>>;
   identityMaterial: Ref<string>;
-  accelerationRelayId: Ref<string>;
   inviteToken: string;
   selectedChannelId: Ref<string>;
   channels: Readonly<Ref<TreeChannel[]>>;
@@ -39,7 +38,7 @@ interface UseWebClientConnectionOptions {
   channelPasswordDialog: ChannelPasswordDialogState;
   serverPasswordDialog: ServerPasswordDialogState;
   chatTab: Ref<WebClientChatTab>;
-  connect: (target: string, channel: string, nickname: string, password: string, identity: string, remember: boolean, invite: string, useRelay: boolean, relayId: string) => void;
+  connect: (target: string, channel: string, nickname: string, password: string, identity: string, remember: boolean, invite: string) => void;
   disconnect: () => void;
   switchChannel: (channelId: string, password?: string) => void;
   clearError: () => void;
@@ -63,7 +62,6 @@ export function useWebClientConnection({
   serverPassword,
   rememberIdentity,
   identityMaterial,
-  accelerationRelayId,
   inviteToken,
   selectedChannelId,
   channels,
@@ -114,8 +112,6 @@ export function useWebClientConnection({
       rememberIdentity.value ? identityMaterial.value : "",
       rememberIdentity.value,
       inviteToken,
-      Boolean(accelerationRelayId.value),
-      accelerationRelayId.value,
     );
   }
 

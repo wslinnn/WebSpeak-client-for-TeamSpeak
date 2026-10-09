@@ -208,10 +208,6 @@
             ><span class="settings-summary-chip"
               ><i :class="{ active: serverForm.webRtcEnabled }"></i>{{ tr("webrtcSettings") }} ·
               {{ serverForm.webRtcEnabled ? tr("enabledStatus") : tr("disabledStatus") }}</span
-            ><span class="settings-summary-chip"
-              ><i :class="{ active: serverForm.relayNodes.some((relay) => relay.enabled) }"></i
-              >{{ tr("relaySettings") }} ·
-              {{ tr("relayNodeCount", { count: serverForm.relayNodes.length }) }}</span
             ></span
           >
           <Icon
@@ -277,83 +273,6 @@
               </label>
               <small class="field-help">{{ tr("webrtcApplyHint") }}</small></section
             >
-            <section class="settings-subsection relay-card"
-              ><header class="settings-subsection-heading"
-                ><div
-                  ><h4>{{ tr("relaySettings") }}</h4
-                  ><p class="card-help">{{ tr("relaySettingsLead") }}</p></div
-                ></header
-              ><div
-                v-if="!serverForm.relayNodes.length"
-                class="relay-empty"
-                >{{ tr("relayNodeEmpty") }}</div
-              ><div class="relay-node-list"
-                ><div
-                  v-for="(relay, index) in serverForm.relayNodes"
-                  :key="relay.id"
-                  class="relay-node"
-                  ><div class="relay-node-heading"
-                    ><label class="relay-enabled"
-                      ><input
-                        v-model="relay.enabled"
-                        type="checkbox"
-                      /><strong>{{ relay.name || tr("relayUnnamed") }}</strong></label
-                    ><button
-                      class="text-danger"
-                      type="button"
-                      @click="removeRelayNode(index)"
-                      >{{ tr("remove") }}</button
-                    ></div
-                  ><div class="relay-fields"
-                    ><label
-                      ><span>{{ tr("relayName") }}</span
-                      ><input
-                        v-model.trim="relay.name"
-                        maxlength="80"
-                        :placeholder="tr('relayNamePlaceholder')" /></label
-                    ><label
-                      ><span>{{ tr("relayTarget") }}</span
-                      ><input
-                        v-model.trim="relay.target"
-                        maxlength="300"
-                        :placeholder="tr('relayTargetPlaceholder')" /></label
-                    ><div class="password-row"
-                      ><label
-                        ><span>{{ tr("relayToken") }}</span
-                        ><input
-                          v-model="relay.token"
-                          type="password"
-                          autocomplete="off"
-                          :disabled="relay.tokenAction !== 'replace'"
-                          :placeholder="
-                            relay.hasToken
-                              ? tr('relayTokenConfigured')
-                              : tr('relayTokenPlaceholder')
-                          " /></label
-                      ><div class="password-actions"
-                        ><button
-                          type="button"
-                          :class="{ active: relay.tokenAction === 'replace' }"
-                          @click="relay.tokenAction = 'replace'"
-                          >{{ tr("change") }}</button
-                        ><button
-                          v-if="relay.hasToken"
-                          type="button"
-                          :class="{ danger: relay.tokenAction === 'remove' }"
-                          @click="relay.tokenAction = 'remove'"
-                          >{{ tr("remove") }}</button
-                        ></div
-                      ></div
-                    ></div
-                  ></div
-                ></div
-              ><button
-                class="secondary-button relay-add"
-                type="button"
-                @click="addRelayNode"
-                >{{ tr("relayAdd") }}</button
-              ><small class="field-help">{{ tr("relayManagedHint") }}</small></section
-            >
           </div>
         </div>
       </details>
@@ -378,7 +297,7 @@ const props = defineProps<{
 const welcomeLanguage = defineModel<WelcomeLanguage>("welcomeLanguage", { required: true });
 const emit = defineEmits<{ webrtcToggle: [] }>();
 // The page owns one stable feature controller across route changes.
-const { serverForm, serverSaving, testing, testResult, saveServerSettings, testServerConnection, addRelayNode, removeRelayNode } = props.model;
+const { serverForm, serverSaving, testing, testResult, saveServerSettings, testServerConnection } = props.model;
 const { tr, formatDate, connectionFailureText } = props.i18n;
 function handleWebRtcToggle() { emit("webrtcToggle"); }
 

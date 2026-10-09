@@ -24,11 +24,11 @@ The public demo is hosted in Hong Kong and its network conditions and load may b
 | Messaging and actions | Channel chat, server chat, private messages, poke actions, and whisper targets. |
 | Desktop accompaniment | Select an audio-enabled window or browser tab and share its sound with the current channel. |
 | Identity and access | Remembered identity, visitor-defined targets, revocable expiring invite links, and TeamSpeak 3 identity import, conversion, validation, and export. |
-| Administration | Manage targets, access policy, public media address, IPv6 candidates, voice STUN, relays, invites, sessions, logs, diagnostics, and backups. |
+| Administration | Manage targets, access policy, public media address, IPv6 candidates, voice STUN, invites, sessions, logs, diagnostics, and backups. |
 | Engineering structure | In 0.2.6, gateway voice, session events, audio, and screen-share coordination were split into modules; frontend voice and admin pages were decomposed into components, composables, and services, with lifecycle and reconnect tests. |
 | Skins | Protected Day, Night, and ILLUSIA skins, plus instance-managed `.wskin` appearances with administrator enable/default controls. |
 | User experience | Chinese, English, German, Russian, and Japanese UI with responsive desktop/mobile layouts. |
-| Self-hosting | Data stays with the operator; packages include Windows x64 and Linux x64/ARM64, Docker supports amd64/arm64, and Android APKs target arm64-v8a, armeabi-v7a, and x86_64. |
+| Self-hosting | Data stays with the operator; packages include Windows x64 and Linux x64/ARM64, and Docker supports amd64/arm64. |
 
 ## 🖼️ Screenshots
 
@@ -87,77 +87,10 @@ With TURN configured, media may use that external TURN service but never the Web
 
 Browser users and native TeamSpeak 6 clients can discover, start, and watch each other's screen shares. Screen media between browsers, and between a browser and a native client, is sent over a WebRTC/ICE peer-to-peer path whenever possible; WebSpeak handles session authorization, share state, and SDP/ICE signaling, but does not carry the screen media. The UI includes live status, viewer count, player volume, fullscreen, and exit controls. Share settings support up to 1080p and 60 FPS, with live WebRTC statistics for diagnosis.
 
-### 2. Relay mode
-
-Use a relay when a TeamSpeak server rejects connections from another region or when the direct path is unstable. It is not a VPN: it forwards only the TeamSpeak traffic of the current WebSpeak session, while the visitor still chooses the target server in the web page.
-
-A relay instance is a dedicated forwarding service with no visitor page or administration console. It accepts only gateway sessions with a matching token. Use a random token of at least 16 characters.
-
-#### Run from source
-
-```bash
-git clone --depth 1 https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak.git
-cd WebSpeak-client-for-TeamSpeak
-npm ci --ignore-scripts
-npm run prepare:sdk
-npm run build
-WEBSPEAK_MODE=relay \
-WEBSPEAK_RELAY_TOKEN='replace-with-a-long-random-token' \
-WEBSPEAK_RELAY_HOST='0.0.0.0' \
-WEBSPEAK_RELAY_PORT='39087' \
-node dist/index.js
-```
-
-Windows PowerShell:
-
-```powershell
-$env:WEBSPEAK_MODE = "relay"
-$env:WEBSPEAK_RELAY_TOKEN = "replace-with-a-long-random-token"
-$env:WEBSPEAK_RELAY_HOST = "0.0.0.0"
-$env:WEBSPEAK_RELAY_PORT = "39087"
-node .\dist\index.js
-```
-
-#### Run from a release package
-
-Download and extract the appropriate package from [Releases](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/latest):
-
-```bash
-# Linux
-export WEBSPEAK_MODE=relay
-export WEBSPEAK_RELAY_TOKEN='replace-with-a-long-random-token'
-export WEBSPEAK_RELAY_HOST='0.0.0.0'
-export WEBSPEAK_RELAY_PORT='39087'
-./runtime/node ./dist/index.js
-```
-
-On Windows PowerShell, set the same variables and run `.\runtime\node.exe .\dist\index.js`.
-
-#### Run with Docker
-
-```bash
-docker run -d --name webspeak-relay --restart unless-stopped --network host \
-  -e WEBSPEAK_MODE=relay \
-  -e WEBSPEAK_RELAY_TOKEN='replace-with-a-long-random-token' \
-  -e WEBSPEAK_RELAY_PORT='39087' \
-  ghcr.io/echosixhiya/webspeak:latest
-```
-
-Allow the relay host's UDP listen port, `39087` by default.
-
-#### Enable it in the gateway
-
-1. Open **Administration → Servers → Relay server** and add one or more nodes.
-2. Set a custom display name, endpoint such as `relay.example.com#39087`, and matching token for each node, then save.
-3. Visitors can choose direct access or one of the configured relays on the welcome page.
-
-Disable and save the relay configuration to remove the relay option from the welcome page.
-
 ### 3. Dependencies and attribution
 
-- The relay service is built into WebSpeak with Node.js standard libraries; it does not use GOST, sing-box, or another proxy framework.
 - WebRTC uses [werift](https://github.com/shinyoshiaki/werift-webrtc) `0.24.4`, whose upstream project is licensed under MIT.
-- TeamSpeak protocol connectivity uses the project-maintained [EchoSixHIYA/teamspeak-js](https://github.com/EchoSixHIYA/teamspeak-js) SDK fork.
+- TeamSpeak protocol connectivity uses the [EchoSixHIYA/teamspeak-js](https://github.com/EchoSixHIYA/teamspeak-js) SDK; its build output is vendored into the repository at `vendor/teamspeak-client/`.
 
 ## 🧾 Changelog
 
@@ -217,7 +150,6 @@ Do not run `docker compose down -v`; it removes the database and administrator s
 
 Download the matching `windows-x64.zip`, `linux-x64.tar.gz`, or `linux-arm64.tar.gz` from [GitHub Releases](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/latest). Extract it and run the included launcher. Packages include the Node.js runtime and production dependencies. Docker images support amd64/arm64.
 
-Android APKs for `arm64-v8a`, `armeabi-v7a`, and `x86_64` are also attached. They use debug signing for sideload testing; they are not Google Play packages, and real-device voice still needs validation.
 
 ### From source
 
@@ -225,7 +157,6 @@ Android APKs for `arm64-v8a`, `armeabi-v7a`, and `x86_64` are also attached. The
 git clone https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak.git
 cd WebSpeak-client-for-TeamSpeak
 npm ci --ignore-scripts
-npm run prepare:sdk
 npm rebuild @discordjs/opus --foreground-scripts
 npm --prefix web ci
 npm --prefix web run build

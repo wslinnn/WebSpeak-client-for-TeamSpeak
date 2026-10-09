@@ -6,7 +6,7 @@ import type { AdminCredential } from "../security/admin-password.js";
 import type { TeamSpeakProtocol } from "../server/teamspeak-adapter.js";
 import { DEFAULT_WEBRTC_UDP_PORT_RANGE } from "../server/webrtc-config.js";
 
-export const DATABASE_SCHEMA_VERSION = 9;
+export const DATABASE_SCHEMA_VERSION = 10;
 export type AccessMode = "fixed" | "open";
 
 export interface PersistedSettings {
@@ -31,12 +31,6 @@ export interface PersistedSettings {
   webRtcStunServer: string;
   webRtcUdpStart: number;
   webRtcUdpEnd: number;
-  relayConfigured: boolean;
-  relayEnabled: boolean;
-  relayName: string;
-  relayHost: string;
-  relayPort: number;
-  relayTokenEncrypted: string | null;
   updatedAt: string;
 }
 
@@ -58,23 +52,6 @@ export interface SettingsUpdate {
   webRtcStunServer?: string;
   webRtcUdpStart?: number;
   webRtcUdpEnd?: number;
-  relayConfigured: boolean;
-  relayEnabled: boolean;
-  relayName: string;
-  relayHost: string;
-  relayPort: number;
-  relayTokenEncrypted: string | null;
-}
-
-export interface PersistedRelayNode {
-  id: string;
-  name: string;
-  enabled: boolean;
-  host: string;
-  port: number;
-  tokenEncrypted: string | null;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface ManagedInviteRecord {
@@ -129,23 +106,6 @@ interface SettingsRow extends Record<string, unknown> {
   webrtc_stun_server: string;
   webrtc_udp_start: number;
   webrtc_udp_end: number;
-  relay_configured: number;
-  relay_enabled: number;
-  relay_name: string;
-  relay_host: string;
-  relay_port: number;
-  relay_token_encrypted: string | null;
-  updated_at: string;
-}
-
-interface RelayNodeRow extends Record<string, unknown> {
-  id: string;
-  name: string;
-  enabled: number;
-  host: string;
-  port: number;
-  token_encrypted: string | null;
-  created_at: string;
   updated_at: string;
 }
 
@@ -227,53 +187,8 @@ export class WebSpeakDatabase {
       webRtcStunServer: row.webrtc_stun_server,
       webRtcUdpStart: row.webrtc_udp_start,
       webRtcUdpEnd: row.webrtc_udp_end,
-      relayConfigured: row.relay_configured === 1,
-      relayEnabled: row.relay_enabled === 1,
-      relayName: row.relay_name,
-      relayHost: row.relay_host,
-      relayPort: row.relay_port,
-      relayTokenEncrypted: row.relay_token_encrypted,
       updatedAt: row.updated_at,
     };
-  }
-
-  listRelayNodes(): PersistedRelayNode[] {
-    const rows = this.database.prepare(
-      "SELECT * FROM relay_nodes ORDER BY created_at ASC, id ASC",
-    ).all() as RelayNodeRow[];
-    return rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      enabled: row.enabled === 1,
-      host: row.host,
-      port: row.port,
-      tokenEncrypted: row.token_encrypted,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
-  }
-
-  replaceRelayNodes(nodes: Array<Omit<PersistedRelayNode, "createdAt" | "updatedAt"> & { createdAt?: string; updatedAt?: string }>): void {
-    const now = new Date().toISOString();
-    this.transaction(() => {
-      this.database.exec("DELETE FROM relay_nodes");
-      const insert = this.database.prepare(
-        `INSERT INTO relay_nodes (id, name, enabled, host, port, token_encrypted, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      );
-      for (const node of nodes) {
-        insert.run(
-          node.id,
-          node.name,
-          node.enabled ? 1 : 0,
-          node.host,
-          node.port,
-          node.tokenEncrypted,
-          node.createdAt ?? now,
-          node.updatedAt ?? now,
-        );
-      }
-    });
   }
 
   updateSettings(settings: SettingsUpdate, auditEvent = "SETTINGS_CHANGED"): void {
@@ -405,25 +320,6 @@ export class WebSpeakDatabase {
     this.database.prepare(
       "INSERT INTO metadata (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
     ).run(key, value);
-  }
-
-  nextVisitorNumber(): number {
-    let nextNumber = 1;
-    this.transaction(() => {
-      const currentValue = this.getMeta("visitor_count");
-      const current = currentValue ? Number.parseInt(currentValue, 10) : 0;
-      nextNumber = Number.isSafeInteger(current) && current >= 0 && current < Number.MAX_SAFE_INTEGER
-        ? current + 1
-        : 1;
-      this.setMeta("visitor_count", String(nextNumber));
-    });
-    return nextNumber;
-  }
-
-  getVisitorCount(): number {
-    const value = this.getMeta("visitor_count");
-    const count = value ? Number.parseInt(value, 10) : 0;
-    return Number.isSafeInteger(count) && count >= 0 ? count : 0;
   }
 
   addAudit(event: string, details: Record<string, unknown> = {}): void {
@@ -626,6 +522,22 @@ export class WebSpeakDatabase {
         `);
         this.database.exec("PRAGMA user_version = 9");
       });
+      version = 9;
+    }
+    // The acceleration relay feature was removed. Columns are dropped only
+    // when present so databases migrated by older schemas and fresh installs
+    // take the same path.
+    if (version === 9) {
+      this.transaction(() => {
+        this.database.exec("DROP TABLE IF EXISTS relay_nodes");
+        const columns = (this.database.prepare("PRAGMA table_info(settings)").all() as Array<{ name: string }>).map((column) => column.name);
+        for (const column of ["relay_configured", "relay_enabled", "relay_name", "relay_host", "relay_port", "relay_token_encrypted"]) {
+          if (columns.includes(column)) this.database.exec(`ALTER TABLE settings DROP COLUMN ${column}`);
+        }
+        this.database.exec("DELETE FROM metadata WHERE key = 'visitor_count'");
+        this.database.exec("PRAGMA user_version = 10");
+      });
+      version = 10;
     }
   }
 
@@ -634,8 +546,7 @@ export class WebSpeakDatabase {
       `UPDATE settings SET
          site_name = ?, welcome_text = ?, welcome_text_en = ?, welcome_text_de = ?, welcome_text_ru = ?, welcome_text_ja = ?, access_mode = ?, ts_host = ?, ts_port = ?, ts_target = ?,
          ts_password_encrypted = ?, webrtc_enabled = ?, webrtc_public_host = ?, webrtc_ipv6_enabled = ?, webrtc_stun_server = ?, webrtc_udp_start = ?,
-         webrtc_udp_end = ?, relay_configured = ?, relay_enabled = ?, relay_name = ?,
-         relay_host = ?, relay_port = ?, relay_token_encrypted = ?, updated_at = ?
+         webrtc_udp_end = ?, updated_at = ?
        WHERE id = 1`,
     ).run(
       settings.siteName,
@@ -655,12 +566,6 @@ export class WebSpeakDatabase {
       settings.webRtcStunServer ?? "",
       settings.webRtcUdpStart ?? DEFAULT_WEBRTC_UDP_PORT_RANGE[0],
       settings.webRtcUdpEnd ?? DEFAULT_WEBRTC_UDP_PORT_RANGE[1],
-      settings.relayConfigured ? 1 : 0,
-      settings.relayEnabled ? 1 : 0,
-      settings.relayName,
-      settings.relayHost,
-      settings.relayPort,
-      settings.relayTokenEncrypted,
       now,
     );
   }

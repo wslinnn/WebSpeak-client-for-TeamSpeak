@@ -23,7 +23,6 @@ function object<T extends Record<string, Reader>>(fields: T): AdminResponseReade
 }
 
 const auditEvent = object({ event: text, createdAt: text });
-const relayNode = object({ id: text, name: text, enabled: boolean, target: text, hasToken: boolean });
 const welcomeTexts = object({ zh: text, en: text, de: text, ru: text, ja: text });
 const settings = object({
   target: text, hasPassword: boolean, accessMode: choice("fixed", "open"), siteName: text,
@@ -33,8 +32,7 @@ const settings = object({
   webRtcPublicHost: value => value === undefined ? "" : text(value),
   webRtcIpv6Enabled: value => value === undefined ? false : boolean(value),
   webRtcStunServer: value => value === undefined ? "" : text(value),
-  relayConfigured: boolean, relayEnabled: boolean, relayName: text, relayTarget: text, hasRelayToken: boolean,
-  relayNodes: array(relayNode), internalPort: number, updatedAt: text,
+  internalPort: number, updatedAt: text,
 });
 const teamSpeak = object({ target: text, status: text, lastTestAt: nullable(text), latencyMs: nullable(number), lastError: nullable(text) });
 const overview = object({
@@ -55,7 +53,7 @@ const logContext: AdminResponseReader<Record<string, string | number | boolean>>
 );
 const logEntry = object({ timestamp: nullable(text), level: text, message: text, context: logContext });
 const connection = object({
-  id: text, nickname: text, clientIp: text, target: text, relayName: nullable(text), relayTarget: nullable(text),
+  id: text, nickname: text, clientIp: text, target: text,
   startedAt: text, connectedAt: nullable(text), disconnectedAt: nullable(text), durationSeconds: nullable(number),
   status: choice("active", "connecting", "disconnected", "failed"), reason: nullable(text), failureDetail: nullable(text),
 });

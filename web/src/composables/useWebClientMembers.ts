@@ -28,7 +28,6 @@ interface UseWebClientMembersOptions {
 export function useWebClientMembers({
   channels,
   currentChannel,
-  members,
   speakingIds,
   whisperTargetIds,
   moveClient,

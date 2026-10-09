@@ -14,9 +14,7 @@ import { AdminSessionStore } from "../admin/admin-session.js";
 import { isSafeOpenTargetForPrefill, resolveSafeOpenTarget } from "../security/open-target-policy.js";
 import { identityFromString } from "@echosixhiya/teamspeak-client";
 import { JoinRateLimiter } from "./join-rate-limit.js";
-import type { ConfiguredAccelerationRelay } from "./acceleration-relay.js";
 import type { SkinRegistry } from "../admin/skin-registry.js";
-import { resolveVisitorTotal } from "./visitor-count.js";
 
 export interface WebServerOptions {
   port: number;
@@ -28,16 +26,12 @@ export interface WebServerOptions {
   adminService: AdminService;
   skinRegistry?: SkinRegistry;
   logger: Logger;
-  nextVisitorNumber?: () => number;
-  visitorCount?: () => number;
 }
 
 export interface WebServer {
   start(): Promise<void>;
   stop(): Promise<void>;
 }
-
-const VISITOR_NUMBER_COOKIE = "webspeak_visitor_number";
 
 export function createWebServer(options: WebServerOptions): WebServer {
   const app = express();
@@ -69,29 +63,6 @@ export function createWebServer(options: WebServerOptions): WebServer {
 
   app.get("/api/public-config", async (request, response) => {
     response.setHeader("Cache-Control", "no-store");
-    const acceleration = resolveAccelerationOptions(options.voiceBridgeOptions.acceleration);
-    let visitorNumber = readVisitorNumberCookie(request.header("cookie"));
-    if (visitorNumber === null && options.nextVisitorNumber) {
-      try {
-        visitorNumber = options.nextVisitorNumber();
-        response.setHeader(
-          "Set-Cookie",
-          `${VISITOR_NUMBER_COOKIE}=${visitorNumber}; Max-Age=31536000; Path=/; SameSite=Lax${options.certDir ? "; Secure" : ""}`,
-        );
-      } catch (error: unknown) {
-        logger.warn({ err: error instanceof Error ? error.message : String(error) }, "Visitor number could not be assigned");
-      }
-    }
-    let visitorTotal = resolveVisitorTotal(visitorNumber, null);
-    if (options.visitorCount) {
-      try {
-        visitorTotal = resolveVisitorTotal(visitorNumber, options.visitorCount());
-      } catch (error: unknown) {
-        logger.warn({ err: error instanceof Error ? error.message : String(error) }, "Visitor total could not be read");
-      }
-    } else if (visitorNumber !== null) {
-      visitorTotal = visitorNumber;
-    }
     const publicConfig = options.adminService.getPublicConfig();
     let target = typeof publicConfig.target === "string" ? publicConfig.target : "";
     let targetPrefillBlocked = false;
@@ -107,10 +78,6 @@ export function createWebServer(options: WebServerOptions): WebServer {
       ...publicConfig,
       target,
       targetPrefillBlocked,
-      ...(visitorNumber === null ? {} : { visitorNumber }),
-      ...(visitorTotal === null ? {} : { visitorTotal }),
-      accelerationAvailable: acceleration.length > 0,
-      accelerationRelays: acceleration.map((relay) => ({ id: relay.id, name: relay.name })),
     });
   });
 
@@ -192,17 +159,6 @@ export function createWebServer(options: WebServerOptions): WebServer {
     let target: TeamSpeakTarget;
     let serverPassword = policy.serverPassword;
     const channel = requestedChannel || managedInvite?.channel || "";
-    const requestedRelayId = typeof body.accelerationRelayId === "string" ? body.accelerationRelayId.trim().slice(0, 110) : "";
-    const accelerationRequested = body.accelerated === true || Boolean(requestedRelayId);
-    const acceleration = resolveAccelerationOptions(options.voiceBridgeOptions.acceleration);
-    if (accelerationRequested && acceleration.length === 0) {
-      response.status(400).json({ ok: false, code: "ACCELERATION_UNAVAILABLE" });
-      return;
-    }
-    if (requestedRelayId && !acceleration.some((relay) => relay.id === requestedRelayId)) {
-      response.status(400).json({ ok: false, code: "ACCELERATION_UNAVAILABLE" });
-      return;
-    }
     try {
       if (!managedInvite) {
         if (policy.accessMode === "open" && typeof body.target === "string" && body.target.trim()) {
@@ -241,7 +197,6 @@ export function createWebServer(options: WebServerOptions): WebServer {
       nickname,
       ...(channel ? { channel } : {}),
       ...(identity ? { identity, rememberIdentity: true } : body.rememberIdentity === true ? { rememberIdentity: true } : {}),
-      ...(accelerationRequested ? { accelerated: true, ...(requestedRelayId ? { accelerationRelayId: requestedRelayId } : {}) } : {}),
     });
     response.status(201).json({ ok: true, ticket });
   });
@@ -290,30 +245,8 @@ export function createWebServer(options: WebServerOptions): WebServer {
   };
 }
 
-function resolveAccelerationOptions(
-  configured: ConfiguredAccelerationRelay[] | (() => ConfiguredAccelerationRelay[]) | undefined,
-): ConfiguredAccelerationRelay[] {
-  const value = typeof configured === "function" ? configured() : configured;
-  if (!value) return [];
-  return Array.isArray(value) ? value : [value];
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function readVisitorNumberCookie(header: string | undefined): number | null {
-  if (!header) return null;
-  for (const entry of header.split(";")) {
-    const separator = entry.indexOf("=");
-    if (separator < 0) continue;
-    const name = entry.slice(0, separator).trim();
-    if (name !== VISITOR_NUMBER_COOKIE) continue;
-    const rawValue = entry.slice(separator + 1).trim();
-    const number = Number.parseInt(rawValue, 10);
-    return Number.isSafeInteger(number) && number > 0 ? number : null;
-  }
-  return null;
 }
 
 function isSameOrigin(request: express.Request): boolean {

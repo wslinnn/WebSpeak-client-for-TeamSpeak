@@ -205,37 +205,6 @@
   color: var(--skin-illusia-muted);
 }
 
-[data-ws-part="home.visitors"] {
-  color: #075c67;
-  border-color: var(--skin-illusia-line);
-  background-color: rgba(247, 254, 255, .9);
-  background-image: linear-gradient(105deg, rgba(247, 254, 255, .98), rgba(237, 252, 253, .84));
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  box-shadow: 0 10px 28px rgba(19, 142, 157, .14), inset 0 0 0 1px rgba(255, 255, 255, .72);
-  backdrop-filter: blur(14px) saturate(1.12);
-}
-
-[data-ws-part="home.visitors"] > span:nth-child(2) {
-  color: transparent;
-  background-color: transparent;
-  background-image: url("assets/visitor-avatar.webp");
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
-  box-shadow: 0 0 0 3px rgba(71, 201, 212, .26), 0 5px 16px rgba(19, 142, 157, .2);
-}
-
-[data-ws-part="home.visitors"] > span:nth-child(2) svg {
-  color: transparent;
-}
-
-[data-ws-part="home.visitors"] > span:last-child {
-  color: #41bdcc;
-  text-shadow: 0 0 12px rgba(71, 201, 212, .42);
-}
-
 [data-ws-part="home.join-card"] {
   color: var(--skin-illusia-ink);
   border-color: rgba(255, 255, 255, .9);
@@ -891,82 +860,13 @@
   box-shadow: 0 0 0 2px rgba(255, 255, 255, .94), 0 0 0 4px rgba(71, 201, 212, .72);
 }
 
-/* The demo keeps its original controls, labels, and interactions. */
-[data-ws-page="demo"] {
-  color: var(--skin-illusia-ink);
-  background-color: #eaf7fc;
-  background-image: url("assets/foreground-headphone.webp"), linear-gradient(rgba(239, 250, 253, .7), rgba(239, 250, 253, .82)), url("assets/bg-room-main.webp");
-  background-position: left bottom, center, center;
-  background-repeat: no-repeat, no-repeat, no-repeat;
-  background-size: min(34vw, 430px) auto, auto, cover;
-  background-attachment: fixed, scroll, scroll;
-}
-
-[data-ws-part="demo.header"] {
-  border-color: rgba(126, 191, 203, .3);
-  background: rgba(250, 254, 255, .72);
-  backdrop-filter: blur(16px);
-}
-
-[data-ws-part="demo.channels"],
-[data-ws-part="demo.actions"],
-[data-ws-part="demo.main"] {
-  border-color: rgba(255, 255, 255, .8);
-  border-radius: 20px;
-  background: rgba(249, 253, 255, .84);
-  box-shadow: var(--skin-illusia-shadow);
-  backdrop-filter: blur(18px);
-}
-
-[data-ws-part="demo.hero"] {
-  color: var(--skin-illusia-ink);
-  border-radius: 22px;
-  background-color: #d7f3f7;
-  background-image: linear-gradient(90deg, rgba(239, 251, 254, .94), rgba(227, 248, 251, .48)), url("assets/banner-character-main.webp"), url("assets/banner-mascot-blob.webp");
-  background-position: center, right 46px bottom, right 16px center;
-  background-repeat: no-repeat;
-  background-size: cover, auto 112%, auto 72%;
-  box-shadow: 0 14px 38px rgba(31, 99, 123, .12), inset 0 0 0 1px rgba(255, 255, 255, .8);
-}
-
-[data-ws-part="demo.voice-card"] {
-  border-color: rgba(115, 205, 218, .35);
-  border-radius: 19px;
-  background: rgba(255, 255, 255, .76);
-  box-shadow: 0 10px 28px rgba(31, 99, 123, .1);
-}
-
-[data-ws-part="demo.avatar"] {
-  outline: 2px solid rgba(71, 201, 212, .7);
-  outline-offset: 4px;
-}
-
-[data-ws-part="demo.chat.send"] {
-  color: #fff;
-  border-radius: 12px;
-  background: linear-gradient(110deg, #0a9291, #087580);
-}
-
-@media (max-width: 740px) {
-  [data-ws-page="demo"] {
-    background-size: min(62vw, 300px) auto, auto, cover;
-    background-attachment: scroll, scroll, scroll;
-  }
-
-  [data-ws-part="demo.hero"] {
-    background-position: center, right center;
-    background-size: cover, auto 65%;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   [data-ws-part="home"] {
     animation: none;
   }
 
   [data-ws-part="home.connect"],
-  [data-ws-part="voice.member"],
-  [data-ws-part="demo.voice-card"] {
+  [data-ws-part="voice.member"] {
     transition-duration: .01ms;
   }
 }

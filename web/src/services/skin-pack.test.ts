@@ -39,7 +39,7 @@ test("skin CSS is scoped, local artwork and fonts work, and global names are iso
 });
 
 test("skin CSS permits visual decoration but prevents layout, text-flow, and control-geometry changes", async () => {
-  const skin = await importSkinPack(makeSkin('@keyframes fade-wave { from { opacity: 0; } to { opacity: 1; } } [data-ws-part="demo.wave"] { opacity: var(--skin-decoration-opacity); animation: fade-wave 1s; box-shadow: 0 0 14px #4ff; }'));
+  const skin = await importSkinPack(makeSkin('@keyframes fade-wave { from { opacity: 0; } to { opacity: 1; } } [data-ws-part="home.join-card.waveform"] { opacity: var(--skin-decoration-opacity); animation: fade-wave 1s; box-shadow: 0 0 14px #4ff; }'));
   assert.match(skin.css, /opacity: var\(--skin-decoration-opacity\)/);
   assert.match(skin.css, /box-shadow: 0 0 14px #4ff/);
   assert.match(skin.css, /from \{ opacity: 0; \}/);
@@ -51,14 +51,14 @@ test("skin CSS permits visual decoration but prevents layout, text-flow, and con
   await assert.rejects(importSkinPack(makeSkin('[data-ws-part="home.hero.title"] { font-size: 3rem; line-height: 1; white-space: nowrap; }')), (error: unknown) => error instanceof Error && error.message.includes("must not change layout"));
   await assert.rejects(importSkinPack(makeSkin('[data-ws-part="home.hero.title"] { text-transform: uppercase; }')), (error: unknown) => error instanceof Error && error.message.includes("must not change layout"));
   await assert.rejects(importSkinPack(makeSkin('[data-ws-part="voice.screen-player.exit"] { opacity: 0; }')), (error: unknown) => error instanceof Error && error.message.includes("explicitly optional visual parts"));
-  await assert.rejects(importSkinPack(makeSkin('[data-ws-part="demo.wave"] span { display: none; }')), (error: unknown) => error instanceof Error && error.message.includes("must not change layout"));
+  await assert.rejects(importSkinPack(makeSkin('[data-ws-part="home.join-card.waveform"] span { display: none; }')), (error: unknown) => error instanceof Error && error.message.includes("must not change layout"));
   await assert.rejects(importSkinPack(makeSkin('[data-ws-part="voice.screen-player.exit"] { display: var(--skin-hidden); }')), (error: unknown) => error instanceof Error && error.message.includes("must not change layout"));
   await assert.rejects(importSkinPack(makeSkin('[data-ws-part="voice.screen-player.exit"] { all: unset; }')), (error: unknown) => error instanceof Error && error.message.includes("must not change layout"));
   await assert.rejects(importSkinPack(makeSkin('@keyframes hide-control { to { opacity: 0; } } [data-ws-part="voice.screen-player.exit"] { animation: hide-control 1s infinite; }')), (error: unknown) => error instanceof Error && error.message.includes("explicitly optional visual parts"));
   await assert.rejects(importSkinPack(makeSkin('@keyframes hide-control { to { opacity: 0; } } [data-ws-part="control"] { animation: var(--custom-animation); }')), (error: unknown) => error instanceof Error && error.message.includes("explicitly optional visual parts"));
   await assert.rejects(importSkinPack(makeSkin('[data-ws-part="home"] { --accent: red; }')), (error: unknown) => error instanceof Error && error.message.includes("--skin- prefix"));
   await assert.rejects(importSkinPack(makeSkin(".internal-class { color: red; }")), (error: unknown) => error instanceof Error && error.message.includes("must use :root"));
-  await assert.rejects(importSkinPack(makeSkin('[data-ws-part="demo.voice-card"].private-component { color: red; }')), (error: unknown) => error instanceof Error && error.message.includes("must use :root"));
+  await assert.rejects(importSkinPack(makeSkin('[data-ws-part="home.join-card.waveform"].private-component { color: red; }')), (error: unknown) => error instanceof Error && error.message.includes("must use :root"));
   await assert.rejects(importSkinPack(makeSkin('[data-ws-part="home"] { background-image: image-set("https://example.invalid/remote.png" 1x); }')), (error: unknown) => error instanceof SkinPackError && error.code === "SKIN_EXTERNAL_RESOURCE");
 });
 
@@ -87,22 +87,19 @@ test("all public skin parts are documented and the admin console is outside skin
   const [components, adminComponents] = await Promise.all([
     componentSources("../components/web-client/"), componentSources("../components/admin/"),
   ]);
-  const [webClient, demo, skinSwitcher, languageSwitcher, admin, documentation] = await Promise.all([
+  const [webClient, skinSwitcher, languageSwitcher, admin, documentation] = await Promise.all([
     readFile(new URL("../views/WebClient.vue", import.meta.url), "utf8"),
-    readFile(new URL("../views/DemoView.vue", import.meta.url), "utf8"),
     readFile(new URL("../components/SkinSwitcher.vue", import.meta.url), "utf8"),
     readFile(new URL("../components/LanguageSwitcher.vue", import.meta.url), "utf8"),
     readFile(new URL("../views/AdminView.vue", import.meta.url), "utf8"),
     readFile(new URL("../../../docs/SKIN_DEVELOPMENT.md", import.meta.url), "utf8"),
   ]);
-  const publicParts = new Set([...`${webClient}\n${components}\n${demo}\n${skinSwitcher}\n${languageSwitcher}`.matchAll(/data-ws-part="([^"]+)"/g)].map((match) => match[1]));
+  const publicParts = new Set([...`${webClient}\n${components}\n${skinSwitcher}\n${languageSwitcher}`.matchAll(/data-ws-part="([^"]+)"/g)].map((match) => match[1]));
   for (const part of publicParts) assert.ok(documentation.includes(`\`${part}\``), `Undocumented skin part: ${part}`);
   assert.match(skinSwitcher, /data-ws-skin-id/);
   assert.match(skinSwitcher, /data-ws-state/);
   assert.match(languageSwitcher, /data-ws-language/);
   assert.doesNotMatch(`${admin}\n${adminComponents}`, /ws-skin-root|data-ws-page=/);
-  assert.doesNotMatch(demo, /:global\(:root\[data-theme="dark"\]\)/);
-  assert.match(demo, /\.demo-page\[data-ws-skin="builtin\.dark"\]/);
 });
 
 test("public skin and language selectors keep readable light surfaces in dark mode", async () => {
@@ -121,7 +118,7 @@ test("public skin and language selectors keep readable light surfaces in dark mo
 
 test("skin content supports localized interface message overrides and includes the preview as an asset", async () => {
   const content = { defaultLocale: "en", locales: { en: { home: { title: "Welcome" }, messages: { speakingNow: "Live now" } } } };
-  const skin = await importSkinPack(makeSkin('[data-ws-part="demo.voice-card"] { background: url(assets/preview.png); }', content));
+  const skin = await importSkinPack(makeSkin('[data-ws-part="voice.member.avatar"] { background: url(assets/preview.png); }', content));
   assert.equal(skin.contentData?.locales.en?.messages?.speakingNow, "Live now");
   assert.equal(skin.previewBlob?.type, "image/png");
   assert.ok(skin.assets["assets/preview.png"]);
@@ -140,11 +137,9 @@ test("the ILLUSIA visual-only example imports without replacing WebSpeak's base 
   assert.ok(skin.assets["assets/banner-character-main.webp"]);
   assert.ok(skin.assets["assets/foreground-headphone.webp"]);
   assert.ok(skin.assets["assets/chat-empty-chibi.webp"]);
-  assert.ok(skin.assets["assets/visitor-avatar.webp"]);
   assert.ok(skin.assets["assets/button-mascot.webp"]);
   assert.ok(skin.assets["assets/footer-wave.png"]);
   assert.match(skin.css, /\.ws-skin-root\[data-ws-skin="community\.illusia-voice"\]/);
-  assert.match(skin.css, /home\.visitors.*?nth-child\(2\)/s);
   assert.match(skin.css, /skin\.menu/);
   assert.match(skin.css, /skin\.menu[^{}]*\[role="listbox"\]/);
   assert.match(skin.css, /skin\.option/);
@@ -183,7 +178,6 @@ test("the ILLUSIA visual-only example imports without replacing WebSpeak's base 
   assert.match(skin.css, /\[data-ws-part="home"\] \[data-ws-part="home\.connect"\]/);
   assert.doesNotMatch(skin.css, /\[data-ws-page="home"\] \[data-ws-part="home\.connect"\]/);
   assert.match(skin.css, /home\.connect[\s\S]*?wskin-asset:assets%2Fbutton-mascot\.webp/);
-  assert.match(skin.css, /data-ws-page="demo"[^{}]*\{[^}]*wskin-asset:assets%2Fforeground-headphone\.webp[^}]*background-position:\s*left bottom, center, center;[^}]*background-size:\s*min\(34vw, 430px\) auto, auto, cover/s);
   assert.match(skin.css, /voice\.screen-player[\s\S]*?background: linear-gradient\(135deg, rgba\(250, 255, 255, \.96\), rgba\(220, 245, 250, \.94\)\)/);
   assert.doesNotMatch(skin.css, /voice\.screen-player[^{}]*\{[^}]*background: rgba\(10, 34, 45, \.96\)/);
 });

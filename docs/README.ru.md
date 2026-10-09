@@ -34,7 +34,7 @@
 | Структура проекта | В 0.2.6 голосовой шлюз, события сессий, аудио и координация демонстрации разделены на модули; голосовые и административные страницы — на компоненты, composables и сервисы. Добавлены тесты жизненного цикла и переподключения. |
 | Скины | Защищённые дневная, ночная и ILLUSIA-темы, а также `.wskin` экземпляра с управлением включением и темой по умолчанию в панели администратора. |
 | Интерфейс | 中文, English, Deutsch, Русский и 日本語, адаптивная верстка. |
-| Развёртывание | Пакеты Windows x64 и Linux x64/ARM64, Docker amd64/arm64, Android APK для arm64-v8a, armeabi-v7a и x86_64. |
+| Развёртывание | Пакеты Windows x64 и Linux x64/ARM64, Docker amd64/arm64. |
 
 ## 🖼️ Скриншоты интерфейса
 
@@ -103,13 +103,11 @@ docker compose up -d
 
 ### Пакет Release
 
-Скачайте подходящий пакет `windows-x64.zip`, `linux-x64.tar.gz` или `linux-arm64.tar.gz` из [Releases](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/latest) и запустите приложенный скрипт. Docker поддерживает amd64/arm64. Также доступны Android APK для `arm64-v8a`, `armeabi-v7a` и `x86_64`; они подписаны отладочным ключом для ручной установки и тестирования, а не для Google Play. Голос TeamSpeak на реальных устройствах пока не проверен.
 
 ### Из исходников
 
 ```bash
 npm ci --ignore-scripts
-npm run prepare:sdk
 npm rebuild @discordjs/opus --foreground-scripts
 npm --prefix web ci
 npm --prefix web run build

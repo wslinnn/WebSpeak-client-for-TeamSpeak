@@ -27,8 +27,7 @@ const settings = (extra = {}) => ({
   welcomeDefaults: { zh: "", en: "", de: "", ru: "", ja: "" },
   lastTestAt: null, lastTestLatencyMs: null, lastTestError: null,
   webRtcEnabled: false, webRtcUdpStart: 40000, webRtcUdpEnd: 40099,
-  relayConfigured: false, relayEnabled: false, relayName: "", relayTarget: "", hasRelayToken: false,
-  relayNodes: [], internalPort: 3040, updatedAt: "2026-10-01T00:00:00Z", ...extra,
+  internalPort: 3040, updatedAt: "2026-10-01T00:00:00Z", ...extra,
 });
 const overview = { gateway: { status: "running", version: "test", uptimeSeconds: 0 },
   teamSpeak: { target: "voice.example:9987", status: "unknown", lastTestAt: null, latencyMs: null, lastError: null },
@@ -181,18 +180,12 @@ test("a successful settings save clears submitted secrets and updates their stor
   await mount();
   serverModel.serverForm.passwordAction = "replace";
   serverModel.serverForm.serverPassword = "submitted-test-password";
-  serverModel.addRelayNode();
-  Object.assign(serverModel.serverForm.relayNodes[0], { name: "Relay", target: "relay.example:9000", token: "submitted-test-token" });
-  const relay = { ...serverModel.serverForm.relayNodes[0], hasToken: true };
   handler = (path, init) => Promise.resolve(json(path === "/server" && init.method === "PUT"
-    ? { ok: true, settings: settings({ hasPassword: true, relayNodes: [relay] }) } : defaults(path)));
+    ? { ok: true, settings: settings({ hasPassword: true }) } : defaults(path)));
   await serverModel.saveServerSettings();
   assert.equal(serverModel.serverForm.serverPassword, "");
   assert.equal(serverModel.serverForm.passwordAction, "keep");
   assert.equal(serverModel.serverForm.hasPassword, true);
-  assert.equal(serverModel.serverForm.relayNodes[0].token, "");
-  assert.equal(serverModel.serverForm.relayNodes[0].tokenAction, "keep");
-  assert.equal(serverModel.serverForm.relayNodes[0].hasToken, true);
   assert.equal(serverModel.serverSaving, false);
   assert.equal(state.errorMessage, "");
 });
@@ -219,26 +212,6 @@ test("ICE settings load, submit and preserve edits made during a pending save", 
   assert.equal(serverModel.serverForm.webRtcPublicHost, "new-media.example.com");
   assert.equal(serverModel.serverForm.webRtcIpv6Enabled, false);
   assert.equal(serverModel.serverForm.webRtcStunServer, "");
-});
-
-test("settings saves preserve relay edits, removals and additions made while awaiting the server", async () => {
-  await mount();
-  serverModel.addRelayNode(); serverModel.addRelayNode();
-  for (const [i, node] of serverModel.serverForm.relayNodes.entries()) Object.assign(node, { name: `Relay ${i}`, target: "relay.example:9000", token: "old-token" });
-  const submitted = serverModel.serverForm.relayNodes.map(node => ({ ...node, hasToken: true }));
-  const save = deferred();
-  handler = (path, init) => path === "/server" && init.method === "PUT" ? save.promise : Promise.resolve(json(defaults(path)));
-  const pending = serverModel.saveServerSettings();
-  Object.assign(serverModel.serverForm.relayNodes[0], { name: "New name", token: "new-token" });
-  serverModel.removeRelayNode(1); serverModel.addRelayNode();
-  const addedId = serverModel.serverForm.relayNodes[1].id;
-  save.resolve(json({ ok: true, settings: settings({ relayNodes: submitted }) }));
-  await pending;
-  assert.deepEqual(serverModel.serverForm.relayNodes.map(node => node.id), [submitted[0].id, addedId]);
-  assert.equal(serverModel.serverForm.relayNodes[0].name, "New name");
-  assert.equal(serverModel.serverForm.relayNodes[0].token, "new-token");
-  assert.equal(serverModel.serverForm.relayNodes[0].tokenAction, "replace");
-  assert.equal(serverModel.serverForm.relayNodes[0].hasToken, true);
 });
 
 test("duplicate saves submit once and failed saves retain the draft", async () => {

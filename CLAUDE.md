@@ -1,12 +1,12 @@
 # WebSpeak TeamSpeak Browser Gateway
 
-WebSpeak connects browser users to TeamSpeak 3 and TeamSpeak 6 through a self-hosted Node.js gateway. Each connected browser session owns an independent TeamSpeak client. The repository also contains a standalone UDP acceleration relay and an Android preview with an embedded local gateway.
+WebSpeak connects browser users to TeamSpeak 3 and TeamSpeak 6 through a self-hosted Node.js gateway. Each connected browser session owns an independent TeamSpeak client. The repository vendors the TeamSpeak client SDK under `vendor/teamspeak-client/`.
 
 ## Application boundaries
 
 | Location | Responsibility |
 | --- | --- |
-| `src/index.ts` | Gateway startup, SQLite, master secret, admin service and shutdown; also supports relay mode |
+| `src/index.ts` | Gateway startup, SQLite, master secret, admin service and shutdown |
 | `src/server/server.ts` | HTTP or HTTPS, public configuration, skins, join tickets, admin routes and static frontend |
 | `src/server/voice-bridge.ts` | `/ws/voice`, admission, connection/reconnection orchestration and voice transport assembly |
 | `src/server/voice-commands.ts`, `directory-view.ts`, `audio-stats.ts` | Command execution, public directory projection and diagnostic snapshots |
@@ -20,7 +20,7 @@ WebSpeak connects browser users to TeamSpeak 3 and TeamSpeak 6 through a self-ho
 | `src/server/webrtc-audio.ts` and `opus-codec.ts` | WebRTC audio mixing and platform-specific Opus codecs |
 | `src/server/session-audio.ts` | Per-session PCM encoding, exclusive WebRTC/WebSocket routing, whisper dispatch, bounded egress and audio counters |
 | `src/admin/`, `src/security/`, `src/persistence/` | Administration, access policies, credentials and persistent settings |
-| `src/relay.ts` and `src/server/acceleration-relay.ts` | Standalone relay and gateway-side relay transport |
+| `vendor/teamspeak-client/` | Vendored build output of `@echosixhiya/teamspeak-client` (MIT); see `vendor/teamspeak-client/VENDOR.md` before upgrading |
 | `web/src/views/` and `web/src/composables/` | Vue pages, connection state, audio controls, chat and screen sharing |
 | `web/src/voice/screen-share.ts` | Per-session screen capture, peer negotiation, cleanup and diagnostics |
 | `web/src/voice/remote-playback.ts` | Per-speaker compatibility decoding, bounded scheduling, volume and resource cleanup |
@@ -36,14 +36,12 @@ WebSpeak connects browser users to TeamSpeak 3 and TeamSpeak 6 through a self-ho
 | `web/src/composables/useWebClientChat.ts`, `useWebClientChannels.ts` | Destination-owned drafts and pending sends, identity-bound private history, and iterative channel-tree projection |
 | `web/src/composables/useWebClientIdentity.ts`, `web/src/components/web-client/IdentityImportDialog.vue` | Page-owned identity reads, parsing, restoration and exports; a presentation dialog with explicit input and action events |
 | `web/src/voice/audio-diagnostics.ts`, `web/src/composables/useWebClientPerformance.ts` | Session-owned diagnostic probes and compatibility counters, browser statistics, comparable sample scopes and cancellable UI polling |
-| `web/src/platform/` | Browser mounting and cancellable Android gateway readiness handshake |
 | `web/src/services/`, `web/src/i18n/`, `web/src/skins/` | Browser persistence, identity import, skin packages and translations |
 | `web/src/composables/usePublicSkin.ts`, `web/src/services/skin-operation.ts` | Shared public-page skin initialization and selection, page ownership, cancellation and bounded loading |
 | `web/src/services/admin-api.ts`, `admin-requests.ts` | Admin HTTP validation and cancellation, session-bound CSRF and per-feature request ownership, including skin uploads and backup downloads |
 | `web/src/composables/useAdminServerSettings.ts`, `useAdminOperations.ts`, `useAdminSkins.ts` | Admin form merging, probes, operational actions and skin state; the page owns authentication, routing and overview |
 | `web/src/components/admin/` | Server settings, operations and skin presentation; the parent page retains the feature controller instances across subroute changes |
 | `web/src/composables/useAdminI18n.ts`, `web/src/i18n/admin.ts` | Admin formatting and error/status mappings; all five languages explicitly implement the same translation keys |
-| `src/mobile/`, `mobile/`, `web/android/` | Android loopback gateway, asset packaging and Capacitor container |
 
 ## Connection and control protocol
 
@@ -118,7 +116,7 @@ Prepare microphone nodes and streams before replacing the live graph. A failed a
 
 Serialize `setSinkId` on each audio context or media element, since an in-flight browser sink change cannot be cancelled. Bind subsequent work to the original endpoint and current operation; session teardown invalidates queued changes and device enumeration results. If one output endpoint rejects after another changed, attempt to restore the last committed output.
 
-`src/server/opus-codec.ts` loads the native `@discordjs/opus` implementation for server deployments and `opusscript` for the Android bundle. Dispose codec and media resources at the end of their owning session.
+`src/server/opus-codec.ts` loads the native `@discordjs/opus` implementation. Dispose codec and media resources at the end of their owning session.
 
 ## Configuration and persistence
 
@@ -128,17 +126,16 @@ Startup identity restoration must not overwrite a newer import or remember prefe
 
 Admin requests belong to the login session and feature that started them. Invalidate pending work on authentication changes and page disposal; cancel feature work on management subroute exit. A late 401 must not expire a newer session, and late login or backup results must not navigate or download after disposal. Aborted work is not a user-facing failure. Failed logout preserves the authenticated draft; successful logout or session expiry resets private page state.
 
-Settings responses merge against the submitted snapshot instead of replacing newer edits. Password and action, and relay token and action, are atomic draft groups. Clear acknowledged secret inputs, retain edits made during the request, merge relay nodes by ID, and do not restore obsolete probe metadata. Serialize skin mutations and prevent duplicate invite actions; cancelling browser work does not undo a server mutation already executed.
+Settings responses merge against the submitted snapshot instead of replacing newer edits. The password and its action are one atomic draft group. Clear acknowledged secret inputs, retain edits made during the request, and do not restore obsolete probe metadata. Serialize skin mutations and prevent duplicate invite actions; cancelling browser work does not undo a server mutation already executed.
 
 | Source | Purpose |
 | --- | --- |
-| SQLite `webspeak.db` | Admin credentials, target and access settings, relay nodes, invitations, audit records and visitor metadata |
+| SQLite `webspeak.db` | Admin credentials, target and access settings, invitations and audit records |
 | `master.key` beside the database | Encryption key for persisted secrets; retain it with database backups |
 | `/admin` | Normal configuration and operational controls |
 | Legacy `config.json` | One-time import of `tsHost`, `tsPort` and `tsServerPassword`; later changes do not replace database settings |
 | `WEBSPEAK_DATA_DIR` | Persistent data directory; defaults to project `data/`, while Docker uses `/data` |
 | `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` | Screen-sharing ICE configuration read at startup |
-| Relay environment variables | Standalone relay mode; public gateway relay choices come from saved admin settings |
 | Browser IndexedDB and localStorage | Local identities, preferences, server history and skin state |
 
 The current SQLite schema version is defined in `src/persistence/database.ts`. Keep schema migrations separate from structural refactors. Legacy fields such as `voiceToken`, `tsApiKey`, `tsQueryPort`, `port` and `maxClients` do not configure the current gateway.
@@ -149,31 +146,22 @@ The server uses HTTPS when `certs/cert.pem` and `certs/key.pem` are supplied; ot
 
 ## Development and verification
 
-Server deployments require Node.js 22.5 or newer. CI uses Node.js 22.22.2. Root and frontend dependencies are installed separately. The pinned Git SDK and native Opus module require the preparation steps used by CI:
+Server deployments require Node.js 22.5 or newer. CI uses Node.js 22.22.2. Root and frontend dependencies are installed separately. The vendored SDK (`vendor/teamspeak-client/`) needs no build step; the native Opus module still requires its rebuild:
 
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund
-npm run prepare:sdk
 npm rebuild @discordjs/opus --foreground-scripts --no-audit --no-fund
 npm --prefix web ci --no-audit --no-fund
 npm run verify
 ```
 
-`npm run verify` runs unit tests, the backend build and `npm run web:build`. The latter delegates to the frontend build, including `vue-tsc --noEmit`. Use `npm run dev` and `npm run web:dev` for development, or `npm start` after building both applications.
+`npm run verify` runs ESLint, unit tests, the backend build and `npm run web:build`. The latter delegates to the frontend build, including `vue-tsc --noEmit`. `npm test` discovers every `*.test.{ts,mjs}` file through `scripts/run-tests.mjs`, so new test files never need a manifest entry. Use `npm run dev` and `npm run web:dev` for development, or `npm start` after building both applications.
 
 Headless Vue tests use Vite middleware mode with both HMR and the WebSocket listener disabled (`hmr: false`, `ws: false`). Disabling HMR alone still reserves Vite's default socket port and causes parallel test processes to conflict.
 
 CI verifies pushes to `dev` and `master`, pull requests and manual runs. Docker publication on `master` or release tags, and release packaging on tags or manual runs, call the same verification workflow before publishing or packaging. Verification includes the application checks and a Docker HTTP health smoke test; that smoke test does not prove voice or screen-sharing functionality.
 
-Tests requiring a real TeamSpeak server, browser media devices or Android hardware must document their environment and outcome separately. Never substitute a mock codec or an HTTP health response for a successful audio test.
-
-## Android preview
-
-The Android app starts an embedded Node.js gateway on `127.0.0.1:3040` and opens it in the WebView. This preview disables gateway WebRTC voice and the admin console, while reusing the compatibility voice path. Its dependencies and runtime differ from server deployments.
-
-See `mobile/README.md` for build steps and recorded limitations. The embedded Node.js version, SDK compatibility, real-device connections, background audio and native screen sharing require their own validation. Do not present these capabilities as production-ready based on desktop tests.
-
-Platform startup owns its message listener, polling interval and deadline, including slow listener registration. Release them on success, failure, timeout and page exit. The retry button repeats the readiness handshake; it does not restart the embedded Node.js runtime.
+Tests requiring a real TeamSpeak server or browser media devices must document their environment and outcome separately. Never substitute a mock codec or an HTTP health response for a successful audio test.
 
 ## Repository maintenance
 
@@ -181,7 +169,7 @@ Routes load their page modules on demand. Document-level page styles must be gat
 
 The identity dialog retains page-owned CSS with narrowly targeted `:deep` selectors so the existing declaration order and specificity remain intact. Shared button rules target its dedicated classes across the component boundary. Its close button is positioned within the modal. Public skin-contract tests include Vue files recursively under `components/web-client`; keep new public parts documented.
 
-The public join form uses explicit named field models and emits page actions. The chat panel receives a presentation subset of the single page-owned chat controller; keep its list ref bound to the rendered scroller so tab changes and new messages retain automatic scrolling. Form grid columns must allow shrinking, and narrow identity/relay controls must wrap without clipping translated text.
+The public join form uses explicit named field models and emits page actions. The chat panel receives a presentation subset of the single page-owned chat controller; keep its list ref bound to the rendered scroller so tab changes and new messages retain automatic scrolling. Form grid columns must allow shrinking, and narrow identity controls must wrap without clipping translated text.
 
 The member panel and actions menu also share one page-owned member controller. The panel exposes an audio-dock slot; menu placement uses measured viewport bounds, converts through the page CSS zoom, and releases its resize observer/listener on unmount. Only desktop may open the move submenu on hover: mobile bottom-anchored menus change position when expanded and must open on click to avoid moving a member accidentally. Constrain short-window menus and allow scrolling.
 
@@ -201,10 +189,10 @@ Keep template/CSS formatting separate from behavior changes. Preserve inline whi
 
 Public skin activation is last-choice-owned across both public pages. Retire previous runtime work before preparing a replacement, and reject results after page disposal, a newer choice or local-data reset. Check ownership before modifying document styles, selected content, asset URLs or stored preferences. An already aborted caller must not cancel a newer page's activation. Release compiled candidate URLs on failed installation.
 
-Skin initialization has an 8-second total deadline covering preference reads, directory fetch and body, package loading and activation. Network stages also have bounded standalone operations. A timeout reveals a usable built-in palette and retires late work; retain the explicit skin choice for a later retry. Normal initialization still respects the enabled instance default unless the visitor made a deliberate choice. Home and demo use the same controller; do not restore duplicate unguarded refresh paths.
+Skin initialization has an 8-second total deadline covering preference reads, directory fetch and body, package loading and activation. Network stages also have bounded standalone operations. A timeout reveals a usable built-in palette and retires late work; retain the explicit skin choice for a later retry. Normal initialization still respects the enabled instance default unless the visitor made a deliberate choice.
 
 Skin cache writes and preference persistence accept the owning AbortSignal, including while waiting for IndexedDB to open and during its write transaction. Report storage success at transaction completion. Merge preferences within one transaction so concurrent unrelated settings are preserved. Cancellation of optional persistence must never block page use.
 
 Validate admin responses before applying them to page state. Network and protocol failures must preserve unsaved input; a failed logout must not be presented as a successful logout. Keep secret keep/replace/remove actions intact and do not persist credentials in UI error messages or diagnostic logs.
 
-The repository remote is `https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak`. Preserve existing local work when implementing the plan in `docs/CODE_REFACTOR_PLAN.zh-CN.md`. Keep private configuration, runtime data and local deployment archives out of source commits. Preserve documented skin hooks and browser persistence formats during component refactors.
+Git remotes: `origin` points at the maintained fork repository and `upstream` at `https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak`. Keep private configuration, runtime data and local deployment archives out of source commits. Preserve documented skin hooks and browser persistence formats during component refactors.

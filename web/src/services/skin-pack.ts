@@ -32,7 +32,6 @@ const OPTIONAL_VISUAL_PARTS = new Set([
   "home.gateway-status",
   "home.features",
   "home.feature",
-  "home.visitors",
   "home.join-card.waveform",
   "home.join-card.sonar",
   "voice.activity-heading",
@@ -41,11 +40,6 @@ const OPTIONAL_VISUAL_PARTS = new Set([
   "voice.member-row.avatar",
   "voice.screen-player.viewer-avatar",
   "voice.screen-player.live",
-  "demo.badge",
-  "demo.wave",
-  "demo.avatar",
-  "demo.member-status",
-  "demo.note",
 ]);
 const ZIP_EOCD = 0x06054b50;
 const ZIP_CENTRAL_FILE = 0x02014b50;
@@ -425,7 +419,7 @@ function compileSkinCss(source: string, id: string, assets: Record<string, Blob>
   const fontFamilyNames = new Map<string, string>();
   const hideableRules = new WeakSet<Rule>();
   let nodeCount = 0;
-  root.walk((node) => {
+  root.walk(() => {
     nodeCount += 1;
     if (nodeCount > 12000) throw new SkinPackError("The CSS file contains too many rules.", "SKIN_CSS_COMPLEXITY");
   });

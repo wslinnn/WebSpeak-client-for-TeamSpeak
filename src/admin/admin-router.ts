@@ -1,7 +1,7 @@
 import { Router, raw as expressRaw, type NextFunction, type Request, type Response } from "express";
 import { existsSync, readFileSync } from "node:fs";
 import type { Logger } from "../logger.js";
-import { AdminInputError, AdminService, type AdminSettingsInput, type RelayNodeInput } from "./admin-service.js";
+import { AdminInputError, AdminService, type AdminSettingsInput } from "./admin-service.js";
 import { AdminSessionStore, isSecureRequest } from "./admin-session.js";
 import { AdminLoginRateLimiter, waitFor } from "./login-rate-limit.js";
 import { TeamSpeakProbeError } from "../server/teamspeak-probe.js";
@@ -13,8 +13,6 @@ export interface AdminConnectionRecord {
   nickname: string;
   clientIp: string;
   target: string;
-  relayName: string | null;
-  relayTarget: string | null;
   startedAt: string;
   connectedAt: string | null;
   disconnectedAt: string | null;
@@ -439,19 +437,6 @@ async function runProbe(
 }
 
 function readSettingsInput(body: Record<string, unknown>): AdminSettingsInput {
-  const relayNodes = Array.isArray(body.relayNodes)
-    ? body.relayNodes.map((value): RelayNodeInput => {
-      const node = asRecord(value);
-      return {
-        id: typeof node.id === "string" ? node.id.slice(0, 110) : undefined,
-        name: typeof node.name === "string" ? node.name.slice(0, 80) : "",
-        target: typeof node.target === "string" ? node.target.slice(0, 300) : "",
-        enabled: node.enabled === true,
-        token: typeof node.token === "string" ? node.token.slice(0, 512) : undefined,
-        tokenAction: readPasswordAction(node.tokenAction),
-      };
-    })
-    : undefined;
   return {
     target: readString(body, "target", 300),
     serverPassword: typeof body.serverPassword === "string" ? body.serverPassword.slice(0, 512) : undefined,
@@ -469,18 +454,7 @@ function readSettingsInput(body: Record<string, unknown>): AdminSettingsInput {
     webRtcStunServer: body.webRtcStunServer as string | undefined,
     webRtcUdpStart: readOptionalInteger(body, "webRtcUdpStart"),
     webRtcUdpEnd: readOptionalInteger(body, "webRtcUdpEnd"),
-    relaySettingsAction: readRelaySettingsAction(body.relaySettingsAction),
-    relayEnabled: body.relayEnabled === true,
-    relayName: typeof body.relayName === "string" ? body.relayName.slice(0, 80) : undefined,
-    relayTarget: typeof body.relayTarget === "string" ? body.relayTarget.slice(0, 300) : undefined,
-    relayToken: typeof body.relayToken === "string" ? body.relayToken.slice(0, 512) : undefined,
-    relayTokenAction: readPasswordAction(body.relayTokenAction),
-    relayNodes,
   };
-}
-
-function readRelaySettingsAction(value: unknown): "keep" | "replace" | "remove" {
-  return value === "replace" || value === "remove" ? value : "keep";
 }
 
 function readPasswordAction(value: unknown): "keep" | "replace" | "remove" {
@@ -533,7 +507,7 @@ function readRecentLogs(logFile: string | undefined, limit: number): AdminLogEnt
       try {
         const raw = JSON.parse(line) as Record<string, unknown>;
         const context: Record<string, string | number | boolean> = {};
-        for (const key of ["component", "entryId", "code", "reason", "attempt", "target", "nickname", "clientIp", "relayName", "relayTarget", "channel", "reconnect", "port"]) {
+        for (const key of ["component", "entryId", "code", "reason", "attempt", "target", "nickname", "clientIp", "channel", "reconnect", "port"]) {
           const value = raw[key];
           if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") context[key] = value;
         }
@@ -565,8 +539,6 @@ export function readConnectionHistory(logFile: string | undefined, limit: number
     nickname: string;
     clientIp: string;
     target: string;
-    relayName: string;
-    relayTarget: string;
     startedAt: string | null;
     connectedAt: string | null;
     disconnectedAt: string | null;
@@ -583,8 +555,6 @@ export function readConnectionHistory(logFile: string | undefined, limit: number
       nickname: "",
       clientIp: "",
       target: "",
-      relayName: "",
-      relayTarget: "",
       startedAt: null,
       connectedAt: null,
       disconnectedAt: null,
@@ -596,13 +566,9 @@ export function readConnectionHistory(logFile: string | undefined, limit: number
     const nickname = typeof log.raw.nickname === "string" ? log.raw.nickname : "";
     const clientIp = typeof log.raw.clientIp === "string" ? log.raw.clientIp : "";
     const target = typeof log.raw.target === "string" ? log.raw.target : "";
-    const relayName = typeof log.raw.relayName === "string" ? log.raw.relayName : "";
-    const relayTarget = typeof log.raw.relayTarget === "string" ? log.raw.relayTarget : "";
     if (nickname) current.nickname = nickname;
     if (clientIp) current.clientIp = clientIp;
     if (target) current.target = target;
-    if (relayName) current.relayName = relayName;
-    if (relayTarget) current.relayTarget = relayTarget;
     if (typeof log.raw.failureDetail === "string" && log.raw.failureDetail) current.failureDetail = log.raw.failureDetail;
     if (log.message === "WebClient connecting") {
       current.startedAt ??= log.timestamp;
@@ -644,8 +610,6 @@ export function readConnectionHistory(logFile: string | undefined, limit: number
         nickname: record.nickname || "—",
         clientIp: record.clientIp || "—",
         target: record.target || "—",
-        relayName: record.relayName || null,
-        relayTarget: record.relayTarget || null,
         startedAt: record.startedAt,
         connectedAt: record.connectedAt,
         disconnectedAt: record.disconnectedAt,

@@ -8,8 +8,6 @@ export interface JoinTicketPayload {
   channel?: string;
   identity?: string;
   rememberIdentity?: boolean;
-  accelerated?: boolean;
-  accelerationRelayId?: string;
 }
 
 interface StoredTicket {

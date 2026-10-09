@@ -1,0 +1,60 @@
+{
+  "name": "@echosixhiya/teamspeak-client",
+  "version": "0.2.4",
+  "description": "TeamSpeak 3/6 client SDK for Node.js — vendored build output",
+  "keywords": [
+    "client",
+    "sdk",
+    "teamspeak",
+    "ts3",
+    "voip"
+  ],
+  "license": "MIT",
+  "author": "honeybbq",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/EchoSixHIYA/teamspeak-js"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./crypto": {
+      "types": "./dist/crypto/index.d.ts",
+      "import": "./dist/crypto/index.mjs",
+      "require": "./dist/crypto/index.cjs"
+    },
+    "./transport": {
+      "types": "./dist/transport/index.d.ts",
+      "import": "./dist/transport/index.mjs",
+      "require": "./dist/transport/index.cjs"
+    },
+    "./discovery": {
+      "types": "./dist/discovery/index.d.ts",
+      "import": "./dist/discovery/index.mjs",
+      "require": "./dist/discovery/index.cjs"
+    },
+    "./command": {
+      "types": "./dist/command/index.d.ts",
+      "import": "./dist/command/index.mjs",
+      "require": "./dist/command/index.cjs"
+    },
+    "./handshake": {
+      "types": "./dist/handshake/index.d.ts",
+      "import": "./dist/handshake/index.mjs",
+      "require": "./dist/handshake/index.cjs"
+    }
+  },
+  "dependencies": {
+    "@noble/curves": "^2.0.1"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

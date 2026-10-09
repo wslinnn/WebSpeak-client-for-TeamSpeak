@@ -25,10 +25,10 @@ WebSpeak 是一个可自行部署的 TeamSpeak 3 / TeamSpeak 6 网页客户端�
 | 桌面端伴奏 | 在桌面浏览器选择带音频的窗口或标签页，将声音分享给当前频道。 |
 | 身份与访问 | 支持身份保持、访客自定义目标、可撤销/可过期邀请链接，以及 TeamSpeak 3 身份导入、转换、校验与导出。 |
 | 工程结构 | 0.2.6 将网关语音、会话事件、音频和屏幕共享拆分为独立模块；前端语音与管理页拆分为组件、composables 和服务，并补充生命周期与重连测试。 |
-| 管理控制台 | 管理目标、访问策略、WebRTC、中继、邀请、会话、日志、诊断和备份。 |
+| 管理控制台 | 管理目标、访问策略、WebRTC、邀请、会话、日志、诊断和备份。 |
 | 皮肤 | 提供日间、夜间和 ILLUSIA 三款受保护皮肤，并支持实例自定义 `.wskin` 外观与管理员默认/启用管理。 |
 | 界面体验 | 提供中文、English、Deutsch、Русский、日本語及响应式桌面/移动布局。 |
-| 自托管 | 数据由部署者保存，支持 Docker amd64/arm64、Windows x64、Linux x64/ARM64 服务端包和 Android 客户端。 |
+| 自托管 | 数据由部署者保存，支持 Docker amd64/arm64、Windows x64、Linux x64/ARM64 服务端包。 |
 
 ## 🖼️ 界面截图
 
@@ -89,77 +89,10 @@ WebRTC 启用后端口范围会锁定。要修改端口，先关闭 WebRTC 并�
 
 浏览器用户与 TeamSpeak 6 原生客户端可以互相发现、发起和观看屏幕共享。浏览器之间以及浏览器与原生客户端之间的屏幕媒体优先通过 WebRTC/ICE 端到端传输；WebSpeak 负责会话鉴权、共享状态和 SDP/ICE 信令转发，不承载屏幕媒体流量。页面提供直播状态、观众人数、播放器音量、全屏和退出控制，也可在共享设置窗口中选择最高 1080p 与 60 FPS，并查看 WebRTC 统计。
 
-### 2. 中继模式
-
-中继适用于 TeamSpeak 拒绝境外连接或直连不稳定的情况。它不是 VPN，只转发当前 WebSpeak 会话的 TeamSpeak 数据；目标服务器仍由用户在网页中选择。
-
-中继实例是专用转发服务，不提供前台和管理员后台，只接受带匹配令牌的 WebSpeak 网关会话。令牌至少使用 16 个字符的随机值。
-
-#### 源码启动
-
-```bash
-git clone --depth 1 https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak.git
-cd WebSpeak-client-for-TeamSpeak
-npm ci --ignore-scripts
-npm run prepare:sdk
-npm run build
-WEBSPEAK_MODE=relay \
-WEBSPEAK_RELAY_TOKEN='replace-with-a-long-random-token' \
-WEBSPEAK_RELAY_HOST='0.0.0.0' \
-WEBSPEAK_RELAY_PORT='39087' \
-node dist/index.js
-```
-
-Windows PowerShell：
-
-```powershell
-$env:WEBSPEAK_MODE = "relay"
-$env:WEBSPEAK_RELAY_TOKEN = "replace-with-a-long-random-token"
-$env:WEBSPEAK_RELAY_HOST = "0.0.0.0"
-$env:WEBSPEAK_RELAY_PORT = "39087"
-node .\dist\index.js
-```
-
-#### 发布包启动
-
-从 [Releases](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/latest) 下载并解压对应平台的包：
-
-```bash
-# Linux
-export WEBSPEAK_MODE=relay
-export WEBSPEAK_RELAY_TOKEN='replace-with-a-long-random-token'
-export WEBSPEAK_RELAY_HOST='0.0.0.0'
-export WEBSPEAK_RELAY_PORT='39087'
-./runtime/node ./dist/index.js
-```
-
-Windows PowerShell 使用同名环境变量后运行 `.\runtime\node.exe .\dist\index.js`。
-
-#### Docker 启动
-
-```bash
-docker run -d --name webspeak-relay --restart unless-stopped --network host \
-  -e WEBSPEAK_MODE=relay \
-  -e WEBSPEAK_RELAY_TOKEN='replace-with-a-long-random-token' \
-  -e WEBSPEAK_RELAY_PORT='39087' \
-  ghcr.io/echosixhiya/webspeak:latest
-```
-
-放行中继主机的 UDP 监听端口，默认是 `39087`。
-
-#### 在网关中启用
-
-1. 管理员控制台 → “服务器” → “中继服务器”，添加一个或多个节点。
-2. 为每个节点填写自定义名称、地址（例如 `relay.example.com#39087`）和匹配令牌并保存。
-3. 访客欢迎页即可选择直连或其中一个中继。
-
-关闭并保存中继配置后，访客页面不会显示中继选项。
-
 ### 3. 依赖与归属
 
-- 中继服务是 WebSpeak 自带实现，使用 Node.js 标准库，不依赖 GOST、sing-box 或其他代理框架。
 - WebRTC 使用 [werift](https://github.com/shinyoshiaki/werift-webrtc) `0.24.4`，上游采用 MIT 许可证。
-- TeamSpeak 协议使用项目维护的 [EchoSixHIYA/teamspeak-js](https://github.com/EchoSixHIYA/teamspeak-js) SDK fork。
+- TeamSpeak 协议使用 [EchoSixHIYA/teamspeak-js](https://github.com/EchoSixHIYA/teamspeak-js) SDK（构建产物已 vendor 进仓库 `vendor/teamspeak-client/`）。
 
 ## 🧾 更新日志
 
@@ -219,7 +152,6 @@ docker compose up -d
 
 从 [GitHub Releases](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/latest) 下载与系统和架构匹配的 `windows-x64.zip`、`linux-x64.tar.gz` 或 `linux-arm64.tar.gz`，解压后运行对应启动脚本。发布包自带 Node.js 运行时和生产依赖。Docker 镜像支持 amd64/arm64。
 
-Release 同时提供 Android `arm64-v8a`、`armeabi-v7a` 和 `x86_64` APK。它们使用 debug 签名，可手动侧载测试；不是 Google Play 发布包，Android 真机语音仍需验收。
 
 ### 源码运行
 
@@ -227,7 +159,6 @@ Release 同时提供 Android `arm64-v8a`、`armeabi-v7a` 和 `x86_64` APK。它�
 git clone https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak.git
 cd WebSpeak-client-for-TeamSpeak
 npm ci --ignore-scripts
-npm run prepare:sdk
 npm rebuild @discordjs/opus --foreground-scripts
 npm --prefix web ci
 npm --prefix web run build

@@ -1,7 +1,6 @@
 import path from "node:path";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { createAccelerationRelayServer } from "./server/acceleration-relay.js";
 import { normalizeScreenShareIceServers, type ScreenShareIceServer } from "./server/screen-share.js";
 import { SkinRegistry } from "./admin/skin-registry.js";
 
@@ -18,10 +17,6 @@ const APP_VERSION = readPackageVersion();
 const SCREEN_SHARE_ICE_SERVERS = readScreenShareIceServers(process.env.WEBSPEAK_SCREEN_SHARE_ICE_SERVERS);
 
 async function main() {
-  if (process.env.WEBSPEAK_MODE?.trim().toLowerCase() === "relay") {
-    await runRelayMode();
-    return;
-  }
   const [{ createLogger }, { createWebServer }, { APP_PORT }, { WebSpeakDatabase }, { loadOrCreateMasterSecret }, { AdminService }, { JoinTicketStore }] = await Promise.all([
     import("./logger.js"),
     import("./server/server.js"),
@@ -60,18 +55,10 @@ async function main() {
       joinTickets,
       webRtc: () => adminService.getWebRtcAudioOptions(),
       screenShareIceServers: () => SCREEN_SHARE_ICE_SERVERS,
-      // The public gateway only uses the relay configuration explicitly
-      // saved in the admin console. Environment variables belong to the
-      // standalone relay process and must never make the relay option appear
-      // in the visitor UI after an administrator disables it.
-      acceleration: () => adminService.getAccelerationRelayOptions(),
-      accelerationName: () => adminService.getAccelerationRelayName(),
     },
     adminService,
     skinRegistry: new SkinRegistry(path.join(DATA_DIR, "skins")),
     logger,
-    nextVisitorNumber: () => database.nextVisitorNumber(),
-    visitorCount: () => database.getVisitorCount(),
   });
 
   await webServer.start();
@@ -85,22 +72,6 @@ async function main() {
   };
   process.on("SIGINT", () => shutdown("SIGINT"));
   process.on("SIGTERM", () => shutdown("SIGTERM"));
-}
-
-async function runRelayMode(): Promise<void> {
-  const token = (process.env.WEBSPEAK_RELAY_TOKEN || process.env.WEBSPEAK_ACCELERATION_RELAY_TOKEN)?.trim();
-  if (!token) throw new Error("WEBSPEAK_RELAY_TOKEN is required in relay mode");
-  const host = (process.env.WEBSPEAK_RELAY_HOST || process.env.WEBSPEAK_ACCELERATION_RELAY_HOST)?.trim() || "0.0.0.0";
-  const port = parsePort(process.env.WEBSPEAK_RELAY_PORT || process.env.WEBSPEAK_ACCELERATION_RELAY_PORT, 39087);
-  const allowPrivate = parseBoolean(process.env.WEBSPEAK_RELAY_ALLOW_PRIVATE || process.env.WEBSPEAK_ACCELERATION_RELAY_ALLOW_PRIVATE);
-  const server = await createAccelerationRelayServer({ host, port, token, allowPrivate });
-  console.log(`WebSpeak relay mode listening on ${server.host}:${server.port}`);
-  const shutdown = (): void => {
-    server.close();
-    process.exit(0);
-  };
-  process.once("SIGINT", shutdown);
-  process.once("SIGTERM", shutdown);
 }
 
 function readPackageVersion(): string {
@@ -118,16 +89,6 @@ function removeObsoleteBootstrapFile(): void {
   } catch (error: unknown) {
     if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
   }
-}
-
-function parsePort(value: string | undefined, fallback: number): number {
-  const port = value ? Number(value) : fallback;
-  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("Invalid relay port");
-  return port;
-}
-
-function parseBoolean(value: string | undefined): boolean {
-  return value === "1" || value?.toLowerCase() === "true";
 }
 
 function readScreenShareIceServers(value: string | undefined): ScreenShareIceServer[] {

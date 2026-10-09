@@ -15,22 +15,6 @@ export interface AdminSettingsInput {
   webRtcStunServer?: string;
   webRtcUdpStart?: number;
   webRtcUdpEnd?: number;
-  relaySettingsAction?: "keep" | "replace" | "remove";
-  relayEnabled?: boolean;
-  relayName?: string;
-  relayTarget?: string;
-  relayToken?: string;
-  relayTokenAction?: "keep" | "replace" | "remove";
-  relayNodes?: RelayNodeInput[];
-}
-
-export interface RelayNodeInput {
-  id?: string;
-  name: string;
-  target: string;
-  enabled: boolean;
-  token?: string;
-  tokenAction?: "keep" | "replace" | "remove";
 }
 
 export interface ManagedInviteInput {

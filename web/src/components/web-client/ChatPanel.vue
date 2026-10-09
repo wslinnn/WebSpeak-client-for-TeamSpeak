@@ -227,6 +227,7 @@ const {
   canSend: canSendChat,
   status: chatStatus,
   messageDraft,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- template `ref="chatListEl"` binds this ref to the message scroller.
   listElement: chatListEl,
   conversations: privateConversations,
   visibleMessages: visibleChatMessages,

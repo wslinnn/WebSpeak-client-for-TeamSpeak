@@ -1,7 +1,6 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import { createRouter, createWebHistory } from "vue-router";
-import { bootstrapPlatform } from "./platform/bootstrap.js";
 import App from "./App.vue";
 import "./services/theme.js";
 
@@ -28,7 +27,6 @@ const WebClient = () => import("./views/WebClient.vue");
 const routes = [
   { path: "/", name: "webclient", component: WebClient },
   { path: "/join", name: "join", component: WebClient },
-  { path: "/demo", name: "demo", component: () => import("./views/DemoView.vue") },
   { path: "/admin/:pathMatch(.*)*", name: "admin", component: () => import("./views/AdminView.vue") },
 ];
 
@@ -39,10 +37,10 @@ const router = createRouter({
 // Route chunks keep their CSS after navigation. Gate document-level layout so
 // visiting the admin console cannot constrain scrolling on the public pages.
 router.afterEach(to => {
-  document.documentElement.dataset.wsRoute = to.name === "admin" ? "admin" : to.name === "demo" ? "demo" : "webclient";
+  document.documentElement.dataset.wsRoute = to.name === "admin" ? "admin" : "webclient";
 });
 
-void bootstrapPlatform(mountApp);
+mountApp();
 
 function mountApp(): void {
   const app = createApp(App);

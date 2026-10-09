@@ -59,27 +59,6 @@
       ><span>{{ t("openTargetDefaultNotPrefilled") }}</span></div
     >
     <div
-      v-if="accelerationRelays.length"
-      class="acceleration-choice"
-      data-ws-part="home.relay-choice"
-      ><div
-        class="acceleration-copy"
-        data-ws-part="home.relay-choice.copy"
-        ><strong>{{ t("relayAcceleration") }}</strong
-        ><small>{{ t("relayAccelerationHint") }}</small></div
-      ><select
-        v-model="accelerationRelayId"
-        :aria-label="t('relayAcceleration')"
-        ><option value="">{{ t("directConnection") }}</option
-        ><option
-          v-for="relay in accelerationRelays"
-          :key="relay.id"
-          :value="relay.id"
-          >{{ relay.name }}</option
-        ></select
-      ></div
-    >
-    <div
       v-if="accessMode === 'open' && (favoriteServers.length || recentServers.length)"
       class="local-servers"
       data-ws-part="home.server-history"
@@ -253,13 +232,11 @@ const serverPassword = defineModel<string>("serverPassword", { required: true })
 const nickname = defineModel<string>("nickname", { required: true });
 const channel = defineModel<string>("channel", { required: true });
 const rememberIdentity = defineModel<boolean>("rememberIdentity", { required: true });
-const accelerationRelayId = defineModel<string>("accelerationRelayId", { required: true });
 
 defineProps<{
   autofocusNickname?: boolean;
   accessMode: "fixed" | "open";
   openTargetPrefillBlocked: boolean;
-  accelerationRelays: ReadonlyArray<{ id: string; name: string }>;
   favoriteServers: readonly FavoriteServer[];
   recentServers: readonly RecentServer[];
   isFavorite: boolean;

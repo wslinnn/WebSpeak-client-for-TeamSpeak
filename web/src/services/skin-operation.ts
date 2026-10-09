@@ -30,7 +30,10 @@ export function createSkinOperation({ signal: parent, timeoutMs = SKIN_LOAD_TIME
       const aborted = () => reject(signal.reason);
       const done = () => signal.removeEventListener("abort", aborted);
       signal.addEventListener("abort", aborted, { once: true });
-      Promise.resolve(value).then(result => { done(); signal.aborted ? reject(signal.reason) : resolve(result); }, error => { done(); reject(error); });
+      Promise.resolve(value).then(
+        result => { done(); if (signal.aborted) reject(signal.reason); else resolve(result); },
+        error => { done(); reject(error); },
+      );
       if (signal.aborted) { done(); aborted(); }
     });
   }

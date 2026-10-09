@@ -83,7 +83,6 @@
         /><span>{{ t("viewChangelog") }}</span>
       </a>
       <a
-        v-if="!mobile"
         class="guide-button"
         href="/admin"
         :title="t('adminConsole')"
@@ -120,7 +119,6 @@ import type { Language } from "../../i18n/web-client.js";
 defineProps<{
   brandName: string;
   appVersion: string;
-  mobile: boolean;
   skinOptions: SkinOption[];
   t: (key: string, variables?: Record<string, string | number>) => string;
 }>();

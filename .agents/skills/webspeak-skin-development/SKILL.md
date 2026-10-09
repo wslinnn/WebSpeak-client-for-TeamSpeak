@@ -24,7 +24,7 @@ Use this skill when editing or authoring a WebSpeak `.wskin` package, the ILLUSI
 
 ## Verify and package
 
-1. Compare the implementation with its visual reference at desktop and narrow widths. Check the homepage, voice workspace, empty chat, member list, screen-share player, selectors, and `/demo`; verify no crop, overflow, text collision, or control overlap.
+1. Compare the implementation with its visual reference at desktop and narrow widths. Check the homepage, voice workspace, empty chat, member list, screen-share player, and selectors; verify no crop, overflow, text collision, or control overlap.
 2. Check all five interface languages, day/night modes, keyboard focus, and reduced-motion behavior. Confirm the admin console is unchanged.
 3. Run `npm test` and `npm --prefix web run build`. Fix validator or build failures rather than weakening the layout guardrails.
 4. Package the contents of the skin directory so `manifest.json` is at the archive root, then import it through `/admin/skins` and retest the installed `.wskin` in a visitor session.

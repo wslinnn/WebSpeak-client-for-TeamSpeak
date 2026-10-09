@@ -798,10 +798,10 @@ test("a replaced join request cannot read an old body or alter the new target", 
   };
   voice.connect("old.example:9987", "", "Old");
   await nextTurn();
-  voice.connect("new.example:9987", "2", "New", "password", "identity", true, "invite", true, "relay");
+  voice.connect("new.example:9987", "2", "New", "password", "identity", true, "invite");
   await nextTurn();
   assert.equal(requests[0].signal?.aborted, true);
-  assert.deepEqual(JSON.parse(requests[1].body), { target: "new.example:9987", channel: "2", nickname: "New", serverPassword: "password", identity: "identity", rememberIdentity: true, invite: "invite", accelerated: true, accelerationRelayId: "relay" });
+  assert.deepEqual(JSON.parse(requests[1].body), { target: "new.example:9987", channel: "2", nickname: "New", serverPassword: "password", identity: "identity", rememberIdentity: true, invite: "invite" });
   let oldBodyReads = 0;
   response.resolve({ ok: true, json: async () => { oldBodyReads++; return { ticket: "old-ticket" }; } });
   await nextTurn();

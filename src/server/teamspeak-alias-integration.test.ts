@@ -110,7 +110,6 @@ test("settings, tests, invites, and join tickets resolve nicknames through the g
   assert.equal((await join({ target: "missing guild" })).code, "HOST_NOT_FOUND");
   await assert.rejects(service.testConnection("missing guild", "", true), { code: "HOST_NOT_FOUND" });
   assert.ok(lookups >= 9);
-  assert.throws(() => service.updateSettings({ ...settings("guild"), relaySettingsAction: "replace", relayTarget: "team eco" }));
 
   service.updateSettings(settings("8.8.8.8#9988"));
   assert.equal(database.getSettings().tsTarget, null);
@@ -134,7 +133,7 @@ test("schema 8 settings and invites survive the nickname migration", async (cont
   legacy.close();
   const migrated = new WebSpeakDatabase(file);
   try {
-    assert.equal(migrated.schemaVersion, 9);
+    assert.equal(migrated.schemaVersion, 10);
     assert.equal(migrated.getSettings().tsHost, "127.0.0.1");
     assert.equal(migrated.getSettings().tsTarget, null);
     const invite = migrated.consumeManagedInvite("legacy-token");

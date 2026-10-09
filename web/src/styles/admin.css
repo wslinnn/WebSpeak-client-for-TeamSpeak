@@ -1641,90 +1641,6 @@
   margin: 0;
 }
 
-:deep(.relay-card) {
-  grid-column: 1 / -1;
-}
-
-:deep(.relay-card .card-help) {
-  margin: 5px 0 0;
-  color: #7e8c88;
-  font-size: 10px;
-  line-height: 1.5;
-}
-
-:deep(.relay-card .toggle-choice) {
-  margin: 0;
-}
-
-:deep(.relay-node-list) {
-  display: grid;
-  gap: 10px;
-}
-
-:deep(.relay-node) {
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-  background: #f6f9f8;
-  border: 1px solid #e4efeb;
-  border-radius: 10px;
-}
-
-:deep(.relay-node-heading) {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-:deep(.relay-enabled) {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  cursor: pointer;
-}
-
-:deep(.relay-enabled input) {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  accent-color: #087d74;
-}
-
-:deep(.relay-enabled strong) {
-  font-size: 12px;
-}
-
-:deep(.relay-empty) {
-  padding: 10px 12px;
-  color: #82908c;
-  background: #f6f9f8;
-  border: 1px dashed #cfe3de;
-  border-radius: 9px;
-  font-size: 11px;
-}
-
-:deep(.relay-add) {
-  justify-self: start;
-  min-height: 34px;
-  padding-inline: 13px;
-}
-
-:deep(.relay-fields) {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-:deep(.relay-fields .password-row) {
-  grid-column: 1 / -1;
-}
-
-:deep(.relay-card .field-help) {
-  line-height: 1.55;
-}
-
 :deep(.welcome-editor) {
   display: grid;
   gap: 10px;
@@ -1837,13 +1753,6 @@
   box-shadow: 0 20px 60px rgba(14,62,55,.2);
 }
 
-:global(html[data-ws-route="admin"][data-theme="dark"] .relay-node),
-:global(html[data-ws-route="admin"][data-theme="dark"] .relay-empty) {
-  color: #e8f3f0;
-  background: #202f2c;
-  border-color: #30413d;
-}
-
 .modal-icon {
   display: grid;
   place-items: center;
@@ -1905,18 +1814,6 @@
 
 :global(html[data-ws-route="admin"][data-theme="dark"] .modal-card p) {
   color: #9bb0aa;
-}
-
-@media (max-width:850px) {
-  :deep(.relay-card) {
-    grid-column: auto;
-  }
-  :deep(.relay-fields) {
-    grid-template-columns: 1fr;
-  }
-  :deep(.relay-fields .password-row) {
-    grid-column: auto;
-  }
 }
 
 @media (max-width:520px) {
@@ -2122,25 +2019,8 @@
 /* Flexible fields must be allowed to shrink within responsive columns. */
 
 :deep(.settings-card),
-:deep(.relay-card),
-:deep(.relay-node),
-:deep(.relay-fields),
-:deep(.relay-node-heading),
-:deep(.relay-enabled),
-:deep(.relay-fields>label),
 :deep(.password-row),
 :deep(.password-row>label) {
-  min-width: 0;
-}
-
-:deep(.relay-enabled strong) {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-:deep(.relay-fields input) {
   min-width: 0;
 }
 
@@ -2481,28 +2361,8 @@
   line-height: 1.5;
 }
 
-:deep(.settings-subsection .relay-fields) {
-  grid-template-columns: repeat(auto-fit,minmax(min(100%,360px),1fr));
-}
-
-:deep(.settings-subsection .relay-fields .password-row) {
-  grid-column: 1/-1;
-}
-
-:deep(.advanced-settings-grid>.relay-card),
 :deep(.advanced-settings-grid>.webrtc-card) {
   grid-column: auto;
-}
-
-:deep(.settings-subsection .relay-node) {
-  background: var(--admin-surface);
-  border-color: var(--admin-border);
-}
-
-:deep(.settings-subsection .relay-empty) {
-  color: var(--admin-muted);
-  background: var(--admin-surface);
-  border-color: var(--admin-border);
 }
 
 /* One palette is shared by explicit dark mode and system dark mode. */
@@ -2635,8 +2495,6 @@
 
 .admin-root :deep(.welcome-editor),
 .admin-root :deep(.webrtc-port-fields),
-.admin-root :deep(.relay-node),
-.admin-root :deep(.relay-empty),
 .admin-root :deep(.readonly-card dl div),
 .admin-root :deep(.overview-card dl div),
 .admin-root :deep(.event-list li),
@@ -2660,7 +2518,6 @@
 .admin-root :deep(.welcome-editor-heading>small),
 .admin-root :deep(.port-fields-heading small),
 .admin-root :deep(.field-help),
-.admin-root :deep(.relay-empty),
 .admin-root :deep(.target-runtime-facts dt),
 .admin-root :deep(.connection-person small),
 .admin-root :deep(.connection-detail small),
@@ -2678,9 +2535,7 @@
 }
 
 .admin-root :deep(.target-runtime-facts>div),
-.admin-root :deep(.settings-subsection .choice),
-.admin-root :deep(.settings-subsection .relay-node),
-.admin-root :deep(.settings-subsection .relay-empty) {
+.admin-root :deep(.settings-subsection .choice) {
   background: var(--admin-surface);
   border-color: var(--admin-border);
 }
@@ -2769,12 +2624,6 @@
   }
   :deep(.settings-accordion-content) {
     padding: 13px 14px 15px;
-  }
-  :deep(.settings-subsection .relay-fields) {
-    grid-template-columns: minmax(0,1fr);
-  }
-  :deep(.settings-subsection .relay-fields .password-row) {
-    grid-column: auto;
   }
 }
 

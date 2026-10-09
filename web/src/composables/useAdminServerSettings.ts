@@ -6,7 +6,6 @@ import { createAdminRequests } from "../services/admin-requests.js";
 import { combineTeamSpeakTarget, splitTeamSpeakTarget, suggestedTeamSpeakPort } from "../services/teamspeak-target.js";
 
 type SecretAction = "keep" | "replace" | "remove";
-interface RelayNodeForm { id: string; name: string; enabled: boolean; target: string; token: string; tokenAction: SecretAction; hasToken: boolean }
 interface ProbeState { ok: boolean; checkType?: "network" | "protocol"; latencyMs?: number; serverName?: string | null; packetLossPercent?: number; code?: string; errorCode?: string }
 interface Options { api: AdminApi; errorMessage: Ref<string>; errorText(code?: string): string; refreshOverview(): Promise<void> }
 
@@ -14,7 +13,7 @@ function emptyForm() {
   return { address: "", port: "9987", serverPassword: "", passwordAction: "keep" as SecretAction, hasPassword: false,
     accessMode: "fixed" as "fixed" | "open", siteName: "WebSpeak", welcomeText: "", welcomeTextEn: "", welcomeTextDe: "", welcomeTextRu: "", welcomeTextJa: "",
     welcomeDefaults: { ...DEFAULT_WELCOME_TEXTS }, webRtcPublicHost: "", webRtcIpv6Enabled: false, webRtcStunServer: "", webRtcEnabled: false, webRtcUdpStart: 40000, webRtcUdpEnd: 40099,
-    relayNodes: [] as RelayNodeForm[], lastTestAt: null as string | null, lastTestLatencyMs: null as number | null };
+    lastTestAt: null as string | null, lastTestLatencyMs: null as number | null };
 }
 type ServerForm = ReturnType<typeof emptyForm>;
 const editable = ["address", "port", "accessMode", "siteName", "welcomeText", "welcomeTextEn", "welcomeTextDe", "welcomeTextRu", "welcomeTextJa", "webRtcEnabled", "webRtcPublicHost", "webRtcIpv6Enabled", "webRtcStunServer", "webRtcUdpStart", "webRtcUdpEnd"] as const;
@@ -55,7 +54,6 @@ export function useAdminServerSettings(options: Options) {
   function mergeSettings(value: AdminSettings, baseline: ServerForm, observedProbeRevision: number): void {
     const target = splitTeamSpeakTarget(value.target);
     const next: ServerForm = { ...emptyForm(), ...value, address: target.address, port: target.port,
-      relayNodes: value.relayNodes.map(node => ({ ...node, token: "", tokenAction: "keep" })),
       welcomeDefaults: { ...DEFAULT_WELCOME_TEXTS, ...value.welcomeDefaults } };
     const applyProbeMetadata = observedProbeRevision === probeRevision;
     const previousAddress = serverForm.address, previousPort = serverForm.port;
@@ -76,24 +74,6 @@ export function useAdminServerSettings(options: Options) {
         serverForm.lastTestAt = next.lastTestAt;
         serverForm.lastTestLatencyMs = next.lastTestLatencyMs;
       }
-      const oldNodes = new Map(baseline.relayNodes.map(node => [node.id, node]));
-      const savedNodes = new Map(next.relayNodes.map(node => [node.id, node]));
-      const currentIds = new Set(serverForm.relayNodes.map(node => node.id));
-      serverForm.relayNodes = [
-        ...next.relayNodes.filter(node => !oldNodes.has(node.id) && !currentIds.has(node.id)),
-        ...serverForm.relayNodes.map(node => {
-          const old = oldNodes.get(node.id), saved = savedNodes.get(node.id);
-          if (!old || !saved) return node;
-          const merged = { ...node, hasToken: saved.hasToken };
-          for (const key of ["name", "target", "enabled"] as const) {
-            if (node[key] === old[key]) Object.assign(merged, { [key]: saved[key] });
-          }
-          if (node.token === old.token && node.tokenAction === old.tokenAction) {
-            merged.token = ""; merged.tokenAction = "keep";
-          }
-          return merged;
-        }),
-      ];
     } finally { applyingSettings = false; }
   }
 
@@ -102,8 +82,7 @@ export function useAdminServerSettings(options: Options) {
       passwordAction: serverForm.passwordAction, accessMode: serverForm.accessMode, siteName: serverForm.siteName,
       welcomeText: serverForm.welcomeText, welcomeTextEn: serverForm.welcomeTextEn, welcomeTextDe: serverForm.welcomeTextDe, welcomeTextRu: serverForm.welcomeTextRu, welcomeTextJa: serverForm.welcomeTextJa,
       webRtcPublicHost: serverForm.webRtcPublicHost, webRtcIpv6Enabled: serverForm.webRtcIpv6Enabled, webRtcStunServer: serverForm.webRtcStunServer,
-      webRtcEnabled: serverForm.webRtcEnabled, webRtcUdpStart: serverForm.webRtcUdpStart, webRtcUdpEnd: serverForm.webRtcUdpEnd,
-      relayNodes: serverForm.relayNodes.map(node => ({ id: node.id, name: node.name, target: node.target, enabled: node.enabled, tokenAction: node.tokenAction, ...(node.tokenAction === "replace" ? { token: node.token } : {}) })) };
+      webRtcEnabled: serverForm.webRtcEnabled, webRtcUdpStart: serverForm.webRtcUdpStart, webRtcUdpEnd: serverForm.webRtcUdpEnd };
   }
   function report(error: unknown) {
     if (!isAdminRequestCancelled(error)) options.errorMessage.value = options.errorText((error as { code?: string }).code);
@@ -147,9 +126,5 @@ export function useAdminServerSettings(options: Options) {
       if (request.isCurrent() && !isAdminRequestCancelled(error)) testResult.value = { ok: false, code: (error as { code?: string }).code };
     } finally { if (request.isCurrent()) testing.value = false; request.finish(); }
   }
-  function addRelayNode() {
-    serverForm.relayNodes.push({ id: `relay-new-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`, name: "", enabled: false, target: "", token: "", tokenAction: "replace", hasToken: false });
-  }
-  function removeRelayNode(index: number) { serverForm.relayNodes.splice(index, 1); }
-  return { serverForm, serverSaving, testing, testResult, loadServerSettings, saveServerSettings, testServerConnection, addRelayNode, removeRelayNode, cancelRequests, reset };
+  return { serverForm, serverSaving, testing, testResult, loadServerSettings, saveServerSettings, testServerConnection, cancelRequests, reset };
 }

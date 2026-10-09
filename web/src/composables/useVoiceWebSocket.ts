@@ -178,7 +178,6 @@ const CONNECTION_FAILURE_MESSAGES: Record<string, string> = {
   JOIN_TICKET_REQUIRED: "语音会话票据缺失或已过期，请返回列表重新进入语音空间",
   IDENTITY_INVALID: "语音网关拒绝了本次连接：身份无效，请取消“保持身份”后重新进入",
   IDENTITY_REJECTED: "语音网关拒绝了本次连接：身份无效或无法在此页面使用，请取消“保持身份”后重新进入",
-  ACCELERATION_UNAVAILABLE: "当前中继加速不可用，请关闭加速后重试或联系管理员",
   GATEWAY_NETWORK_LOST: "与语音网关的网络连接异常中断（掉线或代理断开），并非 TeamSpeak 服务器拒绝连接，请检查网络后重新进入",
   GATEWAY_SESSION_ENDED: "语音网关会话意外结束，请重新进入语音空间",
   TEAM_SPEAK_CLIENT_UNAVAILABLE: "语音网关未能创建 TeamSpeak 客户端（服务器可能已关闭或地址不可达），请确认服务器地址或稍后重试",
@@ -229,7 +228,7 @@ export function useVoiceWebSocket() {
     },
   });
   const commands = createVoiceCommands({ socket: () => ws.value, generation: () => voiceConnection.generation });
-  let lastConnection: { target: string; channel: string; nickname: string; serverPassword: string; identity?: string; rememberIdentity: boolean; accelerated: boolean; accelerationRelayId: string } | null = null;
+  let lastConnection: { target: string; channel: string; nickname: string; serverPassword: string; identity?: string; rememberIdentity: boolean } | null = null;
   const identityMaterial = ref("");
   const storedVolumesByUid = reactive<Record<string, number>>({});
   let microphoneStartPromise: Promise<void> | null = null;
@@ -615,10 +614,6 @@ export function useVoiceWebSocket() {
     await Promise.allSettled(fallbackOperations);
   }
 
-  async function refreshInputDevices(): Promise<void> {
-    await refreshAudioDevices();
-  }
-
   function handleCaptureChunk(input: Float32Array, rms?: number): void {
     if (!input.length) return;
     micLevel.value = Math.min(1, (rms ?? Math.sqrt(input.reduce((sum, sample) => sum + sample * sample, 0) / input.length)) * 6);
@@ -907,9 +902,9 @@ export function useVoiceWebSocket() {
     }
   }
 
-  function connect(target: string, channel: string, nickname: string, serverPassword = "", identity = "", rememberIdentity = false, inviteToken = "", accelerated = false, accelerationRelayId = ""): void {
+  function connect(target: string, channel: string, nickname: string, serverPassword = "", identity = "", rememberIdentity = false, inviteToken = ""): void {
     disconnect(true);
-    lastConnection = { target, channel, nickname, serverPassword, ...(identity ? { identity } : {}), rememberIdentity, accelerated, accelerationRelayId };
+    lastConnection = { target, channel, nickname, serverPassword, ...(identity ? { identity } : {}), rememberIdentity };
     identityMaterial.value = identity;
     state.error = "";
     state.errorCode = "";
@@ -923,7 +918,6 @@ export function useVoiceWebSocket() {
     voiceConnection.start(JSON.stringify({
       target, nickname, channel, serverPassword,
       ...(inviteToken ? { invite: inviteToken } : {}),
-      ...(accelerated ? { accelerated: true, ...(accelerationRelayId ? { accelerationRelayId } : {}) } : {}),
       ...(rememberIdentity && identity ? { identity } : {}),
       ...(rememberIdentity ? { rememberIdentity: true } : {}),
     }), audioPreferencesReady);
@@ -935,7 +929,6 @@ export function useVoiceWebSocket() {
       NOT_INITIALIZED: "WebSpeak 尚未完成配置，请联系管理员",
       RATE_LIMITED: "请求过于频繁，请稍后重试",
       TARGET_NOT_ALLOWED: "此 TeamSpeak 服务器地址不允许连接",
-      ACCELERATION_UNAVAILABLE: "当前中继加速不可用，请关闭加速或联系管理员",
       INVALID_NICKNAME: "请输入有效的昵称",
       INVITE_INVALID: "邀请链接已失效或已被撤销",
       REQUEST_TIMEOUT: "等待 WebSpeak 网关响应超时，请检查网络后重试",
@@ -945,11 +938,11 @@ export function useVoiceWebSocket() {
   }
 
   // 网关关闭码 → 前端可解释错误码的映射：4000-4003 是网关/会话级，4004/4005 是
-  // TeamSpeak 拒绝与身份冲突，4006 是中继加速，1006/1011 是传输级掉线，绝不能
+  // TeamSpeak 拒绝与身份冲突，1006/1011 是传输级掉线，绝不能
   // 被误当成 TeamSpeak 服务器拒绝。
   /**
    * Gateway close codes. 4000-4003 are gateway/session level, 4004/4005 are a
-   * TeamSpeak rejection and an identity conflict, 4006 is the acceleration relay,
+   * TeamSpeak rejection and an identity conflict,
    * and 1006 is a transport-level drop that must not be blamed on TeamSpeak.
    */
   const GATEWAY_CLOSE_CODE_CODES: Record<number, string> = {
@@ -959,7 +952,6 @@ export function useVoiceWebSocket() {
     4003: "IDENTITY_REJECTED",
     4004: "SERVER_REJECTED",
     4005: "IDENTITY_IN_USE",
-    4006: "ACCELERATION_UNAVAILABLE",
     1006: "GATEWAY_NETWORK_LOST",
     1011: "GATEWAY_SESSION_ENDED",
   };
@@ -1277,7 +1269,7 @@ export function useVoiceWebSocket() {
 
   function reconnectNow(): void {
     if (!lastConnection || state.connecting) return;
-    connect(lastConnection.target, lastConnection.channel, lastConnection.nickname, lastConnection.serverPassword, lastConnection.rememberIdentity ? identityMaterial.value || lastConnection.identity : "", lastConnection.rememberIdentity, "", lastConnection.accelerated, lastConnection.accelerationRelayId);
+    connect(lastConnection.target, lastConnection.channel, lastConnection.nickname, lastConnection.serverPassword, lastConnection.rememberIdentity ? identityMaterial.value || lastConnection.identity : "", lastConnection.rememberIdentity);
   }
 
   function setMicrophoneMuted(muted: boolean): void {

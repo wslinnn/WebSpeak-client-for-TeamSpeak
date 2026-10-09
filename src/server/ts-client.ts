@@ -19,7 +19,6 @@ import type { Logger } from "../logger.js";
 import { describeTeamSpeakError, normalizeTeamSpeakError, normalizeTeamSpeakKickedReason } from "../errors.js";
 import { TeamSpeakAdapter, type TeamSpeakProtocol } from "./teamspeak-adapter.js";
 import type { TeamSpeakTarget } from "../domain/teamspeak-target.js";
-import { createAccelerationRelayClient, type AccelerationRelayClient, type AccelerationRelayOptions } from "./acceleration-relay.js";
 
 export interface TSClientOptions {
   target: TeamSpeakTarget;
@@ -28,7 +27,6 @@ export interface TSClientOptions {
   defaultChannel?: string;
   channelPassword?: string;
   identity?: Identity;
-  acceleration?: AccelerationRelayOptions;
 }
 
 export interface TSVoiceData {
@@ -91,7 +89,6 @@ export class TSClient extends EventEmitter {
   private syncedInputMuted: boolean | null = null;
   private inputStateQueue: Promise<void> = Promise.resolve();
   private preferredChannelId = 0n;
-  private accelerationClient: AccelerationRelayClient | null = null;
   // Reason id of the most recent self leave, kept so the SDK `kicked` event can
   // tell a plain kick (4) from a kick with ban (5). The SDK only forwards the
   // reason message to its `kicked` handler, not the reason id.
@@ -110,17 +107,8 @@ export class TSClient extends EventEmitter {
     this.inputStateQueue = Promise.resolve();
     this.selfLeaveReasonId = null;
     if (!this.adapter || !this.client) {
-      let transportTarget = this.options.target;
-      if (this.options.acceleration && !this.accelerationClient) {
-        this.accelerationClient = await createAccelerationRelayClient({
-          ...this.options.acceleration,
-          host: this.options.target.host,
-          port: this.options.target.port,
-        });
-        transportTarget = { host: this.accelerationClient.localHost, port: this.accelerationClient.localPort };
-      }
       this.adapter = new TeamSpeakAdapter({
-        target: transportTarget,
+        target: this.options.target,
         nickname: this.options.nickname,
         identity: this.identity,
         serverPassword: this.options.serverPassword,
@@ -498,8 +486,6 @@ export class TSClient extends EventEmitter {
     try {
       if (this.adapter) await this.adapter.disconnect();
     } finally {
-      this.accelerationClient?.close();
-      this.accelerationClient = null;
       this.adapter = null;
       this.client = null;
       this.clientId = 0;

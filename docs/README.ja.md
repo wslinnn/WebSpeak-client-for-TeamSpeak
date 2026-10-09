@@ -34,7 +34,7 @@
 | プロジェクト構造 | 0.2.6 では音声ゲートウェイ、セッションイベント、音声処理、画面共有調整を分割し、音声・管理画面をコンポーネント、composable、サービスに整理しました。ライフサイクルと再接続のテストも追加しました。 |
 | スキン | 保護された昼・夜・ILLUSIA スキンに加え、管理者が有効化とデフォルトを管理するインスタンス `.wskin` に対応。 |
 | インターフェース | 中文、English、Deutsch、Русский、日本語、レスポンシブ表示。 |
-| デプロイ | Windows x64、Linux x64/ARM64 パッケージ、Docker amd64/arm64、Android arm64-v8a・armeabi-v7a・x86_64 APK。 |
+| デプロイ | Windows x64、Linux x64/ARM64 パッケージ、Docker amd64/arm64。 |
 
 ## 🖼️ インターフェースのスクリーンショット
 
@@ -103,13 +103,11 @@ docker compose up -d
 
 ### Release パッケージ
 
-[Releases](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/latest) から `windows-x64.zip`、`linux-x64.tar.gz`、`linux-arm64.tar.gz` のいずれかを取得し、同梱ランチャーを実行します。Docker は amd64/arm64 に対応します。`arm64-v8a`、`armeabi-v7a`、`x86_64` の Android APK もあります。APK は手動インストールとテスト向けのデバッグ署名で、Google Play 用ではありません。実機 TeamSpeak 音声は未検証です。
 
 ### ソースから
 
 ```bash
 npm ci --ignore-scripts
-npm run prepare:sdk
 npm rebuild @discordjs/opus --foreground-scripts
 npm --prefix web ci
 npm --prefix web run build

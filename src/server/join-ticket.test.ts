@@ -9,8 +9,6 @@ const payload: JoinTicketPayload = {
   channel: "Lobby",
   identity: "test-identity",
   rememberIdentity: true,
-  accelerated: true,
-  accelerationRelayId: "relay-1",
 };
 
 test("join tickets preserve connection options and can only be consumed once", () => {

@@ -79,8 +79,7 @@ assets/brand.woff2            # 可选：自带字体
       },
       "messages": {
         "home.connect": "Enter the room",
-        "voice.activity-heading": "Voice activity",
-        "demo.heroLead": "A preview customized by this skin."
+        "voice.activity-heading": "Voice activity"
       }
     }
   }
@@ -89,7 +88,7 @@ assets/brand.woff2            # 可选：自带字体
 
 `home` 支持 `brandName`、`eyebrow`、`title`、`titleAccent`、`description`、`welcomeTitle`、`welcomeDescription` 和 `features`。普通文字最多 500 个字符；`features` 最多 8 项，每项的 `title` 最多 80 个字符、`description` 最多 240 个字符。功能卡片图标和状态由应用提供，皮肤不能通过 JSON 注入节点。
 
-`messages` 的键是公开页面中翻译调用使用的键；首页/语音页键可在 `web/src/i18n/web-client.ts` 查找，演示页键使用 `demo.` 前缀加字段名（例如 `demo.heroLead`、`demo.speakingNow`）。每个 locale 最多覆盖 200 条，每条文案最多 500 个字符。键只能由小写字母开头，并包含字母、数字或点。语言回退顺序为默认 locale、当前语言和更具体的 locale；之后回退到 WebSpeak 原文。
+`messages` 的键是公开页面中翻译调用使用的键；键可在 `web/src/i18n/web-client.ts` 查找。每个 locale 最多覆盖 200 条，每条文案最多 500 个字符。键只能由小写字母开头，并包含字母、数字或点。语言回退顺序为默认 locale、当前语言和更具体的 locale；之后回退到 WebSpeak 原文。
 
 管理后台的文字不读取皮肤包，不能通过 `messages` 修改。
 
@@ -115,7 +114,7 @@ assets/brand.woff2            # 可选：自带字体
 
 也可以写 `:root { --skin-accent: ... }` 设置皮肤自己的变量；`:root` 会被转换成当前皮肤根。选择器必须包含 `:root`、`[data-ws-page]` 或 `[data-ws-part]`。不要写 `:global()`、`html`、`body` 或 Vue 内部 class 作为公开接口。组件 class 可能随版本调整，`data-ws-part` 才是皮肤作者接口。自定义变量名必须使用 `--skin-` 前缀，不能覆盖 WebSpeak 的内部令牌。
 
-页面根节点使用 `data-ws-page` 区分 `home`、`voice` 和 `demo`。使用 `data-ws-state` 选择明确状态，如 `active`、`idle`、`current`、`open`、`closed`、`drag-over`、`dragging`、`speaking`、`connected`、`self`、`mine` 或 `other`。语音成员还提供 `data-ws-speaking="true|false"` 和 `data-ws-self="true|false"`。交互元素会带有 `data-ws-critical="true"`；没有专属部件名称的按钮、链接、输入框、滑块和可拖动成员会使用通用部件 `data-ws-part="control"`，并以 `data-ws-control-kind` 标出 `button`、`link`、`input`、`checkbox`、`range`、`select`、`textarea`、`menuitem` 或 `draggable`。
+页面根节点使用 `data-ws-page` 区分 `home` 和 `voice`。使用 `data-ws-state` 选择明确状态，如 `active`、`idle`、`current`、`open`、`closed`、`drag-over`、`dragging`、`speaking`、`connected`、`self`、`mine` 或 `other`。语音成员还提供 `data-ws-speaking="true|false"` 和 `data-ws-self="true|false"`。交互元素会带有 `data-ws-critical="true"`；没有专属部件名称的按钮、链接、输入框、滑块和可拖动成员会使用通用部件 `data-ws-part="control"`，并以 `data-ws-control-kind` 标出 `button`、`link`、`input`、`checkbox`、`range`、`select`、`textarea`、`menuitem` 或 `draggable`。
 
 ### 已发布的部件名称
 
@@ -124,11 +123,10 @@ assets/brand.woff2            # 可选：自带字体
 | 页面区域 | `data-ws-part` |
 | --- | --- |
 | 通用 | `app`、`app.toast`、`control`、`skin.trigger`、`skin.menu`、`skin.option`、`language.trigger`、`language.menu`、`language.option` |
-| 首页 | `home`、`home.header`、`home.brand`、`home.header-tools`、`home.gateway-status`、`home.content`、`home.hero`、`home.hero.eyebrow`、`home.hero.title`、`home.hero.description`、`home.features`、`home.feature`、`home.visitors`、`home.join-card`、`home.join-card.waveform`、`home.join-card.sonar`、`home.join-title`、`home.join-description`、`home.notice`、`home.form`、`home.server-target`、`home.field-label`、`home.field`、`home.relay-choice`、`home.relay-choice.copy`、`home.server-history`、`home.server-history.group`、`home.favorite-toggle`、`home.identity`、`home.identity-actions`、`home.identity-import.open`、`home.identity-export.button`、`home.identity-import-dialog`、`home.identity-import.header`、`home.identity-import.close`、`home.identity-import.textarea`、`home.identity-import.drop-zone`、`home.identity-import.file-button`、`home.identity-import.error`、`home.identity-import.security`、`home.identity-import.footer`、`home.identity-import.cancel`、`home.identity-import.submit`、`home.connect`、`home.security-note`、`home.footer`、`home.community-dialog` |
+| 首页 | `home`、`home.header`、`home.brand`、`home.header-tools`、`home.gateway-status`、`home.content`、`home.hero`、`home.hero.eyebrow`、`home.hero.title`、`home.hero.description`、`home.features`、`home.feature`、`home.join-card`、`home.join-card.waveform`、`home.join-card.sonar`、`home.join-title`、`home.join-description`、`home.notice`、`home.form`、`home.server-target`、`home.field-label`、`home.field`、`home.server-history`、`home.server-history.group`、`home.favorite-toggle`、`home.identity`、`home.identity-actions`、`home.identity-import.open`、`home.identity-export.button`、`home.identity-import-dialog`、`home.identity-import.header`、`home.identity-import.close`、`home.identity-import.textarea`、`home.identity-import.drop-zone`、`home.identity-import.file-button`、`home.identity-import.error`、`home.identity-import.security`、`home.identity-import.footer`、`home.identity-import.cancel`、`home.identity-import.submit`、`home.connect`、`home.security-note`、`home.footer`、`home.community-dialog` |
 | 语音工作区 | `voice.shell`、`voice.workspace`、`voice.header`、`voice.header-actions`、`voice.breadcrumbs`、`voice.performance`、`voice.performance.panel`、`voice.performance.route`、`voice.performance.metrics`、`voice.performance.status`、`voice.performance.webrtc-stats`、`voice.connection-status`、`voice.audio-status`、`voice.poke`、`voice.scroll`、`voice.content`、`voice.activity`、`voice.activity.artwork`、`voice.activity-heading`、`voice.screen-share-error`、`voice.members`、`voice.members.empty`、`voice.member`、`voice.member.avatar-wrap`、`voice.member.avatar`、`voice.member.name`、`voice.member.status`、`voice.member.live-indicator`、`voice.member.stop-share`、`voice.member.share-actions`、`voice.member-panel`、`voice.member-panel.heading`、`voice.member-panel.search`、`voice.member-panel.channels`、`voice.channel-group`、`voice.channel-group.heading`、`voice.channel-group.members`、`voice.member-row`、`voice.member-row.avatar`、`voice.member-row.copy`、`voice.member-row.flags`、`voice.member-row.volume`、`voice.whisper-strip`、`voice.audio-dock`、`voice.audio-dock.microphone`、`voice.audio-dock.microphone-panel`、`voice.audio-dock.output`、`voice.audio-dock.output-panel`、`voice.audio-settings`、`voice.mobile-more`、`voice.mobile-nav` |
 | 聊天与菜单 | `voice.chat`、`voice.chat.tabs`、`voice.chat.tab`、`voice.chat.heading`、`voice.chat.messages`、`voice.chat.event`、`voice.chat.message`、`voice.chat.message-avatar`、`voice.chat.message-body`、`voice.chat.message-bubble`、`voice.chat.empty`、`voice.chat.composer`、`voice.chat.status`、`voice.context-menu-backdrop`、`voice.context-menu`、`voice.context-menu.header`、`voice.context-menu.move-submenu` |
 | 屏幕共享 | `voice.screen-share-settings`、`voice.screen-share-settings.heading`、`voice.screen-share-settings.fields`、`voice.screen-share-settings.note`、`voice.screen-share-settings.actions`、`voice.screen-player`、`voice.screen-player.stage`、`voice.screen-player.video`、`voice.screen-player.placeholder`、`voice.screen-player.exit`、`voice.screen-player.viewers`、`voice.screen-player.viewer-avatar`、`voice.screen-player.live`、`voice.screen-player.source`、`voice.screen-player.controls`、`voice.screen-player.volume`、`voice.screen-player.fullscreen` |
-| `/demo` 演示页 | `demo.header`、`demo.brand`、`demo.header-tools`、`demo.badge`、`demo.skin-switcher`、`demo.language-switcher`、`demo.home-link`、`demo.reconnect`、`demo.reconnect.restore`、`demo.layout`、`demo.channels`、`demo.channels.heading`、`demo.channel`、`demo.channel.select`、`demo.channel.members`、`demo.main`、`demo.hero`、`demo.live`、`demo.hero.title`、`demo.hero.description`、`demo.hero.online`、`demo.wave`、`demo.voice-heading`、`demo.voice-grid`、`demo.voice-card`、`demo.avatar`、`demo.member-name`、`demo.member-status`、`demo.chat.heading`、`demo.chat.tabs`、`demo.chat.tab`、`demo.chat.messages`、`demo.chat.message`、`demo.chat.empty`、`demo.chat.composer`、`demo.chat.input`、`demo.chat.send`、`demo.actions`、`demo.actions.heading`、`demo.action.speaking`、`demo.action.poke`、`demo.action.reconnect`、`demo.note`、`demo.user`、`demo.poke-notification`、`demo.poke.dismiss` |
 
 `voice.member.avatar` 是语音活动区头像；`voice.member-row.avatar` 是右侧成员树头像。状态属性还会使用 `current`、`drag-over`、`dragging`、`self`、`events-empty` 和 `messages-empty`。当前根节点以及屏幕共享播放器、弹窗、菜单都属于同一皮肤作用域。
 
@@ -213,18 +211,12 @@ assets/brand.woff2            # 可选：自带字体
 [data-ws-part="home.gateway-status"]
 [data-ws-part="home.features"]
 [data-ws-part="home.feature"]
-[data-ws-part="home.visitors"]
 [data-ws-part="voice.activity-heading"]
 [data-ws-part="voice.member.avatar"]
 [data-ws-part="voice.member.live-indicator"]
 [data-ws-part="voice.member-row.avatar"]
 [data-ws-part="voice.screen-player.viewer-avatar"]
 [data-ws-part="voice.screen-player.live"]
-[data-ws-part="demo.badge"]
-[data-ws-part="demo.wave"]
-[data-ws-part="demo.avatar"]
-[data-ws-part="demo.member-status"]
-[data-ws-part="demo.note"]
 ```
 
 上面必须使用单独的精确属性选择器；不能通过父容器、组合选择器或子元素间接隐藏/重置内容。关键帧只有在其动画仅被这些可选部件引用时，才可使用透明度归零；若关键帧也被必要控件引用或动画名通过变量指定，则会被拒绝。`clip`、`clip-path` 和 `mask` 一律不允许，避免视觉裁切误伤真实控件。校验器是防止布局回归的边界，不是视觉质量证明；自定义字体、复杂背景和高对比特效仍需人工检查文字可读性与控件辨识度。
@@ -245,7 +237,7 @@ CSS 被限定在 `.ws-skin-root` 内，管理员页面不会继承皮肤。删�
    Rename-Item .\illusia-voice.zip illusia-voice.wskin
    ```
 
-5. 在管理员后台 `/admin/skins` 上传。用访客浏览器分别检查连接首页、进入语音页和 `/demo`；测试自定义图片、所有交互控件、语音/静音状态、成员列表、聊天、屏幕共享播放器和设置，确认组件位置、尺寸、排列与未启用皮肤时一致。
+5. 在管理员后台 `/admin/skins` 上传。用访客浏览器分别检查连接首页和语音页；测试自定义图片、所有交互控件、语音/静音状态、成员列表、聊天、屏幕共享播放器和设置，确认组件位置、尺寸、排列与未启用皮肤时一致。
 6. 检查至少一个窄屏尺寸和桌面尺寸，并检查焦点可见、对比度、动效偏好；确认没有第三方素材授权问题。
 
 当前自动化回归涵盖 ZIP/清单验证、资源路径、CSS 隔离与拒绝规则、文案结构和服务端皮肤目录读写。视觉排版、内容遮挡和浏览器间表现仍须人工预览。

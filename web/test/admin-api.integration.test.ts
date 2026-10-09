@@ -97,13 +97,10 @@ test("browser admin API consumes the actual HTTP router and preserves keep/repla
   for (const passwordAction of ["replace", "keep", "remove"] as const) {
     const body = {
       ...original, passwordAction, ...(passwordAction === "replace" ? { serverPassword: "test-server-password" } : {}),
-      relayNodes: [{ id: "relay-test", name: "Test relay", target: "relay.example.invalid:1234", enabled: passwordAction !== "remove", tokenAction: passwordAction, ...(passwordAction === "replace" ? { token: "test-relay-token" } : {}) }],
     };
     const saved = await api.saveSettings(body);
     assert.equal(saved.settings.hasPassword, passwordAction !== "remove");
     assert.equal(service.getConnectionPolicy().serverPassword, passwordAction === "remove" ? "" : "test-server-password");
-    assert.equal(saved.settings.relayNodes[0].hasToken, passwordAction !== "remove");
-    assert.equal(service.getAccelerationRelayOptions()[0]?.token, passwordAction === "remove" ? undefined : "test-relay-token");
   }
   const settings = service.getAdminSettings();
   assert.deepEqual(adminResponses.settings({ ...settings, passwordAction: "remove", serverPassword: "injected" }), settings);

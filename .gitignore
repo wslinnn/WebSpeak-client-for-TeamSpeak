@@ -1,13 +1,6 @@
 node_modules/
 dist/
 web/dist/
-mobile/node_modules/
-web/android/.gradle/
-web/android/build/
-web/android/app/build/
-web/android/local.properties
-web/android/app/src/main/assets/public/
-web/android/app/src/main/assets/capacitor.config.json
 data/
 config.json
 *.log
@@ -29,3 +22,4 @@ claude.pem
 /.claude/
 /LOCAL-RELEASE-RUNBOOK.md
 /DEPLOYMENT-*.md
+.zcode/

@@ -10,7 +10,6 @@ import { resolveVoiceMediaAddresses } from "./webrtc-config.js";
 import type { ServerEvent as SharedServerEvent } from "../shared/voice-models.js";
 import { WebSocketServer, WebSocket } from "ws";
 import type { IncomingMessage, Server } from "node:http";
-import { randomUUID } from "node:crypto";
 import { isIP } from "node:net";
 import { identityFromString } from "@echosixhiya/teamspeak-client";
 import { TSClient, type TSClientOptions } from "./ts-client.js";
@@ -23,7 +22,6 @@ import { SessionManager, type ManagedSession, type SessionTeardownReason } from 
 import { parseClientCommand } from "./voice-protocol.js";
 import { isRecoverable, reconnectDelayMs, reconnectWindowOpen } from "./reconnect-policy.js";
 import { WebRtcAudioSession, type WebRtcAudioOptions, type WebRtcAudioSessionOptions, type WebRtcSessionDescription } from "./webrtc-audio.js";
-import type { AccelerationRelayOptions, ConfiguredAccelerationRelay } from "./acceleration-relay.js";
 import { normalizeScreenShareIceServers, parseScreenShareMessage, type ScreenShareIceServer } from "./screen-share.js";
 import { OpusEncoder } from "./opus-codec.js";
 
@@ -40,8 +38,6 @@ export interface VoiceBridgeOptions {
   joinTickets: JoinTicketStore;
   webRtc?: WebRtcAudioOptions | (() => WebRtcAudioOptions);
   screenShareIceServers?: ScreenShareIceServer[] | (() => ScreenShareIceServer[]);
-  acceleration?: ConfiguredAccelerationRelay[] | (() => ConfiguredAccelerationRelay[]);
-  accelerationName?: string | (() => string | undefined);
 }
 
 interface VoiceBridgeDependencies {
@@ -73,8 +69,6 @@ interface WebClientEntry extends SessionDirectoryState {
   rememberIdentity: boolean;
   clientIp: string;
   target: TeamSpeakTarget;
-  accelerationRelay?: { name: string; target: string };
-  acceleration?: AccelerationRelayOptions;
   identityLeaseKey?: string;
   webrtcPublicHost?: string;
   events: SessionEventCoordinator | null;
@@ -129,11 +123,6 @@ export class VoiceBridge {
 
       const { target, serverPassword, nickname } = connection;
       const channelName = connection.channel;
-      const acceleration = connection.accelerated ? this.getAccelerationOptions(connection.accelerationRelayId) : undefined;
-      if (connection.accelerated && !acceleration) {
-        ws.close(4006, "ACCELERATION_UNAVAILABLE");
-        return;
-      }
       const clientIp = resolveClientIp(req);
       const webrtcPublicHost = resolveWebRtcPublicHost(req);
       let identity;
@@ -173,12 +162,11 @@ export class VoiceBridge {
         clientIp,
         channel: channelName,
         target: formatTeamSpeakTarget(target),
-        ...(acceleration ? { relayName: acceleration.name, relayTarget: formatTeamSpeakTarget({ host: acceleration.relayHost, port: acceleration.relayPort }) } : {}),
       }, "WebClient connecting");
       let tsClient: TSClient;
       try {
         const createClient = this.dependencies.createTeamSpeakClient ?? ((options, logger) => new TSClient(options, logger));
-        tsClient = createClient({ target, nickname, serverPassword, defaultChannel: channelName, identity, ...(acceleration ? { acceleration } : {}) }, this.logger);
+        tsClient = createClient({ target, nickname, serverPassword, defaultChannel: channelName, identity }, this.logger);
       } catch (error: unknown) {
         if (identityLeaseKey) this.identityLeases.release(identityLeaseKey, entryId);
         this.logger.error({ err: error, entryId }, "Could not create TeamSpeak client");
@@ -199,8 +187,6 @@ export class VoiceBridge {
         rememberIdentity: connection.rememberIdentity === true,
         clientIp,
         target,
-        ...(acceleration ? { accelerationRelay: { name: acceleration.name, target: formatTeamSpeakTarget({ host: acceleration.relayHost, port: acceleration.relayPort }) } } : {}),
-        ...(acceleration ? { acceleration } : {}),
         ...(identityLeaseKey ? { identityLeaseKey } : {}),
         ...(webrtcPublicHost ? { webrtcPublicHost } : {}),
         channelTree: [],
@@ -270,7 +256,6 @@ export class VoiceBridge {
             nickname: entry!.nickname,
             clientIp: entry!.clientIp,
             target: formatTeamSpeakTarget(entry!.target),
-            ...(entry!.accelerationRelay ? { relayName: entry!.accelerationRelay.name, relayTarget: entry!.accelerationRelay.target } : {}),
           }, "Web client connected to TeamSpeak");
         }
         session.transition("connected");
@@ -284,7 +269,6 @@ export class VoiceBridge {
           webrtcAvailable: this.getWebRtcOptions()?.enabled === true,
           webRtcStunServer: this.getWebRtcOptions()?.stunServer ?? "",
           screenShareIceServers: this.getScreenShareIceServers(),
-          accelerated: Boolean(entry!.acceleration),
           ...(entry!.rememberIdentity ? { identity: tsClient.getIdentityString() } : {}),
         });
         sendJson({ type: "channelList", channels: entry!.channelTree });
@@ -609,7 +593,6 @@ export class VoiceBridge {
       nickname: entry.nickname,
       clientIp: entry.clientIp,
       target: formatTeamSpeakTarget(entry.target),
-      ...(entry.accelerationRelay ? { relayName: entry.accelerationRelay.name, relayTarget: entry.accelerationRelay.target } : {}),
       reason,
       ...(entry.connectionFailureCode ? { failureCode: entry.connectionFailureCode } : {}),
       durationSeconds: Math.max(0, Math.floor((Date.now() - entry.session.createdAt) / 1000)),
@@ -648,15 +631,6 @@ export class VoiceBridge {
     const configured = this.options.screenShareIceServers;
     const servers = typeof configured === "function" ? configured() : configured;
     return normalizeScreenShareIceServers(servers);
-  }
-
-  private getAccelerationOptions(relayId = ""): ConfiguredAccelerationRelay | undefined {
-    const configured = this.options.acceleration;
-    const relays = typeof configured === "function" ? configured() : configured;
-    if (!relays?.length) return undefined;
-    const selected = relayId ? relays.find((relay) => relay.id === relayId) : relays[0];
-    if (!selected) return undefined;
-    return selected;
   }
 
   private async stopWebRtc(entry: WebClientEntry): Promise<void> {

@@ -47,7 +47,6 @@ jobs:
           $releaseVersion = $env:RELEASE_REF -replace '^v', ''
           npm ci --ignore-scripts --no-audit --no-fund
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm run prepare:sdk
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm rebuild @discordjs/opus --foreground-scripts --no-audit --no-fund
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -157,7 +156,6 @@ jobs:
           set -euo pipefail
           release_version="${RELEASE_REF#v}"
           npm ci --ignore-scripts --no-audit --no-fund
-          npm run prepare:sdk
           npm rebuild @discordjs/opus --foreground-scripts --no-audit --no-fund
           npm --prefix web ci --no-audit --no-fund
           current_version="$(node -p "require('./package.json').version")"
@@ -228,64 +226,9 @@ jobs:
           if-no-files-found: error
           compression-level: 0
 
-  android:
-    needs: verify
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.22.2
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            web/package-lock.json
-            mobile/package-lock.json
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "21"
-      - uses: android-actions/setup-android@v4
-        with:
-          packages: platform-tools
-      - name: Build Android APKs
-        env:
-          RELEASE_REF: ${{ inputs.version || github.ref_name }}
-        run: |
-          set -euo pipefail
-          release_version="${RELEASE_REF#v}"
-          version_code="$(node -e 'const [major, minor, patch] = process.argv[1].split(".").map(Number); process.stdout.write(String(major * 10000 + minor * 100 + patch))' "$release_version")"
-          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
-          npm ci --ignore-scripts --no-audit --no-fund
-          current_version="$(node -p "require('./package.json').version")"
-          if [ "$current_version" != "$release_version" ]; then
-            npm version --no-git-tag-version "$release_version"
-          fi
-          npm run prepare:sdk
-          npm --prefix web ci --no-audit --no-fund
-          npm --prefix mobile ci --no-audit --no-fund
-          npm run android:sync
-          cd web/android
-          chmod +x gradlew
-          ./gradlew --no-daemon assembleDebug -PappVersion="$release_version" -PappVersionCode="$version_code"
-          cd "$GITHUB_WORKSPACE"
-          mkdir -p release-apks
-          for apk in web/android/app/build/outputs/apk/debug/app-*-debug.apk; do
-            abi="${apk##*/app-}"
-            abi="${abi%-debug.apk}"
-            cp "$apk" "release-apks/webspeak-android-v${release_version}-${abi}-debug.apk"
-          done
-          test "$(find release-apks -maxdepth 1 -name '*.apk' | wc -l)" -eq 3
-      - uses: actions/upload-artifact@v4
-        with:
-          name: android-apks
-          path: release-apks/*.apk
-          if-no-files-found: error
-          compression-level: 0
-
   publish-release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [windows, linux, android]
+    needs: [windows, linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
