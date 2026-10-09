@@ -6,9 +6,7 @@ WebSpeak 是一个可自行部署的 TeamSpeak 3 / TeamSpeak 6 网页客户端�
 
 ## 在线 Demo
 
-地址：<https://webspeak.example.invalid>
-
-公共 Demo 位于香港，网络和负载可能不稳定。延迟、断线或暂时不可用不代表自行部署后的实际表现。
+暂未提供公共在线 Demo。你可以按照下文部署方案自行搭建实例试用。
 
 ## ✨ 特性
 
@@ -54,7 +52,7 @@ WebSpeak 是一个可自行部署的 TeamSpeak 3 / TeamSpeak 6 网页客户端�
 
 高级功能均为可选项；关闭时仍可使用兼容语音传输。配置入口在管理员控制台的“服务器”页，保存后对新连接生效。
 
-### 1. WebRTC 低延迟语音
+### WebRTC 低延迟语音
 
 WebRTC 将浏览器语音切换到实时媒体通道，也支持桌面端伴奏。媒体服务由当前 WebSpeak 网关直接提供，不需要另设媒体服务器。
 
@@ -89,12 +87,14 @@ WebRTC 启用后端口范围会锁定。要修改端口，先关闭 WebRTC 并�
 
 浏览器用户与 TeamSpeak 6 原生客户端可以互相发现、发起和观看屏幕共享。浏览器之间以及浏览器与原生客户端之间的屏幕媒体优先通过 WebRTC/ICE 端到端传输；WebSpeak 负责会话鉴权、共享状态和 SDP/ICE 信令转发，不承载屏幕媒体流量。页面提供直播状态、观众人数、播放器音量、全屏和退出控制，也可在共享设置窗口中选择最高 1080p 与 60 FPS，并查看 WebRTC 统计。
 
-### 3. 依赖与归属
+### 依赖与归属
 
 - WebRTC 使用 [werift](https://github.com/shinyoshiaki/werift-webrtc) `0.24.4`，上游采用 MIT 许可证。
 - TeamSpeak 协议使用 [EchoSixHIYA/teamspeak-js](https://github.com/EchoSixHIYA/teamspeak-js) SDK（构建产物已 vendor 进仓库 `vendor/teamspeak-client/`）。
 
 ## 🧾 更新日志
+
+> 以下版本历史记录的是上游时期的演进，本 fork 已移除其中部分能力（加速中继、Android 客户端、访客编号）。
 
 | 版本 | 日期 | 摘要 |
 | --- | --- | --- |

@@ -6,9 +6,7 @@ WebSpeak is a self-hosted browser client and voice gateway for TeamSpeak 3 and T
 
 ## Live demo
 
-URL: <https://webspeak.example.invalid>
-
-The public demo is hosted in Hong Kong and its network conditions and load may be unstable. Latency, disconnections, or temporary downtime do not represent every self-hosted deployment.
+No public live demo is available at the moment. To try WebSpeak, deploy your own instance using the instructions below.
 
 ## ✨ Features
 
@@ -54,7 +52,7 @@ The screenshots show the English welcome page, voice workspace, audio controls, 
 
 These features are optional. WebSpeak continues to work with the compatibility voice transport when they are disabled. Configure them under **Administration → Servers**; saved changes apply to new connections.
 
-### 1. WebRTC low-latency voice
+### WebRTC low-latency voice
 
 WebRTC moves browser voice to a realtime media path and also enables desktop accompaniment. The current WebSpeak gateway provides it directly; no separate media server is required.
 
@@ -87,12 +85,14 @@ With TURN configured, media may use that external TURN service but never the Web
 
 Browser users and native TeamSpeak 6 clients can discover, start, and watch each other's screen shares. Screen media between browsers, and between a browser and a native client, is sent over a WebRTC/ICE peer-to-peer path whenever possible; WebSpeak handles session authorization, share state, and SDP/ICE signaling, but does not carry the screen media. The UI includes live status, viewer count, player volume, fullscreen, and exit controls. Share settings support up to 1080p and 60 FPS, with live WebRTC statistics for diagnosis.
 
-### 3. Dependencies and attribution
+### Dependencies and attribution
 
 - WebRTC uses [werift](https://github.com/shinyoshiaki/werift-webrtc) `0.24.4`, whose upstream project is licensed under MIT.
 - TeamSpeak protocol connectivity uses the [EchoSixHIYA/teamspeak-js](https://github.com/EchoSixHIYA/teamspeak-js) SDK; its build output is vendored into the repository at `vendor/teamspeak-client/`.
 
 ## 🧾 Changelog
+
+> The version history below reflects the upstream era of the project; this fork has removed some of the capabilities it mentions (acceleration relay, Android client, and visitor numbering).
 
 | Version | Date | Summary |
 | --- | --- | --- |

@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+
+- 安全：首次启动不再有默认管理员口令，改为日志中打印的一次性设置令牌（登录后强制修改）；新增 WEBSPEAK_TRUST_PROXY 反代信任开关、安全响应头（CSP/HSTS 等）、WebSocket 控制消息令牌桶限流、TeamSpeak 服务器密码错误按目标退避；fixed 模式不再向普通用户暴露真实目标地址。
+- 删除：加速中继、Android 客户端、DemoView、访客计数（延续 fork 裁剪方向）。
+- 运维：新增 WEBSPEAK_LOG_LEVEL、WEBSPEAK_SDK_DEBUG 环境变量；`npm run benchmark` 音频管线基准脚本；诊断端点新增 voiceTransports/rssMb。
+
+### Fixed
+
+- 修复皮肤切换器实时切换不生效、弹窗遮罩层级低于页头、成员音量条拖动被拖拽换频道劫持等交互问题。
+- 文档：移除已删除功能的残留章节与失效链接；补齐 ru/ja 界面翻译。
+
+> 以下 [0.2.6] 及更早的条目为上游时期的历史记录：本仓库已移除其中部分能力（加速中继、Android 客户端、访客编号等），相关功能描述不代表当前版本仍提供这些能力。
+
 ## [0.2.6] — 2026-10-08（相对 0.2.5 正式版）
 
 ### 中文

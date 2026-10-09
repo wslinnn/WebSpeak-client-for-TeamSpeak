@@ -6,9 +6,7 @@ WebSpeak ist ein selbst gehosteter Webclient und ein Sprach-Gateway für TeamSpe
 
 ## Live-Demo
 
-Adresse: <https://webspeak.example.invalid>
-
-Die öffentliche Demo läuft in Hongkong. Netzwerkbedingungen und Auslastung können instabil sein; Latenz, Verbindungsabbrüche oder kurze Ausfälle beschreiben nicht jede eigene Bereitstellung.
+Derzeit ist keine öffentliche Live-Demo verfügbar. Um WebSpeak auszuprobieren, richten Sie bitte eine eigene Instanz nach der Anleitung unten ein.
 
 ## ✨ Funktionen
 
@@ -54,7 +52,7 @@ Die Screenshots zeigen die deutsche Willkommensseite, den Sprachbereich, die Aud
 
 Diese Funktionen sind optional. Ohne sie arbeitet WebSpeak weiterhin mit dem kompatiblen Sprachtransport. Die Einstellungen befinden sich unter **Administration → Server** und gelten für neue Verbindungen.
 
-### 1. WebRTC-Sprache mit niedriger Latenz
+### WebRTC-Sprache mit niedriger Latenz
 
 WebRTC verwendet für Browser-Sprache einen Echtzeit-Medienpfad und ermöglicht außerdem Desktop-Begleitton. Das aktuelle WebSpeak-Gateway stellt WebRTC selbst bereit; ein zusätzlicher Medienserver ist nicht erforderlich.
 
@@ -64,6 +62,16 @@ WebRTC verwendet für Browser-Sprache einen Echtzeit-Medienpfad und ermöglicht 
 4. **WebRTC** aktivieren und speichern. Nicht unterstützte Browser oder Netzwerke wechseln automatisch zum kompatiblen Transport.
 
 Der Portbereich ist bei aktiviertem WebRTC gesperrt. Zum Ändern WebRTC zuerst deaktivieren und speichern, danach die Firewall-Regeln anpassen. Für öffentliche Bereitstellungen ist HTTPS erforderlich.
+
+### Sprach-WebRTC hinter Reverse Proxy oder TCP-Tunnel
+
+In den erweiterten WebRTC-Einstellungen der Administration lassen sich:
+
+- **Öffentliche Medienadresse**: IP oder Domain, unter der das WebSpeak-Gateway per UDP erreichbar ist; ohne Protokoll, Pfad oder Port. Sie hat Vorrang vor der aus dem Webseiteneintritt abgeleiteten Adresse; bleibt sie leer, wird die Adresse aus `Origin`, `X-Forwarded-Host` oder `Host` abgeleitet. Domains werden in IP-Kandidaten aufgelöst. Eine Proxy-Domain ist nicht automatisch eine Medienadresse.
+- **IPv6-Kandidaten aktivieren**: Standardmäßig deaktiviert; bei Aktivierung bleiben IPv4-Kandidaten erhalten und es werden zusätzlich IPv6-Kandidaten gesammelt. Dafür müssen IPv6-Routen bestehen und der UDP-Bereich in der Firewall freigegeben sein.
+- **Sprach-STUN-Dienst**: zum Beispiel `stun:turn.teamspeak.com:3478`; Browser und Gateway nutzen denselben Dienst, um ihre öffentliche Abbildung zu ermitteln. Bleibt das Feld leer, gilt das bisherige Verhalten: Das werift-Gateway verwendet den in der Bibliothek eingebauten STUN-Dienst, der Browser keinen. Unterstützt werden derzeit nur per IPv4 erreichbare UDP-STUN-Domains oder IPv4-Adressen; IPv6-Literale, TURN und Zugangsdaten werden nicht akzeptiert. IPv6-Medienkandidaten sind unabhängig vom STUN-Schalter.
+
+Nach dem Speichern neu verbinden. Dass Webseite und WebSocket über den Reverse Proxy erreichbar sind, bedeutet nicht, dass die Medien-UDP-Pakete ankommen; STUN findet nur Adressen, überträgt keinen Ton und garantiert kein NAT-Traversal. Mit nur einem TCP-Tunnel und ohne nutzbaren UDP-/IPv6-Pfad wird weiterhin der kompatible Transport verwendet. Der gesamte konfigurierte UDP-Portbereich sollte freigegeben werden; bei statischer Portweiterleitung muss die Portzuordnung unverändert bleiben.
 
 ### ICE-Kandidaten für Bildschirmfreigabe
 
@@ -79,12 +87,14 @@ Mit TURN kann die Medienübertragung diesen externen Dienst verwenden, aber niem
 
 Browsernutzer und native TeamSpeak-6-Clients können Bildschirmfreigaben gegenseitig erkennen, starten und ansehen. Zwischen Browsern sowie zwischen Browser und nativem Client werden die Bildschirmmedien möglichst über eine direkte WebRTC/ICE-Peer-to-Peer-Verbindung übertragen; WebSpeak übernimmt Sitzungsberechtigung, Freigabestatus und SDP-/ICE-Signalisierung, transportiert aber keine Bildschirmmedien. Die Oberfläche zeigt Live-Status und Zuschauerzahl und bietet Lautstärke-, Vollbild- und Beenden-Steuerung. Für die Aufnahme stehen bis zu 1080p und 60 FPS sowie WebRTC-Statistiken zur Verfügung.
 
-### 3. Abhängigkeiten und Hinweise zur Herkunft
+### Abhängigkeiten und Hinweise zur Herkunft
 
 - WebRTC verwendet [werift](https://github.com/shinyoshiaki/werift-webrtc) `0.24.4`; das Upstream-Projekt steht unter MIT-Lizenz.
 - Die TeamSpeak-Protokollverbindung verwendet den [EchoSixHIYA/teamspeak-js](https://github.com/EchoSixHIYA/teamspeak-js)-SDK; der Build-Output ist als `vendor/teamspeak-client/` ins Repository eingebracht.
 
 ## 🧾 Änderungsprotokoll
+
+> Die folgende Versionshistorie beschreibt die Entwicklung in der Upstream-Ära; dieser Fork hat einige der dort genannten Fähigkeiten entfernt (Beschleunigungs-Relay, Android-Client, Besuchernummerierung).
 
 | Version | Datum | Zusammenfassung |
 | --- | --- | --- |
