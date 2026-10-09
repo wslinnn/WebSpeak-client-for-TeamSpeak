@@ -136,6 +136,9 @@ Settings responses merge against the submitted snapshot instead of replacing new
 | Legacy `config.json` | One-time import of `tsHost`, `tsPort` and `tsServerPassword`; later changes do not replace database settings |
 | `WEBSPEAK_DATA_DIR` | Persistent data directory; defaults to project `data/`, while Docker uses `/data` |
 | `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` | Screen-sharing ICE configuration read at startup |
+| `WEBSPEAK_LOG_LEVEL` | Set to `debug` to restore verbose rotating-file logging, including SDK protocol chatter; defaults to `info` |
+| `WEBSPEAK_SDK_DEBUG` | Set to `1` to enable TeamSpeak SDK protocol debug logging; the raw output may contain credentials, so keep it off unless diagnosing |
+| `WEBSPEAK_TRUST_PROXY` | Set to `1` to declare a reverse proxy; forwarded headers then identify clients for rate limits and logs, and proxy-terminated TLS keeps secure cookies |
 | Browser IndexedDB and localStorage | Local identities, preferences, server history and skin state |
 
 The current SQLite schema version is defined in `src/persistence/database.ts`. Keep schema migrations separate from structural refactors. Legacy fields such as `voiceToken`, `tsApiKey`, `tsQueryPort`, `port` and `maxClients` do not configure the current gateway.
