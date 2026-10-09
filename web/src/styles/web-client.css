@@ -1,3 +1,18 @@
+/* Overlay stacking ladder. Every floating layer must take its level from
+   these custom properties — bare z-index numbers are what let the header
+   drift above modal masks. Local 1/2/3 scales inside `isolation: isolate`
+   containers never compare against this ladder. admin.css repeats the same
+   values because the two stylesheets load in separate route bundles. */
+.web-client {
+  --ws-z-raised: 10;
+  --ws-z-header: 100;
+  --ws-z-dropdown: 200;
+  --ws-z-menu-mask: 300;
+  --ws-z-menu: 310;
+  --ws-z-modal-mask: 400;
+  --ws-z-toast: 500;
+}
+
 :global(html[data-ws-route="webclient"] *) {
   box-sizing: border-box;
 }
@@ -50,11 +65,7 @@
 }
 
 .join-header {
-  z-index: 10;
-}
-
-.join-header :deep(.language-switcher) {
-  z-index: 50;
+  z-index: var(--ws-z-header);
 }
 
 .join-footer {
@@ -1966,7 +1977,7 @@
 
 :deep(.modal-backdrop) {
   position: fixed;
-  z-index: 20;
+  z-index: var(--ws-z-modal-mask);
   inset: 0;
   display: grid;
   place-items: center;
@@ -2272,7 +2283,7 @@
 
 .toast {
   position: fixed;
-  z-index: 30;
+  z-index: var(--ws-z-toast);
   right: 24px;
   bottom: 24px;
   display: flex;
@@ -2804,16 +2815,6 @@
   font-size: 11px;
 }
 
-:deep(.identity-options summary) {
-  width: fit-content;
-  color: #277970;
-  cursor: pointer;
-}
-
-:deep(.identity-options[open] summary) {
-  margin-bottom: 10px;
-}
-
 :deep(.cancel-connect-button) {
   justify-self: center;
   min-height: 32px;
@@ -3102,7 +3103,7 @@
 }
 
 :deep(.identity-import-backdrop) {
-  z-index: 50;
+  z-index: var(--ws-z-modal-mask);
 }
 
 :deep(.identity-import-modal) {
@@ -3951,7 +3952,7 @@
 
 :deep(.member-context-menu) {
   position: fixed;
-  z-index: 40;
+  z-index: var(--ws-z-menu);
   display: grid;
   min-width: 188px;
   gap: 3px;
@@ -4089,7 +4090,7 @@
 
 .poke-banner {
   position: fixed;
-  z-index: 35;
+  z-index: var(--ws-z-toast);
   top: 82px;
   right: 24px;
   display: flex;
@@ -4519,14 +4520,6 @@
     color: var(--danger);
   }
   .mobile-nav {
-    position: fixed;
-    z-index: 30;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2px;
     min-height: 68px;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
     background: color-mix(in srgb, var(--surface-1) 94%, transparent);
@@ -4818,7 +4811,7 @@
     box-sizing: border-box;
     position: sticky;
     top: 0;
-    z-index: 6;
+    z-index: var(--ws-z-header);
     background: color-mix(in srgb, var(--surface-1) 94%, transparent);
     backdrop-filter: blur(14px);
   }
@@ -5199,14 +5192,14 @@
   }
   :deep(.member-menu-backdrop) {
     position: fixed;
-    z-index: 39;
+    z-index: var(--ws-z-menu-mask);
     inset: 0;
     display: block;
     background: rgba(13, 29, 26, .38);
     backdrop-filter: blur(2px);
   }
   :deep(.member-context-menu) {
-    z-index: 40;
+    z-index: var(--ws-z-menu);
     left: 10px !important;
     right: 10px;
     top: auto !important;
@@ -5455,7 +5448,7 @@
 
 :deep(.network-performance) {
   position: relative;
-  z-index: 8;
+  z-index: var(--ws-z-raised);
 }
 
 :deep(.performance-trigger) {
@@ -5972,7 +5965,7 @@
   }
   :deep(.desktop-audio-dock) {
     position: absolute;
-    z-index: 6;
+    z-index: var(--ws-z-raised);
     left: 18px;
     right: 18px;
     bottom: 18px;
@@ -5999,7 +5992,7 @@
 
 :deep(.dock-hover-panel) {
   position: absolute;
-  z-index: 20;
+  z-index: var(--ws-z-dropdown);
   right: 50%;
   bottom: calc(100% + 10px);
   width: min(224px, calc(100vw - 32px));
@@ -6410,7 +6403,7 @@
 }
 
 :deep(.screen-share-settings-backdrop) {
-  z-index: 25;
+  z-index: var(--ws-z-modal-mask);
   align-items: center;
   padding: 16px;
 }
@@ -7061,10 +7054,11 @@
 }
 
 @media (min-width: 741px) {
-  /* Keep header menus above the independently stacked screen-share stage. */
+  /* The header is one rung on the --ws-z-* ladder: still above the isolated
+     screen-share stage, but always below modal masks, menus and toasts. */
   .app-shell .workspace-header {
     position: relative;
-    z-index: 40;
+    z-index: var(--ws-z-header);
   }
 }
 

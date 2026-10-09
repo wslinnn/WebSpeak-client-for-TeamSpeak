@@ -98,7 +98,7 @@ onUnmounted(() => document.removeEventListener("pointerdown", onDocumentPointerD
 <style scoped>
 .language-switcher {
   position: relative;
-  z-index: 20;
+  z-index: var(--ws-z-dropdown);
   flex: 0 0 auto;
   color: #006a64;
   font-family: inherit;

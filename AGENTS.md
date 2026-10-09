@@ -40,6 +40,7 @@ npm --prefix web ci --no-audit --no-fund
 - 管理台 API 响应经 `admin-responses.ts` 校验器按声明字段投影（未声明的字段被静默丢弃），前端再把聚合响应扁平化进 `useAdminOperations.ts` 的 operations 状态——新增后端诊断/响应字段必须同步三处：校验器声明、扁平化投影、模板消费点；只改校验器会以扁平类型在 vue-tsc 报错，只改模板则拿到 undefined。
 - 文档级页面样式必须由 `html[data-ws-route]` 门控（路由加载后 CSS 常驻）；保留 `data-ws-part` 皮肤钩子与既有 `:deep` 选择器的顺序和特异性。
 - 模板/CSS 格式化改动与行为改动分开；包裹 Vue 标签时保留内联空白文本节点。
+- 浮层层级必须取 `--ws-z-*` 阶梯变量（web-client.css 顶部定义，admin.css 同值副本：raised 10 / header 100 / dropdown 200 / menu-mask 300 / menu 310 / modal-mask 400 / toast 500），禁止裸 z-index 数字——header 曾硬编码 z-index:40 压在弹窗遮罩上；`isolation: isolate` 容器内部的 1/2/3 局部小阶梯除外。
 - 皮肤开发遵循 `docs/SKIN_DEVELOPMENT.md` 与 `.agents/skills/webspeak-skin-development` 技能。
 
 ## 其他注意事项

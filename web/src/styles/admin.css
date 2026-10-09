@@ -1,5 +1,17 @@
 /* Feature presentation is owned by this scoped page across admin components. Preserve selector order and specificity; shell and shared language controls retain their original boundaries. */
 
+/* Same overlay ladder as web-client.css; duplicated because the route bundles
+   load different stylesheets. Keep the values in sync. */
+:root {
+  --ws-z-raised: 10;
+  --ws-z-header: 100;
+  --ws-z-dropdown: 200;
+  --ws-z-menu-mask: 300;
+  --ws-z-menu: 310;
+  --ws-z-modal-mask: 400;
+  --ws-z-toast: 500;
+}
+
 :deep(.intro-copy h1) {
   font-size: clamp(38px,4.2vw,56px)!important;
   line-height: 1.05!important;
@@ -1735,7 +1747,7 @@
 
 .modal-backdrop {
   position: fixed;
-  z-index: 20;
+  z-index: var(--ws-z-modal-mask);
   inset: 0;
   display: grid;
   place-items: center;

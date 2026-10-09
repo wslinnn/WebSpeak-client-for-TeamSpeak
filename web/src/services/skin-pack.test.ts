@@ -194,7 +194,11 @@ test("the activity artwork layer floats above room content without intercepting 
   assert.match(css, /\.screen-share-player-exit\)?\s*\{[^}]*z-index: 3;/);
   assert.match(css, /\.screen-share-player-stage\)?\s*\{[^}]*var\(--accent\)[^}]*var\(--surface-2\)/);
   assert.match(css, /\.screen-share-player-video\)?\s*\{[^}]*background: var\(--surface-2\)/);
-  assert.match(css, /@media \(min-width: 741px\)\s*\{\s*\/\* Keep header menus above the independently stacked screen-share stage\. \*\/\s*\.app-shell \.workspace-header\s*\{\s*position: relative;\s*z-index: 40;/);
+  assert.match(css, /@media \(min-width: 741px\)\s*\{\s*\/\* The header is one rung on the --ws-z-\* ladder[\s\S]*?\.app-shell \.workspace-header\s*\{\s*position: relative;\s*z-index: var\(--ws-z-header\);/);
+  // Modal masks must sit on a higher ladder rung than the header — the header
+  // once hard-coded z-index: 40 and floated above every dialog backdrop.
+  assert.match(css, /:deep\(\.modal-backdrop\)\s*\{\s*position: fixed;\s*z-index: var\(--ws-z-modal-mask\);/);
+  assert.match(css, /\.web-client\s*\{[^}]*--ws-z-header: 100;[^}]*--ws-z-modal-mask: 400;/);
 });
 
 test("channel empty state removes its bubble ornament and keeps the text-channel label", async () => {

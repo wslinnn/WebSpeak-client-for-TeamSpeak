@@ -88,7 +88,7 @@ onUnmounted(() => document.removeEventListener("pointerdown", onDocumentPointerD
 <style scoped>
 .skin-switcher {
   position: relative;
-  z-index: 20;
+  z-index: var(--ws-z-dropdown);
   flex: 0 0 auto;
   color: var(--text-muted);
 }
