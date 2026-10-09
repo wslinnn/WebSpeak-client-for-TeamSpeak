@@ -45,7 +45,10 @@ export function usePublicSkin(options: PublicSkinOptions = {}) {
       : activeSkinId.value === BUILTIN_DARK_SKIN ? "dark" : isDarkTheme(getStoredTheme()) ? "dark" : "light";
     if (options.themeMode && updateTheme) {
       options.themeMode.value = mode;
-      saveTheme(mode);
+      // A custom skin owns the `data-ws-skin` namespace its css is keyed to;
+      // re-applying the theme unpreserved would hand appearance back to the
+      // builtin stylesheet and leave the switcher looking like a no-op.
+      saveTheme(mode, builtin(activeSkinId.value) ? {} : { preserveCustomSkins: true });
     }
     if (persist) void saveLocalPreferences({ schemaVersion: 1, skinId: activeSkinId.value,
       ...(options.themeMode && updateTheme ? { theme: mode } : {}) }, operation.signal).catch(() => undefined);
