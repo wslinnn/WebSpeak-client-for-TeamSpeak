@@ -1,0 +1,147 @@
+/** A TS3-escaped string. Obtained only via escape(). */
+export type EscapedString = string & {
+    readonly __escaped: unique symbol;
+};
+export interface TextMessage {
+    invokerName: string;
+    invokerUID: string;
+    message: string;
+    invokerGroups: string[];
+    targetMode: number;
+    targetID: bigint;
+    invokerID: number;
+}
+export interface ClientMovedEvent {
+    invokerName: string;
+    invokerUID: string;
+    targetChannelID: bigint;
+    reasonID: number;
+    id: number;
+    invokerID: number;
+}
+export interface ClientLeftViewEvent {
+    reasonMsg: string;
+    reasonID: number;
+    id: number;
+    targetID: number;
+}
+/** A live update to a client's directory state. */
+export interface ClientUpdatedEvent {
+    info: DirectoryClientInfo;
+}
+export interface ClientInfo {
+    nickname: string;
+    uid: string;
+    serverGroups: string[];
+    channelID: bigint;
+    type: number;
+    id: number;
+}
+export interface ChannelInfo {
+    name: string;
+    description: string;
+    id: bigint;
+    parentID: bigint;
+    /** ID of the sibling channel after which this channel is placed. */
+    order: bigint;
+}
+/** Additional client state included in a live server directory snapshot. */
+export interface DirectoryClientInfo extends ClientInfo {
+    away?: boolean;
+    awayMessage?: string;
+    inputMuted?: boolean;
+    outputMuted?: boolean;
+    channelCommander?: boolean;
+}
+/** The channel tree and visible clients maintained by a connected session. */
+export interface DirectorySnapshot {
+    channels: ChannelInfo[];
+    clients: DirectoryClientInfo[];
+}
+export interface FileUploadInfo {
+    fileTransferKey: string;
+    seekPosition: bigint;
+    clientFileTransferID: number;
+    serverFileTransferID: number;
+    port: number;
+}
+export interface FileDownloadInfo {
+    fileTransferKey: string;
+    size: bigint;
+    clientFileTransferID: number;
+    serverFileTransferID: number;
+    port: number;
+}
+export interface FileTransferStatusInfo {
+    message: string;
+    status: number;
+    clientFileTransferID: number;
+}
+export interface PokeEvent {
+    invokerName: string;
+    invokerUID: string;
+    invokerID: number;
+    message: string;
+}
+export interface VoiceData {
+    clientId: number;
+    codec: number;
+    data: Uint8Array;
+}
+/** A server notification that is not yet modeled by the high-level SDK. */
+export interface RawNotification {
+    name: string;
+    params: Record<string, string>;
+}
+export interface EventMap {
+    textMessage: TextMessage;
+    clientEnter: ClientInfo;
+    clientLeave: ClientLeftViewEvent;
+    clientMoved: ClientMovedEvent;
+    clientUpdated: ClientUpdatedEvent;
+    directorySnapshot: DirectorySnapshot;
+    poked: PokeEvent;
+    voiceData: VoiceData;
+    rawNotification: RawNotification;
+    connected: void;
+    disconnected: Error | undefined;
+    kicked: string;
+}
+export declare const enum ClientStatus {
+    Disconnected = 0,
+    Connecting = 1,
+    Connected = 2
+}
+export type CommandMiddleware = (next: (cmd: string) => Promise<void>) => (cmd: string) => Promise<void>;
+export type EventMiddleware = (next: (evt: EventMap[keyof EventMap]) => void) => (evt: EventMap[keyof EventMap]) => void;
+export interface Logger {
+    debug(msg: string, ...args: unknown[]): void;
+    info(msg: string, ...args: unknown[]): void;
+    warn(msg: string, ...args: unknown[]): void;
+    error(msg: string, ...args: unknown[]): void;
+}
+/** A no-op logger that discards all messages. */
+export declare const noopLogger: Logger;
+/** A console-backed logger. */
+export declare const consoleLogger: Logger;
+export interface ResolvedAddr {
+    addr: string;
+    source: string;
+    expiry: Date;
+}
+export interface AddrResolver {
+    resolve(addr: string, signal?: AbortSignal): Promise<ResolvedAddr[]>;
+}
+export interface ClientOptions {
+    logger?: Logger;
+    resolver?: AddrResolver;
+    commandMiddleware?: CommandMiddleware[];
+    eventMiddleware?: EventMiddleware[];
+    /** Server password sent during the initial `clientinit` handshake. */
+    serverPassword?: string;
+    /** Default channel name to join during the initial `clientinit` handshake. */
+    defaultChannel?: string;
+    /** Password for `defaultChannel`, sent during the initial `clientinit` handshake. */
+    defaultChannelPassword?: string;
+}
+//# sourceMappingURL=types.d.ts.map

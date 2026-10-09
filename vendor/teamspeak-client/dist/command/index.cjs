@@ -1,0 +1,1 @@
+Object.defineProperty(exports,Symbol.toStringTag,{value:`Module`});const e=require("../command-DAK4pUBP.cjs"),t=require("../parser-CL33R9tr.cjs");exports.buildCommand=e.t,exports.buildCommandOrdered=e.n,exports.escape=e.r,exports.parseCommand=t.t,exports.unescape=e.i;

@@ -1,0 +1,55 @@
+import { n as e } from "./command-BLe-C2L2.js";
+import { randomBytes as t } from "node:crypto";
+//#region src/handshake/crypt-handshake.ts
+var n = 1566914096, r = 21;
+function i(e, t) {
+	if (t === null || t.length >= 1 && t[0] === 127) return a();
+	switch (t[0]) {
+		case 0: return o(t);
+		case 1: return s(t);
+		case 2: return c(t);
+		case 3: return l(e, t);
+		default: return null;
+	}
+}
+function a() {
+	let e = /* @__PURE__ */ new Uint8Array(21), r = new DataView(e.buffer);
+	r.setUint32(0, n, !1), e[4] = 0;
+	let i = Math.floor(Date.now() / 1e3), a = Math.max(0, Math.min(i, 4294967295));
+	r.setUint32(5, a, !1);
+	let o = t(4);
+	return e.set(o, 9), e;
+}
+function o(e) {
+	if (e.length !== r) return null;
+	let t = /* @__PURE__ */ new Uint8Array(21);
+	t[0] = 1;
+	let n = e[9] | e[10] << 8 | e[11] << 16 | e[12] << 24;
+	return new DataView(t.buffer).setUint32(17, n >>> 0, !1), t;
+}
+function s(e) {
+	if (e.length !== r) return null;
+	let t = /* @__PURE__ */ new Uint8Array(25);
+	return new DataView(t.buffer).setUint32(0, n, !1), t[4] = 2, t.set(e.slice(1, 21), 5), t;
+}
+function c(e) {
+	if (e.length !== 25) return null;
+	let t = /* @__PURE__ */ new Uint8Array(233);
+	return t[0] = 3, t[64] = 1, t[128] = 1, new DataView(t.buffer).setUint32(129, 1, !1), t;
+}
+function l(r, i) {
+	if (i.length !== 233) return null;
+	let a = new DataView(i.buffer, i.byteOffset).getUint32(129, !1), o = r.solveRsaChallenge(i, 1, a);
+	r.alphaTmp = new Uint8Array(t(10));
+	let s = Buffer.from(r.alphaTmp).toString("base64"), c = r.identity.publicKeyBase64(), l = e("clientinitiv", [
+		["alpha", s],
+		["omega", c],
+		["ot", "1"],
+		["ip", ""]
+	]), u = Buffer.from(l), d = new Uint8Array(301 + u.length);
+	return new DataView(d.buffer).setUint32(0, n, !1), d[4] = 4, d.set(i.slice(1, 233), 5), d.set(o.slice(0, 64), 237), d.set(u, 301), d;
+}
+//#endregion
+export { i as n, n as t };
+
+//# sourceMappingURL=crypt-handshake-DziOY4Lq.js.map

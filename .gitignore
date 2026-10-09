@@ -1,6 +1,8 @@
 node_modules/
 dist/
 web/dist/
+!/vendor/teamspeak-client/dist/
+!/vendor/teamspeak-client/dist/**
 data/
 config.json
 *.log
