@@ -79,6 +79,8 @@ jobs:
           New-Item -ItemType Directory -Path (Join-Path $packageRoot "web") | Out-Null
           Copy-Item -Recurse -LiteralPath web/dist -Destination (Join-Path $packageRoot "web")
           Copy-Item -Recurse -LiteralPath node_modules -Destination $packageRoot
+          New-Item -ItemType Directory -Path (Join-Path $packageRoot "vendor") | Out-Null
+          Copy-Item -Recurse -LiteralPath vendor/teamspeak-client -Destination (Join-Path $packageRoot "vendor")
           Copy-Item -LiteralPath config.example.json,README.md,LICENSE,package.json,package-lock.json -Destination $packageRoot
           New-Item -ItemType Directory -Path (Join-Path $packageRoot "runtime") | Out-Null
           Copy-Item -LiteralPath (Join-Path $runtimeRoot "node.exe") -Destination (Join-Path $packageRoot "runtime")
@@ -179,6 +181,8 @@ jobs:
           cp -a dist "$package_root/dist"
           cp -a web/dist "$package_root/web/dist"
           cp -a node_modules "$package_root/node_modules"
+          mkdir -p "$package_root/vendor"
+          cp -a vendor/teamspeak-client "$package_root/vendor/teamspeak-client"
           cp config.example.json README.md LICENSE package.json package-lock.json "$package_root/"
           cp "$runtime_root/bin/node" "$package_root/runtime/node"
           cp "$runtime_root/LICENSE" "$package_root/runtime/NODE-LICENSE"
