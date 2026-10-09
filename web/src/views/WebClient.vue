@@ -117,7 +117,8 @@
             data-ws-state="error"
             ><span class="notice-symbol">!</span
             ><span class="notice-content"
-              ><span>{{ localizedMessage(voiceState.error) }}</span
+              ><span v-if="retryWaiting">{{ t("retryLater", { seconds: retrySecondsLeft }) }}</span
+              ><span v-else>{{ localizedMessage(voiceState.error) }}</span
               ><code v-if="voiceState.errorCode"
                 >{{ t("errorCode") }}: {{ visibleErrorCode(voiceState.errorCode) }}</code
               ></span
@@ -168,11 +169,13 @@
             :has-identity="Boolean(identityMaterial)"
             :connecting="voiceState.connecting"
             :join-disabled="
-              !canJoin || serverConfigLoading || !identityReady || voiceState.connecting
+              !canJoin || serverConfigLoading || !identityReady || voiceState.connecting || retryWaiting
             "
+            :join-retry-seconds="retrySecondsShown"
             :t="t"
             @connect="doConnect"
             @disconnect="doDisconnect"
+            @open-device-settings="settingsOpen = true"
             @select-server="selectLocalServer"
             @toggle-favorite="toggleFavorite"
             @import-identity="openIdentityImport"
@@ -821,6 +824,27 @@ const browserError = ref("");
 const memberQuery = ref("");
 const selectedChannelId = ref("");
 const settingsOpen = ref(false);
+// Password-retry backoff (PASSWORD_RETRY_LATER): park the join button until the
+// gateway's retryAfterMs elapses, with a live seconds countdown in its place.
+const retryNowTick = ref(Date.now());
+let retryTicker: number | undefined;
+const retryWaiting = computed(() => voiceState.retryNotUntil > retryNowTick.value);
+const retrySecondsLeft = computed(() => Math.max(1, Math.ceil((voiceState.retryNotUntil - retryNowTick.value) / 1000)));
+// The join button swaps its label only during an actual backoff window —
+// retrySecondsLeft alone would floor at 1 even with no backoff at all.
+const retrySecondsShown = computed(() => retryWaiting.value ? retrySecondsLeft.value : 0);
+watch(retryWaiting, (waiting) => {
+  if (!waiting || retryTicker !== undefined) return;
+  retryNowTick.value = Date.now();
+  retryTicker = window.setInterval(() => {
+    retryNowTick.value = Date.now();
+    if (!retryWaiting.value) {
+      window.clearInterval(retryTicker);
+      retryTicker = undefined;
+    }
+  }, 1000);
+});
+onUnmounted(() => { if (retryTicker !== undefined) window.clearInterval(retryTicker); });
 const channelPasswordDialog = reactive({ open: false, channelId: "", password: "", error: "", submitting: false });
 const serverPasswordDialog = reactive({ open: false, password: "", errorCode: "" });
 const toast = ref("");

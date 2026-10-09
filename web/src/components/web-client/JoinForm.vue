@@ -101,26 +101,45 @@
       >{{ isFavorite ? t("removeFavorite") : t("saveFavorite") }}</button
     >
 
-    <template v-if="accessMode === 'open'">
-      <label
-        class="field-label"
-        data-ws-part="home.field-label"
-        for="server-password"
-        >{{ t("serverPassword") }} <span>{{ t("optional") }}</span></label
-      >
-      <div
-        class="field-wrap"
-        data-ws-part="home.field"
+    <label
+      class="field-label"
+      data-ws-part="home.field-label"
+      for="server-password"
+      >{{ t("serverPassword") }} <span>{{ t("optional") }}</span></label
+    >
+    <div
+      class="field-wrap"
+      data-ws-part="home.field"
+      ><Icon
+        name="lock"
+        :size="17" /><input
+        id="server-password"
+        v-model="serverPassword"
+        type="password"
+        autocomplete="new-password"
+        :placeholder="t('optionalPassword')"
+    /></div>
+
+    <div
+      class="device-setup"
+      data-ws-part="home.device-setup"
+    >
+      <button
+        type="button"
+        class="identity-action-button"
+        data-ws-part="home.device-setup.open"
+        @click="emit('openDeviceSettings')"
         ><Icon
-          name="lock"
-          :size="17" /><input
-          id="server-password"
-          v-model="serverPassword"
-          type="password"
-          autocomplete="off"
-          :placeholder="t('optionalPassword')"
-      /></div>
-    </template>
+          name="mic"
+          :size="15"
+        />{{ t("joinDeviceSetupAction") }}</button
+      >
+      <p
+        v-if="!outputPickerSupported"
+        class="device-setup-hint"
+        >{{ t("outputUnsupportedHint") }}</p
+      >
+    </div>
 
     <label
       class="field-label"
@@ -146,10 +165,9 @@
       />
     </div>
 
-    <details
+    <div
       class="identity-options"
       data-ws-part="home.identity"
-      ><summary>{{ t("identityOptions") }}</summary
       ><label
         class="field-label"
         data-ws-part="home.field-label"
@@ -159,7 +177,6 @@
         id="channel"
         v-model="channel"
         :placeholder="t('emptyDefault')"
-        @keyup.enter="emit('connect')"
       /></div
       ><div class="identity-controls"
         ><label class="remember-identity"
@@ -188,7 +205,7 @@
             >{{ t("identityExport") }}</button
           ></div
         ></div
-      ></details
+      ></div
     ><p
       v-if="rememberIdentity"
       class="identity-warning"
@@ -205,7 +222,8 @@
         v-if="connecting"
         class="button-spinner"
       ></span>
-      <span>{{ connecting ? t("connecting") : t("enterVoice") }}</span>
+      <span v-if="joinRetrySeconds > 0">{{ t("retryLater", { seconds: joinRetrySeconds }) }}</span>
+      <span v-else>{{ connecting ? t("connecting") : t("enterVoice") }}</span>
       <Icon
         v-if="!connecting"
         name="chevron-right"
@@ -223,6 +241,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import Icon from "../Icon.vue";
 import type { FavoriteServer, RecentServer } from "../../services/local-persistence.js";
 
@@ -244,8 +263,13 @@ defineProps<{
   hasIdentity: boolean;
   connecting: boolean;
   joinDisabled: boolean;
+  joinRetrySeconds: number;
   t: (key: string, variables?: Record<string, string | number>) => string;
 }>();
+
+// iOS Safari has no output-device picker at all; say so before joining instead
+// of hiding it inside the room settings dialog.
+const outputPickerSupported = computed(() => typeof HTMLMediaElement === "undefined" || "setSinkId" in HTMLMediaElement.prototype);
 
 const emit = defineEmits<{
   connect: [];
@@ -254,5 +278,6 @@ const emit = defineEmits<{
   exportIdentity: [];
   toggleFavorite: [];
   selectServer: [address: string, nickname?: string];
+  openDeviceSettings: [];
 }>();
 </script>

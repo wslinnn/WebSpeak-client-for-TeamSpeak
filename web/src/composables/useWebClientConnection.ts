@@ -116,9 +116,12 @@ export function useWebClientConnection({
   }
 
   function doDisconnect(): void {
+    // Cancelling a pending join never entered the room: say "cancelled", not
+    // "left", so the toast matches what actually happened.
+    const wasConnecting = isConnecting.value;
     disconnect();
     selectedChannelId.value = "";
-    showToast(t("leftToast"));
+    showToast(t(wasConnecting ? "cancelConnectToast" : "leftToast"));
   }
 
   function submitServerPassword(): void {

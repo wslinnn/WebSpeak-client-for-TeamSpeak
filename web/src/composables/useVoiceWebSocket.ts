@@ -31,6 +31,8 @@ export interface VoiceState {
   tsClientId: number;
   error: string;
   errorCode: string;
+  /** Epoch ms until which the gateway told us to wait before retrying the password. */
+  retryNotUntil: number;
   /**
    * Non-fatal audio diagnostics. Unlike error/errorCode these never take over
    * the connect form: they explain a degraded microphone or playback path while
@@ -189,7 +191,7 @@ class CancelledMediaOperation extends Error {
 
 export function useVoiceWebSocket() {
   const ws = shallowRef<WebSocket | null>(null);
-  const state = reactive<VoiceState>({ connected: false, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false, tsClientId: 0, error: "", errorCode: "", microphoneError: "", microphoneErrorCode: "", audioNotice: "", audioNoticeCode: "", channelSwitchedChannelId: "" });
+  const state = reactive<VoiceState>({ connected: false, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false, tsClientId: 0, error: "", errorCode: "", retryNotUntil: 0, microphoneError: "", microphoneErrorCode: "", audioNotice: "", audioNoticeCode: "", channelSwitchedChannelId: "" });
   const sessionState = createVoiceSessionState({
     selfId: () => state.tsClientId,
     onMemberRemoved(id) {
@@ -221,10 +223,13 @@ export function useVoiceWebSocket() {
       clearMicrophoneError();
       clearAudioNotice();
     },
-    onFailure({ code, detail, cause }) {
+    onFailure({ code, detail, cause, retryAfterMs }) {
       state.connecting = false;
       state.errorCode = normalizedClientErrorCode(code, "REQUEST_FAILED");
       state.error = cause instanceof Error ? cause.message : joinTicketReason(state.errorCode, detail);
+      if (state.errorCode === "PASSWORD_RETRY_LATER") {
+        state.retryNotUntil = Date.now() + (typeof retryAfterMs === "number" && retryAfterMs > 0 ? retryAfterMs : 60_000);
+      }
     },
   });
   const commands = createVoiceCommands({ socket: () => ws.value, generation: () => voiceConnection.generation });
@@ -908,6 +913,7 @@ export function useVoiceWebSocket() {
     identityMaterial.value = identity;
     state.error = "";
     state.errorCode = "";
+    state.retryNotUntil = 0;
     // Audio diagnostics belong to the previous session, never to the new one.
     clearMicrophoneError();
     clearAudioNotice();

@@ -2,6 +2,8 @@ export interface ConnectionFailure {
   code: unknown;
   detail?: unknown;
   cause?: unknown;
+  /** Backoff hint from a 429 join-ticket response, in milliseconds. */
+  retryAfterMs?: unknown;
 }
 
 interface ConnectionOptions {
@@ -105,7 +107,11 @@ export function createVoiceConnection(options: ConnectionOptions) {
       if (!isCurrent(record)) return;
       const result = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
       if (!response.ok || typeof result.ticket !== "string" || !result.ticket) {
-        fail(record, { code: result.code ?? "CONNECTION_FAILED", detail: result.detail });
+        fail(record, {
+          code: result.code ?? "CONNECTION_FAILED",
+          detail: result.detail,
+          retryAfterMs: typeof result.retryAfterMs === "number" ? result.retryAfterMs : undefined,
+        });
         return;
       }
       // The deadline includes reading the body, but not the subsequent
