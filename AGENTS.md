@@ -51,4 +51,5 @@ npm --prefix web ci --no-audit --no-fund
 - 本仓库是上游的裁剪 fork：已删除加速中继、Android、DemoView、访客计数；不要从 upstream 合并会重新引入这些功能的改动。
 - `data/`、`config.json`、`*.pem`/`*.key`、`.env*` 为本地私有内容，禁止入库。
 - 需要真实 TeamSpeak 服务器或浏览器媒体设备的测试，须单独记录环境与结果；不得用 mock 编解码器冒充真实音频验证。
-- 活跃改造计划见 `D:\develop\project\tsweb\reports\`（09 号报告为当前执行清单）。
+- 已评估否决项（勿重新立项）：重写 TeamSpeak SDK（无必要，性能热点全在网关层；fork 源码 + 更新 vendor 为兜底方案）；接入阿里云 ESA 等 CDN（语音走 WebRTC UDP 直连不经 CDN，对延迟与 3Mbps 出流量无益，仅在跨地域首屏慢或源站暴露需求时再议）。
+- 活跃改造计划见 `D:\develop\project\tsweb\reports\`（09 号报告头部有执行状态）。**下一批 = 阶段 2 安全纵深**（09 §4 T11，详情在 08 号报告「阶段 2」：首启强制密码、trust proxy、安全响应头、WS 命令限流等）；阶段 3 条件触发项 T10（按 PCM 回退率决定是否转正 Opus-over-WS）。
