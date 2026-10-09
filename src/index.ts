@@ -17,7 +17,7 @@ const APP_VERSION = readPackageVersion();
 const SCREEN_SHARE_ICE_SERVERS = readScreenShareIceServers(process.env.WEBSPEAK_SCREEN_SHARE_ICE_SERVERS);
 
 async function main() {
-  const [{ createLogger }, { createWebServer }, { APP_PORT }, { WebSpeakDatabase }, { loadOrCreateMasterSecret }, { AdminService }, { JoinTicketStore }] = await Promise.all([
+  const [{ createLogger }, { createWebServer }, { APP_PORT }, { WebSpeakDatabase }, { loadOrCreateMasterSecret }, { AdminService }, { JoinTicketStore }, { ServerPasswordGuard }] = await Promise.all([
     import("./logger.js"),
     import("./server/server.js"),
     import("./constants.js"),
@@ -25,6 +25,7 @@ async function main() {
     import("./security/master-secret.js"),
     import("./admin/admin-service.js"),
     import("./server/join-ticket.js"),
+    import("./server/server-password-guard.js"),
   ]);
   // WEBSPEAK_LOG_LEVEL=debug restores verbose file logging (SDK protocol
   // chatter included); the default keeps the rotating file at info.
@@ -43,6 +44,14 @@ async function main() {
   await adminService.initialize();
   removeObsoleteBootstrapFile();
   const joinTickets = new JoinTicketStore();
+  // WEBSPEAK_TRUST_PROXY=1 declares a reverse proxy in front of the gateway:
+  // forwarded headers then identify clients for rate limits and logs, and
+  // proxy-terminated TLS keeps secure cookies and HSTS working.
+  const trustProxyEnv = process.env.WEBSPEAK_TRUST_PROXY?.trim().toLowerCase();
+  const trustProxy = trustProxyEnv === "1" || trustProxyEnv === "true";
+  // One guard instance serves both sides: the web endpoint consults it before
+  // issuing tickets, the voice bridge records wrong-password failures into it.
+  const serverPasswordGuard = new ServerPasswordGuard();
 
   logger.info({ dataDir: DATA_DIR }, "Starting WebSpeak server");
 
@@ -58,10 +67,14 @@ async function main() {
       joinTickets,
       webRtc: () => adminService.getWebRtcAudioOptions(),
       screenShareIceServers: () => SCREEN_SHARE_ICE_SERVERS,
+      trustProxy,
+      serverPasswordGuard,
     },
     adminService,
     skinRegistry: new SkinRegistry(path.join(DATA_DIR, "skins")),
     logger,
+    trustProxy,
+    serverPasswordGuard,
   });
 
   await webServer.start();

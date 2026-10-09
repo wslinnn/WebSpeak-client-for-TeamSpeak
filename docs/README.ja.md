@@ -99,7 +99,7 @@ docker compose pull
 docker compose up -d
 ```
 
-起動後に `http://<your-host>:3040/admin` を開き、`admin` / `admin` でログインして直ちにパスワードを変更し、TeamSpeak を設定します。データは `webspeak-data` volume に保存されます。データベースを消さない場合は `docker compose down -v` を実行しないでください。
+起動後に `http://<your-host>:3040/admin` を開き、初回起動時にログへ出力される一回きりのセットアップトークン（`Admin setup token: ws-setup-…`）でログインして直ちにパスワードを変更し、TeamSpeak を設定します。パスワード変更後はトークンは無効になります。データは `webspeak-data` volume に保存されます。データベースを消さない場合は `docker compose down -v` を実行しないでください。
 
 ### Release パッケージ
 
@@ -120,7 +120,7 @@ npm start
 - ソースからのビルドには Node.js `>=22.5` が必要です。Docker と Release には必要な実行環境が含まれます。
 - WebRTC に対応した最新の Chrome、Edge などを使用してください。マイクとウィンドウ音声には通常 HTTPS が必要です。
 - WebSpeak のホストから TeamSpeak に到達できる必要があります。標準音声ポートは `9987` です。
-- Web サービスは `3040/TCP` を使用します。公開時は HTTPS と WebSocket をリバースプロキシ経由で公開してください。
+- Web サービスは `3040/TCP` を使用します。公開時は HTTPS と WebSocket をリバースプロキシ経由で公開し、`WEBSPEAK_TRUST_PROXY=1` を設定してレート制限とログが実際のクライアントアドレスを扱うようにしてください。
 - IPv6 にはルーティング可能な IPv6、OS/コンテナで有効な IPv6、適切なファイアウォール設定が必要です。リテラルは `[2001:db8::1]#9987` の形式です。
 - 保存したブラウザ ID は同じブラウザで同時に1接続だけ使用できます。
 - BGM共有はデスクトップのみで、WebRTC が必要です。

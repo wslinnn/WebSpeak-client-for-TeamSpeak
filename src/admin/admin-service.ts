@@ -51,9 +51,15 @@ export class AdminService {
   async initialize(): Promise<void> {
     this.importLegacyConfigOnce();
     if (!this.database.hasAdmin()) {
-      const credential = await hashAdminPassword("admin", { username: "admin", mustChangePassword: true, allowWeakPassword: true });
+      // First start has no owner yet. A random setup token printed to the log
+      // replaces the historical admin/admin default: a public deployment then
+      // has no guessable takeover window, and the token is only accepted for
+      // the login + change-password pair until a real password is set.
+      const setupToken = `ws-setup-${randomBytes(18).toString("base64url")}`;
+      const credential = await hashAdminPassword(setupToken, { username: "admin", mustChangePassword: true, allowWeakPassword: true });
       this.database.initializeAdmin(credential, this.toSettingsUpdate(this.database.getSettings()));
-      this.logger.warn("Default admin account created. Change the password on first login.");
+      this.logger.warn("No administrator password has been set yet. Sign in with the one-time setup token printed below, then set a real password; the token stops working afterwards.");
+      this.logger.warn(`Admin setup token: ${setupToken}`);
     }
   }
 
@@ -99,7 +105,10 @@ export class AdminService {
       welcomeTextEn: welcomeTexts.en,
       welcomeTexts,
       accessMode: settings.accessMode,
-      target: settingsTarget(settings),
+      // In fixed mode the target is administrator-controlled; handing the real
+      // address to every visitor would let them bypass the gateway and connect
+      // directly, so it only ships in open mode where the user picks a target.
+      target: settings.accessMode === "open" ? settingsTarget(settings) : "",
     };
   }
 

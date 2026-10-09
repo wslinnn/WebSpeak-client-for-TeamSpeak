@@ -53,7 +53,10 @@ export class AdminSessionStore {
 }
 
 export function isSecureRequest(request: Request): boolean {
-  return (request.socket as TLSSocket).encrypted === true;
+  // Behind a configured trust proxy, request.secure honors X-Forwarded-Proto,
+  // so the admin cookie keeps its Secure flag when TLS ends at the proxy;
+  // without trust proxy it degenerates to the socket check.
+  return request.secure || (request.socket as TLSSocket).encrypted === true;
 }
 
 function hashToken(token: string): string {

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { Logger } from "../logger.js";
 import type { TSClient, TSRawNotification } from "./ts-client.js";
+import { escapeTeamSpeakValue } from "../security/ts-escaping.js";
 import { formatTeamSpeakTarget, teamSpeakTargetKey, type TeamSpeakTarget } from "../domain/teamspeak-target.js";
 import type { ServerMessage } from "../shared/server-messages.js";
 import type { ChannelInfo } from "../shared/voice-models.js";
@@ -778,15 +779,6 @@ function toBrowserScreenSignal(payload: { cmd: string; args: Record<string, unkn
   return null;
 }
 
-function escapeTeamSpeakValue(value: string): string {
-  return value
-    .replace(/\\/g, "\\\\")
-    .replace(/ /g, "\\s")
-    .replace(/\//g, "\\/")
-    .replace(/\|/g, "\\p")
-    .replace(/\n/g, "\\n")
-    .replace(/\r/g, "\\r");
-}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);

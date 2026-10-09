@@ -10,7 +10,6 @@ import { resolveVoiceMediaAddresses } from "./webrtc-config.js";
 import type { ServerEvent as SharedServerEvent } from "../shared/voice-models.js";
 import { WebSocketServer, WebSocket } from "ws";
 import type { IncomingMessage, Server } from "node:http";
-import { isIP } from "node:net";
 import { identityFromString } from "@echosixhiya/teamspeak-client";
 import { TSClient, type TSClientOptions } from "./ts-client.js";
 import type { Logger as LoggerType } from "../logger.js";
@@ -25,6 +24,9 @@ import { WebRtcAudioSession, type WebRtcAudioOptions, type WebRtcAudioSessionOpt
 import { normalizeScreenShareIceServers, parseScreenShareMessage, type ScreenShareIceServer } from "./screen-share.js";
 import { createVoiceEncoder } from "./opus-codec.js";
 import { AvatarLruCache } from "./avatar-cache.js";
+import { CommandRateLimiter, shouldReportRateLimit } from "./command-rate-limit.js";
+import { resolveClientAddress } from "./client-ip.js";
+import type { ServerPasswordGuard } from "./server-password-guard.js";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 // Avatars are rare downloads for a self-hosted deployment; the cap bounds
@@ -42,6 +44,8 @@ export interface VoiceBridgeOptions {
   joinTickets: JoinTicketStore;
   webRtc?: WebRtcAudioOptions | (() => WebRtcAudioOptions);
   screenShareIceServers?: ScreenShareIceServer[] | (() => ScreenShareIceServer[]);
+  trustProxy?: boolean;
+  serverPasswordGuard?: ServerPasswordGuard;
 }
 
 interface VoiceBridgeDependencies {
@@ -85,6 +89,8 @@ interface WebClientEntry extends SessionDirectoryState {
   webrtcGeneration: number;
   lastLatencyProbeAt: number;
   lastAudioStatsProbeAt: number;
+  commandLimiter: CommandRateLimiter;
+  lastRateLimitNoticeAt: number;
   connectionFailureCode?: string;
   screenPeerId: string;
 }
@@ -130,7 +136,7 @@ export class VoiceBridge {
 
       const { target, serverPassword, nickname } = connection;
       const channelName = connection.channel;
-      const clientIp = resolveClientIp(req);
+      const clientIp = resolveClientIp(req, this.options.trustProxy === true);
       const webrtcPublicHost = resolveWebRtcPublicHost(req);
       let identity;
       try {
@@ -210,6 +216,8 @@ export class VoiceBridge {
         webrtcGeneration: 0,
         lastLatencyProbeAt: 0,
         lastAudioStatsProbeAt: 0,
+        commandLimiter: new CommandRateLimiter(),
+        lastRateLimitNoticeAt: 0,
         screenPeerId: entryId,
       };
       this.entries.set(entryId, entry!);
@@ -289,6 +297,14 @@ export class VoiceBridge {
         initialStateSent = false;
       };
 
+      // Wrong server passwords are the one credential a browser client may
+      // guess freely, so they are counted per target in the shared guard and
+      // the join endpoint refuses user-supplied passwords while it cools down.
+      const notePasswordFailure = (failureCode: string | undefined) => {
+        if (failureCode !== "SERVER_PASSWORD_REQUIRED" && failureCode !== "INVALID_SERVER_PASSWORD") return;
+        this.options.serverPasswordGuard?.recordFailure(teamSpeakTargetKey(entry!.target));
+      };
+
       const failReconnect = (normalized: ReturnType<typeof normalizeTeamSpeakError>) => {
         if (entry!.reconnectTimer) {
           clearTimeout(entry!.reconnectTimer);
@@ -300,6 +316,7 @@ export class VoiceBridge {
         const failureCode = clientConnectionFailureCode(normalized, serverPassword);
         const failureDetail = publicFailureDetail(normalized);
         entry!.connectionFailureCode = failureCode;
+        notePasswordFailure(failureCode);
         sendJson({ type: "reconnectFailed", code: failureCode, ...(failureDetail ? { detail: failureDetail } : {}) });
         void this.teardown(entryId, "teamSpeak-connect-failed");
       };
@@ -343,6 +360,7 @@ export class VoiceBridge {
           if (session.state !== "authenticating") return;
           session.transition("syncing");
           tsReady = true;
+          this.options.serverPasswordGuard?.recordSuccess(teamSpeakTargetKey(entry!.target));
           events.syncSelf();
           sendInitialState();
           void this.screenShares.discoverExistingStreams(entry!).catch((error: unknown) => {
@@ -353,6 +371,7 @@ export class VoiceBridge {
           const failureCode = clientConnectionFailureCode(normalized, serverPassword);
           const failureDetail = publicFailureDetail(normalized);
           entry!.connectionFailureCode = failureCode;
+          notePasswordFailure(failureCode);
           this.logger.warn({
             code: failureCode,
             normalizedCode: normalized.code,
@@ -411,6 +430,7 @@ export class VoiceBridge {
           const failureCode = clientConnectionFailureCode(kick, serverPassword);
           const failureDetail = publicFailureDetail(kick);
           entry!.connectionFailureCode = failureCode;
+          notePasswordFailure(failureCode);
           this.logger.warn({ entryId, code: failureCode, normalizedCode: kick.code, failureDetail: describeTeamSpeakError(kick) }, "TeamSpeak session ended by kick/ban");
           sendJson({ type: "connectionFailed", code: failureCode, ...(failureDetail ? { detail: failureDetail } : {}) });
           void this.teardown(entryId, "teamSpeak-kicked");
@@ -431,6 +451,18 @@ export class VoiceBridge {
         if (this.entries.get(entryId) !== entry) return;
         if (isBinary) {
           entry!.audioTransport?.receivePcm(typeof data === "string" ? Buffer.from(data) : data);
+          return;
+        }
+        // Control messages (probes, chat, screen share, renegotiations) all end
+        // in gateway or TeamSpeak work; the TS server's flood protection bans
+        // the gateway identity shared by every session, so one abusive client
+        // must not be able to trigger it for everyone.
+        if (!entry!.commandLimiter.tryRemoveToken()) {
+          const now = Date.now();
+          if (shouldReportRateLimit(entry!.lastRateLimitNoticeAt, now)) {
+            entry!.lastRateLimitNoticeAt = now;
+            sendProtocolError(sendJson, "RATE_LIMITED", "操作过于频繁，请稍后重试");
+          }
           return;
         }
 
@@ -741,28 +773,13 @@ function resolveWebRtcPublicHost(request: IncomingMessage): string | undefined {
   return undefined;
 }
 
-function resolveClientIp(request: IncomingMessage): string {
-  const candidates = [
-    firstHeader(request.headers["x-forwarded-for"])?.split(",", 1)[0],
-    firstHeader(request.headers["x-real-ip"]),
+function resolveClientIp(request: IncomingMessage, trustProxy: boolean): string {
+  const header = request.headers["x-forwarded-for"];
+  return resolveClientAddress(
     request.socket.remoteAddress,
-  ];
-  for (const candidate of candidates) {
-    const normalized = normalizeClientIp(candidate);
-    if (normalized) return normalized;
-  }
-  return "unknown";
-}
-
-function normalizeClientIp(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  let trimmed = value.trim();
-  if (trimmed.startsWith("[") && trimmed.endsWith("]")) trimmed = trimmed.slice(1, -1);
-  if (trimmed.toLowerCase().startsWith("::ffff:")) {
-    const mapped = trimmed.slice("::ffff:".length);
-    if (isIP(mapped) === 4) trimmed = mapped;
-  }
-  return isIP(trimmed) ? trimmed : undefined;
+    Array.isArray(header) ? header[0] : header,
+    trustProxy,
+  );
 }
 
 function firstHeader(value: string | string[] | undefined): string | undefined {

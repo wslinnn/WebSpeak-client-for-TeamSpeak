@@ -65,6 +65,7 @@ export function isRestrictedAddress(address: string): boolean {
   if ((first & 0xffc0) === 0xfec0) return true; // deprecated site-local fec0::/10
   if ((first & 0xff00) === 0xff00) return true; // multicast ff00::/8
   if (normalized.startsWith("2001:db8:")) return true; // documentation range
+  if (normalized.startsWith("64:ff9b:")) return true; // NAT64 64:ff9b::/96 well-known prefix (RFC 6052) plus its local-use sibling (RFC 8215) both translate back into IPv4 space
   return false;
 }
 

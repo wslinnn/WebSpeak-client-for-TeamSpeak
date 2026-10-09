@@ -17,6 +17,9 @@ import { isSafeOpenTargetForPrefill, resolveSafeOpenTarget } from "../security/o
 import { identityFromString } from "@echosixhiya/teamspeak-client";
 import { JoinRateLimiter } from "./join-rate-limit.js";
 import { SkinDownloadRateLimiter } from "./skin-download-rate-limit.js";
+import { rateLimitPeerKey, resolveClientAddress } from "./client-ip.js";
+import type { ServerPasswordGuard } from "./server-password-guard.js";
+import { teamSpeakTargetKey } from "../domain/teamspeak-target.js";
 import type { SkinRegistry } from "../admin/skin-registry.js";
 
 export interface WebServerOptions {
@@ -29,6 +32,8 @@ export interface WebServerOptions {
   adminService: AdminService;
   skinRegistry?: SkinRegistry;
   logger: Logger;
+  trustProxy?: boolean;
+  serverPasswordGuard: ServerPasswordGuard;
 }
 
 export interface WebServer {
@@ -39,6 +44,8 @@ export interface WebServer {
 export function createWebServer(options: WebServerOptions): WebServer {
   const app = express();
   const logger = options.logger.child({ component: "web" });
+  const trustProxy = options.trustProxy === true;
+  if (trustProxy) app.set("trust proxy", true);
 
   let server: ReturnType<typeof createHttpsServer> | ReturnType<typeof createHttpServer>;
 
@@ -50,6 +57,26 @@ export function createWebServer(options: WebServerOptions): WebServer {
   } else {
     server = createHttpServer(app);
   }
+
+  // Defense-in-depth headers for every response, including API errors and
+  // static assets. style-src keeps 'unsafe-inline' because skins inject their
+  // CSS as a style element and Vue writes style attributes; the frontend has
+  // no HTML sink, so the style channel is not an injection path. HSTS is only
+  // meaningful on secure responses — including proxy-terminated TLS once
+  // trust proxy is enabled.
+  app.use((request, response, next) => {
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    response.setHeader("X-Frame-Options", "DENY");
+    response.setHeader(
+      "Content-Security-Policy",
+      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        + "img-src 'self' data:; font-src 'self' data:; connect-src 'self' ws: wss:; "
+        + "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+    );
+    if (request.secure) response.setHeader("Strict-Transport-Security", "max-age=31536000");
+    next();
+  });
 
   app.use(express.json({ limit: "100kb" }));
   // Voice and API traffic shares a 3 Mbit/s uplink; compressing the JSON API
@@ -63,6 +90,16 @@ export function createWebServer(options: WebServerOptions): WebServer {
   const joinRateLimiter = new JoinRateLimiter();
   const skinDownloadLimiter = new SkinDownloadRateLimiter();
   const startedAt = Date.now();
+  // Limiter key for a request: the client IP when trust proxy is configured,
+  // otherwise the socket address, aggregated to a /64 for IPv6.
+  const peerKey = (request: express.Request): string => {
+    const header = request.headers["x-forwarded-for"];
+    return rateLimitPeerKey(resolveClientAddress(
+      request.socket.remoteAddress,
+      Array.isArray(header) ? header[0] : header,
+      trustProxy,
+    ));
+  };
 
   const healthHandler: express.RequestHandler = (_request, response) => {
     response.json({ status: "ok", version: options.version ?? "0.1.0" });
@@ -102,8 +139,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
     const id = typeof request.params.id === "string" ? request.params.id : "";
     // Skins are unauthenticated downloads of up to 20 MB; without a per-peer
     // bound a looping client monopolizes the 3 Mbit/s uplink for minutes.
-    const peer = request.socket.remoteAddress ?? "unknown";
-    if (!skinDownloadLimiter.allow(peer)) {
+    if (!skinDownloadLimiter.allow(peerKey(request))) {
       response.status(429).json({ ok: false, code: "RATE_LIMITED" });
       return;
     }
@@ -151,7 +187,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
       response.status(503).json({ ok: false, code: "NOT_INITIALIZED" });
       return;
     }
-    if (!joinRateLimiter.allow(request.socket.remoteAddress ?? "unknown")) {
+    if (!joinRateLimiter.allow(peerKey(request))) {
       response.status(429).json({ ok: false, code: "RATE_LIMITED" });
       return;
     }
@@ -183,6 +219,10 @@ export function createWebServer(options: WebServerOptions): WebServer {
     let targetText = managedInvite?.target ?? policy.defaultTarget;
     let target: TeamSpeakTarget;
     let serverPassword = policy.serverPassword;
+    // Whether this request brought its own password (open-mode custom target
+    // or a fixed-mode retry). Only those attempts can probe for a server's
+    // password, so only those are subject to the shared wrong-password guard.
+    let usesUserPassword = false;
     const channel = requestedChannel || managedInvite?.channel || "";
     try {
       if (!managedInvite) {
@@ -191,11 +231,13 @@ export function createWebServer(options: WebServerOptions): WebServer {
           const isDefault = targetText === policy.defaultTarget;
           if (!isDefault) serverPassword = typeof body.serverPassword === "string" ? body.serverPassword.slice(0, 512) : "";
           else if (typeof body.serverPassword === "string" && body.serverPassword.trim()) serverPassword = body.serverPassword.slice(0, 512);
+          usesUserPassword = typeof body.serverPassword === "string" && body.serverPassword.trim().length > 0;
         } else if (policy.accessMode === "fixed" && typeof body.serverPassword === "string" && body.serverPassword.trim()) {
           // The fixed target remains administrator-controlled, but a user may
           // retry its server password after the gateway reports that one is
           // required. The target itself is never taken from this request.
           serverPassword = body.serverPassword.slice(0, 512);
+          usesUserPassword = true;
         }
       }
       target = await resolveTeamSpeakTarget(targetText);
@@ -205,6 +247,14 @@ export function createWebServer(options: WebServerOptions): WebServer {
     } catch (error) {
       response.status(400).json({ ok: false, code: error instanceof TeamSpeakAliasLookupError ? "HOST_NOT_FOUND" : "TARGET_NOT_ALLOWED" });
       return;
+    }
+    if (usesUserPassword) {
+      const blockedForMs = options.serverPasswordGuard.blockedForMs(teamSpeakTargetKey(target));
+      if (blockedForMs > 0) {
+        response.setHeader("Retry-After", String(Math.ceil(blockedForMs / 1000)));
+        response.status(429).json({ ok: false, code: "PASSWORD_RETRY_LATER", retryAfterMs: blockedForMs });
+        return;
+      }
     }
 
     if (inviteToken) {

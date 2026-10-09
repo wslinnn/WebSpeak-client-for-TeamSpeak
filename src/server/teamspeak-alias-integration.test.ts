@@ -11,6 +11,7 @@ import type { Logger } from "../logger.js";
 import { WebSpeakDatabase } from "../persistence/database.js";
 import { JoinTicketStore } from "./join-ticket.js";
 import { createWebServer } from "./server.js";
+import { ServerPasswordGuard } from "./server-password-guard.js";
 
 const noop = () => {};
 const logger: Logger = { debug: noop, info: noop, warn: noop, error: noop, child: () => logger };
@@ -40,7 +41,7 @@ test("settings, tests, invites, and join tickets resolve nicknames through the g
   const port = await availablePort();
   const origin = `http://127.0.0.1:${port}`;
   const joinTickets = new JoinTicketStore();
-  const server = createWebServer({ port, adminService: service, voiceBridgeOptions: { joinTickets }, logger });
+  const server = createWebServer({ port, adminService: service, voiceBridgeOptions: { joinTickets }, logger, serverPasswordGuard: new ServerPasswordGuard() });
   context.after(async () => {
     await server.stop();
     database.close();

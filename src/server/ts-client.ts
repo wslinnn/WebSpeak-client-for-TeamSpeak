@@ -17,6 +17,7 @@ import {
 } from "@echosixhiya/teamspeak-client";
 import type { Logger } from "../logger.js";
 import { describeTeamSpeakError, normalizeTeamSpeakError, normalizeTeamSpeakKickedReason } from "../errors.js";
+import { escapeTeamSpeakValue } from "../security/ts-escaping.js";
 import { TeamSpeakAdapter, type TeamSpeakProtocol } from "./teamspeak-adapter.js";
 import type { TeamSpeakTarget } from "../domain/teamspeak-target.js";
 
@@ -491,14 +492,4 @@ export class TSClient extends EventEmitter {
       this.clientId = 0;
     }
   }
-}
-
-function escapeTeamSpeakValue(value: string): string {
-  return value
-    .replace(/\\/g, "\\\\")
-    .replace(/ /g, "\\s")
-    .replace(/\//g, "\\/")
-    .replace(/\|/g, "\\p")
-    .replace(/\n/g, "\\n")
-    .replace(/\r/g, "\\r");
 }

@@ -121,7 +121,7 @@ docker compose pull
 docker compose up -d
 ```
 
-Nach dem Start ist WebSpeak unter `http://<dein-host>:3040` erreichbar. Bei einem Reverse Proxy auf diese Adresse zeigen; für WebRTC den im Adminbereich angezeigten UDP-Bereich freigeben. Die Daten liegen im Volume `webspeak-data`.
+Nach dem Start ist WebSpeak unter `http://<dein-host>:3040` erreichbar. Bei einem Reverse Proxy auf diese Adresse zeigen und `WEBSPEAK_TRUST_PROXY=1` setzen, damit Begrenzung und Protokoll die echte Client-Adresse sehen und hinter dem Proxy terminiertes HTTPS sichere Cookies behält. Für WebRTC den im Adminbereich angezeigten UDP-Bereich freigeben. Die Daten liegen im Volume `webspeak-data`.
 
 ```bash
 docker compose ps
@@ -161,7 +161,7 @@ Für den Bau von `@discordjs/opus` werden Python, Make und eine C/C++-Toolchain 
 ### Erste Konfiguration
 
 1. `http://<dein-host>:3040/admin` öffnen.
-2. Mit `admin` / `admin` anmelden und sofort ein neues Passwort mit mindestens 12 Zeichen setzen.
+2. Das einmalige Setup-Token aus dem Dienstprotokoll des ersten Starts lesen (`Admin setup token: ws-setup-…`), damit bei `/admin` anmelden und sofort ein neues Passwort mit mindestens 12 Zeichen setzen; danach wird das Token ungültig.
 3. Unter **Server** TeamSpeak-Ziel und Zugriffsmethode konfigurieren, zum Beispiel `voice.example.com#9987`.
 4. Für öffentliche Nutzung HTTPS einrichten; bei aktiviertem WebRTC den im Adminbereich angezeigten UDP-Bereich freigeben.
 

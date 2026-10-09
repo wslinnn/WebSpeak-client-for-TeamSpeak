@@ -131,7 +131,7 @@ docker compose pull
 docker compose up -d
 ```
 
-启动后访问 `http://<你的主机>:3040`。使用反向代理时将上游指向该地址；启用 WebRTC 时放行控制台显示的 UDP 端口范围。数据保存在 `webspeak-data` volume 中。
+启动后访问 `http://<你的主机>:3040`。使用反向代理时将上游指向该地址，并设置 `WEBSPEAK_TRUST_PROXY=1`，使限流与日志按真实客户端地址区分，反代终止的 HTTPS 也能保持安全 Cookie；启用 WebRTC 时放行控制台显示的 UDP 端口范围。数据保存在 `webspeak-data` volume 中。
 
 ```bash
 docker compose ps
@@ -171,7 +171,7 @@ npm start
 ### 首次配置
 
 1. 打开 `http://<你的主机>:3040/admin`。
-2. 使用默认账号 `admin` / `admin` 登录，并立即设置至少 12 位的新密码。
+2. 从服务日志读取首次启动打印的一次性设置令牌（`Admin setup token: ws-setup-…`），用它登录 `/admin` 并立即设置至少 12 位的新密码；令牌在设置新密码后失效。
 3. 在“服务器”页配置 TeamSpeak 目标和访问方式，例如 `voice.example.com#9987`。
 4. 公网使用时配置 HTTPS；启用 WebRTC 时放行控制台显示的 UDP 范围。
 
