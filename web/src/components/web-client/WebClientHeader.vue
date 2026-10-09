@@ -28,7 +28,7 @@
       >
       <a
         class="github-button"
-        href="https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak"
+        href="https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak"
         target="_blank"
         rel="noreferrer"
         :title="t('githubRepository')"
@@ -71,7 +71,7 @@
       >
       <a
         class="changelog-button"
-        href="https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/blob/master/CHANGELOG.md"
+        href="https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/blob/master/CHANGELOG.md"
         target="_blank"
         rel="noreferrer"
         :title="t('viewChangelog')"

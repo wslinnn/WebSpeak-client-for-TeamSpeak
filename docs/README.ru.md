@@ -93,7 +93,7 @@
 ### Docker Compose
 
 ```bash
-git clone --depth 1 https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak.git
+git clone --depth 1 https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak.git
 cd WebSpeak-client-for-TeamSpeak
 docker compose pull
 docker compose up -d
@@ -135,14 +135,14 @@ npm start
 
 | Версия | Изменения |
 | --- | --- |
-| [v0.2.6](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.6) | Относительно 0.2.5 масштабно перестроены голосовой шлюз, общие протоколы, голосовая область и модули администратора; исправлены #6/#7/#10, реализованы #9/#12 и случай с обнаружением уже активной демонстрации TS6 из PR #13. Улучшены Opus, жизненные циклы сессий и мобильное управление. Пакеты: Windows x64, Linux x64/ARM64, Docker amd64/arm64, Android arm64-v8a/armeabi-v7a/x86_64. |
-| [v0.2.5](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.5) | Добавлены скины `.wskin`, управление включением и темой по умолчанию, а также защищённые темы «День», «Ночь» и ILLUSIA; удалён незавершённый пример Aurora Voice, исправлены мерцание при загрузке скина, контраст элементов в тёмном режиме и слои иллюстраций в голосовом пространстве; добавлен официальный Agent Skill для разработки скинов. |
-| [v0.2.4](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.4) | Добавлена кроссплатформенная P2P-трансляция экрана между браузерами и нативными клиентами TeamSpeak 6; добавлены настройка STUN/внешнего TURN, проигрыватель и состояние зрителей, захват до 1080p/60 FPS и статистика WebRTC; улучшено управление трансляцией и добавлен номер посетителя. |
-| [v0.2.3](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.3) | Добавлены управление перемещением участников и прямое перемещение с учётом прав; поддержаны аватары, синхронизация микрофона и восстановление идентичности; обновлены скриншоты и документация для пяти языков. |
-| [v0.2.2](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.2) | Добавлены браузерное шумоподавление микрофона, русский и японский интерфейсы и отдельные тексты приветствия; улучшены управление громкостью и сообщения/коды ошибок на основе PR #2. |
-| [v0.2.1](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.1) | Улучшены ошибки на странице входа и добавлена поддержка IPv6-целей по умолчанию. |
-| [v0.2.0](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.0) | Добавлены подсказки пароля, режим ретранслятора, выбор нескольких узлов и диагностика подключений. |
-| [v0.1.8](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/releases/tag/v0.1.8) | Упрощён Docker-запуск, добавлен тайм-аут подключения 15 секунд и непрерывный сетевой мониторинг. |
+| [v0.2.6](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.6) | Относительно 0.2.5 масштабно перестроены голосовой шлюз, общие протоколы, голосовая область и модули администратора; исправлены #6/#7/#10, реализованы #9/#12 и случай с обнаружением уже активной демонстрации TS6 из PR #13. Улучшены Opus, жизненные циклы сессий и мобильное управление. Пакеты: Windows x64, Linux x64/ARM64, Docker amd64/arm64, Android arm64-v8a/armeabi-v7a/x86_64. |
+| [v0.2.5](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.5) | Добавлены скины `.wskin`, управление включением и темой по умолчанию, а также защищённые темы «День», «Ночь» и ILLUSIA; удалён незавершённый пример Aurora Voice, исправлены мерцание при загрузке скина, контраст элементов в тёмном режиме и слои иллюстраций в голосовом пространстве; добавлен официальный Agent Skill для разработки скинов. |
+| [v0.2.4](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.4) | Добавлена кроссплатформенная P2P-трансляция экрана между браузерами и нативными клиентами TeamSpeak 6; добавлены настройка STUN/внешнего TURN, проигрыватель и состояние зрителей, захват до 1080p/60 FPS и статистика WebRTC; улучшено управление трансляцией и добавлен номер посетителя. |
+| [v0.2.3](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.3) | Добавлены управление перемещением участников и прямое перемещение с учётом прав; поддержаны аватары, синхронизация микрофона и восстановление идентичности; обновлены скриншоты и документация для пяти языков. |
+| [v0.2.2](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.2) | Добавлены браузерное шумоподавление микрофона, русский и японский интерфейсы и отдельные тексты приветствия; улучшены управление громкостью и сообщения/коды ошибок на основе PR #2. |
+| [v0.2.1](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.1) | Улучшены ошибки на странице входа и добавлена поддержка IPv6-целей по умолчанию. |
+| [v0.2.0](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.0) | Добавлены подсказки пароля, режим ретранслятора, выбор нескольких узлов и диагностика подключений. |
+| [v0.1.8](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.1.8) | Упрощён Docker-запуск, добавлен тайм-аут подключения 15 секунд и непрерывный сетевой мониторинг. |
 
 Полная история находится в [CHANGELOG.md](../CHANGELOG.md).
 
@@ -153,6 +153,6 @@ WebSpeak распространяется по [GNU Affero General Public Licens
 ## Недавно объединённые вклады
 
 - Список составлен по записям о слиянии на GitHub; сводки выше описывают только изменения, вошедшие в соответствующий релиз.
-- [LainHE](https://github.com/LainHE) — [PR #2](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/pull/2) улучшил переводы ошибок браузера; [PR #8](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/pull/8) исправил масштабирование, плавающую компоновку и нижний колонтитул главной страницы.
-- [TimmySheep](https://github.com/TimmySheep) — [объединённые PR #13 и #15–#24](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/pulls?q=is%3Apr+is%3Amerged+author%3ATimmySheep): обнаружение активных трансляций TS6, пропорции экрана, мобильное аудио/подсветка экрана/меню скинов, канал в настройках идентичности, PWA/темы, история чата, состояние аудио участников и разрешение микрофона.
-- [yichen11818](https://github.com/yichen11818) — [PR #25](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak/pull/25) добавил подключение по зарегистрированным именам TeamSpeak и сохранение имени цели в настройках, избранном и приглашениях.
+- [LainHE](https://github.com/LainHE) — [PR #2](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/pull/2) улучшил переводы ошибок браузера; [PR #8](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/pull/8) исправил масштабирование, плавающую компоновку и нижний колонтитул главной страницы.
+- [TimmySheep](https://github.com/TimmySheep) — [объединённые PR #13 и #15–#24](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/pulls?q=is%3Apr+is%3Amerged+author%3ATimmySheep): обнаружение активных трансляций TS6, пропорции экрана, мобильное аудио/подсветка экрана/меню скинов, канал в настройках идентичности, PWA/темы, история чата, состояние аудио участников и разрешение микрофона.
+- [yichen11818](https://github.com/yichen11818) — [PR #25](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/pull/25) добавил подключение по зарегистрированным именам TeamSpeak и сохранение имени цели в настройках, избранном и приглашениях.

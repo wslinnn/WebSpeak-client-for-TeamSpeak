@@ -29,6 +29,9 @@ RUN apt-get update \
 ENV NODE_ENV=production
 ENV WEBSPEAK_DATA_DIR=/data
 
+ARG SOURCE_REPOSITORY=https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak
+LABEL org.opencontainers.image.source=$SOURCE_REPOSITORY
+
 COPY --from=build --chown=node:node /app/package.json /app/package-lock.json ./
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/vendor/teamspeak-client ./vendor/teamspeak-client
