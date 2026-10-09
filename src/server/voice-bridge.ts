@@ -91,6 +91,8 @@ interface WebClientEntry extends SessionDirectoryState {
   lastAudioStatsProbeAt: number;
   commandLimiter: CommandRateLimiter;
   lastRateLimitNoticeAt: number;
+  connectedOnce: boolean;
+  webrtcEverUsed: boolean;
   connectionFailureCode?: string;
   screenPeerId: string;
 }
@@ -103,6 +105,10 @@ export class VoiceBridge {
   // One cache serves every session: avatars are keyed by TeamSpeak uid, so a
   // reconnection or a second browser reuses the same download.
   private readonly avatarCache = new AvatarLruCache(AVATAR_CACHE_CAPACITY);
+  // Completed sessions by transport path. The compatibility path is the
+  // 768 kbit/s PCM fallback, so its share decides whether the Opus-over-WS
+  // upgrade is worth building; this counter is its trigger measurement.
+  private readonly transportOutcomes = { connected: 0, webrtc: 0, compat: 0 };
   private wss: WebSocketServer | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private logger: LoggerType;
@@ -218,6 +224,8 @@ export class VoiceBridge {
         lastAudioStatsProbeAt: 0,
         commandLimiter: new CommandRateLimiter(),
         lastRateLimitNoticeAt: 0,
+        connectedOnce: false,
+        webrtcEverUsed: false,
         screenPeerId: entryId,
       };
       this.entries.set(entryId, entry!);
@@ -259,6 +267,7 @@ export class VoiceBridge {
       const sendInitialState = () => {
         if (initialStateSent || !tsReady || !events.ready || session.state !== "syncing") return;
         initialStateSent = true;
+        entry!.connectedOnce = true;
         const wasReconnecting = hasConnectedOnce;
         hasConnectedOnce = true;
         reconnectAttempt = 0;
@@ -569,6 +578,16 @@ export class VoiceBridge {
     return this.avatarCache.size;
   }
 
+  /**
+   * Completed sessions by transport path. `compat` sessions are PCM-fallback
+   * users; a sustained compat share above ~5% is the agreed trigger for
+   * building the Opus-over-WS upgrade of the fallback path.
+   */
+  getTransportOutcomes(): { connected: number; webrtc: number; compat: number; compatRatio: number } {
+    const { connected, webrtc, compat } = this.transportOutcomes;
+    return { connected, webrtc, compat, compatRatio: connected > 0 ? compat / connected : 0 };
+  }
+
   getSessionSummaries(): AdminSessionSummary[] {
     const now = Date.now();
     return [...this.entries.values()]
@@ -609,6 +628,11 @@ export class VoiceBridge {
   private async cleanupEntry(entry: WebClientEntry, reason: SessionTeardownReason): Promise<void> {
     this.screenShares.removePeer(entry.id);
     if (this.entries.get(entry.id) === entry) this.entries.delete(entry.id);
+    if (entry.connectedOnce) {
+      this.transportOutcomes.connected += 1;
+      if (entry.webrtcEverUsed) this.transportOutcomes.webrtc += 1;
+      else this.transportOutcomes.compat += 1;
+    }
     entry.events?.close();
     entry.events = null;
     if (entry.reconnectTimer) {
@@ -748,6 +772,7 @@ export class VoiceBridge {
         return;
       }
       sendJson({ type: "webrtcAnswer", payload: { sdp: answer } });
+      entry.webrtcEverUsed = true;
       this.logger.info({ entryId: entry.id }, "WebRTC audio negotiation completed");
     } catch (error: unknown) {
       if (entry.webrtc === peer) entry.webrtc = null;

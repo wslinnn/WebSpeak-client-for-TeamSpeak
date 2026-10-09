@@ -12,6 +12,7 @@
     "dev": "tsx src/index.ts",
     "build": "tsc",
     "test": "node scripts/run-tests.mjs",
+    "benchmark": "node --import tsx scripts/benchmark-audio.mjs",
     "verify": "npm run lint && npm test && npm run build && npm run web:lint && npm run web:build",
     "start": "node dist/index.js",
     "web:dev": "cd web && npx vite --host",

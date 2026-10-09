@@ -193,6 +193,12 @@
           ><div
             ><dt>{{ tr("createdSessions") }}</dt
             ><dd>{{ operations.diagnostics.createdSessions }}</dd></div
+          ><div
+            ><dt>{{ tr("gatewayMemory") }}</dt
+            ><dd>{{ operations.diagnostics.rssMb != null ? `${operations.diagnostics.rssMb} MB` : "—" }}</dd></div
+          ><div
+            ><dt>{{ tr("pcmFallbackShare") }}</dt
+            ><dd>{{ operations.diagnostics.voiceTransports ? `${(operations.diagnostics.voiceTransports.compatRatio * 100).toFixed(1)}% (${operations.diagnostics.voiceTransports.compat}/${operations.diagnostics.voiceTransports.connected})` : "—" }}</dd></div
           ></dl
         ><button
           class="secondary-button"

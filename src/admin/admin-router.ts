@@ -30,6 +30,7 @@ export interface AdminRouterOptions {
   getPeakSessions(): number;
   getCreatedSessions?: () => number;
   getSessionSummaries?: () => AdminSessionSummary[];
+  getVoiceTransportStats?: () => { connected: number; webrtc: number; compat: number; compatRatio: number };
   terminateSession?: (id: string) => Promise<boolean>;
   version?: string;
   logFile?: string;
@@ -260,6 +261,7 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
       options.getPeakSessions(),
       options.startedAt,
     );
+    const memory = process.memoryUsage();
     response.json({
       generatedAt: new Date().toISOString(),
       gateway: {
@@ -268,6 +270,10 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
         node: process.version,
         platform: process.platform,
         arch: process.arch,
+        // Baseline-table row "gateway RSS": compare against the ≤150 MB
+        // target for a 10-session idle gateway.
+        rssMb: Math.round(memory.rss / 1024 / 1024),
+        heapUsedMb: Math.round(memory.heapUsed / 1024 / 1024),
       },
       sessions: {
         active: options.getActiveSessions(),
@@ -275,6 +281,10 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
         created: options.getCreatedSessions?.() ?? 0,
         limit: 100,
       },
+      // Completed sessions by transport. compatRatio is the Opus-over-WS
+      // trigger: a sustained share above ~5% means the PCM fallback carries
+      // real traffic and is worth upgrading.
+      voiceTransports: options.getVoiceTransportStats?.(),
       teamSpeak: overview.teamSpeak,
       database: { schemaVersion: options.service.database.schemaVersion },
       logs: { available: Boolean(options.logFile && existsSync(options.logFile)) },
@@ -287,6 +297,7 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
       options.getPeakSessions(),
       options.startedAt,
     );
+    const memory = process.memoryUsage();
     const report = {
       generatedAt: new Date().toISOString(),
       gateway: {
@@ -295,6 +306,8 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
         node: process.version,
         platform: process.platform,
         arch: process.arch,
+        rssMb: Math.round(memory.rss / 1024 / 1024),
+        heapUsedMb: Math.round(memory.heapUsed / 1024 / 1024),
       },
       sessions: {
         active: options.getActiveSessions(),
@@ -302,6 +315,7 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
         created: options.getCreatedSessions?.() ?? 0,
         limit: 100,
       },
+      voiceTransports: options.getVoiceTransportStats?.(),
       teamSpeak: {
         status: overview.teamSpeak.status,
         lastTestAt: overview.teamSpeak.lastTestAt,

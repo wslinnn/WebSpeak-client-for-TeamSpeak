@@ -34,10 +34,12 @@ function fixture(webRtc = { enabled: true } as import("./webrtc-audio.js").WebRt
   const peers: PeerStub[] = [];
   const messages: ServerMessage[] = [];
   const entry = {
-    id: "session", session: { state: "connected" }, ws: { readyState: 1 as 0 | 1 | 2 | 3, bufferedAmount: 0, send() {}, close() {} },
+    id: "session", session: { state: "connected" }, target: { host: "127.0.0.1", port: 9987 },
+    ws: { readyState: 1 as 0 | 1 | 2 | 3, bufferedAmount: 0, send() {}, close() {}, removeAllListeners() {} },
     webrtc: null as PeerStub | null, webrtcGeneration: 0,
     tsClient: { isConnected: () => true, setInputMuted: async (_muted: boolean) => {}, setAccompanimentActive: async (_active: boolean) => {}, sendVoice: () => { forwarded++; }, sendWhisper: () => { forwarded++; } },
     whisperActive: false, whisperTargetIds: new Set<number>(), audio: createAudioFlowStats(),
+    connectedOnce: false, webrtcEverUsed: false,
     audioTransport: null as SessionAudioTransport | null,
   };
   let forwarded = 0;
@@ -221,4 +223,32 @@ test("an unset media override still uses a literal request host", async () => {
   Object.assign(f.entry, { webrtcPublicHost: "192.0.2.10" });
   await f.offer("legacy");
   assert.deepEqual(f.peers[0].options.publicAddresses, ["192.0.2.10"]);
+});
+
+test("completed sessions are counted by transport path for the diagnostics trigger", async () => {
+  const f = fixture();
+  const bridge = f.bridge as unknown as {
+    entries: Map<string, typeof f.entry>;
+    sessionManager: { admit(id: string, cleanup: (reason: string) => Promise<void>): unknown; teardown(id: string, reason: string): Promise<void> };
+    cleanupEntry(entry: typeof f.entry, reason: string): Promise<void>;
+    getTransportOutcomes(): { connected: number; webrtc: number; compat: number; compatRatio: number };
+  };
+  const makeEntry = (id: string, webrtcEverUsed: boolean): typeof f.entry => ({
+    ...f.entry, id, connectedOnce: true, webrtcEverUsed,
+    // cleanupEntry's screen-share bookkeeping derives a target key from every
+    // registered entry, so registered fixtures must carry a resolvable target.
+    target: { host: "127.0.0.1", port: 9987 },
+  });
+  for (const [id, webrtcEverUsed] of [["compat-1", false], ["webrtc-1", true], ["never-connected", null]] as const) {
+    const entry = makeEntry(id, webrtcEverUsed === true);
+    if (webrtcEverUsed === null) entry.connectedOnce = false;
+    bridge.entries.set(id, entry);
+    bridge.sessionManager.admit(id, async (reason) => { await bridge.cleanupEntry(entry, reason); });
+    await bridge.sessionManager.teardown(id, "websocket-close");
+  }
+  const outcomes = bridge.getTransportOutcomes();
+  assert.equal(outcomes.connected, 2);
+  assert.equal(outcomes.webrtc, 1);
+  assert.equal(outcomes.compat, 1);
+  assert.equal(outcomes.compatRatio, 0.5);
 });

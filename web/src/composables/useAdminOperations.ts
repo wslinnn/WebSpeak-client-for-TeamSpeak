@@ -19,7 +19,9 @@ export function useAdminOperations(options: Options) {
   const inviteForm = reactive({ channel: "", expiresInHours: 24, maxUses: 0 });
   const createdInvite = ref<{ token: string; link: string } | null>(null);
   const operations = reactive({ sessions: [] as AdminSession[], invites: [] as ManagedInvite[],
-    diagnostics: { version: "", node: "", platform: "", arch: "", schemaVersion: 0, createdSessions: 0 },
+    diagnostics: { version: "", node: "", platform: "", arch: "", schemaVersion: 0, createdSessions: 0,
+      rssMb: null as number | null, heapUsedMb: null as number | null,
+      voiceTransports: null as { connected: number; webrtc: number; compat: number; compatRatio: number } | null },
     logs: { available: false, entries: [] as AdminLog[], sessions: [] as AdminConnectionRecord[] }, audit: [] as Array<{ event: string; createdAt: string }> });
   let noticeTimer: number | undefined;
   function cancelRequests() {
@@ -34,7 +36,8 @@ export function useAdminOperations(options: Options) {
     createdInvite.value = null;
     operations.sessions = []; operations.invites = []; operations.audit = [];
     operations.logs = { available: false, entries: [], sessions: [] };
-    operations.diagnostics = { version: "", node: "", platform: "", arch: "", schemaVersion: 0, createdSessions: 0 };
+    operations.diagnostics = { version: "", node: "", platform: "", arch: "", schemaVersion: 0, createdSessions: 0,
+      rssMb: null, heapUsedMb: null, voiceTransports: null };
     Object.assign(inviteForm, { channel: "", expiresInHours: 24, maxUses: 0 });
   }
   onScopeDispose(reset);
@@ -51,7 +54,9 @@ export function useAdminOperations(options: Options) {
       if (!request.isCurrent()) return;
       operations.sessions = sessions.sessions;
       operations.invites = invites.invites;
-      operations.diagnostics = { ...diagnostics.gateway, schemaVersion: diagnostics.database.schemaVersion, createdSessions: diagnostics.sessions.created };
+      operations.diagnostics = { ...diagnostics.gateway, schemaVersion: diagnostics.database.schemaVersion, createdSessions: diagnostics.sessions.created,
+        rssMb: diagnostics.gateway.rssMb ?? null, heapUsedMb: diagnostics.gateway.heapUsedMb ?? null,
+        voiceTransports: diagnostics.voiceTransports ?? null };
       operations.logs = logs;
       operations.audit = audit.events;
     } catch (error) { if (request.isCurrent()) report(error); }

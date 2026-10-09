@@ -157,6 +157,8 @@ npm run verify
 
 `npm run verify` runs ESLint, unit tests, the backend build and `npm run web:build`. The latter delegates to the frontend build, including `vue-tsc --noEmit`. `npm test` discovers every `*.test.{ts,mjs}` file through `scripts/run-tests.mjs`, so new test files never need a manifest entry. Use `npm run dev` and `npm run web:dev` for development, or `npm start` after building both applications.
 
+`npm run benchmark` measures the gateway audio pipeline (Opus encode/decode throughput, the WebRTC mixer per-tick cost projected onto the session × speaker matrix, per-codec memory). Run it before and after touching the audio path or codec parameters, and on the target machine when capacity decisions (worker threads, session limits, quality parameters) are on the table.
+
 Headless Vue tests use Vite middleware mode with both HMR and the WebSocket listener disabled (`hmr: false`, `ws: false`). Disabling HMR alone still reserves Vite's default socket port and causes parallel test processes to conflict.
 
 CI verifies pushes to `dev` and `master`, pull requests and manual runs. Docker publication on `master` or release tags, and release packaging on tags or manual runs, call the same verification workflow before publishing or packaging. Verification includes the application checks and a Docker HTTP health smoke test; that smoke test does not prove voice or screen-sharing functionality.

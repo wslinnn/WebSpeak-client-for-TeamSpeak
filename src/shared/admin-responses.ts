@@ -81,7 +81,8 @@ export const adminResponses = {
   audit: object({ events: array(auditEvent) }),
   logs: object({ available: boolean, entries: array(logEntry), sessions: array(connection) }),
   diagnostics: object({
-    gateway: object({ version: text, node: text, platform: text, arch: text }),
+    gateway: object({ version: text, node: text, platform: text, arch: text, rssMb: optional(number), heapUsedMb: optional(number) }),
+    voiceTransports: optional(object({ connected: number, webrtc: number, compat: number, compatRatio: number })),
     database: object({ schemaVersion: number }), sessions: object({ created: number }),
   }),
   skins: object({ skins: array(skin), defaultSkinId: text }),

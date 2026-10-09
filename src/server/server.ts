@@ -284,6 +284,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
     getPeakSessions: () => voiceBridge.getPeakCount(),
     getCreatedSessions: () => voiceBridge.getCreatedCount(),
     getSessionSummaries: () => voiceBridge.getSessionSummaries(),
+    getVoiceTransportStats: () => voiceBridge.getTransportOutcomes(),
     terminateSession: (id) => voiceBridge.terminateSession(id),
     skinRegistry: options.skinRegistry,
     version: options.version,
