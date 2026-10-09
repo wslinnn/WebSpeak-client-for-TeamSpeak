@@ -95,7 +95,7 @@
             @pointermove="onMemberPointerMove($event)"
             @pointerup="onMemberPointerUp($event)"
             @pointercancel="onMemberPointerCancel($event)"
-            @contextmenu.prevent="openMemberMenu(member, $event)"
+            @contextmenu="onMemberContextMenu(member, $event)"
           >
             <div
               :class="['member-avatar', { speaking: isSpeaking(member) }]"
@@ -166,9 +166,11 @@
                 type="range"
                 min="0"
                 max="400"
+                draggable="false"
                 :value="(volumes[member.id] ?? 1) * 100"
                 :style="rangeStyle((volumes[member.id] ?? 1) / 4, 1)"
                 :aria-label="t('memberVolume')"
+                @dragstart.stop.prevent
                 @input="emit('volumeInput', member.id, $event)"
             /></div>
             <button
@@ -212,10 +214,10 @@ type MemberPanelModel = Pick<ReturnType<typeof useWebClientMembers>,
   | "toggleAway"
   | "isSpeaking"
   | "memberDisplayName"
-  | "openMemberMenu"
   | "openMemberActions"
   | "onMemberDragStart"
   | "onMemberDragEnd"
+  | "onMemberContextMenu"
   | "onMemberPointerDown"
   | "onMemberPointerMove"
   | "onMemberPointerUp"
@@ -250,10 +252,10 @@ const {
   toggleAway,
   isSpeaking,
   memberDisplayName,
-  openMemberMenu,
   openMemberActions,
   onMemberDragStart,
   onMemberDragEnd,
+  onMemberContextMenu,
   onMemberPointerDown,
   onMemberPointerMove,
   onMemberPointerUp,

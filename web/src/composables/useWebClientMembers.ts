@@ -116,7 +116,10 @@ export function useWebClientMembers({
   }
 
   function onMemberDragStart(member: ChannelMember, event: DragEvent): void {
-    if (member.isSelf) {
+    // The row is the drag source, so child controls must never start a member
+    // drag — a volume-slider gesture used to hijack the row into a channel move.
+    const target = event.target instanceof Element ? event.target : null;
+    if (member.isSelf || target?.closest("input,button,select,textarea,a")) {
       event.preventDefault();
       return;
     }
@@ -124,6 +127,15 @@ export function useWebClientMembers({
     dragOverChannelId.value = "";
     event.dataTransfer?.setData("text/plain", String(member.id));
     if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+  }
+
+  /** Right-click on the row itself opens the member menu; on controls and on
+   *  the user's own row the browser menu stays available. */
+  function onMemberContextMenu(member: ChannelMember, event: MouseEvent): void {
+    const target = event.target instanceof Element ? event.target : null;
+    if (member.isSelf || target?.closest("input,button,select,textarea,a")) return;
+    event.preventDefault();
+    openMemberMenu(member, event);
   }
 
   function onMemberDragEnd(): void {
@@ -210,10 +222,13 @@ export function useWebClientMembers({
   }
 
   function onChannelDrop(channel: TreeChannel, event: DragEvent): void {
-    event.preventDefault();
     const member = draggedMember.value;
+    // An empty drag (files, external text) must keep the browser's default
+    // behavior instead of swallowing the drop.
+    if (!member) return;
+    event.preventDefault();
     onMemberDragEnd();
-    if (!member || channel.id === "__current__") return;
+    if (channel.id === "__current__") return;
     void moveMemberDirect(member, channel.id);
   }
 
@@ -281,6 +296,7 @@ export function useWebClientMembers({
     moveMemberDirect,
     onMemberDragStart,
     onMemberDragEnd,
+    onMemberContextMenu,
     onMemberPointerDown,
     onMemberPointerMove,
     onMemberPointerUp,

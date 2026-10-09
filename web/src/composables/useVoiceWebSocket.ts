@@ -1351,16 +1351,24 @@ export function useVoiceWebSocket() {
     return `操作失败（错误代码：${safeCode}）${safeFallback ? `：${safeFallback}` : ""}`;
   }
 
+  const volumeSyncTimers = new Map<number, ReturnType<typeof setTimeout>>();
+  const VOLUME_SYNC_DELAY_MS = 150;
+
   function setVolume(clientId: number, volume: number): void {
     const normalized = Math.max(0, Math.min(4, volume));
     volumes[clientId] = normalized;
     const member = members.find((candidate) => candidate.id === clientId);
-    if (member?.uid) {
-      storedVolumesByUid[member.uid] = normalized;
-      void saveAudioPreferences();
-    }
+    if (member?.uid) storedVolumesByUid[member.uid] = normalized;
+    // Local gain follows the thumb immediately; persistence and the gateway
+    // command are trailing — one drag used to emit dozens of WS commands.
     remotePlayback.updateVolume(clientId);
-    if (webrtc.peer || webrtc.active) sendCmd("setMemberVolume", { clientId, volume: normalized });
+    const pending = volumeSyncTimers.get(clientId);
+    if (pending !== undefined) clearTimeout(pending);
+    volumeSyncTimers.set(clientId, setTimeout(() => {
+      volumeSyncTimers.delete(clientId);
+      void saveAudioPreferences();
+      if (webrtc.peer || webrtc.active) sendCmd("setMemberVolume", { clientId, volume: normalized });
+    }, VOLUME_SYNC_DELAY_MS));
   }
 
   function syncWebRtcMemberVolumes(): void {

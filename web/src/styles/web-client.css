@@ -6181,7 +6181,9 @@
 
 :deep(.member-row[draggable="true"]) {
   cursor: grab;
-  touch-action: none;
+  /* pan-y keeps vertical list scrolling working on touch; only horizontal
+     drags start a member move. */
+  touch-action: pan-y;
 }
 
 :deep(.member-row[draggable="true"]:active) {

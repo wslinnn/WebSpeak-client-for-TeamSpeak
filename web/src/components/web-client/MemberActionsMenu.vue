@@ -233,15 +233,28 @@ function observeElements(): void {
   if (submenuElement.value) observer?.observe(submenuElement.value);
   updatePlacement();
 }
+
+// The menu is position:fixed; scrolling the member tree under it would leave
+// it floating next to the wrong row, so any scroll outside the menu closes it.
+// Scrolling inside the (overflow-y: auto) menu itself keeps it open.
+function onWindowScroll(event: Event): void {
+  if (props.isMobileViewport) return;
+  const target = event.target;
+  if (target instanceof Node
+    && (menuElement.value?.contains(target) || submenuElement.value?.contains(target))) return;
+  memberMenu.value = null;
+}
 watch([menuElement, submenuElement], observeElements, { flush: "post" });
 watch([memberMenu, memberMoveMenuOpen, () => props.isMobileViewport], updatePlacement, { flush: "post" });
 onMounted(() => {
   observer = new ResizeObserver(updatePlacement);
   observeElements();
   window.addEventListener("resize", updatePlacement);
+  window.addEventListener("scroll", onWindowScroll, { capture: true, passive: true });
 });
 onUnmounted(() => {
   observer?.disconnect();
   window.removeEventListener("resize", updatePlacement);
+  window.removeEventListener("scroll", onWindowScroll, { capture: true });
 });
 </script>
