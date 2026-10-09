@@ -23,6 +23,9 @@ function localizedMessage(message: string) {
     "TeamSpeak 服务器拒绝了连接，请检查端口和服务状态": "Сервер TeamSpeak отклонил подключение. Проверьте порт и состояние службы",
     "连接 TeamSpeak 超时，请检查网络或服务器状态": "Истекло время подключения к TeamSpeak. Проверьте сеть и состояние сервера",
     "你没有执行此操作的权限": "У вас нет права выполнять это действие",
+    "麦克风设备已断开或权限被回收，采集已停止：请在音频设置中重新选择设备或重新授权": "Микрофон отключён или доступ был отозван, захват остановлен. Выберите устройство заново или снова выдайте разрешение в настройках звука",
+    "麦克风被系统或浏览器静音，其他成员暂时听不到你": "Микрофон отключён системой или браузером — другие участники сейчас вас не слышат",
+    "输出设备将在语音通道建立后生效，当前连接尚未建立音频输出": "Устройство вывода заработает после установления голосового канала; для текущего подключения вывод звука ещё не создан",
   } : {
     "该服务器需要密码，请输入密码后重试": "このサーバーにはパスワードが必要です。入力して再試行してください",
     "服务器密码错误，请重新输入": "サーバーパスワードが正しくありません。もう一度入力してください",
@@ -33,6 +36,9 @@ function localizedMessage(message: string) {
     "TeamSpeak 服务器拒绝了连接，请检查端口和服务状态": "TeamSpeak サーバーが接続を拒否しました。ポートとサービスの状態を確認してください",
     "连接 TeamSpeak 超时，请检查网络或服务器状态": "TeamSpeak への接続がタイムアウトしました。ネットワークとサーバーの状態を確認してください",
     "你没有执行此操作的权限": "この操作を実行する権限がありません",
+    "麦克风设备已断开或权限被回收，采集已停止：请在音频设置中重新选择设备或重新授权": "マイクが切断されたか権限が取り消され、収音を停止しました。オーディオ設定でデバイスを選び直すか、権限を再度許可してください",
+    "麦克风被系统或浏览器静音，其他成员暂时听不到你": "マイクがシステムまたはブラウザーでミュートされています。他のメンバーには現在あなたの声が聞こえていません",
+    "输出设备将在语音通道建立后生效，当前连接尚未建立音频输出": "出力デバイスは音声チャンネル確立後に有効になります。現在の接続ではまだ音声出力が確立されていません",
   };
   if ((language.value === "ru" || language.value === "ja") && localizedExact[message]) return localizedExact[message];
   const errorCodeMatch = message.match(/错误代码：([A-Z0-9_-]{1,64})）(?:：([^，。]+))?/);
@@ -52,11 +58,13 @@ function localizedMessage(message: string) {
     "当前浏览器不支持音频解码，请使用最新版 Chrome 或 Edge": "Audio decoding is unavailable. Use the latest Chrome or Edge",
     "当前浏览器不支持扬声器设备选择，将使用默认输出设备": "Output device selection is not supported by this browser. Using the default output device",
     "所选扬声器当前不可用": "The selected speaker is not available",
+    "麦克风设备已断开或权限被回收，采集已停止：请在音频设置中重新选择设备或重新授权": "The microphone was disconnected or permission was revoked and capture has stopped. Re-pick a device or re-grant permission in audio settings",
+    "麦克风被系统或浏览器静音，其他成员暂时听不到你": "The microphone is muted by the system or browser — others cannot hear you right now",
+    "输出设备将在语音通道建立后生效，当前连接尚未建立音频输出": "The output device takes effect once the voice channel is established; the current connection has no audio output yet",
     "连接服务器失败，请检查邀请链接或服务器状态": "Could not connect. Check the invite link or server status",
     "请求来源不受信任，请从正确的网站入口重新打开": "The request origin is not trusted. Reopen the official WebSpeak page",
     "WebSpeak 尚未完成配置，请联系管理员": "WebSpeak has not been configured yet. Contact the administrator",
     "请求过于频繁，请稍后重试": "Too many requests. Try again shortly",
-    "当前中继加速不可用，请关闭加速或联系管理员": "The selected relay is unavailable. Turn off relay mode or contact the administrator",
     "邀请链接已失效或已被撤销": "The invite link is invalid, expired, or revoked",
     "TeamSpeak 连接已断开": "The TeamSpeak connection was closed",
     "连接已断开": "The connection was closed",
@@ -107,7 +115,6 @@ function localizedMessage(message: string) {
     "语音会话票据缺失或已过期，请返回列表重新进入语音空间": "The voice session token is missing or expired. Return to the list and enter the voice space again",
     "语音网关拒绝了本次连接：身份无效，请取消“保持身份”后重新进入": "The voice gateway rejected the connection because the identity is invalid. Clear ‘Remember identity’ and try again",
     "语音网关拒绝了本次连接：身份无效或无法在此页面使用，请取消“保持身份”后重新进入": "The voice gateway rejected the connection because the identity is invalid or unavailable on this page. Clear ‘Remember identity’ and try again",
-    "当前中继加速不可用，请关闭加速后重试或联系管理员": "The selected relay is unavailable. Turn off relay mode and try again, or contact the administrator",
     "与语音网关的网络连接异常中断（掉线或代理断开），并非 TeamSpeak 服务器拒绝连接，请检查网络后重新进入": "The voice gateway connection was interrupted (offline or proxy disconnected); the TeamSpeak server did not reject it. Check your network and enter again",
     "语音网关会话意外结束，请重新进入语音空间": "The voice gateway session ended unexpectedly. Enter the voice space again",
     "语音网关未能创建 TeamSpeak 客户端（服务器可能已关闭或地址不可达），请确认服务器地址或稍后重试": "The voice gateway could not create a TeamSpeak client. The server may be offline or unreachable; check the address and try again",
@@ -144,11 +151,13 @@ function localizedMessage(message: string) {
       "语音功能需要 HTTPS 安全连接": "Für Sprachfunktionen ist eine sichere HTTPS-Verbindung erforderlich",
       "当前浏览器不支持麦克风访问": "Dieser Browser unterstützt keinen Mikrofonzugriff",
       "当前浏览器不支持 Web Audio 音频处理": "Dieser Browser unterstützt keine Web-Audio-Verarbeitung",
+      "麦克风设备已断开或权限被回收，采集已停止：请在音频设置中重新选择设备或重新授权": "Das Mikrofon wurde getrennt oder die Berechtigung entzogen; die Aufnahme wurde gestoppt. Wähle in den Audioeinstellungen ein Gerät neu oder erteile die Berechtigung erneut",
+      "麦克风被系统或浏览器静音，其他成员暂时听不到你": "Das Mikrofon ist vom System oder Browser stummgeschaltet – andere Mitglieder hören dich gerade nicht",
+      "输出设备将在语音通道建立后生效，当前连接尚未建立音频输出": "Das Ausgabegerät wird erst wirksam, wenn der Sprachkanal aufgebaut ist; für die aktuelle Verbindung gibt es noch keine Audioausgabe",
       "连接服务器失败，请检查邀请链接或服务器状态": "Verbindung fehlgeschlagen. Prüfe den Einladungslink oder den Serverstatus",
       "请求来源不受信任，请从正确的网站入口重新打开": "Die Anfragequelle ist nicht vertrauenswürdig. Öffne die offizielle WebSpeak-Seite erneut",
       "WebSpeak 尚未完成配置，请联系管理员": "WebSpeak wurde noch nicht konfiguriert. Wende dich an den Administrator",
       "请求过于频繁，请稍后重试": "Zu viele Anfragen. Versuche es gleich erneut",
-      "当前中继加速不可用，请关闭加速或联系管理员": "Das ausgewählte Relay ist nicht verfügbar. Deaktiviere den Relay-Modus oder wende dich an den Administrator",
       "邀请链接已失效或已被撤销": "Der Einladungslink ist ungültig, abgelaufen oder widerrufen",
       "TeamSpeak 连接已断开": "Die TeamSpeak-Verbindung wurde getrennt",
       "连接已断开": "Die Verbindung wurde getrennt",
@@ -185,7 +194,6 @@ function localizedMessage(message: string) {
       "语音会话票据缺失或已过期，请返回列表重新进入语音空间": "Der Sprachsitzungs-Token fehlt oder ist abgelaufen. Kehre zur Liste zurück und tritt dem Sprachraum erneut bei",
       "语音网关拒绝了本次连接：身份无效，请取消“保持身份”后重新进入": "Das Sprach-Gateway hat die Verbindung abgelehnt: Die Identität ist ungültig. Deaktiviere „Identität merken“ und tritt erneut bei",
       "语音网关拒绝了本次连接：身份无效或无法在此页面使用，请取消“保持身份”后重新进入": "Das Sprach-Gateway hat die Verbindung abgelehnt: Die Identität ist ungültig oder kann auf dieser Seite nicht verwendet werden. Deaktiviere „Identität merken“ und tritt erneut bei",
-      "当前中继加速不可用，请关闭加速后重试或联系管理员": "Der beschleunigte Relay-Modus ist nicht verfügbar. Deaktiviere ihn und versuche es erneut oder wende dich an den Administrator",
       "与语音网关的网络连接异常中断（掉线或代理断开），并非 TeamSpeak 服务器拒绝连接，请检查网络后重新进入": "Die Verbindung zum Sprach-Gateway wurde unerwartet unterbrochen (Offline oder Proxy getrennt) – der TeamSpeak-Server hat die Verbindung nicht abgelehnt. Prüfe deine Netzwerkverbindung und tritt erneut bei",
       "语音网关会话意外结束，请重新进入语音空间": "Die Sprach-Gateway-Sitzung wurde unerwartet beendet. Tritt dem Sprachraum erneut bei",
       "语音网关未能创建 TeamSpeak 客户端（服务器可能已关闭或地址不可达），请确认服务器地址或稍后重试": "Das Sprach-Gateway konnte keinen TeamSpeak-Client erstellen (der Server ist möglicherweise aus oder nicht erreichbar). Prüfe die Serveradresse oder versuche es später erneut",
@@ -220,8 +228,14 @@ function localizedMessage(message: string) {
     if (message.startsWith("麦克风声音未能发送：")) return `Mikrofon-Audio konnte nicht gesendet werden: ${message.slice(10)}`;
     if (message.startsWith("音频链路异常")) return message.replace("音频链路异常", "Audioverbindung fehlerhaft");
   }
-  if (language.value === "ru") return exact[message] ?? "Не удалось выполнить операцию. Проверьте ввод, сеть и состояние сервера";
-  if (language.value === "ja") return exact[message] ?? "操作に失敗しました。入力、ネットワーク、サーバーの状態を確認してください";
+  if (language.value === "ru") {
+    const fallbackCode = message.match(/错误代码：([A-Z0-9_-]{1,64})）?/)?.[1];
+    return exact[message] ?? `Не удалось выполнить операцию${fallbackCode ? ` (код ошибки: ${fallbackCode})` : ""}. Проверьте ввод, сеть и состояние сервера`;
+  }
+  if (language.value === "ja") {
+    const fallbackCode = message.match(/错误代码：([A-Z0-9_-]{1,64})）?/)?.[1];
+    return exact[message] ?? `操作に失敗しました${fallbackCode ? `（エラーコード: ${fallbackCode}）` : ""}。入力、ネットワーク、サーバーの状態を確認してください`;
+  }
   return exact[message] ?? message;
 }
 
