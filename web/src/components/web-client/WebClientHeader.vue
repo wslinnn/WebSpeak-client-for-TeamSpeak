@@ -9,7 +9,7 @@
     >
       <img
         class="brand-mark"
-        src="/网站图标.jpg"
+        src="/favicon.jpg"
         alt="WebSpeak"
       />
       <div>
