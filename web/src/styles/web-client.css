@@ -132,35 +132,6 @@
   row-gap: 6px;
 }
 
-:deep(.github-button) {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 34px;
-  padding: 0 13px;
-  color: #fff;
-  background: #1f2d2b;
-  border: 1px solid #1f2d2b;
-  border-radius: 9px;
-  box-shadow: 0 5px 12px rgba(31,45,43,.16);
-  font-size: 12px;
-  font-weight: 800;
-  text-decoration: none;
-  transition: .18s;
-}
-
-:deep(.github-button:hover) {
-  color: #fff;
-  background: #006a64;
-  border-color: #006a64;
-  box-shadow: 0 7px 16px rgba(0,106,100,.2);
-  transform: translateY(-1px);
-}
-
-:deep(.github-button .ui-icon) {
-  flex: 0 0 auto;
-}
-
 :deep(.version-badge) {
   display: inline-flex;
   align-items: center;
@@ -174,29 +145,6 @@
   font-weight: 800;
   letter-spacing: .02em;
   white-space: nowrap;
-}
-
-:deep(.changelog-button) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 30px;
-  padding: 0 10px;
-  color: #006a64;
-  background: #f2f8f6;
-  border: 1px solid #dcebe7;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 700;
-  text-decoration: none;
-  transition: .18s;
-}
-
-:deep(.changelog-button:hover) {
-  color: #fff;
-  background: #006a64;
-  border-color: #006a64;
 }
 
 :deep(.header-note) {
@@ -2298,32 +2246,7 @@
   padding: 0 23px;
 }
 
-.qq-modal-card {
-  position: relative;
-  width: min(460px, 100%);
-  max-height: min(90dvh, 720px);
-  overflow-y: auto;
-  padding: 30px;
-  color: #263431;
-  border: 1px solid #d9e7e3;
-  border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 20px 60px rgba(16,40,35,.22);
-  text-align: center;
-}
-
-.qq-modal-heading {
-  padding: 0 24px 18px;
-}
-
-.qq-modal-heading h2 {
-  margin: 8px 0 0;
-  color: #1d2d29;
-  font-size: 25px;
-  letter-spacing: -.04em;
-}
-
-:deep(.qq-modal-close),
+:deep(.dialog-close),
 :deep(.identity-import-close) {
   position: absolute;
   top: 13px;
@@ -2340,46 +2263,11 @@
   cursor: pointer;
 }
 
-:deep(.qq-modal-close:hover),
+:deep(.dialog-close:hover),
 :deep(.identity-import-close:hover) {
   color: #006a64;
   background: #e2f2ef;
   border-color: #c8e6e1;
-}
-
-.qq-qr-image {
-  display: block;
-  width: min(100%, 360px);
-  max-height: min(55vh, 520px);
-  margin: 0 auto;
-  object-fit: contain;
-  border-radius: 12px;
-}
-
-.qq-direct-join {
-  margin: 18px 0 9px;
-  color: #667773;
-  font-size: 13px;
-}
-
-.qq-join-link {
-  display: block;
-  padding: 11px 14px;
-  color: #006a64;
-  background: #edf8f5;
-  border: 1px solid #cfe9e4;
-  border-radius: 10px;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.45;
-  text-decoration: none;
-  overflow-wrap: anywhere;
-}
-
-.qq-join-link:hover {
-  color: #fff;
-  background: #006a64;
-  border-color: #006a64;
 }
 
 .toast {
@@ -3949,22 +3837,8 @@
     gap: 7px;
   }
   :deep(.header-note),
-  :deep( .github-button span),
-  :deep( .qq-button .qq-label),
-  :deep( .changelog-button span),
   :deep( .guide-button span) {
     display: none;
-  }
-  :deep(.github-button) {
-    width: 34px;
-    justify-content: center;
-    padding: 0;
-  }
-  :deep(.changelog-button) {
-    width: 32px;
-    min-width: 32px;
-    min-height: 32px;
-    padding: 0;
   }
   :deep(.guide-button) {
     width: 32px;
@@ -5384,16 +5258,6 @@
     max-height: calc(100svh - env(safe-area-inset-top, 0px));
     border-radius: 22px 22px 0 0;
   }
-  .qq-modal-card {
-    width: 100%;
-    max-height: calc(100svh - env(safe-area-inset-top, 0px));
-    padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px));
-    border-radius: 22px 22px 0 0;
-  }
-  .qq-qr-image {
-    width: min(100%, 330px);
-    max-height: 52svh;
-  }
   :deep(.settings-main) {
     min-height: 0;
     overflow: hidden;
@@ -5477,8 +5341,6 @@
   .join-page :deep(.header-tools) {
     gap: 4px;
   }
-  .join-page :deep(.github-button),
-  .join-page :deep(.changelog-button),
   .join-page :deep(.guide-button) {
     width: 32px;
     min-width: 32px;
@@ -5561,9 +5423,6 @@
     flex: 0 0 auto;
     gap: 2px;
   }
-  .join-page :deep(.github-button),
-  .join-page :deep(.bilibili-button),
-  .join-page :deep(.changelog-button),
   .join-page :deep(.guide-button) {
     width: 28px;
     min-width: 28px;
@@ -5571,19 +5430,8 @@
     height: 28px;
     padding: 0;
   }
-  .join-page :deep(.github-button),
-  .join-page :deep(.bilibili-button),
-  .join-page :deep(.changelog-button),
   .join-page :deep(.guide-button) {
     justify-content: center;
-  }
-  .join-page :deep(.github-button .ui-icon) {
-    width: 16px;
-    height: 16px;
-  }
-  .join-page :deep(.bilibili-glyph) {
-    width: 18px;
-    height: 18px;
   }
   .join-page :deep(.version-badge) {
     min-width: 28px;
@@ -5602,130 +5450,6 @@
   }
   .join-page :deep(.brand-lockup) {
     flex: 0 0 32px;
-  }
-}
-
-:deep(.bilibili-button) {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 30px;
-  padding: 0 10px;
-  color: #e56b91;
-  background: #fff0f5;
-  border: 1px solid #f6d2df;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 800;
-  text-decoration: none;
-  transition: .18s;
-}
-
-:deep(.bilibili-button:hover) {
-  color: #fff;
-  background: #e56b91;
-  border-color: #e56b91;
-  box-shadow: 0 7px 16px rgba(229,107,145,.2);
-  transform: translateY(-1px);
-}
-
-:deep(.bilibili-glyph) {
-  display: grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  color: #fff;
-  background: #e56b91;
-  border-radius: 5px;
-  font-size: 11px;
-  line-height: 1;
-}
-
-:deep(.bilibili-button:hover .bilibili-glyph) {
-  color: #e56b91;
-  background: #fff;
-}
-
-:deep(.qq-button) {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 30px;
-  padding: 0 10px;
-  color: #1684b8;
-  background: #eef9ff;
-  border: 1px solid #cdeafa;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: .18s;
-}
-
-:deep(.qq-button:hover) {
-  color: #fff;
-  background: #168fca;
-  border-color: #168fca;
-  box-shadow: 0 7px 16px rgba(22,143,202,.2);
-  transform: translateY(-1px);
-}
-
-:deep(.qq-button .ui-icon) {
-  color: #168fca;
-}
-
-:deep(.qq-button:hover .ui-icon) {
-  color: #fff;
-}
-
-@media (max-width: 740px) {
-  :deep(.bilibili-button) {
-    width: 32px;
-    min-width: 32px;
-    min-height: 32px;
-    justify-content: center;
-    padding: 0;
-  }
-  :deep(.bilibili-button .bilibili-label) {
-    display: none;
-  }
-  :deep(.qq-button) {
-    width: 32px;
-    min-width: 32px;
-    min-height: 32px;
-    justify-content: center;
-    padding: 0;
-  }
-  :deep(.qq-button .qq-label) {
-    display: none;
-  }
-}
-
-@media (max-width: 390px) {
-  .join-page :deep(.bilibili-button) {
-    width: 32px;
-    min-width: 32px;
-    min-height: 32px;
-    height: 32px;
-  }
-}
-
-/* Override the shared Bilibili sizing above for the tighter welcome header. */
-
-@media (max-width: 420px) {
-  .join-page :deep(.bilibili-button) {
-    width: 28px;
-    min-width: 28px;
-    min-height: 28px;
-    height: 28px;
-    padding: 0;
-  }
-  .join-page :deep(.qq-button) {
-    width: 28px;
-    min-width: 28px;
-    min-height: 28px;
-    height: 28px;
-    padding: 0;
   }
 }
 
@@ -6080,15 +5804,7 @@
   font-size: 11px;
 }
 
-.web-client.language-en .join-page :deep(.github-button),
-.web-client.language-en .join-page :deep(.qq-button),
-.web-client.language-en .join-page :deep(.bilibili-button),
-.web-client.language-en .join-page :deep(.changelog-button),
 .web-client.language-en .join-page :deep(.guide-button),
-.web-client.language-de .join-page :deep(.github-button),
-.web-client.language-de .join-page :deep(.qq-button),
-.web-client.language-de .join-page :deep(.bilibili-button),
-.web-client.language-de .join-page :deep(.changelog-button),
 .web-client.language-de .join-page :deep(.guide-button) {
   font-size: 9.7px;
 }

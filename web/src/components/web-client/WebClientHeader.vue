@@ -26,62 +26,12 @@
         data-ws-part="home.gateway-status"
         ><span class="tiny-dot"></span> {{ t("secureGateway") }}</div
       >
-      <a
-        class="github-button"
-        href="https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak"
-        target="_blank"
-        rel="noreferrer"
-        :title="t('githubRepository')"
-        :aria-label="t('githubRepository')"
-      >
-        <Icon
-          name="github"
-          :size="18"
-        /><span>{{ t("githubRepository") }}</span>
-      </a>
-      <button
-        type="button"
-        class="qq-button"
-        :title="t('qqGroup')"
-        :aria-label="t('qqGroup')"
-        aria-haspopup="dialog"
-        @click="emit('openQq')"
-      >
-        <Icon
-          name="qq"
-          :size="18"
-        /><span class="qq-label">{{ t("qqGroup") }}</span>
-      </button>
-      <a
-        class="bilibili-button"
-        href="https://space.bilibili.com/25414873"
-        target="_blank"
-        rel="noreferrer"
-        :title="t('bilibiliProfile')"
-        :aria-label="t('bilibiliProfile')"
-      >
-        <span class="bilibili-glyph">B</span
-        ><span class="bilibili-label">{{ t("bilibiliProfile") }}</span>
-      </a>
       <span
         class="version-badge"
         :title="`${t('currentVersion')}: v${appVersion}`"
         :aria-label="`${t('currentVersion')}: v${appVersion}`"
         >v{{ appVersion }}</span
       >
-      <a
-        class="changelog-button"
-        href="https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/blob/master/CHANGELOG.md"
-        target="_blank"
-        rel="noreferrer"
-        :title="t('viewChangelog')"
-        :aria-label="t('viewChangelog')"
-      >
-        <Icon
-          name="clock"
-          :size="16"
-        /><span>{{ t("viewChangelog") }}</span>
-      </a>
       <a
         class="guide-button"
         href="/admin"
@@ -125,7 +75,6 @@ defineProps<{
 const language = defineModel<Language>("language", { required: true });
 const skinId = defineModel<string>("skinId", { required: true });
 const emit = defineEmits<{
-  openQq: [];
   skinChange: [value: string];
   languageChange: [];
 }>();

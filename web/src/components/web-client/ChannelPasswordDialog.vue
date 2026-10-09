@@ -15,7 +15,7 @@
     >
       <button
         type="button"
-        class="qq-modal-close"
+        class="dialog-close"
         :aria-label="t('close')"
         :title="t('close')"
         @click="emit('cancel')"

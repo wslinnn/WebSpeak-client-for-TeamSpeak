@@ -27,7 +27,6 @@
         :app-version="appVersion"
         :skin-options="skinOptions"
         :t="t"
-        @open-qq="qqModalOpen = true"
         @skin-change="onSkinChange"
         @language-change="persistLanguage"
       />
@@ -207,7 +206,7 @@
         class="join-footer"
         data-ws-part="home.footer"
       >
-        <span>WebSpeak</span><span class="footer-separator">·</span
+        <span>{{ skinHomeCopy.brandName || siteName }}</span><span class="footer-separator">·</span
         ><span>{{ t("teamSpeakClient") }}</span
         ><span class="footer-spacer"></span
         ><button
@@ -215,52 +214,9 @@
           class="clear-local-button"
           @click="clearBrowserData"
           >{{ t("clearLocalData") }}</button
-        ><span class="footer-separator">·</span><span>{{ t("browserSupport") }}</span>
+        >
       </footer>
 
-      <!-- QQ community modal -->
-      <div
-        v-if="qqModalOpen"
-        class="modal-backdrop qq-modal-backdrop"
-        @click.self="qqModalOpen = false"
-      >
-        <section
-          class="qq-modal-card"
-          data-ws-part="home.community-dialog"
-          role="dialog"
-          aria-modal="true"
-          :aria-labelledby="'qq-group-title'"
-        >
-          <button
-            type="button"
-            class="qq-modal-close"
-            :aria-label="t('close')"
-            :title="t('close')"
-            @click="qqModalOpen = false"
-            ><Icon
-              name="close"
-              :size="19"
-          /></button>
-          <div class="qq-modal-heading"
-            ><span class="card-kicker">{{ t("qqGroup") }}</span
-            ><h2 id="qq-group-title">{{ t("qqGroup") }}</h2></div
-          >
-          <img
-            class="qq-qr-image"
-            src="/qq-group-qr.jpg"
-            :alt="t('qqGroupQrAlt')"
-          />
-          <p class="qq-direct-join">{{ t("qqJoinDirect") }}</p>
-          <a
-            class="qq-join-link"
-            :href="qqJoinUrl"
-            :aria-label="t('joinQqGroup')"
-            target="_blank"
-            rel="noreferrer"
-            >{{ qqJoinUrl }}</a
-          >
-        </section>
-      </div>
     </section>
 
     <!-- Connected application shell -->
@@ -867,8 +823,6 @@ const selectedChannelId = ref("");
 const settingsOpen = ref(false);
 const channelPasswordDialog = reactive({ open: false, channelId: "", password: "", error: "", submitting: false });
 const serverPasswordDialog = reactive({ open: false, password: "", errorCode: "" });
-const qqModalOpen = ref(false);
-const qqJoinUrl = "http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=yhumUMDD9PmyYFWdXWUb_x7hM5trFQY8&authKey=Pw3HBGT7GwMinTQnuFGfnpf0aRSzXOJKcAiujVP1%2BXMpjheAKrncTRivicBJxpjV&noverify=0&group_code=869500475";
 const toast = ref("");
 const localPersistenceAvailable = isLocalPersistenceAvailable();
 const identityReady = ref(!localPersistenceAvailable);

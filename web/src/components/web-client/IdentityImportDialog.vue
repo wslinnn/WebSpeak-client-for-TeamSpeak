@@ -24,7 +24,7 @@
         >
         <button
           type="button"
-          class="qq-modal-close identity-import-close"
+          class="dialog-close identity-import-close"
           data-ws-part="home.identity-import.close"
           :aria-label="t('close')"
           :disabled="busy"
