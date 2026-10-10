@@ -31,7 +31,14 @@
         @language-change="persistLanguage"
       />
 
+      <MobileGate
+        v-if="mobileGateActive"
+        :t="t"
+        @continue="continueOnMobile"
+      />
+
       <main
+        v-else
         class="join-content"
         data-ws-part="home.content"
       >
@@ -727,6 +734,8 @@
 
 <script setup lang="ts">
 import { observeMobileViewport } from "../services/mobile-viewport.js";
+import { readMobileGateSignals, shouldShowMobileGate, storeMobileGateChoice } from "../services/mobile-gate.js";
+import MobileGate from "../components/web-client/MobileGate.vue";
 import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from "vue";
 import Icon from "../components/Icon.vue";
 import VoiceMemberCards from "../components/web-client/VoiceMemberCards.vue";
@@ -870,6 +879,13 @@ const browserError = ref("");
 // Degraded-but-usable environment findings (e.g. no AudioDecoder): shown as a
 // warning while WebRTC voice stays available, unlike the join-blocking error.
 const browserWarning = ref("");
+// Phone-class visitors get the PC/Android recommendation page instead of the
+// join form; the one-time "continue" choice lives in localStorage.
+const mobileGateActive = ref(shouldShowMobileGate(readMobileGateSignals(window)));
+function continueOnMobile(): void {
+  storeMobileGateChoice("continue");
+  mobileGateActive.value = false;
+}
 const memberQuery = ref("");
 const selectedChannelId = ref("");
 const settingsOpen = ref(false);
