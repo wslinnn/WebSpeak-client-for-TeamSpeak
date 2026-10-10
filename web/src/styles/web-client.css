@@ -2168,6 +2168,41 @@
   color: #8f6532;
 }
 
+/* Skin fallback notice: a slim dismissible bar; role=alert for AT. */
+.skin-recovery-notice {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--ws-z-toast);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(480px, calc(100% - 24px));
+  padding: 9px 12px;
+  color: #8f4540;
+  background: #fff2f1;
+  border: 1px solid #f2d1cd;
+  border-radius: 10px;
+  box-shadow: 0 8px 22px rgba(88, 40, 28, .14);
+  font-size: 12px;
+}
+
+.skin-recovery-notice button {
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  color: #9b6a64;
+  background: transparent;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.skin-recovery-notice button:hover {
+  color: #735020;
+  background: #f9e4e1;
+}
+
 @media (max-width: 740px) {
   /* Bottom sheet: anchored to the keyboard-safe area, full width. */
   :deep(.favorite-server-backdrop) {

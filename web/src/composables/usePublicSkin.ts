@@ -26,6 +26,9 @@ export function usePublicSkin(options: PublicSkinOptions = {}) {
   const catalogSkins = ref<SkinCatalogEntry[]>([...BUILTIN_SKIN_CATALOG]);
   let current: ReturnType<typeof createSkinOperation> | undefined;
   let disposed = false;
+  // Set when a load failure forced the builtin fallback, so the page can say
+  // why the requested appearance is missing instead of failing silently.
+  const recoveryNotice = ref(false);
   const owns = (operation: ReturnType<typeof createSkinOperation>) => !disposed && current === operation;
   function cancel() { current?.cancel(); current = undefined; }
   function begin() {
@@ -60,7 +63,13 @@ export function usePublicSkin(options: PublicSkinOptions = {}) {
     const fallback = begin();
     try { await apply(fallbackId(), fallback, false); }
     catch { /* A newer selection or page can retire the fallback as well. */ }
-    finally { if (owns(fallback)) skinReady.value = true; fallback.finish(); }
+    finally {
+      if (owns(fallback)) {
+        skinReady.value = true;
+        recoveryNotice.value = true;
+      }
+      fallback.finish();
+    }
   }
   async function initialize() {
     if (disposed) return;
@@ -84,15 +93,20 @@ export function usePublicSkin(options: PublicSkinOptions = {}) {
   async function select(id: string) {
     if (disposed) return;
     const operation = begin();
+    recoveryNotice.value = false;
     try {
-      try { localStorage.setItem("webspeak:skin-choice", id); } catch { /* Optional storage. */ }
+      // The choice is only recorded once the skin actually applied: persisting
+      // first would boot every later page into the same failure and fallback.
       await apply(id, operation, true, true);
+      if (!owns(operation)) return;
+      try { localStorage.setItem("webspeak:skin-choice", id); } catch { /* Optional storage. */ }
     } catch (error) { await recover(error, operation); }
     finally { if (owns(operation)) skinReady.value = true; operation.finish(); }
   }
   async function reset() {
     if (disposed) return;
     const operation = begin();
+    recoveryNotice.value = false;
     clearCustomSkinStyle();
     activeSkin.value = null;
     installedSkins.value = [];
@@ -107,5 +121,5 @@ export function usePublicSkin(options: PublicSkinOptions = {}) {
     catch { /* Reset remains usable even if refreshing the optional catalog fails. */ }
     finally { operation.finish(); }
   }
-  return { activeSkin, activeSkinId, skinReady, installedSkins, catalogSkins, initialize, select, cancel, reset };
+  return { activeSkin, activeSkinId, skinReady, installedSkins, catalogSkins, recoveryNotice, initialize, select, cancel, reset };
 }

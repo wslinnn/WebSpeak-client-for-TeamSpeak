@@ -230,6 +230,25 @@
         @file="readIdentityFile"
       />
 
+      <!-- Skin failures fall back silently inside the composable; this bar is
+           the only surface that tells the user their appearance is missing. -->
+      <div
+        v-if="skinRecoveryNotice"
+        class="skin-recovery-notice"
+        data-ws-part="app.skin-recovery-notice"
+        role="alert"
+      >
+        <span>{{ t("skinRecoveryNotice") }}</span>
+        <button
+          type="button"
+          :aria-label="t('close')"
+          @click="skinRecoveryNotice = false"
+        ><Icon
+            name="close"
+            :size="14"
+        /></button>
+      </div>
+
       <FavoriteServerDialog
         v-if="favoriteServerDialogOpen"
         :initial="favoriteServerDialogInitial"
@@ -1126,7 +1145,7 @@ const {
 const themeMode = ref<ThemeMode>(getStoredTheme());
 applyTheme(themeMode.value);
 const publicSkin = usePublicSkin({ activeSkin, themeMode, appVersion: () => appVersion.value });
-const { activeSkinId, skinReady, installedSkins, catalogSkins, select: onSkinChange, initialize: initializeSkin } = publicSkin;
+const { activeSkinId, skinReady, installedSkins, catalogSkins, recoveryNotice: skinRecoveryNotice, select: onSkinChange, initialize: initializeSkin } = publicSkin;
 const skinOptions = computed<SkinOption[]>(() => [
   ...catalogSkins.value.map((skin) => ({
     value: skin.id,
