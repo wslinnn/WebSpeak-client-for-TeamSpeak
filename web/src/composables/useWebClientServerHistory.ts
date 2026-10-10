@@ -30,7 +30,7 @@ interface UseWebClientServerHistoryOptions {
   rememberIdentity: Ref<boolean>;
   identityMaterial: Ref<string>;
   t: Translator;
-  showToast: (message: string) => void;
+  showToast: (message: string, tone?: "info" | "warn") => void;
 }
 
 export function useWebClientServerHistory({

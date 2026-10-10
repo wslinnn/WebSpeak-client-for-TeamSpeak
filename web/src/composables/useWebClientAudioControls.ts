@@ -26,7 +26,7 @@ interface UseWebClientAudioControlsOptions {
   stopAccompaniment: () => Promise<void>;
   setWhisperActive: (active: boolean) => void;
   localizedMessage: (message: string) => string;
-  showToast: (message: string) => void;
+  showToast: (message: string, tone?: "info" | "warn") => void;
   t: (key: string) => string;
 }
 
@@ -161,7 +161,7 @@ export function useWebClientAudioControls({
             : accompanimentErrorCode.value === "audio"
               ? "accompanimentAudioFailed"
               : "accompanimentPermissionDenied";
-      showToast(t(messageKey));
+      showToast(t(messageKey), "warn");
     }
   }
 

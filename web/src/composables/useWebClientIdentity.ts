@@ -6,7 +6,7 @@ interface IdentityOptions {
   rememberIdentity: Ref<boolean>;
   nickname?: Ref<string>;
   t: (key: string) => string;
-  showToast: (message: string) => void;
+  showToast: (message: string, tone?: "info" | "warn") => void;
   parse?: (text: string) => Promise<string>;
   serialize?: (material: string, nickname: string) => Promise<string>;
 }
@@ -137,7 +137,7 @@ export function useWebClientIdentity({ identityMaterial, rememberIdentity, nickn
       showToast(t("identityExportSuccess"));
     } catch {
       if (url) releaseDownload(url);
-      if (current()) showToast(t("identityExportError"));
+      if (current()) showToast(t("identityExportError"), "warn");
     } finally {
       try { link?.remove(); } catch { /* URL cleanup is independent of DOM removal. */ }
       if (current()) exporting.value = false;

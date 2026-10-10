@@ -213,7 +213,9 @@ test("channel empty state removes its bubble ornament and keeps the text-channel
 
 test("homepage motion and room content spacing preserve the ILLUSIA layout", async () => {
   const css = await readFile(new URL("../styles/web-client.css", import.meta.url), "utf8");
-  assert.ok(css.includes('.join-page :deep(*:not([data-ws-part="home.join-card"]))'));
+  // One reduced-motion kill switch covers the whole client (join page, voice
+  // room and dialogs alike) — no per-section carve-outs anymore.
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.web-client \*,\s*\.web-client \*::before,\s*\.web-client \*::after\s*\{\s*animation: none !important;\s*transition-duration: \.01ms !important;/);
   assert.ok(css.includes("animation: none !important"));
   assert.doesNotMatch(css, /\.join-page \*, \.join-page \*::before, \.join-page \*::after\s*\{\s*animation: none !important/);
   assert.ok(css.includes("padding: 0 clamp(12px, 1.4vw, 22px);"), "homepage header contents keep an inset from their container edge");

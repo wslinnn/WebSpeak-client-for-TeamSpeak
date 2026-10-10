@@ -50,6 +50,10 @@
       <circle cx="12" cy="12" r="9" />
       <path d="M12 10v6m0-9h.01" />
     </template>
+    <template v-else-if="name === 'alert'">
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 20h16a2 2 0 0 0 1.73-2Z" />
+      <path d="M12 9v4m0 4h.01" />
+    </template>
     <template v-else-if="name === 'plus'">
       <path d="M12 5v14M5 12h14" />
     </template>

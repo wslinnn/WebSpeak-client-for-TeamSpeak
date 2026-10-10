@@ -42,7 +42,7 @@ interface UseWebClientConnectionOptions {
   switchChannel: (channelId: string, password?: string) => Promise<void>;
   clearError: () => void;
   saveNickname: (nickname: string) => void;
-  showToast: (message: string) => void;
+  showToast: (message: string, tone?: "info" | "warn") => void;
   localizedMessage: (message: string) => string;
   t: (key: string) => string;
   beforeConnect?: () => void;
@@ -153,7 +153,7 @@ export function useWebClientConnection({
       if (error instanceof Error && (error as Error & { code?: string }).code === "CHANNEL_PASSWORD_REQUIRED") return;
       selectedChannelId.value = previousChannelId;
       channelName.value = previousChannelName;
-      showToast(localizedMessage(error instanceof Error && error.message ? error.message : "切换频道失败"));
+      showToast(localizedMessage(error instanceof Error && error.message ? error.message : "切换频道失败"), "warn");
     }
   }
 

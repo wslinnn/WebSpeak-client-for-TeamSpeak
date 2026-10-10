@@ -810,11 +810,11 @@
 
     <div
       v-if="toast"
-      class="toast"
+      :class="['toast', { warn: toastTone === 'warn' }]"
       data-ws-part="app.toast"
       role="status"
       ><Icon
-        name="check"
+        :name="toastTone === 'warn' ? 'alert' : 'check'"
         :size="16"
       />
       {{ toast }}</div
@@ -1012,6 +1012,7 @@ onUnmounted(() => { if (retryTicker !== undefined) window.clearInterval(retryTic
 const channelPasswordDialog = reactive({ open: false, channelId: "", password: "", error: "", submitting: false });
 const serverPasswordDialog = reactive({ open: false, password: "", errorCode: "" });
 const toast = ref("");
+const toastTone = ref<"info" | "warn">("info");
 const localPersistenceAvailable = isLocalPersistenceAvailable();
 const identityReady = ref(!localPersistenceAvailable);
 const mobileSection = ref<"channels" | "chat" | "voice" | "more">("channels");
@@ -1415,7 +1416,7 @@ async function onDesktopNotificationsToggle(event: Event): Promise<void> {
   }
   desktopNotificationsEnabled.value = false;
   writeDesktopNotificationSetting(false);
-  showToast(t("desktopNotificationsBlocked"));
+  showToast(t("desktopNotificationsBlocked"), "warn");
 }
 
 watch(() => pokeNotifications.length, (length, previousLength) => {
@@ -1579,8 +1580,9 @@ function dismissPoke(id: string): void {
   if (index >= 0) pokeNotifications.splice(index, 1);
 }
 
-function showToast(message: string) {
+function showToast(message: string, tone: "info" | "warn" = "info") {
   toast.value = message;
+  toastTone.value = tone;
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { toast.value = ""; }, 2800);
 }

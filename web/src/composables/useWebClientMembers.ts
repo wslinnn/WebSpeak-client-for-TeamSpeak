@@ -21,7 +21,7 @@ interface UseWebClientMembersOptions {
   onManualStatusChange?: () => void;
   stopWhisperTalk: () => void;
   localizedMessage: (message: string) => string;
-  showToast: (message: string) => void;
+  showToast: (message: string, tone?: "info" | "warn") => void;
   t: (key: string) => string;
 }
 
@@ -111,7 +111,7 @@ export function useWebClientMembers({
       await moveClient(member.id, targetChannelId);
       showToast(t("moveMemberSuccess"));
     } catch (error: unknown) {
-      showToast(localizedMessage(error instanceof Error ? error.message : "操作失败"));
+      showToast(localizedMessage(error instanceof Error ? error.message : "操作失败"), "warn");
     }
   }
 
@@ -201,7 +201,7 @@ export function useWebClientMembers({
       showToast(t("setWhisperTarget"));
     } else {
       // A silent no-op used to announce itself as "removed" — say why instead.
-      showToast(t("whisperTargetLimitReached"));
+      showToast(t("whisperTargetLimitReached"), "warn");
     }
   }
 
