@@ -11,9 +11,11 @@
     >
       <button
         type="button"
+        role="tab"
         data-ws-part="voice.chat.tab"
         :data-ws-state="chatTab === 'channel' ? 'active' : 'idle'"
         :class="{ active: chatTab === 'channel' }"
+        :aria-selected="chatTab === 'channel'"
         @click="chatTab = 'channel'"
         ><Icon
           name="hash"
@@ -23,9 +25,11 @@
       >
       <button
         type="button"
+        role="tab"
         data-ws-part="voice.chat.tab"
         :data-ws-state="chatTab === 'server' ? 'active' : 'idle'"
         :class="{ active: chatTab === 'server' }"
+        :aria-selected="chatTab === 'server'"
         @click="chatTab = 'server'"
         ><Icon
           name="server"
@@ -37,11 +41,13 @@
         v-for="conversation in privateConversations"
         :key="conversation.key"
         type="button"
+        role="tab"
         data-ws-part="voice.chat.tab"
         :data-ws-state="
           chatTab === 'private' && privateConversationKey === conversation.key ? 'active' : 'idle'
         "
         :class="{ active: chatTab === 'private' && privateConversationKey === conversation.key }"
+        :aria-selected="chatTab === 'private' && privateConversationKey === conversation.key"
         @click="openConversation(conversation)"
         ><Icon
           name="message"
@@ -51,9 +57,11 @@
       >
       <button
         type="button"
+        role="tab"
         data-ws-part="voice.chat.tab"
         :data-ws-state="chatTab === 'events' ? 'active' : 'idle'"
         :class="{ active: chatTab === 'events' }"
+        :aria-selected="chatTab === 'events'"
         @click="chatTab = 'events'"
         ><Icon
           name="bell"

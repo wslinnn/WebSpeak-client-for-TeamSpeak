@@ -63,6 +63,7 @@
             class="member-channel-heading"
             data-ws-part="voice.channel-group.heading"
             :data-ws-state="channelItem.id === currentChannelId ? 'current' : 'idle'"
+            :aria-current="channelItem.id === currentChannelId ? 'true' : undefined"
             :title="t('switchChannel')"
             @click="emit('selectChannel', channelItem)"
           >
@@ -89,12 +90,14 @@
           v-if="!isFolded(channelItem.id) && channelItem.members.length"
           class="member-list"
           data-ws-part="voice.channel-group.members"
+          role="list"
         >
           <div
             v-for="member in channelItem.members"
             :key="`${channelItem.id}-${member.id}`"
             :class="['member-row', { dragging: draggedMember?.id === member.id }]"
             data-ws-part="voice.member-row"
+            role="listitem"
             :data-ws-state="
               draggedMember?.id === member.id
                 ? 'dragging'
@@ -118,7 +121,16 @@
             <div
               class="member-copy"
               data-ws-part="voice.member-row.copy"
-              ><strong>{{ memberDisplayName(member) }}</strong
+              ><strong
+                v-if="member.isSelf"
+                >{{ memberDisplayName(member) }}</strong
+              ><button
+                v-else
+                type="button"
+                class="member-name-button"
+                :aria-label="t('moreMemberOptions')"
+                @click.stop="openMemberActions(member)"
+                >{{ memberDisplayName(member) }}</button
               ><span>{{
                 member.away === true
                   ? t("away")

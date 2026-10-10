@@ -290,7 +290,7 @@
           v-if="voiceState.reconnecting || voiceState.reconnectFailed"
           :class="['reconnect-banner', { failed: voiceState.reconnectFailed }]"
           data-ws-part="voice.connection-status"
-          role="status"
+          :role="voiceState.reconnectFailed ? 'alert' : 'status'"
         >
           <div class="reconnect-copy"
             ><strong>{{
@@ -543,7 +543,7 @@
                 v-if="screenShareError"
                 class="screen-share-inline-error"
                 data-ws-part="voice.screen-share-error"
-                role="status"
+                role="alert"
                 ><Icon
                   name="info"
                   :size="15"
