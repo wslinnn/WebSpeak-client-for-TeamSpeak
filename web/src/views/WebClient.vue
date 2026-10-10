@@ -760,7 +760,7 @@
       v-model="serverPasswordDialog.password"
       :error-code="serverPasswordDialog.errorCode"
       :t="t"
-      @cancel="cancelServerPassword"
+      @cancel="onServerPasswordCancel"
       @submit="submitServerPassword"
     />
 
@@ -833,6 +833,7 @@ import { useWebClientPerformance } from "../composables/useWebClientPerformance.
 import { useWebClientI18n } from "../composables/useWebClientI18n.js";
 import { useWebClientPublicConfig } from "../composables/useWebClientPublicConfig.js";
 import { useWebClientServerHistory } from "../composables/useWebClientServerHistory.js";
+import { useVoiceServerSwitch } from "../composables/useVoiceServerSwitch.js";
 import { getInitialLanguage, type Language } from "../i18n/web-client.js";
 import { clearLocalData as clearStoredLocalData, clearNamespacedStorageEntries, isLocalPersistenceAvailable, loadLocalPreferences, loadStoredIdentity, removeStoredIdentity, saveLocalPreferences, saveStoredIdentity } from "../services/local-persistence.js";
 import type { InstalledSkin, SkinHomeCopy } from "../services/skin-pack.js";
@@ -1037,10 +1038,15 @@ function saveFavoriteServerDraft(draft: FavoriteServerDraft): void {
 }
 // In-voice server switching: the voice shell stays mounted while the switch is
 // in flight, so the user watches a status banner instead of a join-form flash.
-const favoriteSwitchPending = ref<string | null>(null);
-const favoriteSwitchFailed = ref<string | null>(null);
-let favoriteSwitchTimer: number | undefined;
-const voiceShellVisible = computed(() => voiceState.connected || voiceState.reconnecting || voiceState.reconnectFailed || Boolean(favoriteSwitchPending.value) || Boolean(favoriteSwitchFailed.value));
+const {
+  pending: favoriteSwitchPending,
+  failed: favoriteSwitchFailed,
+  active: favoriteSwitchActive,
+  begin: beginFavoriteSwitch,
+  fail: failFavoriteSwitch,
+  settle: settleFavoriteSwitch,
+} = useVoiceServerSwitch(() => voiceState.errorCode);
+const voiceShellVisible = computed(() => voiceState.connected || voiceState.reconnecting || voiceState.reconnectFailed || favoriteSwitchActive.value);
 function switchToQuickServer(server: QuickServer): void {
   if (favoriteSwitchPending.value || voiceState.connecting) return;
   // Same-target row clicks are not switches; channel changes go through the
@@ -1048,9 +1054,7 @@ function switchToQuickServer(server: QuickServer): void {
   // disconnect closes with code 1000, so the gateway tears the old TeamSpeak
   // session down instead of parking it in the detach pool.
   if (server.address === currentTarget.value) return;
-  window.clearTimeout(favoriteSwitchTimer);
-  favoriteSwitchFailed.value = null;
-  favoriteSwitchPending.value = server.label || server.address;
+  beginFavoriteSwitch(server.label || server.address);
   const target = splitTeamSpeakTarget(server.address);
   serverHost.value = target.address;
   serverPort.value = target.port;
@@ -1059,19 +1063,16 @@ function switchToQuickServer(server: QuickServer): void {
   serverPassword.value = server.password ?? "";
   rememberServerPassword.value = Boolean(server.password);
   doConnect();
-  // Safety net: a gateway that never answers must not hold the shell hostage.
-  favoriteSwitchTimer = window.setTimeout(() => {
-    if (favoriteSwitchPending.value) {
-      favoriteSwitchFailed.value = favoriteSwitchPending.value;
-      favoriteSwitchPending.value = null;
-    }
-  }, 20_000);
 }
 function leaveVoiceWorkspace(): void {
-  window.clearTimeout(favoriteSwitchTimer);
-  favoriteSwitchPending.value = null;
-  favoriteSwitchFailed.value = null;
+  settleFavoriteSwitch();
   doDisconnect();
+}
+function onServerPasswordCancel(): void {
+  // Cancelling the password prompt ends the switch attempt: resolve the
+  // pending banner right away instead of waiting out the safety timer.
+  failFavoriteSwitch();
+  cancelServerPassword();
 }
 const {
   accessMode,
@@ -1390,22 +1391,12 @@ watch(() => voiceState.connected, (connected) => {
   if (!connected) return;
   playNotification("connected");
   recordCurrentServer();
-  // A pending server switch succeeded: drop the banner and the safety timer.
-  if (favoriteSwitchPending.value) {
-    window.clearTimeout(favoriteSwitchTimer);
-    favoriteSwitchPending.value = null;
-  }
+  // A pending server switch is over (succeeded or superseded): drop the
+  // banner and the safety timer, including any stale failure banner.
+  settleFavoriteSwitch();
   // Store the working password (including a dialog-retried one) only now —
   // a wrong password submitted earlier must not survive as "remembered".
   void syncFavoritePassword();
-});
-watch(() => voiceState.errorCode, (code) => {
-  // A failed join during a switch flips the banner to its failure state; the
-  // user either retries from the join form or backs out of the shell.
-  if (!code || !favoriteSwitchPending.value) return;
-  window.clearTimeout(favoriteSwitchTimer);
-  favoriteSwitchFailed.value = favoriteSwitchPending.value;
-  favoriteSwitchPending.value = null;
 });
 watch(() => voiceState.connected || voiceState.reconnecting || voiceState.reconnectFailed, (roomVisible) => {
   if (roomVisible) resetIdentityOperations();
