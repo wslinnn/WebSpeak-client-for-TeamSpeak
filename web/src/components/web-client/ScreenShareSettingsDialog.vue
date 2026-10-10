@@ -94,10 +94,12 @@
 import { ref } from "vue";
 import Icon from "../Icon.vue";
 import { useDialogFocus } from "../../composables/useDialogFocus.js";
+import { useBodyScrollLock } from "../../composables/useBodyScrollLock.js";
 import type { useWebClientScreenShare } from "../../composables/useWebClientScreenShare.js";
 const props = defineProps<{ model: Pick<ReturnType<typeof useWebClientScreenShare>, "resolutionOptions" | "frameRateOptions" | "resolutionPreset" | "frameRate" | "startWithSettings">; t: (key: string) => string }>();
 const { resolutionOptions: screenShareResolutionOptions, frameRateOptions: screenShareFrameRateOptions, resolutionPreset: screenShareResolutionPreset, frameRate: screenShareFrameRate, startWithSettings: startScreenShareWithSettings } = props.model;
 const emit = defineEmits<{ close: [] }>();
 const dialog = ref<HTMLElement | null>(null);
+useBodyScrollLock(ref(true));
 const { onDialogKeydown } = useDialogFocus(dialog, () => emit("close"));
 </script>

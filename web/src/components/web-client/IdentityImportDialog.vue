@@ -122,11 +122,13 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from "vue";
 import Icon from "../Icon.vue";
+import { useBodyScrollLock } from "../../composables/useBodyScrollLock.js";
 
 const props = defineProps<{ busy: boolean; reading: boolean; error: string; t: (key: string) => string }>();
 const text = defineModel<string>({ required: true });
 const emit = defineEmits<{ close: []; submit: []; file: [file: File] }>();
 const dialog = ref<HTMLElement | null>(null);
+useBodyScrollLock(ref(true));
 const fileInput = ref<HTMLInputElement | null>(null);
 const dropActive = ref(false);
 let previousFocus: HTMLElement | null = null;

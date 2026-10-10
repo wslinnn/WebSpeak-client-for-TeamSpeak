@@ -175,6 +175,7 @@
 import { computed, ref } from "vue";
 import Icon from "../Icon.vue";
 import { useDialogFocus } from "../../composables/useDialogFocus.js";
+import { useBodyScrollLock } from "../../composables/useBodyScrollLock.js";
 import { combineTeamSpeakTarget, splitTeamSpeakTarget } from "../../services/teamspeak-target.js";
 
 export interface FavoriteServerDraft {
@@ -209,6 +210,7 @@ const channel = ref(initial.channel ?? "");
 const password = ref(initial.password ?? "");
 
 const dialog = ref<HTMLElement | null>(null);
+useBodyScrollLock(ref(true));
 const { onDialogKeydown } = useDialogFocus(dialog, () => emit("close"),
   () => document.querySelector<HTMLElement>('[data-ws-part="voice.favorite-server-add"]')
     ?? document.querySelector<HTMLElement>('[data-ws-part="home.server-history.add"]'));

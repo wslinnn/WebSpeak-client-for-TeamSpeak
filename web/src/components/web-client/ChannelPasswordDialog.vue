@@ -87,10 +87,12 @@
 import { ref } from "vue";
 import Icon from "../Icon.vue";
 import { useDialogFocus } from "../../composables/useDialogFocus.js";
+import { useBodyScrollLock } from "../../composables/useBodyScrollLock.js";
 
 defineProps<{ busy: boolean; error: string; t: (key: string) => string }>();
 const password = defineModel<string>({ required: true });
 const emit = defineEmits<{ cancel: []; submit: [] }>();
 const dialog = ref<HTMLElement | null>(null);
+useBodyScrollLock(ref(true));
 const { onDialogKeydown } = useDialogFocus(dialog, () => emit("cancel"));
 </script>

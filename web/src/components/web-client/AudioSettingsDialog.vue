@@ -259,6 +259,7 @@
 import { computed, ref, watch, type CSSProperties } from "vue";
 import Icon from "../Icon.vue";
 import { useDialogFocus } from "../../composables/useDialogFocus.js";
+import { useBodyScrollLock } from "../../composables/useBodyScrollLock.js";
 import type { useVoiceWebSocket } from "../../composables/useVoiceWebSocket.js";
 import type { useWebClientAudioControls } from "../../composables/useWebClientAudioControls.js";
 import type { SinkAudioElement } from "../../voice/webrtc-playback.js";
@@ -310,6 +311,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ close: [] }>();
 const dialog = ref<HTMLElement | null>(null);
+useBodyScrollLock(ref(true));
 const { onDialogKeydown } = useDialogFocus(dialog, () => emit("close"));
 
 // The page owns the stable voice refs and audio controller; this dialog only presents them.
