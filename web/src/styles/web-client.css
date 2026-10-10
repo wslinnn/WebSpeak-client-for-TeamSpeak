@@ -2158,6 +2158,16 @@
   margin-top: 4px;
 }
 
+:deep(.favorite-server-hint) {
+  margin: -4px 0 0;
+  color: #7a8a84;
+  font-size: 11px;
+}
+
+:deep(.favorite-server-hint.warning) {
+  color: #8f6532;
+}
+
 @media (max-width: 740px) {
   /* Bottom sheet: anchored to the keyboard-safe area, full width. */
   :deep(.favorite-server-backdrop) {

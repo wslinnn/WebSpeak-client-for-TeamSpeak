@@ -233,6 +233,7 @@
       <FavoriteServerDialog
         v-if="favoriteServerDialogOpen"
         :initial="favoriteServerDialogInitial"
+        :known-favorite-addresses="favoriteServers.map(favorite => favorite.address)"
         :t="t"
         @close="closeFavoriteServerDialog"
         @save="saveFavoriteServerDraft"

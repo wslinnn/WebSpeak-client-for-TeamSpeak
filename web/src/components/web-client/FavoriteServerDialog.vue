@@ -143,6 +143,12 @@
             :placeholder="t('optionalPassword')"
           /></div>
         </label>
+        <p class="favorite-server-hint">{{ t("favoritePasswordHint") }}</p>
+        <p
+          v-if="duplicateFavorite"
+          class="favorite-server-hint warning"
+          role="status"
+        >{{ t("favoriteUpdateExisting") }}</p>
         <footer
           class="favorite-server-actions"
           data-ws-part="favorite-server.actions"
@@ -166,9 +172,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import Icon from "../Icon.vue";
 import { useDialogFocus } from "../../composables/useDialogFocus.js";
+import { combineTeamSpeakTarget, splitTeamSpeakTarget } from "../../services/teamspeak-target.js";
 
 export interface FavoriteServerDraft {
   label: string;
@@ -181,6 +188,8 @@ export interface FavoriteServerDraft {
 
 const props = defineProps<{
   initial?: Partial<FavoriteServerDraft> | null;
+  /** Stored favorite addresses; a normalized hit means saving will update it. */
+  knownFavoriteAddresses?: readonly string[];
   t: (key: string, variables?: Record<string, string | number>) => string;
 }>();
 
@@ -203,6 +212,15 @@ const dialog = ref<HTMLElement | null>(null);
 const { onDialogKeydown } = useDialogFocus(dialog, () => emit("close"),
   () => document.querySelector<HTMLElement>('[data-ws-part="voice.favorite-server-add"]')
     ?? document.querySelector<HTMLElement>('[data-ws-part="home.server-history.add"]'));
+
+// Mirrors upsertFavoriteServer's normalization so the hint fires exactly when
+// saving would update an existing favorite instead of creating a new one.
+const duplicateFavorite = computed(() => {
+  if (!address.value.trim() || !port.value.trim()) return false;
+  const target = splitTeamSpeakTarget(`${address.value.trim()}:${port.value.trim()}`);
+  const key = combineTeamSpeakTarget(target.address, target.port).trim().toLocaleLowerCase();
+  return (props.knownFavoriteAddresses ?? []).some(item => item.trim().toLocaleLowerCase() === key);
+});
 
 function submit(): void {
   if (!address.value.trim() || !port.value.trim()) return;
