@@ -189,8 +189,7 @@
             v-model:remember-server-password="rememberServerPassword"
             :access-mode="accessMode"
             :open-target-prefill-blocked="openTargetPrefillBlocked"
-            :favorite-servers="favoriteServers"
-            :recent-servers="recentServers"
+            :quick-servers="quickServers"
             :is-favorite="isFavorite"
             :identity-export-busy="identityExportBusy"
             :has-identity="Boolean(identityMaterial)"
@@ -204,6 +203,7 @@
             @select-server="selectLocalServer"
             @connect-server="connectFromServerTab"
             @toggle-favorite="toggleFavorite"
+            @toggle-quick-favorite="toggleQuickServerFavorite"
             @import-identity="openIdentityImport"
             @export-identity="exportIdentity"
           />
@@ -935,7 +935,7 @@ const {
 } = useWebClientIdentity({ identityMaterial, rememberIdentity, nickname, t, showToast });
 const {
   favoriteServers,
-  recentServers,
+  quickServers,
   isFavorite,
   currentTarget,
   rememberServerPassword,
@@ -944,6 +944,7 @@ const {
   selectLocalServer,
   syncFavoritePassword,
   toggleFavorite,
+  toggleQuickServerFavorite,
   clearServerHistory,
 } = useWebClientServerHistory({ serverHost, serverPort, serverPassword, nickname, channel, rememberIdentity, identityMaterial, t, showToast });
 const {

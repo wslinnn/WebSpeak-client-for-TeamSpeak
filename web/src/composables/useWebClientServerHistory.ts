@@ -9,6 +9,7 @@ import {
   type RecentServer,
 } from "../services/local-persistence.js";
 import { combineTeamSpeakTarget, splitTeamSpeakTarget } from "../services/teamspeak-target.js";
+import { mergeQuickServers, type QuickServer } from "../services/quick-servers.js";
 
 type Translator = (key: string, variables?: Record<string, string | number>) => string;
 
@@ -47,6 +48,9 @@ export function useWebClientServerHistory({
   const recentServers = ref<RecentServer[]>([]);
   const currentTarget = computed(() => combineTeamSpeakTarget(serverHost.value, serverPort.value));
   const isFavorite = computed(() => favoriteServers.value.some((favorite) => favorite.id === serverKey(currentTarget.value)));
+  // One merged picker row per server: favorites lead, a matching recent only
+  // enriches connection details instead of rendering a duplicate row.
+  const quickServers = computed(() => mergeQuickServers(favoriteServers.value, recentServers.value));
   // Opt-in per session, default off; a stored password rides on the favorite.
   const rememberServerPassword = ref(false);
 
@@ -147,6 +151,31 @@ export function useWebClientServerHistory({
     if (!enabled) void clearFavoritePassword();
   });
 
+  /** Star button on a picker row: favorites are unstarred, a recent is
+   *  promoted with the connection details it already carries (no password —
+   *  that only ever arrives through the opt-in or the dialog). */
+  async function toggleQuickServerFavorite(server: Pick<QuickServer, "address" | "nickname" | "identityId" | "lastChannelHint">): Promise<void> {
+    const id = serverKey(server.address);
+    const existing = favoriteServers.value.find((favorite) => favorite.id === id);
+    if (existing) {
+      await removeFavorite(id);
+      favoriteServers.value = favoriteServers.value.filter((favorite) => favorite.id !== id);
+      showToast(t("removedFavoriteToast"));
+      return;
+    }
+    const favorite: FavoriteServer = {
+      id,
+      label: server.address.trim(),
+      address: server.address.trim(),
+      ...(server.nickname ? { nickname: server.nickname } : {}),
+      ...(server.identityId ? { identityId: server.identityId } : {}),
+      ...(server.lastChannelHint ? { lastChannelHint: server.lastChannelHint } : {}),
+    };
+    await saveFavorite(favorite);
+    favoriteServers.value = [...favoriteServers.value, favorite].sort((left, right) => left.label.localeCompare(right.label));
+    showToast(t("savedFavoriteToast"));
+  }
+
   function clearServerHistory(): void {
     favoriteServers.value = [];
     recentServers.value = [];
@@ -156,6 +185,7 @@ export function useWebClientServerHistory({
   return {
     favoriteServers,
     recentServers,
+    quickServers,
     isFavorite,
     currentTarget,
     rememberServerPassword,
@@ -164,6 +194,7 @@ export function useWebClientServerHistory({
     selectLocalServer,
     syncFavoritePassword,
     toggleFavorite,
+    toggleQuickServerFavorite,
     clearServerHistory,
   };
 }

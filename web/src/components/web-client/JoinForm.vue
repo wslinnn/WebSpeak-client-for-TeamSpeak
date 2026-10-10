@@ -59,46 +59,42 @@
       ><span>{{ t("openTargetDefaultNotPrefilled") }}</span></div
     >
     <div
-      v-if="accessMode === 'open' && (favoriteServers.length || recentServers.length)"
+      v-if="accessMode === 'open' && quickServers.length"
       class="local-servers"
       data-ws-part="home.server-history"
     >
       <div
-        v-if="favoriteServers.length"
-        class="local-server-group"
-        data-ws-part="home.server-history.group"
-        data-ws-state="favorite"
-        ><span>{{ t("favoriteServers") }}</span
-        ><button
-          v-for="favorite in favoriteServers"
-          :key="favorite.id"
+        v-for="server in quickServers"
+        :key="server.id"
+        class="local-server-item"
+        data-ws-part="home.server-history.item"
+        :data-ws-state="server.isFavorite ? 'favorite' : 'recent'"
+      >
+        <button
           type="button"
-          :class="{ active: favorite.address === currentTarget }"
-          :title="t('favoriteConnectHint')"
-          @click="emit('connectServer', { address: favorite.address, nickname: favorite.nickname, channel: favorite.lastChannelHint?.name, password: favorite.password })"
-          @contextmenu.prevent="emit('selectServer', { address: favorite.address, nickname: favorite.nickname, channel: favorite.lastChannelHint?.name, password: favorite.password })"
-          ><Icon
-            v-if="favorite.password"
+          class="local-server-select"
+          :class="{ active: server.address === currentTarget }"
+          :title="server.isFavorite ? t('favoriteConnectHint') : server.label"
+          @click="rowConnect(server)"
+          @contextmenu.prevent="rowFill(server)"
+        ><Icon
+            v-if="server.password"
             class="server-tab-lock"
             name="lock"
-            :size="12" />{{ favorite.label }}</button
-        ></div
-      >
-      <div
-        v-if="recentServers.length"
-        class="local-server-group"
-        data-ws-part="home.server-history.group"
-        data-ws-state="recent"
-        ><span>{{ t("recentServers") }}</span
+            :size="12" />{{ server.label }}</button
         ><button
-          v-for="recent in recentServers"
-          :key="recent.id"
           type="button"
-          :class="{ active: recent.address === currentTarget }"
-          @click="emit('selectServer', { address: recent.address, nickname: recent.nickname, channel: recent.lastChannelHint?.name })"
-          >{{ recent.address }}</button
-        ></div
-      >
+          class="local-server-favorite"
+          data-ws-part="home.server-history.favorite-toggle"
+          :aria-pressed="server.isFavorite"
+          :aria-label="server.isFavorite ? t('removeFavorite') : t('saveFavorite')"
+          :title="server.isFavorite ? t('removeFavorite') : t('saveFavorite')"
+          @click="emit('toggleQuickFavorite', server)"
+        ><Icon
+            name="star"
+            :size="13"
+          /></button>
+      </div>
     </div>
     <button
       v-if="accessMode === 'open' && serverHost.trim()"
@@ -262,7 +258,7 @@
 import { computed } from "vue";
 import Icon from "../Icon.vue";
 import { combineTeamSpeakTarget } from "../../services/teamspeak-target.js";
-import type { FavoriteServer, RecentServer } from "../../services/local-persistence.js";
+import type { QuickServer } from "../../services/quick-servers.js";
 
 const serverHost = defineModel<string>("serverHost", { required: true });
 const serverPort = defineModel<string>("serverPort", { required: true });
@@ -276,8 +272,7 @@ defineProps<{
   autofocusNickname?: boolean;
   accessMode: "fixed" | "open";
   openTargetPrefillBlocked: boolean;
-  favoriteServers: readonly FavoriteServer[];
-  recentServers: readonly RecentServer[];
+  quickServers: readonly QuickServer[];
   isFavorite: boolean;
   identityExportBusy: boolean;
   hasIdentity: boolean;
@@ -289,6 +284,20 @@ defineProps<{
 
 const currentTarget = computed(() => combineTeamSpeakTarget(serverHost.value, serverPort.value));
 
+// Favorites connect outright (stored password rides along); a recent fills
+// the form for editing. Both fill on right-click / long-press.
+function rowConnect(server: QuickServer): void {
+  if (server.isFavorite) {
+    emit("connectServer", { address: server.address, nickname: server.nickname, channel: server.lastChannelHint?.name, password: server.password });
+    return;
+  }
+  rowFill(server);
+}
+
+function rowFill(server: QuickServer): void {
+  emit("selectServer", { address: server.address, nickname: server.nickname, channel: server.lastChannelHint?.name, password: server.password });
+}
+
 // iOS Safari has no output-device picker at all; say so before joining instead
 // of hiding it inside the room settings dialog.
 const outputPickerSupported = computed(() => typeof HTMLMediaElement === "undefined" || "setSinkId" in HTMLMediaElement.prototype);
@@ -299,6 +308,7 @@ const emit = defineEmits<{
   importIdentity: [];
   exportIdentity: [];
   toggleFavorite: [];
+  toggleQuickFavorite: [server: QuickServer];
   selectServer: [entry: { address: string; nickname?: string; channel?: string; password?: string }];
   connectServer: [entry: { address: string; nickname?: string; channel?: string; password?: string }];
   openDeviceSettings: [];

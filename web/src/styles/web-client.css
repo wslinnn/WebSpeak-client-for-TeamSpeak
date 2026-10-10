@@ -3277,25 +3277,19 @@
 
 :deep(.local-servers) {
   display: grid;
-  gap: 8px;
+  gap: 5px;
   margin: 1px 0 5px;
 }
 
-:deep(.local-server-group) {
+/* One merged picker row per server: the main chip connects (favorites) or
+ * fills the form (recents), the trailing star toggles the favorite state. */
+:deep(.local-server-item) {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   gap: 5px;
 }
 
-:deep(.local-server-group > span) {
-  width: 100%;
-  color: #87958f;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-:deep(.local-server-group button),
+:deep(.local-server-select),
 :deep(.favorite-toggle) {
   padding: 5px 8px;
   color: #277970;
@@ -3306,16 +3300,49 @@
   cursor: pointer;
 }
 
-:deep(.local-server-group button:hover),
+:deep(.local-server-select) {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+:deep(.local-server-select:hover),
 :deep(.favorite-toggle:hover) {
   background: #e0f3ee;
 }
 
 /* Server tabs: the tab matching the form's current target reads as active. */
-:deep(.local-server-group button.active) {
+:deep(.local-server-select.active) {
   color: #ffffff;
   background: #277970;
   border-color: #277970;
+}
+
+:deep(.local-server-favorite) {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  color: #87958f;
+  background: #eef8f5;
+  border: 1px solid #d7ebe6;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+:deep(.local-server-favorite:hover) {
+  color: #277970;
+  background: #e0f3ee;
+}
+
+:deep(.local-server-favorite[aria-pressed="true"]) {
+  color: #f5a623;
+  border-color: #f0d9ae;
+  background: #fdf6e7;
 }
 
 :deep(.server-tab-lock) {
