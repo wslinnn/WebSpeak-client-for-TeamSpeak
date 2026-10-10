@@ -3051,7 +3051,8 @@
   padding-inline: 13px;
 }
 
-:deep(.remember-identity) {
+:deep(.remember-identity),
+:deep(.remember-server-password) {
   display: flex;
   align-items: flex-start;
   gap: 9px;
@@ -3060,7 +3061,8 @@
   cursor: pointer;
 }
 
-:deep(.remember-identity input) {
+:deep(.remember-identity input),
+:deep(.remember-server-password input) {
   width: 16px;
   height: 16px;
   flex: 0 0 auto;
@@ -3069,16 +3071,20 @@
 }
 
 :deep(.remember-identity strong),
-:deep(.remember-identity small) {
+:deep(.remember-identity small),
+:deep(.remember-server-password strong),
+:deep(.remember-server-password small) {
   display: block;
 }
 
-:deep(.remember-identity strong) {
+:deep(.remember-identity strong),
+:deep(.remember-server-password strong) {
   font-size: 11px;
   font-weight: 700;
 }
 
-:deep(.remember-identity small) {
+:deep(.remember-identity small),
+:deep(.remember-server-password small) {
   margin-top: 3px;
   color: #8b9994;
   font-size: 10px;
@@ -3303,6 +3309,18 @@
 :deep(.local-server-group button:hover),
 :deep(.favorite-toggle:hover) {
   background: #e0f3ee;
+}
+
+/* Server tabs: the tab matching the form's current target reads as active. */
+:deep(.local-server-group button.active) {
+  color: #ffffff;
+  background: #277970;
+  border-color: #277970;
+}
+
+:deep(.server-tab-lock) {
+  flex: 0 0 auto;
+  margin-right: 3px;
 }
 
 :deep(.favorite-toggle) {

@@ -31,6 +31,9 @@ export interface FavoriteServer {
   nickname?: string;
   identityId?: string;
   lastChannelHint?: { id?: string; name?: string };
+  /** Opt-in only (per-server checkbox, default off): stored in the same
+   *  IndexedDB trust boundary as identity material, never synced anywhere. */
+  password?: string;
 }
 
 export interface RecentServer {

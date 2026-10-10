@@ -73,8 +73,13 @@
           v-for="favorite in favoriteServers"
           :key="favorite.id"
           type="button"
-          @click="emit('selectServer', favorite.address, favorite.nickname)"
-          >{{ favorite.label }}</button
+          :class="{ active: favorite.address === currentTarget }"
+          @click="emit('selectServer', { address: favorite.address, nickname: favorite.nickname, channel: favorite.lastChannelHint?.name, password: favorite.password })"
+          ><Icon
+            v-if="favorite.password"
+            class="server-tab-lock"
+            name="lock"
+            :size="12" />{{ favorite.label }}</button
         ></div
       >
       <div
@@ -87,7 +92,8 @@
           v-for="recent in recentServers"
           :key="recent.id"
           type="button"
-          @click="emit('selectServer', recent.address, recent.nickname)"
+          :class="{ active: recent.address === currentTarget }"
+          @click="emit('selectServer', { address: recent.address, nickname: recent.nickname, channel: recent.lastChannelHint?.name })"
           >{{ recent.address }}</button
         ></div
       >
@@ -119,6 +125,17 @@
         autocomplete="new-password"
         :placeholder="t('optionalPassword')"
     /></div>
+    <label
+      v-if="accessMode === 'open'"
+      class="remember-identity remember-server-password"
+      data-ws-part="home.remember-password"
+      ><input
+        v-model="rememberServerPassword"
+        type="checkbox"
+      /><span
+        ><strong>{{ t("rememberServerPassword") }}</strong
+        ><small>{{ t("rememberServerPasswordHint") }}</small></span
+      ></label>
 
     <div
       class="device-setup"
@@ -243,6 +260,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import Icon from "../Icon.vue";
+import { combineTeamSpeakTarget } from "../../services/teamspeak-target.js";
 import type { FavoriteServer, RecentServer } from "../../services/local-persistence.js";
 
 const serverHost = defineModel<string>("serverHost", { required: true });
@@ -251,6 +269,7 @@ const serverPassword = defineModel<string>("serverPassword", { required: true })
 const nickname = defineModel<string>("nickname", { required: true });
 const channel = defineModel<string>("channel", { required: true });
 const rememberIdentity = defineModel<boolean>("rememberIdentity", { required: true });
+const rememberServerPassword = defineModel<boolean>("rememberServerPassword", { required: true });
 
 defineProps<{
   autofocusNickname?: boolean;
@@ -267,6 +286,8 @@ defineProps<{
   t: (key: string, variables?: Record<string, string | number>) => string;
 }>();
 
+const currentTarget = computed(() => combineTeamSpeakTarget(serverHost.value, serverPort.value));
+
 // iOS Safari has no output-device picker at all; say so before joining instead
 // of hiding it inside the room settings dialog.
 const outputPickerSupported = computed(() => typeof HTMLMediaElement === "undefined" || "setSinkId" in HTMLMediaElement.prototype);
@@ -277,7 +298,7 @@ const emit = defineEmits<{
   importIdentity: [];
   exportIdentity: [];
   toggleFavorite: [];
-  selectServer: [address: string, nickname?: string];
+  selectServer: [entry: { address: string; nickname?: string; channel?: string; password?: string }];
   openDeviceSettings: [];
 }>();
 </script>

@@ -1,4 +1,4 @@
-import { computed, ref, type Ref } from "vue";
+import { computed, ref, watch, type Ref } from "vue";
 import {
   listFavorites,
   listRecentServers,
@@ -12,9 +12,18 @@ import { combineTeamSpeakTarget, splitTeamSpeakTarget } from "../services/teamsp
 
 type Translator = (key: string, variables?: Record<string, string | number>) => string;
 
+/** What a server tab (favorite or recent) restores into the join form. */
+export interface SelectableServer {
+  address: string;
+  nickname?: string;
+  channel?: string;
+  password?: string;
+}
+
 interface UseWebClientServerHistoryOptions {
   serverHost: Ref<string>;
   serverPort: Ref<string>;
+  serverPassword: Ref<string>;
   nickname: Ref<string>;
   channel: Ref<string>;
   rememberIdentity: Ref<boolean>;
@@ -26,6 +35,7 @@ interface UseWebClientServerHistoryOptions {
 export function useWebClientServerHistory({
   serverHost,
   serverPort,
+  serverPassword,
   nickname,
   channel,
   rememberIdentity,
@@ -37,6 +47,8 @@ export function useWebClientServerHistory({
   const recentServers = ref<RecentServer[]>([]);
   const currentTarget = computed(() => combineTeamSpeakTarget(serverHost.value, serverPort.value));
   const isFavorite = computed(() => favoriteServers.value.some((favorite) => favorite.id === serverKey(currentTarget.value)));
+  // Opt-in per session, default off; a stored password rides on the favorite.
+  const rememberServerPassword = ref(false);
 
   async function loadSavedServers(): Promise<void> {
     const [favorites, recent] = await Promise.all([listFavorites(), listRecentServers()]);
@@ -58,11 +70,16 @@ export function useWebClientServerHistory({
     void recordRecentServer(recent).then(() => listRecentServers().then((items) => { recentServers.value = items; }));
   }
 
-  function selectLocalServer(address: string, savedNickname?: string): void {
-    const target = splitTeamSpeakTarget(address);
+  function selectLocalServer(entry: SelectableServer): void {
+    const target = splitTeamSpeakTarget(entry.address);
     serverHost.value = target.address;
     serverPort.value = target.port;
-    if (savedNickname && !nickname.value.trim()) nickname.value = savedNickname;
+    if (entry.nickname && !nickname.value.trim()) nickname.value = entry.nickname;
+    // A tab restores its whole context: channel and (if stored) the password,
+    // so one click reconnects exactly like last time.
+    channel.value = entry.channel ?? "";
+    serverPassword.value = entry.password ?? "";
+    rememberServerPassword.value = Boolean(entry.password);
   }
 
   async function toggleFavorite(): Promise<void> {
@@ -89,18 +106,62 @@ export function useWebClientServerHistory({
     showToast(t("savedFavoriteToast"));
   }
 
+  /** Connection established: with the opt-in on, write the (possibly retried)
+   *  password into the favorite — a wrong password stored by an earlier
+   *  attempt is corrected here, not at submit time. */
+  async function syncFavoritePassword(): Promise<void> {
+    if (!rememberServerPassword.value || !serverPassword.value) return;
+    const address = currentTarget.value;
+    if (!address) return;
+    const id = serverKey(address);
+    const existing = favoriteServers.value.find((favorite) => favorite.id === id);
+    const favorite: FavoriteServer = existing
+      ? { ...existing, password: serverPassword.value }
+      : {
+        id,
+        label: address,
+        address,
+        password: serverPassword.value,
+        ...(nickname.value.trim() ? { nickname: nickname.value.trim() } : {}),
+      };
+    await saveFavorite(favorite);
+    favoriteServers.value = existing
+      ? favoriteServers.value.map((item) => (item.id === id ? favorite : item))
+      : [...favoriteServers.value, favorite].sort((left, right) => left.label.localeCompare(right.label));
+  }
+
+  /** Unchecking the opt-in forgets the stored password right away. */
+  async function clearFavoritePassword(): Promise<void> {
+    const address = currentTarget.value;
+    if (!address) return;
+    const id = serverKey(address);
+    const existing = favoriteServers.value.find((favorite) => favorite.id === id);
+    if (!existing?.password) return;
+    const { password: _removed, ...favorite } = existing;
+    await saveFavorite(favorite);
+    favoriteServers.value = favoriteServers.value.map((item) => (item.id === id ? favorite : item));
+    showToast(t("storedPasswordClearedToast"));
+  }
+
+  watch(rememberServerPassword, (enabled) => {
+    if (!enabled) void clearFavoritePassword();
+  });
+
   function clearServerHistory(): void {
     favoriteServers.value = [];
     recentServers.value = [];
+    rememberServerPassword.value = false;
   }
 
   return {
     favoriteServers,
     recentServers,
     isFavorite,
+    rememberServerPassword,
     loadSavedServers,
     recordCurrentServer,
     selectLocalServer,
+    syncFavoritePassword,
     toggleFavorite,
     clearServerHistory,
   };

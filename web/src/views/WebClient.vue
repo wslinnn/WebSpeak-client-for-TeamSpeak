@@ -179,6 +179,7 @@
             v-model:nickname="nickname"
             v-model:channel="channel"
             v-model:remember-identity="rememberIdentity"
+            v-model:remember-server-password="rememberServerPassword"
             :access-mode="accessMode"
             :open-target-prefill-blocked="openTargetPrefillBlocked"
             :favorite-servers="favoriteServers"
@@ -929,12 +930,14 @@ const {
   favoriteServers,
   recentServers,
   isFavorite,
+  rememberServerPassword,
   loadSavedServers,
   recordCurrentServer,
   selectLocalServer,
+  syncFavoritePassword,
   toggleFavorite,
   clearServerHistory,
-} = useWebClientServerHistory({ serverHost, serverPort, nickname, channel, rememberIdentity, identityMaterial, t, showToast });
+} = useWebClientServerHistory({ serverHost, serverPort, serverPassword, nickname, channel, rememberIdentity, identityMaterial, t, showToast });
 const {
   accessMode,
   initialized,
@@ -1232,6 +1235,9 @@ watch(() => voiceState.connected, (connected) => {
   if (!connected) return;
   playNotification("connected");
   recordCurrentServer();
+  // Store the working password (including a dialog-retried one) only now —
+  // a wrong password submitted earlier must not survive as "remembered".
+  void syncFavoritePassword();
 });
 watch(() => voiceState.connected || voiceState.reconnecting || voiceState.reconnectFailed, (roomVisible) => {
   if (roomVisible) resetIdentityOperations();
