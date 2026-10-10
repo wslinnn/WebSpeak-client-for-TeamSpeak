@@ -141,13 +141,24 @@
             ><span>{{ localizedMessage(browserWarning) }}</span></div
           >
           <div
-            v-if="!serverConfigLoading && !initialized"
+            v-if="!serverConfigLoading && !initialized && !publicConfigFailed"
             class="notice warning-notice"
             data-ws-part="home.notice"
             data-ws-state="unconfigured"
             ><span class="notice-symbol">i</span
             ><span
               >{{ t("notConfigured") }} <a href="/admin">{{ t("configureNow") }}</a></span
+            ></div
+          >
+          <div
+            v-if="publicConfigFailed && !serverConfigLoading"
+            class="notice warning-notice"
+            data-ws-part="home.notice"
+            data-ws-state="warning"
+            ><span class="notice-symbol">!</span
+            ><span
+              >{{ t("configLoadFailed") }}
+              <button type="button" class="text-button" @click="reloadPublicConfig">{{ t("retryAction") }}</button></span
             ></div
           >
           <div
@@ -927,8 +938,10 @@ const {
   appVersion,
   openTargetPrefillBlocked,
   serverConfigLoading,
+  publicConfigFailed,
   localizedWelcomeText,
   loadPublicConfig,
+  reloadPublicConfig,
 } = useWebClientPublicConfig({ serverHost, serverPort, language, t });
 const themeMode = ref<ThemeMode>(getStoredTheme());
 applyTheme(themeMode.value);

@@ -23,14 +23,20 @@ export function useWebClientPublicConfig({
   const appVersion = ref("0.2.6");
   const openTargetPrefillBlocked = ref(false);
   const serverConfigLoading = ref(true);
+  /** Distinguishes "gateway unreachable" from "genuinely not configured" — the two states used to share one misleading UI. */
+  const publicConfigFailed = ref(false);
   const welcomeTexts = reactive<Record<Language, string>>({ zh: "", en: "", de: "", ru: "", ja: "" });
   const localizedWelcomeText = computed(() => welcomeTexts[language.value] || t("joinDescription"));
 
   async function loadPublicConfig(): Promise<void> {
     const query = new URLSearchParams(location.search);
+    publicConfigFailed.value = false;
     try {
       const response = await fetch("/api/public-config", { headers: { accept: "application/json" } });
-      if (!response.ok) return;
+      if (!response.ok) {
+        publicConfigFailed.value = true;
+        return;
+      }
       const config = await response.json() as {
         version?: unknown;
         initialized?: unknown;
@@ -66,10 +72,17 @@ export function useWebClientPublicConfig({
         serverPort.value = target.port;
       }
     } catch {
-      // Keep joining disabled until the gateway confirms its initialized policy.
+      // Gateway unreachable (restart, network blip): flag it so the page can
+      // offer a retry instead of showing the misleading "not configured" hint.
+      publicConfigFailed.value = true;
     } finally {
       serverConfigLoading.value = false;
     }
+  }
+
+  function reloadPublicConfig(): void {
+    serverConfigLoading.value = true;
+    void loadPublicConfig();
   }
 
   return {
@@ -79,7 +92,9 @@ export function useWebClientPublicConfig({
     appVersion,
     openTargetPrefillBlocked,
     serverConfigLoading,
+    publicConfigFailed,
     localizedWelcomeText,
     loadPublicConfig,
+    reloadPublicConfig,
   };
 }
