@@ -58,6 +58,10 @@ test("security headers keep the feature-critical CSP sources", async (context) =
   assert.match(csp, /font-src [^;]*'self'[^;]*blob:/);
   assert.match(csp, /media-src [^;]*'self'[^;]*blob:/);
   assert.match(csp, /style-src [^;]*'unsafe-inline'/);
+  // Deliberate narrowing: the voice WebSocket is always same-origin, and the
+  // app requires WebCodecs anyway (post-Safari-15.4 'self'/ws matching).
+  assert.doesNotMatch(csp, /connect-src [^;]*\b(?:ws|wss):/);
+  assert.doesNotMatch(csp, /font-src [^;]*data:/);
   assert.equal(response.headers.get("x-frame-options"), "DENY");
   assert.equal(response.headers.get("permissions-policy"), null);
 });

@@ -68,7 +68,10 @@ export function createWebServer(options: WebServerOptions): WebServer {
   // from whitelisted in-package files, so they are same-origin by
   // construction); media-src blob: serves the microphone-test playback
   // element, and script-src 'wasm-unsafe-eval' is required by the optional
-  // RNNoise denoiser WASM module.
+  // RNNoise denoiser WASM module. connect-src is deliberately narrowed to
+  // 'self': the voice WebSocket is always same-origin (location.host) and the
+  // browser floor (WebCodecs-capable) postdates the Safari 15.4 fix for
+  // 'self' matching websocket schemes.
   app.use((request, response, next) => {
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -76,8 +79,8 @@ export function createWebServer(options: WebServerOptions): WebServer {
     response.setHeader(
       "Content-Security-Policy",
       "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; "
-        + "img-src 'self' data: blob:; font-src 'self' data: blob:; media-src 'self' blob:; "
-        + "connect-src 'self' ws: wss:; "
+        + "img-src 'self' data: blob:; font-src 'self' blob:; media-src 'self' blob:; "
+        + "connect-src 'self'; "
         + "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
     );
     if (request.secure) response.setHeader("Strict-Transport-Security", "max-age=31536000");
