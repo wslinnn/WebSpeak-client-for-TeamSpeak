@@ -36,11 +36,12 @@ npm --prefix web ci --no-audit --no-fund
 
 ## 前端约定
 
-- 五个语言包（i18n）必须实现同一组翻译键；用户可见错误要按错误类型区分。
+- 五个语言包（i18n）必须实现同一组翻译键（当前五语 326 键完全对齐，de/ru/ja 无英文继承，新增键必须五语同加）；`t()` 的变量替换用双花括号 `{{name}}`，单括号不替换会原样输出；用户可见错误要按错误类型区分。
 - 管理台 API 响应经 `admin-responses.ts` 校验器按声明字段投影（未声明的字段被静默丢弃），前端再把聚合响应扁平化进 `useAdminOperations.ts` 的 operations 状态——新增后端诊断/响应字段必须同步三处：校验器声明、扁平化投影、模板消费点；只改校验器会以扁平类型在 vue-tsc 报错，只改模板则拿到 undefined。
-- 文档级页面样式必须由 `html[data-ws-route]` 门控（路由加载后 CSS 常驻）；保留 `data-ws-part` 皮肤钩子与既有 `:deep` 选择器的顺序和特异性。
+- 文档级页面样式必须由 `html[data-ws-route]` 门控（路由加载后 CSS 常驻）；保留 `data-ws-part` 皮肤钩子与既有 `:deep` 选择器的顺序和特异性；新增 `data-ws-part` 必须同步登记 docs/SKIN_DEVELOPMENT.md（skin-pack.test 会扫描）。
 - 模板/CSS 格式化改动与行为改动分开；包裹 Vue 标签时保留内联空白文本节点。
 - 浮层层级必须取 `--ws-z-*` 阶梯变量（web-client.css 顶部定义，admin.css 同值副本：raised 10 / header 100 / dropdown 200 / menu-mask 300 / menu 310 / modal-mask 400 / toast 500），禁止裸 z-index 数字——header 曾硬编码 z-index:40 压在弹窗遮罩上；`isolation: isolate` 容器内部的 1/2/3 局部小阶梯除外。
+- 皮肤命名空间约束：`.ws-skin-root` 的 `data-ws-skin` 是自定义皮肤 CSS 的作用域锚点（内置皮肤样式按 `[data-ws-skin="builtin.*"]` 高特异性命中），皮肤激活后任何 `applyTheme/saveTheme` 都必须传 `preserveCustomSkins: true`，否则属性被刷回内置皮肤、自定义皮肤整体失效且刷新后才恢复——皮肤切换失效 bug 的根因；ILLUSIA/社区皮肤的 CSS 靠动态 `<style>` 注入次序压过基础样式，勿改动注入位置。
 - 皮肤开发遵循 `docs/SKIN_DEVELOPMENT.md` 与 `.agents/skills/webspeak-skin-development` 技能。
 
 ## 其他注意事项
@@ -54,5 +55,5 @@ npm --prefix web ci --no-audit --no-fund
 - 本仓库是上游的裁剪 fork：已删除加速中继、Android、DemoView、访客计数；不要从 upstream 合并会重新引入这些功能的改动。
 - `data/`、`config.json`、`*.pem`/`*.key`、`.env*` 为本地私有内容，禁止入库。
 - 需要真实 TeamSpeak 服务器或浏览器媒体设备的测试，须单独记录环境与结果；不得用 mock 编解码器冒充真实音频验证。
-- 活跃改造计划见 `D:\develop\project\tsweb\reports\`（09 号报告头部有执行状态）。阶段 0/1/2/3 已完成（阶段 3 落地：`npm run benchmark` 音频管线基准脚本 + 诊断端点 `voiceTransports`/`rssMb` 观测）；**无剩余排期项**。条件重开项及触发器：T10 Opus-over-WS（诊断 `voiceTransports.compatRatio` 持续 >5%）、Opus DTX（实测 WebRTC 出向码率在语音活跃期逼近 3Mbps 上限时）、worker_threads（100 会话上限内不需要——基准 100 会话×4 说话人编解码地板 ≈1.3 核）、前端 shallowRef（性能面板实测到渲染开销时）。
-- 已评估否决项（勿重新立项）：重写 TeamSpeak SDK（无必要，性能热点全在网关层；fork 源码 + 更新 vendor 为兜底方案）；接入阿里云 ESA 等 CDN（语音走 WebRTC UDP 直连不经 CDN，对延迟与 3Mbps 出流量无益，仅在跨地域首屏慢或源站暴露需求时再议）；Opus DTX（只省 <200ms 语间停顿的码率——更长的静默已被 pacer 停表覆盖，CPU 无收益，且 DTX/PLC 切换有噪声风险、FEC 覆盖在 DTX 期下降，2026-10-09 基准数据后拍板）；前端 shallowRef 目录状态（阶段 1 delta 化已消灭全量替换触发源，剩余为事件级原位 patch，shallowRef 需手动 triggerRef 改写十余处 mutation 点，回归风险大于收益）。
+- 活跃改造计划见 `D:\develop\project\tsweb\reports\`（09/10 号报告头部有执行状态）。阶段 0/1/2/3 与 UI/UX 修复轮（10 号报告，2026-10-10 落地：皮肤切换/层级阶梯/成员交互/加入页/设备链/i18n 对齐/文档清扫，commit `919a22a…876d758`）已完成；**无剩余排期项**。条件重开项及触发器：T10 Opus-over-WS（诊断 `voiceTransports.compatRatio` 持续 >5%）、Opus DTX（实测 WebRTC 出向码率在语音活跃期逼近 3Mbps 上限时）、worker_threads（100 会话上限内不需要——基准 100 会话×4 说话人编解码地板 ≈1.3 核）、前端 shallowRef（性能面板实测到渲染开销时）、iOS 音频行为真机定级（volume/mute/输出路由，决定 P0 与否）、成员音量拖拽体系收敛（删 HTML5 DnD 统一 pointer，10 号报告 §4.3 方案 c）、入会前设备选择完整版（现仅对话框复用入口）、B-9 groupId 设备配对、AGC 移动端开关。
+- 已评估否决项（勿重新立项）：重写 TeamSpeak SDK（无必要，性能热点全在网关层；fork 源码 + 更新 vendor 为兜底方案）；接入阿里云 ESA 等 CDN（语音走 WebRTC UDP 直连不经 CDN，对延迟与 3Mbps 出流量无益，仅在跨地域首屏慢或源站暴露需求时再议）；Opus DTX（只省 <200ms 语间停顿的码率——更长的静默已被 pacer 停表覆盖，CPU 无收益，且 DTX/PLC 切换有噪声风险、FEC 覆盖在 DTX 期下降，2026-10-09 基准数据后拍板）；前端 shallowRef 目录状态（阶段 1 delta 化已消灭全量替换触发源，剩余为事件级原位 patch，shallowRef 需手动 triggerRef 改写十余处 mutation 点，回归风险大于收益）；昵称冲突客户端自动重试（TS 服务端自带重名改名/拒绝处理，客户端加后缀重试是画蛇添足，2026-10-10 拍板）。
