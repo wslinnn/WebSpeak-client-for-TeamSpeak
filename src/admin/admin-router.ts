@@ -1,6 +1,7 @@
 import { Router, raw as expressRaw, type NextFunction, type Request, type Response } from "express";
 import { closeSync, existsSync, fstatSync, openSync, readSync } from "node:fs";
 import type { Logger } from "../logger.js";
+import { rateLimitPeerKey, resolveClientAddress } from "../server/client-ip.js";
 import { AdminInputError, AdminService, type AdminSettingsInput } from "./admin-service.js";
 import { AdminSessionStore, isSecureRequest } from "./admin-session.js";
 import { AdminLoginRateLimiter, waitFor } from "./login-rate-limit.js";
@@ -26,6 +27,8 @@ export interface AdminRouterOptions {
   service: AdminService;
   sessions: AdminSessionStore;
   logger: Logger;
+  /** Declares the reverse proxy so login rate limiting keys on the real client. */
+  trustProxy?: boolean;
   getActiveSessions(): number;
   getPeakSessions(): number;
   getCreatedSessions?: () => number;
@@ -67,7 +70,21 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
       response.status(409).json({ ok: false, code: "NOT_INITIALIZED" });
       return;
     }
-    const peer = request.socket.remoteAddress ?? "unknown";
+    // Keying on the raw socket address collapses every admin behind a reverse
+    // proxy into one bucket — one person's typos would lock out all logins.
+    // Resolve the real client (only trusting forwarded headers when the
+    // operator declared a proxy) and aggregate IPv6 the same way as the other
+    // limiters.
+    const trustProxy = options.trustProxy === true;
+    const peerFor = (request: Request): string => {
+      const header = request.headers["x-forwarded-for"];
+      return rateLimitPeerKey(resolveClientAddress(
+        request.socket.remoteAddress,
+        Array.isArray(header) ? header[0] : header,
+        trustProxy,
+      ));
+    };
+    const peer = peerFor(request);
     const retryAfterMs = limiter.retryAfterMs(peer);
     if (retryAfterMs > 0) {
       response.setHeader("Retry-After", String(Math.ceil(retryAfterMs / 1000)));

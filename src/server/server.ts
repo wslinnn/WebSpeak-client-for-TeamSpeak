@@ -301,6 +301,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
     service: options.adminService,
     sessions: adminSessions,
     logger,
+    trustProxy,
     getActiveSessions: () => voiceBridge.getActiveCount(),
     getPeakSessions: () => voiceBridge.getPeakCount(),
     getCreatedSessions: () => voiceBridge.getCreatedCount(),
