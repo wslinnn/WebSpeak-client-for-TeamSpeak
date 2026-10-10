@@ -157,6 +157,7 @@ export function useWebClientServerHistory({
     favoriteServers,
     recentServers,
     isFavorite,
+    currentTarget,
     rememberServerPassword,
     loadSavedServers,
     recordCurrentServer,

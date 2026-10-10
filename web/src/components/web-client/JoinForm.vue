@@ -74,7 +74,9 @@
           :key="favorite.id"
           type="button"
           :class="{ active: favorite.address === currentTarget }"
-          @click="emit('selectServer', { address: favorite.address, nickname: favorite.nickname, channel: favorite.lastChannelHint?.name, password: favorite.password })"
+          :title="t('favoriteConnectHint')"
+          @click="emit('connectServer', { address: favorite.address, nickname: favorite.nickname, channel: favorite.lastChannelHint?.name, password: favorite.password })"
+          @contextmenu.prevent="emit('selectServer', { address: favorite.address, nickname: favorite.nickname, channel: favorite.lastChannelHint?.name, password: favorite.password })"
           ><Icon
             v-if="favorite.password"
             class="server-tab-lock"
@@ -126,7 +128,6 @@
         :placeholder="t('optionalPassword')"
     /></div>
     <label
-      v-if="accessMode === 'open'"
       class="remember-identity remember-server-password"
       data-ws-part="home.remember-password"
       ><input
@@ -299,6 +300,7 @@ const emit = defineEmits<{
   exportIdentity: [];
   toggleFavorite: [];
   selectServer: [entry: { address: string; nickname?: string; channel?: string; password?: string }];
+  connectServer: [entry: { address: string; nickname?: string; channel?: string; password?: string }];
   openDeviceSettings: [];
 }>();
 </script>

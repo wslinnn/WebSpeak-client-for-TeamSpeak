@@ -195,15 +195,14 @@
             :identity-export-busy="identityExportBusy"
             :has-identity="Boolean(identityMaterial)"
             :connecting="voiceState.connecting"
-            :join-disabled="
-              !canJoin || serverConfigLoading || !identityReady || voiceState.connecting || retryWaiting || Boolean(browserError)
-            "
+            :join-disabled="joinDisabled"
             :join-retry-seconds="retrySecondsShown"
             :t="t"
             @connect="doConnect"
             @disconnect="doDisconnect"
             @open-device-settings="settingsOpen = true"
             @select-server="selectLocalServer"
+            @connect-server="connectFromServerTab"
             @toggle-favorite="toggleFavorite"
             @import-identity="openIdentityImport"
             @export-identity="exportIdentity"
@@ -736,7 +735,7 @@
 import { observeMobileViewport } from "../services/mobile-viewport.js";
 import { readMobileGateSignals, shouldShowMobileGate, storeMobileGateChoice } from "../services/mobile-gate.js";
 import MobileGate from "../components/web-client/MobileGate.vue";
-import { computed, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, shallowRef, watch } from "vue";
 import Icon from "../components/Icon.vue";
 import VoiceMemberCards from "../components/web-client/VoiceMemberCards.vue";
 import VoicePerformancePanel from "../components/web-client/VoicePerformancePanel.vue";
@@ -946,6 +945,7 @@ const {
   favoriteServers,
   recentServers,
   isFavorite,
+  currentTarget,
   rememberServerPassword,
   loadSavedServers,
   recordCurrentServer,
@@ -1194,6 +1194,29 @@ const {
   localizedMessage,
   t,
 });
+const joinDisabled = computed(() => !canJoin.value || serverConfigLoading.value || !identityReady.value || voiceState.connecting || retryWaiting.value || Boolean(browserError.value));
+/** Clicking a saved server tab is an executed decision: fill the form and
+ *  connect immediately. An incomplete decision (no nickname) fills and hands
+ *  the user the missing field instead. */
+function connectFromServerTab(entry: { address: string; nickname?: string; channel?: string; password?: string }): void {
+  selectLocalServer(entry);
+  if (joinDisabled.value) {
+    if (!nickname.value.trim()) void nextTick(() => document.getElementById("nickname")?.focus());
+    return;
+  }
+  doConnect();
+}
+// Fixed mode has no server tabs: once the admin target and the favorites are
+// loaded, auto-fill the remembered password so joining stays one click.
+watch([currentTarget, favoriteServers], () => {
+  if (accessMode.value !== "fixed" || rememberServerPassword.value || serverPassword.value) return;
+  const id = currentTarget.value.trim().toLocaleLowerCase();
+  const favorite = favoriteServers.value.find((item) => item.id === id);
+  if (favorite?.password) {
+    serverPassword.value = favorite.password;
+    rememberServerPassword.value = true;
+  }
+}, { immediate: true });
 const visiblePokes = computed(() => pokeNotifications.slice(-3));
 const pokeAutoDismissTimers = new Map<string, number>();
 const desktopNotificationsEnabled = ref(readDesktopNotificationSetting());
