@@ -151,6 +151,30 @@ export function useWebClientServerHistory({
     if (!enabled) void clearFavoritePassword();
   });
 
+  /** Dialog save: create or update a favorite by normalized address. An empty
+   *  password keeps an already-stored one — explicit clearing goes through the
+   *  remember-password checkbox, not this path. */
+  async function upsertFavoriteServer(input: { label: string; address: string; port: string; nickname: string; channel: string; password?: string }): Promise<void> {
+    const target = splitTeamSpeakTarget(`${input.address}:${input.port}`);
+    const address = combineTeamSpeakTarget(target.address, target.port);
+    const id = serverKey(address);
+    const existing = favoriteServers.value.find((favorite) => favorite.id === id);
+    const favorite: FavoriteServer = {
+      id,
+      label: input.label || address,
+      address,
+      ...(input.nickname || existing?.nickname ? { nickname: input.nickname || existing?.nickname } : {}),
+      ...(existing?.identityId ? { identityId: existing.identityId } : {}),
+      ...(input.channel || existing?.lastChannelHint ? { lastChannelHint: input.channel ? { name: input.channel } : existing?.lastChannelHint } : {}),
+      ...(input.password || existing?.password ? { password: input.password || existing?.password } : {}),
+    };
+    await saveFavorite(favorite);
+    favoriteServers.value = existing
+      ? favoriteServers.value.map((item) => (item.id === id ? favorite : item))
+      : [...favoriteServers.value, favorite].sort((left, right) => left.label.localeCompare(right.label));
+    showToast(t("savedFavoriteToast"));
+  }
+
   /** Star button on a picker row: favorites are unstarred, a recent is
    *  promoted with the connection details it already carries (no password —
    *  that only ever arrives through the opt-in or the dialog). */
@@ -195,6 +219,7 @@ export function useWebClientServerHistory({
     syncFavoritePassword,
     toggleFavorite,
     toggleQuickServerFavorite,
+    upsertFavoriteServer,
     clearServerHistory,
   };
 }

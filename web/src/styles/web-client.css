@@ -1986,6 +1986,67 @@
   backdrop-filter: blur(5px);
 }
 
+/* Favorite server dialog: centered card on desktop, bottom sheet on phones. */
+:deep(.favorite-server-dialog) {
+  width: min(430px, 100%);
+  max-height: min(640px, calc(100dvh - 48px));
+  overflow-y: auto;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(15, 32, 29, .28);
+}
+
+:deep(.favorite-server-header) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 18px 4px;
+}
+
+:deep(.favorite-server-header h2) {
+  margin: 0;
+  font-size: 15px;
+}
+
+:deep(.favorite-server-form) {
+  display: grid;
+  gap: 10px;
+  padding: 10px 18px 18px;
+}
+
+:deep(.favorite-server-columns) {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 10px;
+}
+
+:deep(.favorite-server-actions) {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+@media (max-width: 740px) {
+  /* Bottom sheet: anchored to the keyboard-safe area, full width. */
+  :deep(.favorite-server-backdrop) {
+    align-items: end;
+    padding: 0;
+  }
+
+  :deep(.favorite-server-dialog) {
+    width: 100%;
+    max-height: calc(var(--ws-viewport-height, 100dvh) - env(safe-area-inset-top, 0px) - 24px);
+    border-radius: 22px 22px 0 0;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  }
+
+  :deep(.favorite-server-actions button) {
+    min-height: 46px;
+  }
+}
+
 :deep(.settings-modal) {
   display: flex;
   width: min(920px, 100%);
@@ -3343,6 +3404,25 @@
   color: #f5a623;
   border-color: #f0d9ae;
   background: #fdf6e7;
+}
+
+:deep(.local-server-add) {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  padding: 5px 8px;
+  color: #87958f;
+  background: transparent;
+  border: 1px dashed #d7ebe6;
+  border-radius: 6px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+:deep(.local-server-add:hover) {
+  color: #277970;
+  background: #eef8f5;
 }
 
 :deep(.server-tab-lock) {

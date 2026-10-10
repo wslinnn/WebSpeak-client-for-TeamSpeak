@@ -204,6 +204,7 @@
             @connect-server="connectFromServerTab"
             @toggle-favorite="toggleFavorite"
             @toggle-quick-favorite="toggleQuickServerFavorite"
+            @open-favorite-dialog="openFavoriteServerDialog()"
             @import-identity="openIdentityImport"
             @export-identity="exportIdentity"
           />
@@ -229,6 +230,14 @@
         @close="closeIdentityImport"
         @submit="importIdentity"
         @file="readIdentityFile"
+      />
+
+      <FavoriteServerDialog
+        :open="favoriteServerDialogOpen"
+        :initial="favoriteServerDialogInitial"
+        :t="t"
+        @close="closeFavoriteServerDialog"
+        @save="saveFavoriteServerDraft"
       />
 
       <footer
@@ -744,6 +753,7 @@ import JoinForm from "../components/web-client/JoinForm.vue";
 import ChatPanel from "../components/web-client/ChatPanel.vue";
 import WebClientHeader from "../components/web-client/WebClientHeader.vue";
 import IdentityImportDialog from "../components/web-client/IdentityImportDialog.vue";
+import FavoriteServerDialog, { type FavoriteServerDraft } from "../components/web-client/FavoriteServerDialog.vue";
 import { usePublicSkin } from "../composables/usePublicSkin.js";
 import { useWebClientIdentity } from "../composables/useWebClientIdentity.js";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
@@ -945,8 +955,22 @@ const {
   syncFavoritePassword,
   toggleFavorite,
   toggleQuickServerFavorite,
+  upsertFavoriteServer,
   clearServerHistory,
 } = useWebClientServerHistory({ serverHost, serverPort, serverPassword, nickname, channel, rememberIdentity, identityMaterial, t, showToast });
+const favoriteServerDialogOpen = ref(false);
+const favoriteServerDialogInitial = ref<Partial<FavoriteServerDraft> | null>(null);
+function openFavoriteServerDialog(initial?: Partial<FavoriteServerDraft>): void {
+  favoriteServerDialogInitial.value = initial ?? null;
+  favoriteServerDialogOpen.value = true;
+}
+function closeFavoriteServerDialog(): void {
+  favoriteServerDialogOpen.value = false;
+  favoriteServerDialogInitial.value = null;
+}
+function saveFavoriteServerDraft(draft: FavoriteServerDraft): void {
+  void upsertFavoriteServer(draft);
+}
 const {
   accessMode,
   initialized,

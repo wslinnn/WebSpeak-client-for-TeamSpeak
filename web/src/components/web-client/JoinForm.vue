@@ -95,6 +95,15 @@
             :size="13"
           /></button>
       </div>
+      <button
+        type="button"
+        class="local-server-add"
+        data-ws-part="home.server-history.add"
+        @click="emit('openFavoriteDialog')"
+      ><Icon
+          name="plus"
+          :size="12"
+        />{{ t("addFavoriteServer") }}</button>
     </div>
     <button
       v-if="accessMode === 'open' && serverHost.trim()"
@@ -309,6 +318,7 @@ const emit = defineEmits<{
   exportIdentity: [];
   toggleFavorite: [];
   toggleQuickFavorite: [server: QuickServer];
+  openFavoriteDialog: [];
   selectServer: [entry: { address: string; nickname?: string; channel?: string; password?: string }];
   connectServer: [entry: { address: string; nickname?: string; channel?: string; password?: string }];
   openDeviceSettings: [];
