@@ -158,6 +158,16 @@
         />{{ t("joinDeviceSetupAction") }}</button
       >
       <p
+        v-if="micPermission === 'granted'"
+        class="device-setup-hint ok"
+        role="status"
+      >{{ t("micPermissionGranted") }}</p>
+      <p
+        v-else-if="micPermission === 'denied'"
+        class="device-setup-hint denied"
+        role="alert"
+      >{{ t("micPermissionDenied") }}</p>
+      <p
         v-if="!outputPickerSupported"
         class="device-setup-hint"
         >{{ t("outputUnsupportedHint") }}</p
@@ -264,7 +274,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import Icon from "../Icon.vue";
 import { combineTeamSpeakTarget } from "../../services/teamspeak-target.js";
 import type { QuickServer } from "../../services/quick-servers.js";
@@ -317,6 +327,25 @@ function rowFill(server: QuickServer): void {
 // iOS Safari has no output-device picker at all; say so before joining instead
 // of hiding it inside the room settings dialog.
 const outputPickerSupported = computed(() => typeof HTMLMediaElement === "undefined" || "setSinkId" in HTMLMediaElement.prototype);
+
+// Mic permission badge: explains an empty device list before the user burns a
+// join attempt on a denied prompt. Firefox/Safari lack the permission name —
+// unknown simply renders no badge.
+type MicPermission = "unknown" | "granted" | "denied" | "prompt";
+const micPermission = ref<MicPermission>("unknown");
+let micPermissionStatus: PermissionStatus | null = null;
+onMounted(async () => {
+  try {
+    const status = await navigator.permissions?.query({ name: "microphone" as PermissionName });
+    if (!status) return;
+    micPermissionStatus = status;
+    micPermission.value = status.state as MicPermission;
+    status.onchange = () => { micPermission.value = status.state as MicPermission; };
+  } catch { /* No "microphone" permission name in this browser. */ }
+});
+onUnmounted(() => {
+  if (micPermissionStatus) micPermissionStatus.onchange = null;
+});
 
 const emit = defineEmits<{
   connect: [];

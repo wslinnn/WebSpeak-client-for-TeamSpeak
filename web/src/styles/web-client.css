@@ -3203,6 +3203,15 @@
   line-height: 1.5;
 }
 
+/* Mic permission badge states. */
+:deep(.device-setup-hint.ok) {
+  color: #2c7a51;
+}
+
+:deep(.device-setup-hint.denied) {
+  color: #a64038;
+}
+
 :deep(.cancel-connect-button) {
   justify-self: center;
   min-height: 32px;
