@@ -4198,7 +4198,7 @@
 }
 
 .app-shell {
-  grid-template-columns: 212px 318px minmax(0, 1fr);
+  grid-template-columns: 72px 318px minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   height: 100dvh;
   min-height: 0;
@@ -4255,7 +4255,7 @@
 
 @media (max-width: 980px) {
   .app-shell {
-    grid-template-columns: 212px minmax(0, 1fr);
+    grid-template-columns: 72px minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr) minmax(210px, 35dvh);
   }
   .workspace {
