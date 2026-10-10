@@ -4705,6 +4705,82 @@
   cursor: pointer;
 }
 
+/* Server context menu (rail rows and join-page rows): same interaction shell
+ * as the member context menu — backdrop, pointer placement, bottom sheet on
+ * touch sizes. */
+.server-context-menu-backdrop {
+  z-index: var(--ws-z-menu-mask);
+}
+
+.server-context-menu {
+  position: fixed;
+  z-index: var(--ws-z-menu);
+  display: grid;
+  min-width: 210px;
+  gap: 3px;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #e0eae6;
+  border-radius: 10px;
+  box-shadow: 0 14px 35px rgba(20, 50, 44, .16);
+}
+
+.server-context-menu-title {
+  padding: 4px 8px 7px;
+  overflow: hidden;
+  color: #2a3934;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.server-context-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 8px;
+  color: #3c4a45;
+  background: transparent;
+  border-radius: 7px;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.server-context-menu button:hover {
+  color: #006a64;
+  background: #e5f3f0;
+}
+
+.server-context-menu button.danger {
+  color: #a64038;
+}
+
+.server-context-menu button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 740px) {
+  .server-context-menu {
+    left: 12px !important;
+    right: 12px;
+    top: auto !important;
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+    min-width: 0;
+    max-height: calc(100svh - 100px);
+    padding: 12px;
+    border-radius: 18px;
+  }
+  .server-context-menu button {
+    min-height: 42px;
+    font-size: 13px;
+  }
+}
+
 @media (max-width: 740px) {
   /* Touch: a thicker track and a thumb near the 24px hit-target guidance. */
   :deep(.menu-volume input) {

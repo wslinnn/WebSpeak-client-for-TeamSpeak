@@ -203,6 +203,7 @@
             @toggle-quick-favorite="toggleQuickServerFavorite"
             @open-favorite-dialog="openFavoriteServerDialog()"
             @edit-favorite="editFavoriteServer"
+            @remove-recent="removeRecentServerEntry"
             @import-identity="openIdentityImport"
             @export-identity="exportIdentity"
           />
@@ -361,6 +362,7 @@
             :title="server.label"
             :aria-label="t('switchToServer', { name: server.label })"
             @click="switchToQuickServer(server)"
+            @contextmenu.prevent="openServerMenu(server, $event)"
           ><Icon
               v-if="server.password"
               class="favorite-server-rail-lock"
@@ -883,6 +885,20 @@
       @save="saveFavoriteServerDraft"
     />
 
+    <ServerContextMenu
+      v-if="serverMenuState"
+      :server="serverMenuState.server"
+      :position="serverMenuState"
+      part="voice.server-context-menu"
+      :in-room="true"
+      :t="t"
+      @switch="switchToQuickServer"
+      @edit="editFavoriteServer"
+      @toggle-favorite="toggleQuickServerFavorite"
+      @remove="removeRecentServerEntry"
+      @close="serverMenuState = null"
+    />
+
     <div
       v-if="toast"
       :class="['toast', { warn: toastTone === 'warn' }]"
@@ -919,6 +935,7 @@ import ChatPanel from "../components/web-client/ChatPanel.vue";
 import WebClientHeader from "../components/web-client/WebClientHeader.vue";
 import IdentityImportDialog from "../components/web-client/IdentityImportDialog.vue";
 import FavoriteServerDialog, { type FavoriteServerDraft } from "../components/web-client/FavoriteServerDialog.vue";
+import ServerContextMenu from "../components/web-client/ServerContextMenu.vue";
 import type { QuickServer } from "../services/quick-servers.js";
 import { usePublicSkin } from "../composables/usePublicSkin.js";
 import { useWebClientIdentity } from "../composables/useWebClientIdentity.js";
@@ -1131,7 +1148,14 @@ const {
   toggleQuickServerFavorite,
   upsertFavoriteServer,
   clearServerHistory,
+  removeRecentServerEntry,
 } = useWebClientServerHistory({ serverHost, serverPort, serverPassword, nickname, channel, rememberIdentity, identityMaterial, t, showToast });
+// Right-click / long-press on a server row (rail or join form): the context
+// menu owns edit / favorite / delete instead of hidden single actions.
+const serverMenuState = shallowRef<{ server: QuickServer; x: number; y: number } | null>(null);
+function openServerMenu(server: QuickServer, event: MouseEvent): void {
+  serverMenuState.value = { server, x: event.clientX, y: event.clientY };
+}
 const favoriteServerDialogOpen = ref(false);
 const favoriteServerDialogInitial = ref<Partial<FavoriteServerDraft> | null>(null);
 // Without an explicit draft the "add" entries prefill from the join form, so

@@ -76,7 +76,7 @@
           :class="{ active: server.address === currentTarget }"
           :title="server.isFavorite ? t('favoriteConnectHint') : server.label"
           @click="rowConnect(server)"
-          @contextmenu.prevent="rowMenu(server)"
+          @contextmenu.prevent="openRowMenu(server, $event)"
         ><Icon
             v-if="server.password"
             class="server-tab-lock"
@@ -105,6 +105,18 @@
           :size="12"
         />{{ t("addFavoriteServer") }}</button>
     </div>
+    <ServerContextMenu
+      v-if="rowMenuState"
+      :server="rowMenuState.server"
+      :position="rowMenuState"
+      part="home.server-context-menu"
+      :in-room="false"
+      :t="t"
+      @edit="emit('editFavorite', $event)"
+      @toggle-favorite="emit('toggleQuickFavorite', $event)"
+      @remove="emit('removeRecent', $event)"
+      @close="rowMenuState = null"
+    />
     <button
       v-if="accessMode === 'open' && serverHost.trim()"
       type="button"
@@ -274,8 +286,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, shallowRef } from "vue";
 import Icon from "../Icon.vue";
+import ServerContextMenu from "./ServerContextMenu.vue";
 import { combineTeamSpeakTarget } from "../../services/teamspeak-target.js";
 import type { QuickServer } from "../../services/quick-servers.js";
 
@@ -304,9 +317,8 @@ defineProps<{
 const currentTarget = computed(() => combineTeamSpeakTarget(serverHost.value, serverPort.value));
 
 // Favorites connect outright (stored password rides along); a recent fills
-// the form for editing. Right-click / long-press opens the favorite dialog
-// for favorites (the only edit-without-connecting path on iOS); recents
-// still fill the form.
+// the form for editing. Right-click / long-press opens the shared context
+// menu (edit / favorite / delete) for both row types.
 function rowConnect(server: QuickServer): void {
   if (server.isFavorite) {
     emit("connectServer", { address: server.address, nickname: server.nickname, channel: server.lastChannelHint?.name, password: server.password });
@@ -315,9 +327,9 @@ function rowConnect(server: QuickServer): void {
   rowFill(server);
 }
 
-function rowMenu(server: QuickServer): void {
-  if (server.isFavorite) emit("editFavorite", server);
-  else rowFill(server);
+const rowMenuState = shallowRef<{ server: QuickServer; x: number; y: number } | null>(null);
+function openRowMenu(server: QuickServer, event: MouseEvent): void {
+  rowMenuState.value = { server, x: event.clientX, y: event.clientY };
 }
 
 function rowFill(server: QuickServer): void {
@@ -355,6 +367,7 @@ const emit = defineEmits<{
   toggleFavorite: [];
   toggleQuickFavorite: [server: QuickServer];
   openFavoriteDialog: [];
+  removeRecent: [server: QuickServer];
   editFavorite: [server: QuickServer];
   selectServer: [entry: { address: string; nickname?: string; channel?: string; password?: string }];
   connectServer: [entry: { address: string; nickname?: string; channel?: string; password?: string }];

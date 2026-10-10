@@ -366,7 +366,7 @@ export async function saveChatHistoryMessage(serverKey: string, message: ChatMes
   }
 }
 
-async function removeRecentServer(id: string): Promise<void> {
+export async function removeRecentServer(id: string): Promise<void> {
   await request("recent", "readwrite", (store, resolve, reject) => {
     const remove = store.delete(id);
     remove.onsuccess = () => resolve(undefined);

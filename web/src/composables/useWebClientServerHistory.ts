@@ -4,6 +4,7 @@ import {
   listRecentServers,
   recordRecentServer,
   removeFavorite,
+  removeRecentServer,
   saveFavorite,
   type FavoriteServer,
   type RecentServer,
@@ -206,12 +207,23 @@ export function useWebClientServerHistory({
     rememberServerPassword.value = false;
   }
 
+  /** Context-menu deletion: drop one recent entry. Favorites leave the list
+   *  through removeFavorite (unstar) instead — deleting a recent never
+   *  touches a saved favorite. */
+  async function removeRecentServerEntry(server: Pick<QuickServer, "address">): Promise<void> {
+    const id = serverKey(server.address);
+    await removeRecentServer(id);
+    recentServers.value = recentServers.value.filter((entry) => entry.id !== id);
+    showToast(t("removedRecentToast"));
+  }
+
   return {
     favoriteServers,
     recentServers,
     quickServers,
     isFavorite,
     currentTarget,
+    removeRecentServerEntry,
     rememberServerPassword,
     loadSavedServers,
     recordCurrentServer,
