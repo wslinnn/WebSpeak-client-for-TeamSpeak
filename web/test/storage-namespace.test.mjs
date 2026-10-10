@@ -58,7 +58,7 @@ test("every web storage key lives under the webspeak namespace", () => {
 
   // The known guard targets keep their exact names so a silent rename cannot
   // drop them out of the sweep's coverage.
-  for (const required of ["webspeak:voice-session", "webspeak:voice-resume-at", "webspeak:mobile-gate", "webspeak:desktop-notifications"]) {
+  for (const required of ["webspeak:voice-session", "webspeak:mobile-gate", "webspeak:desktop-notifications"]) {
     assert.ok(
       storageCallSites.some((site) => (site.key ?? keyConstants.get(site.constant)?.value) === required),
       `the wipe-relevant key "${required}" must remain a webspeak-namespaced storage key`,

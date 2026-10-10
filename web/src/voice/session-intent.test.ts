@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseVoiceSessionIntent, readLastResumeAt, writeLastResumeAt } from "./session-intent.js";
+import { parseVoiceSessionIntent } from "./session-intent.js";
 
 test("parseVoiceSessionIntent accepts a well-formed intent payload", () => {
   assert.deepEqual(
@@ -19,11 +19,4 @@ test("parseVoiceSessionIntent rejects malformed payloads", () => {
   assert.equal(parseVoiceSessionIntent(JSON.stringify({ reconnectToken: "abc123def456", savedAt: "late" })), null);
   // Oversized tokens are rejected so a hostile storage value cannot smuggle data.
   assert.equal(parseVoiceSessionIntent(JSON.stringify({ reconnectToken: "a".repeat(129), savedAt: 1 })), null);
-});
-
-test("resume cooldown timestamps fall back to zero without storage", () => {
-  if (typeof sessionStorage !== "undefined") return;
-  assert.equal(readLastResumeAt(), 0);
-  assert.doesNotThrow(() => writeLastResumeAt(Date.now()));
-  assert.equal(readLastResumeAt(), 0);
 });

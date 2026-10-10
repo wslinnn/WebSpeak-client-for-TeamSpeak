@@ -5,7 +5,6 @@
  *  payload, and it is single-consume with a short server-side TTL. */
 
 const INTENT_STORAGE_KEY = "webspeak:voice-session";
-const RESUME_AT_STORAGE_KEY = "webspeak:voice-resume-at";
 
 export interface VoiceSessionIntent {
   reconnectToken: string;
@@ -51,24 +50,5 @@ export function clearVoiceSessionIntent(): void {
     sessionStorage.removeItem(INTENT_STORAGE_KEY);
   } catch {
     // Nothing to clear.
-  }
-}
-
-/** When this tab last fired an automatic resume. sessionStorage keeps the
- *  cooldown across reloads (its whole purpose) but not across tabs. */
-export function readLastResumeAt(): number {
-  try {
-    const parsed = Number(sessionStorage.getItem(RESUME_AT_STORAGE_KEY));
-    return Number.isFinite(parsed) ? parsed : 0;
-  } catch {
-    return 0;
-  }
-}
-
-export function writeLastResumeAt(now: number): void {
-  try {
-    sessionStorage.setItem(RESUME_AT_STORAGE_KEY, String(now));
-  } catch {
-    // Without storage the cooldown simply cannot be enforced.
   }
 }
