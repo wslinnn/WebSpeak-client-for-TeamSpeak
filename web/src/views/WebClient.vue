@@ -202,6 +202,7 @@
             @toggle-favorite="toggleFavorite"
             @toggle-quick-favorite="toggleQuickServerFavorite"
             @open-favorite-dialog="openFavoriteServerDialog()"
+            @edit-favorite="editFavoriteServer"
             @import-identity="openIdentityImport"
             @export-identity="exportIdentity"
           />
@@ -230,7 +231,7 @@
       />
 
       <FavoriteServerDialog
-        :open="favoriteServerDialogOpen"
+        v-if="favoriteServerDialogOpen"
         :initial="favoriteServerDialogInitial"
         :t="t"
         @close="closeFavoriteServerDialog"
@@ -1029,9 +1030,28 @@ const {
 } = useWebClientServerHistory({ serverHost, serverPort, serverPassword, nickname, channel, rememberIdentity, identityMaterial, t, showToast });
 const favoriteServerDialogOpen = ref(false);
 const favoriteServerDialogInitial = ref<Partial<FavoriteServerDraft> | null>(null);
+// Without an explicit draft the "add" entries prefill from the join form, so
+// the common path ("I typed the address, now save it") is add-free typing.
 function openFavoriteServerDialog(initial?: Partial<FavoriteServerDraft>): void {
-  favoriteServerDialogInitial.value = initial ?? null;
+  favoriteServerDialogInitial.value = initial ?? {
+    ...(serverHost.value ? { address: serverHost.value } : {}),
+    ...(serverPort.value ? { port: serverPort.value } : {}),
+    ...(nickname.value ? { nickname: nickname.value } : {}),
+  };
   favoriteServerDialogOpen.value = true;
+}
+// Right-click / long-press on a favorite row: prefill the dialog with the
+// stored entry so it can be renamed or re-pointed without connecting first.
+function editFavoriteServer(server: QuickServer): void {
+  const target = splitTeamSpeakTarget(server.address);
+  openFavoriteServerDialog({
+    label: server.label,
+    address: target.address,
+    port: target.port,
+    nickname: server.nickname ?? "",
+    channel: server.lastChannelHint?.name ?? "",
+    password: server.password ?? "",
+  });
 }
 function closeFavoriteServerDialog(): void {
   favoriteServerDialogOpen.value = false;

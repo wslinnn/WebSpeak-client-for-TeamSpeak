@@ -1,6 +1,5 @@
 <template>
   <div
-    v-if="open"
     class="modal-backdrop favorite-server-backdrop"
     @click.self="emit('close')"
     tabindex="-1"
@@ -13,7 +12,7 @@
       aria-modal="true"
       aria-labelledby="favorite-server-title"
       tabindex="-1"
-      @keydown.esc="emit('close')"
+      @keydown="onDialogKeydown"
     >
       <header
         class="favorite-server-header"
@@ -45,8 +44,8 @@
             data-ws-part="favorite-server.field"
           ><input
             id="favorite-label"
-            ref="labelInput"
             v-model="label"
+            autofocus
             maxlength="60"
             :placeholder="t('favoriteDisplayNamePlaceholder')"
           /></div>
@@ -167,8 +166,9 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref, watch } from "vue";
+import { ref } from "vue";
 import Icon from "../Icon.vue";
+import { useDialogFocus } from "../../composables/useDialogFocus.js";
 
 export interface FavoriteServerDraft {
   label: string;
@@ -180,7 +180,6 @@ export interface FavoriteServerDraft {
 }
 
 const props = defineProps<{
-  open: boolean;
   initial?: Partial<FavoriteServerDraft> | null;
   t: (key: string, variables?: Record<string, string | number>) => string;
 }>();
@@ -190,25 +189,20 @@ const emit = defineEmits<{
   save: [draft: FavoriteServerDraft];
 }>();
 
-const labelInput = ref<HTMLInputElement | null>(null);
-const label = ref("");
-const address = ref("");
-const port = ref("9987");
-const nickname = ref("");
-const channel = ref("");
-const password = ref("");
+// The parent mounts this dialog fresh per open (v-if), so the draft is read
+// once here and focus handling comes from the shared dialog composable.
+const initial = props.initial ?? {};
+const label = ref(initial.label ?? "");
+const address = ref(initial.address ?? "");
+const port = ref(initial.port ?? "9987");
+const nickname = ref(initial.nickname ?? "");
+const channel = ref(initial.channel ?? "");
+const password = ref(initial.password ?? "");
 
-watch(() => props.open, (open) => {
-  if (!open) return;
-  const initial = props.initial ?? {};
-  label.value = initial.label ?? "";
-  address.value = initial.address ?? "";
-  port.value = initial.port ?? "9987";
-  nickname.value = initial.nickname ?? "";
-  channel.value = initial.channel ?? "";
-  password.value = initial.password ?? "";
-  void nextTick(() => labelInput.value?.focus());
-});
+const dialog = ref<HTMLElement | null>(null);
+const { onDialogKeydown } = useDialogFocus(dialog, () => emit("close"),
+  () => document.querySelector<HTMLElement>('[data-ws-part="voice.favorite-server-add"]')
+    ?? document.querySelector<HTMLElement>('[data-ws-part="home.server-history.add"]'));
 
 function submit(): void {
   if (!address.value.trim() || !port.value.trim()) return;

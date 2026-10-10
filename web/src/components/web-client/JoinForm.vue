@@ -76,7 +76,7 @@
           :class="{ active: server.address === currentTarget }"
           :title="server.isFavorite ? t('favoriteConnectHint') : server.label"
           @click="rowConnect(server)"
-          @contextmenu.prevent="rowFill(server)"
+          @contextmenu.prevent="rowMenu(server)"
         ><Icon
             v-if="server.password"
             class="server-tab-lock"
@@ -294,13 +294,20 @@ defineProps<{
 const currentTarget = computed(() => combineTeamSpeakTarget(serverHost.value, serverPort.value));
 
 // Favorites connect outright (stored password rides along); a recent fills
-// the form for editing. Both fill on right-click / long-press.
+// the form for editing. Right-click / long-press opens the favorite dialog
+// for favorites (the only edit-without-connecting path on iOS); recents
+// still fill the form.
 function rowConnect(server: QuickServer): void {
   if (server.isFavorite) {
     emit("connectServer", { address: server.address, nickname: server.nickname, channel: server.lastChannelHint?.name, password: server.password });
     return;
   }
   rowFill(server);
+}
+
+function rowMenu(server: QuickServer): void {
+  if (server.isFavorite) emit("editFavorite", server);
+  else rowFill(server);
 }
 
 function rowFill(server: QuickServer): void {
@@ -319,6 +326,7 @@ const emit = defineEmits<{
   toggleFavorite: [];
   toggleQuickFavorite: [server: QuickServer];
   openFavoriteDialog: [];
+  editFavorite: [server: QuickServer];
   selectServer: [entry: { address: string; nickname?: string; channel?: string; password?: string }];
   connectServer: [entry: { address: string; nickname?: string; channel?: string; password?: string }];
   openDeviceSettings: [];
