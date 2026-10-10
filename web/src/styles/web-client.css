@@ -1725,7 +1725,7 @@
   border-radius: 11px;
 }
 
-:deep(.message-composer input) {
+:deep(.message-composer :is(input, textarea)) {
   width: 100%;
   min-width: 0;
   border: 0;
@@ -1735,7 +1735,22 @@
   font-size: 12px;
 }
 
-:deep(.message-composer input::placeholder) {
+:deep(.message-composer textarea) {
+  resize: none;
+  overflow-y: auto;
+  font: inherit;
+  line-height: 1.45;
+}
+
+/* Remaining-characters hint, shown only near the cap. */
+:deep(.composer-count) {
+  flex: 0 0 auto;
+  color: #a1ada9;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+:deep(.message-composer :is(input, textarea)::placeholder) {
   color: #9aa6a2;
 }
 
@@ -3848,7 +3863,7 @@
 }
 
 :deep(.app-shell .message-bubble),
-:deep(.app-shell .message-composer input) {
+:deep(.app-shell .message-composer :is(input, textarea)) {
   font-size: 15px;
 }
 
@@ -4035,7 +4050,7 @@
     font-size: 21.25px;
   }
   :deep(.app-shell .message-bubble),
-  :deep(.app-shell .message-composer input) {
+  :deep(.app-shell .message-composer :is(input, textarea)) {
     font-size: 13.75px;
   }
   .app-shell .mic-mode-switch button {
@@ -5639,7 +5654,7 @@
     padding: 7px 8px 7px 13px;
     border: 1px solid var(--border);
   }
-  :deep(.app-shell.mobile-view-chat .message-composer input) {
+  :deep(.app-shell.mobile-view-chat .message-composer :is(input, textarea)) {
     font-size: 14px;
   }
   .mobile-more-panel {

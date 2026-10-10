@@ -179,17 +179,24 @@
       data-ws-part="voice.chat.composer"
       @submit.prevent="!composing && submitMessage()"
     >
-      <input
+      <textarea
+        ref="composerEl"
         v-model="messageDraft"
+        rows="1"
         maxlength="500"
         enterkeyhint="send"
         autocomplete="off"
         @compositionstart="composing = true"
         @compositionend="composing = false"
-        @keydown.enter="guardComposition"
+        @keydown="onComposerKeydown"
         :placeholder="chatPlaceholder"
         :aria-label="t('send')"
-      />
+      ></textarea>
+      <span
+        v-if="messageDraft.length > 450"
+        class="composer-count"
+        aria-live="off"
+      >{{ 500 - messageDraft.length }}</span>
       <button
         class="send-button"
         type="submit"
@@ -212,7 +219,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, type CSSProperties } from "vue";
+import { nextTick, ref, watch, type CSSProperties } from "vue";
 import Icon from "../Icon.vue";
 import type { useWebClientChat } from "../../composables/useWebClientChat.js";
 import type { ChatMessage, ServerEvent } from "../../composables/useVoiceWebSocket.js";
@@ -256,10 +263,28 @@ const {
 } = props.model;
 
 const composing = ref(false);
-function guardComposition(event: KeyboardEvent): void {
+const composerEl = ref<HTMLTextAreaElement | null>(null);
+function onComposerKeydown(event: KeyboardEvent): void {
+  if (event.key !== "Enter") return;
   // Android IME and Safari can confirm a candidate with Enter; that is not Send.
-  if (composing.value || event.isComposing || event.keyCode === 229) event.preventDefault();
+  if (composing.value || event.isComposing || event.keyCode === 229) {
+    event.preventDefault();
+    return;
+  }
+  // Shift+Enter keeps the newline; plain Enter sends.
+  if (event.shiftKey) return;
+  event.preventDefault();
+  if (!composing.value && canSendChat.value && messageDraft.value.trim()) submitMessage();
 }
+// Autosize: one line at rest, growing to the cap as the draft wraps.
+watch(messageDraft, () => {
+  void nextTick(() => {
+    const el = composerEl.value;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+  });
+});
 
 // Consecutive messages from the same sender within the window render as one
 // visual group: avatar and name/time only on the first row.
