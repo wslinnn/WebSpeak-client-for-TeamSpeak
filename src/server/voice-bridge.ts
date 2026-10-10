@@ -31,10 +31,11 @@ import type { ServerPasswordGuard } from "./server-password-guard.js";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 // Detached sessions hold a live TeamSpeak connection, so the window must
-// cover the realistic resume paths (page reload is instant, network blips
-// recover within the browser's ~30s retry budget) without keeping a departed
-// visitor's slot and identity lease hostage much longer than that.
-const RESUME_GRACE_MS = 60_000;
+// cover the realistic resume paths — a page reload re-establishes the socket
+// in seconds even on slow mobile networks — while a departed visitor's slot
+// and identity lease are released promptly. Outages longer than the browser's
+// own ~30s retry budget fall back to a manual rejoin.
+const RESUME_GRACE_MS = 30_000;
 // Avatars are rare downloads for a self-hosted deployment; the cap bounds
 // worst-case memory (cap × 256KB SDK transfer ceiling) well below concern.
 const AVATAR_CACHE_CAPACITY = 128;
