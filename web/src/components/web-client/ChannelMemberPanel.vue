@@ -95,6 +95,18 @@
           <div
             v-for="member in channelItem.members"
             :key="`${channelItem.id}-${member.id}`"
+            v-memo="[
+              member.nickname,
+              member.avatar,
+              member.isSelf,
+              member.away,
+              member.inputMuted,
+              member.outputMuted,
+              member.channelCommander,
+              isSpeaking(member),
+              draggedMember?.id === member.id,
+              volumes[member.id] ?? 1,
+            ]"
             :class="['member-row', { dragging: draggedMember?.id === member.id }]"
             data-ws-part="voice.member-row"
             role="listitem"

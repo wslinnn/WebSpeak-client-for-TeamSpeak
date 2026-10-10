@@ -1938,16 +1938,20 @@
 :deep(.member-list) .member-row:nth-child(7) { animation-delay: .21s; }
 :deep(.member-list) .member-row:nth-child(n + 8) { animation-delay: .245s; }
 
+/* blur() is the most expensive layer effect on low-end GPUs and reads badly
+ * at scale; rows past the first screen skip the entrance entirely. */
+:deep(.member-list) .member-row:nth-child(n + 9) {
+  animation: none;
+}
+
 @keyframes member-row-in {
   from {
     opacity: 0;
     transform: translateY(5px);
-    filter: blur(3px);
   }
   to {
     opacity: 1;
     transform: none;
-    filter: none;
   }
 }
 

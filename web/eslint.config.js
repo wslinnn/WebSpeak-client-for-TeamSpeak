@@ -39,4 +39,13 @@ export default tseslint.config(
       }],
     },
   },
+  {
+    files: ["src/components/web-client/ChannelMemberPanel.vue"],
+    rules: {
+      // vue/valid-v-memo tracks only one v-for level, so it misfires on the
+      // member rows (v-memo on the inner v-for element itself — the exact
+      // usage the Vue performance guide recommends for large lists).
+      "vue/valid-v-memo": "off",
+    },
+  },
 );
