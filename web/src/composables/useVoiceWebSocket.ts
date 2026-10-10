@@ -236,6 +236,14 @@ export function useVoiceWebSocket() {
   const BROWSER_RECONNECT_DELAYS_MS = [1_000, 2_000, 4_000, 8_000, 15_000];
   const BROWSER_RECONNECTABLE_CLOSE_CODES = new Set([1006, 1011, 4004]);
   const BROWSER_TERMINAL_CLOSE_CODES = new Set([4001, 4002, 4003, 4005]);
+  // reconnectFailed codes that cannot succeed unchanged: automatic resume must
+  // stop offering the session after these and leave the next move to the user.
+  const TERMINAL_RECONNECT_FAILURE_CODES = new Set([
+    "BANNED", "KICKED", "INVALID_TARGET", "INVALID_NICKNAME", "NICKNAME_IN_USE",
+    "INVALID_SERVER_PASSWORD", "SERVER_PASSWORD_REQUIRED", "IDENTITY_REJECTED",
+    "IDENTITY_IN_USE", "IDENTITY_SECURITY_LEVEL_TOO_LOW", "IDENTITY_LIMIT_REACHED",
+    "CLIENT_VERSION_OUTDATED",
+  ]);
   let reconnectTicket = "";
   let browserReconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let browserReconnectActive = false;
@@ -1322,6 +1330,10 @@ export function useVoiceWebSocket() {
         state.errorCode = normalizedClientErrorCode(msg.code);
         state.error = connectionFailureMessage(state.errorCode, msg.detail);
         releaseSessionResources();
+        // Deterministic refusals (ban, changed password, identity conflict)
+        // can only repeat: drop the resume intent so a reload stops at the
+        // join form instead of re-hitting the same rejection.
+        if (TERMINAL_RECONNECT_FAILURE_CODES.has(state.errorCode)) dropReconnectTicket();
         break;
       case "connectionFailed":
         state.connected = false;
