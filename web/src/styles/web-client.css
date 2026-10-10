@@ -1677,6 +1677,10 @@
 }
 
 :deep(.message-bubble) {
+  /* anywhere keeps long URLs/IDs from stretching the bubble past the chat
+   * column; pre-wrap preserves the newlines the sender typed. */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
   padding: 10px 13px;
   color: #43534e;
   background: #f1f5f3;
