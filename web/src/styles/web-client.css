@@ -1064,7 +1064,11 @@
 
 /* In-voice quick server switcher: a slim scrollable chip row above the header,
  * plus a status banner that keeps the shell mounted while a switch is running. */
+/* Mobile server strip: shell-level chrome (sibling of the banners layer), so
+ * it survives the channels/more tab switches that hide the workspace. Hidden
+ * from 741px where the desktop rail takes over. */
 .favorite-server-strip {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1250,15 +1254,20 @@
   background: #eef8f5;
 }
 
+/* Lives in the shell banners layer (like the reconnect cards), so a mobile
+ * channels/more tab switch can never hide a pending or failed server switch. */
 .favorite-switch-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 9px 29px;
+  margin: 14px auto 0;
+  width: min(950px, calc(100% - 64px));
+  padding: 12px 16px;
   color: #277970;
+  border: 1px solid #d7ebe6;
+  border-radius: 10px;
   background: #eef8f5;
-  border-bottom: 1px solid #d7ebe6;
   font-size: 12px;
 }
 
@@ -3040,10 +3049,17 @@
     padding: 0 15px;
   }
   .favorite-server-strip {
-    padding: 5px 12px;
+    flex: 0 0 auto;
+    gap: 5px;
+    padding: calc(6px + env(safe-area-inset-top, 0px)) 10px 6px;
   }
   .favorite-switch-banner {
-    padding: 8px 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    width: calc(100% - 30px);
+    margin: 8px auto 0;
+    padding: 10px 14px;
   }
   /* Touch targets: icon buttons and picker chips are primary taps on phones,
    * so they get near-44px hit areas instead of their desktop icon sizes. */
@@ -3055,21 +3071,49 @@
   .favorite-server-add {
     width: 38px;
     height: 38px;
+    align-self: center;
   }
-  /* Initials are indistinguishable on a touch screen: the chip shows the
-   * server's full label (ellipsis-capped) instead. */
+  /* KOOK-style touch chips: avatar tile on top, label below — colored tiles
+   * stay recognizable where text-only chips would blur together. The label
+   * keeps an ellipsis cap so long names cannot widen the strip. */
   .favorite-server-chip {
+    display: grid;
+    justify-items: center;
+    gap: 3px;
     width: auto;
-    min-width: 38px;
-    max-width: 120px;
-    padding: 0 10px;
-    justify-content: flex-start;
+    min-width: 56px;
+    max-width: 94px;
+    height: auto;
+    padding: 4px 5px 5px;
+    border-radius: 11px;
+    background: transparent;
+    border-color: transparent;
   }
   .favorite-server-chip-initial {
-    display: none;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 15px;
   }
   .favorite-server-chip-label {
-    display: inline;
+    display: block;
+    max-width: 84px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  .favorite-server-chip:hover {
+    border-radius: 11px;
+    transform: none;
+    background: transparent;
+  }
+  .favorite-server-chip.active {
+    color: #277970;
+    background: #e3efec;
+    box-shadow: none;
   }
   :deep(.local-server-select) {
     padding: 9px 10px;
@@ -4690,9 +4734,8 @@
 }
 
 /* Server context menu styles live in ServerContextMenu.vue (scoped to the
- * component itself): it renders from two hosts and teleports to the app
- * root, so host :deep() rules can neither reach it nor survive decorated
- * ancestors. */
+ * component itself): it renders from two hosts and teleports to the app root, so host
+ * :deep() rules can neither reach it nor survive decorated ancestors. */
 
 @media (max-width: 740px) {
   /* Touch: a thicker track and a thumb near the 24px hit-target guidance. */
@@ -5426,13 +5469,20 @@
     padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px));
     overflow: hidden;
   }
+  /* Flex sizing: the pinned-height shell column is
+   * [banners][server strip][workspace / member panel] — everything auto except
+   * the last block, which takes the rest. A fixed calc height would clip the
+   * bottom (composer under the fold) whenever a banner or the strip shares
+   * the viewport. */
   .app-shell .workspace {
-    height: calc(100dvh - 74px - env(safe-area-inset-bottom, 0px));
-    height: calc(100svh - 74px - env(safe-area-inset-bottom, 0px));
+    flex: 1 1 auto;
+    height: auto;
     min-height: 0;
-    max-height: calc(100dvh - 74px - env(safe-area-inset-bottom, 0px));
-    max-height: calc(100svh - 74px - env(safe-area-inset-bottom, 0px));
+    max-height: none;
     overflow: hidden;
+  }
+  .app-shell .favorite-server-strip {
+    flex: 0 0 auto;
   }
   .app-shell .workspace-scroll {
     height: 100%;
@@ -7824,10 +7874,10 @@
     padding-bottom: calc(52px + env(safe-area-inset-bottom, 0px));
   }
   .app-shell .workspace {
-    height: calc(100dvh - 52px - env(safe-area-inset-bottom, 0px));
-    height: calc(100svh - 52px - env(safe-area-inset-bottom, 0px));
-    max-height: calc(100dvh - 52px - env(safe-area-inset-bottom, 0px));
-    max-height: calc(100svh - 52px - env(safe-area-inset-bottom, 0px));
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
   }
   .workspace-header {
     min-height: 44px;

@@ -315,6 +315,28 @@
           ></div
         >
         <div
+          v-if="favoriteSwitchPending || favoriteSwitchFailed"
+          class="favorite-switch-banner"
+          data-ws-part="voice.favorite-switch-banner"
+          role="status"
+          aria-live="polite"
+        >
+          <div
+            class="reconnect-copy"
+          ><strong>{{ favoriteSwitchFailed
+            ? t("switchToServerFailed", { name: favoriteSwitchFailed })
+            : t("switchingToServer", { name: favoriteSwitchPending ?? "" }) }}</strong
+            ><span v-if="favoriteSwitchFailed && favoriteSwitchError">{{ favoriteSwitchError }}</span></div>
+          <div
+            class="reconnect-actions"
+          ><button
+            v-if="favoriteSwitchFailed"
+            type="button"
+            class="secondary-button"
+            @click="leaveVoiceWorkspace"
+          >{{ t("back") }}</button></div>
+        </div>
+        <div
           v-for="poke in visiblePokes"
           :key="poke.id"
           class="poke-banner"
@@ -333,9 +355,50 @@
               :size="15" /></button
         ></div>
       </div>
+      <!-- Mobile server strip: shell-level chrome above the tab content, so a
+           channels/more tab switch (which hides the workspace) can never hide
+           the server bar. The desktop rail below takes over from 741px. -->
+      <div
+        v-if="accessMode === 'open' && favoriteServers.length"
+        class="favorite-server-strip"
+        data-ws-part="voice.favorite-server-strip"
+        role="toolbar"
+        :aria-label="t('favoriteServers')"
+      >
+        <button
+          v-for="server in favoriteServers"
+          :key="server.id"
+          type="button"
+          class="favorite-server-chip"
+          data-ws-part="voice.favorite-server-chip"
+          :class="{ active: server.address === currentTarget }"
+          :aria-pressed="server.address === currentTarget"
+          :disabled="Boolean(favoriteSwitchPending) || voiceState.connecting"
+          :title="server.label"
+          :aria-label="t('switchToServer', { name: server.label })"
+          @click="switchServer(server)"
+        ><span
+            class="favorite-server-chip-initial"
+            :style="avatarStyle(server.label, false, '')"
+            aria-hidden="true"
+          >{{ avatarInitial(server.label) }}</span><span
+            class="favorite-server-chip-label"
+          >{{ server.label }}</span></button>
+        <button
+          type="button"
+          class="favorite-server-add"
+          data-ws-part="voice.favorite-server-add"
+          :aria-label="t('addFavoriteServer')"
+          :title="t('addFavoriteServer')"
+          @click="openFavoriteServerDialog()"
+        ><Icon
+            name="plus"
+            :size="14"
+        /></button>
+      </div>
       <!-- Desktop server rail: the leftmost column of the shell (left of the
-           member sidebar, like upstream). Mobile keeps the horizontal chip
-           strip inside the workspace instead. -->
+           member sidebar, like upstream). Hidden on touch sizes where the
+           strip above replaces it. -->
       <div
         v-if="accessMode === 'open'"
         class="favorite-server-rail"
@@ -381,65 +444,6 @@
         class="workspace"
         data-ws-part="voice.workspace"
       >
-        <div
-          v-if="accessMode === 'open' && favoriteServers.length"
-          class="favorite-server-strip"
-          data-ws-part="voice.favorite-server-strip"
-          role="toolbar"
-          :aria-label="t('favoriteServers')"
-        >
-          <button
-            v-for="server in favoriteServers"
-            :key="server.id"
-            type="button"
-            class="favorite-server-chip"
-            data-ws-part="voice.favorite-server-chip"
-            :class="{ active: server.address === currentTarget }"
-            :aria-pressed="server.address === currentTarget"
-            :disabled="Boolean(favoriteSwitchPending) || voiceState.connecting"
-            :title="server.label"
-            :aria-label="t('switchToServer', { name: server.label })"
-            @click="switchServer(server)"
-          ><span
-              class="favorite-server-chip-initial"
-              aria-hidden="true"
-            >{{ avatarInitial(server.label) }}</span><span
-              class="favorite-server-chip-label"
-            >{{ server.label }}</span></button>
-          <button
-            type="button"
-            class="favorite-server-add"
-            data-ws-part="voice.favorite-server-add"
-            :aria-label="t('addFavoriteServer')"
-            :title="t('addFavoriteServer')"
-            @click="openFavoriteServerDialog()"
-          ><Icon
-              name="plus"
-              :size="14"
-          /></button>
-        </div>
-        <div
-          v-if="favoriteSwitchPending || favoriteSwitchFailed"
-          class="favorite-switch-banner"
-          data-ws-part="voice.favorite-switch-banner"
-          role="status"
-          aria-live="polite"
-        >
-          <div
-            class="reconnect-copy"
-          ><strong>{{ favoriteSwitchFailed
-            ? t("switchToServerFailed", { name: favoriteSwitchFailed })
-            : t("switchingToServer", { name: favoriteSwitchPending ?? "" }) }}</strong
-            ><span v-if="favoriteSwitchFailed && favoriteSwitchError">{{ favoriteSwitchError }}</span></div>
-          <div
-            class="reconnect-actions"
-          ><button
-            v-if="favoriteSwitchFailed"
-            type="button"
-            class="secondary-button"
-            @click="leaveVoiceWorkspace"
-          >{{ t("back") }}</button></div>
-        </div>
         <header
           class="workspace-header"
           data-ws-part="voice.header"
