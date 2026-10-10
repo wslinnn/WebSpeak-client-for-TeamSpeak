@@ -8,6 +8,10 @@ interface SessionStateOptions {
   onMembersChanged(): void;
 }
 
+// A hours-long session must not grow the chat array without bound; the visible
+// pane only ever renders the tail, so trimming from the head loses nothing.
+const CHAT_HISTORY_LIMIT = 500;
+
 export function createVoiceSessionState(options: SessionStateOptions) {
   const epoch = ref(0);
   const members = reactive<ChannelMember[]>([]);
@@ -201,7 +205,7 @@ export function createVoiceSessionState(options: SessionStateOptions) {
         if (message.invokerId === options.selfId()) break;
         const scope = message.scope === "channel" || message.scope === "server" || message.scope === "private" ? message.scope : "system";
         const targetId = message.targetId === undefined ? "" : String(message.targetId);
-        chatMessages.push({ id: nextId("remote"), scope,
+        appendChatMessage({ id: nextId("remote"), scope,
           ...(targetId && targetId !== "0" ? { targetId } : {}),
           ...(scope === "private" ? { conversationId: String(message.invokerId || 0),
             conversationKey: incomingConversationKey(message.invokerId || 0, message.senderUid),
@@ -224,8 +228,13 @@ export function createVoiceSessionState(options: SessionStateOptions) {
     return true;
   }
 
+  function appendChatMessage(message: ChatMessage): void {
+    chatMessages.push(message);
+    if (chatMessages.length > CHAT_HISTORY_LIMIT) chatMessages.splice(0, chatMessages.length - CHAT_HISTORY_LIMIT);
+  }
+
   function appendLocal(message: Omit<ChatMessage, "id" | "timestamp" | "isSelf">): void {
-    chatMessages.push({ ...message, id: nextId("self"), timestamp: Date.now(), isSelf: true });
+    appendChatMessage({ ...message, id: nextId("self"), timestamp: Date.now(), isSelf: true });
   }
 
   function reset(): void {

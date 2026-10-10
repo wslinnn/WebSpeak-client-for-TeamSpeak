@@ -393,6 +393,17 @@ test("a recovered session replaces its directory even when the gateway omits mem
   assert.equal(voice.chatMessages.length, 1, "same-socket recovery may retain historical messages");
 });
 
+test("chat history stays bounded no matter how long the session runs", async () => {
+  const socket = await connect();
+  socket.receive({ type: "connected", tsClientId: 1 });
+  for (let i = 0; i < 520; i += 1) {
+    socket.receive({ type: "chatMessage", invokerId: 7, invokerName: "Chatty", message: `remote-${i}`, scope: "channel" });
+  }
+  assert.equal(voice.chatMessages.length, 500);
+  assert.equal(voice.chatMessages[0].message, "remote-20", "trimming drops the head, never the tail");
+  assert.equal(voice.chatMessages[499].message, "remote-519");
+});
+
 function chatView(t, overrides = {}) {
   const scope = effectScope();
   t.after(() => scope.stop());
