@@ -42,12 +42,14 @@ npm --prefix web ci --no-audit --no-fund
 - 模板/CSS 格式化改动与行为改动分开；包裹 Vue 标签时保留内联空白文本节点。
 - 浮层层级必须取 `--ws-z-*` 阶梯变量（web-client.css 顶部定义，admin.css 同值副本：raised 10 / header 100 / dropdown 200 / menu-mask 300 / menu 310 / modal-mask 400 / toast 500），禁止裸 z-index 数字——header 曾硬编码 z-index:40 压在弹窗遮罩上；`isolation: isolate` 容器内部的 1/2/3 局部小阶梯除外。
 - 皮肤命名空间约束：`.ws-skin-root` 的 `data-ws-skin` 是自定义皮肤 CSS 的作用域锚点（内置皮肤样式按 `[data-ws-skin="builtin.*"]` 高特异性命中），皮肤激活后任何 `applyTheme/saveTheme` 都必须传 `preserveCustomSkins: true`，否则属性被刷回内置皮肤、自定义皮肤整体失效且刷新后才恢复——皮肤切换失效 bug 的根因；ILLUSIA/社区皮肤的 CSS 靠动态 `<style>` 注入次序压过基础样式，勿改动注入位置。
+- 频道/成员等状态变更命令一律走应答式 `sendCommandAndWait` 并在失败时回滚本地乐观状态（错误对象携带 `code` 供分支处理）——`switchChannel` 曾因 fire-and-forget 导致界面漂移到未进入的频道且无任何提示。
 - 皮肤开发遵循 `docs/SKIN_DEVELOPMENT.md` 与 `.agents/skills/webspeak-skin-development` 技能。
 
 ## 其他注意事项
 
 - Node.js ≥ 22.5（CI 用 22.22.2）；后端 TypeScript strict + NodeNext + ES2022。
 - Git 远端：`origin` = wslinnn 仓库（默认推送目标），`upstream` = EchoSixHIYA 上游仓库。
+- 多个 commit 共享同一文件时的拆分手法：先备份各文件终态，逐 commit 剥离后置 hunks，每个中间态过类型检查与定向测试后再提交，全部完成后终态与备份逐字节比对——保证每个中间提交可构建、可 bisect。
 - SQLite schema 版本在 `src/persistence/database.ts`（当前 v11：v10 移除中继配置列，v11 将 `webrtc_enabled` 一次性置 1——WebRTC 是本 fork 的主语音路径，管理员事后关闭仍持久生效）；schema 迁移与结构性重构分开提交。
 - 阶段 1 性能基线（改这些区域前先理解）：目录广播必须是 delta（`session-events.ts` 的 publishDelta），全量 `channelList` 只在连接/重连后发一次；头像按 uid 走 `memberAvatar` 消息 + `avatar-cache.ts` 共享 LRU（128 条），不在频道树/成员里内联；网关两个 Opus 编码器经 `createVoiceEncoder()` 钉参（24kbps + VOIP + FEC/期望丢包 10%）；WebRTC pacer 空闲 200ms 停表、入帧即恢复（禁止逐帧门控）。
 - 阶段 2 安全基线（2026-10-09 落地）：首启无默认口令，`admin-service.ts` 生成一次性 setup token 只打印到日志，登录后强制改密；`WEBSPEAK_TRUST_PROXY=1` 声明反代（`server/client-ip.ts` 统一解析：转信头仅在此时采信，IPv4-mapped 归一化为 IPv4，IPv6 按 /64 聚合限流键）；安全响应头全局中间件（CSP `default-src 'self'`——`style-src 'unsafe-inline'` 是皮肤 `<style>` 注入与 Vue 样式绑定所需，勿"修复"；`img-src`/`font-src`/`media-src` 的 `blob:` 分别是皮肤包资源、皮肤字体、麦克风试听回放的通道，`script-src 'wasm-unsafe-eval'` 是 RNNoise 降噪 WASM，均勿收紧（2026-10-10 曾因缺 `blob:` 拦死皮肤图片/试听回放）；`connect-src 'self'` 是有意的收窄——语音 WS 恒同源且浏览器地板（WebCodecs）已高于 Safari 15.4 的 'self'/ws 匹配修复，勿再放宽 `ws: wss:`，全部由 `security-headers.test.ts` 钉死；HSTS 仅 HTTPS 响应）；WS 控制消息令牌桶（`command-rate-limit.ts`，30 突发/20 每秒，限流回执 1 秒合并一条）；TS 服务器密码错误按目标计数退避（`server-password-guard.ts`，join 端点仅对用户自带密码的请求检查，invite/托管密码不受影响）；fixed 模式不向普通用户返回真实 target；转义收敛 `security/ts-escaping.ts`（含 \t\f\v）。
@@ -55,5 +57,5 @@ npm --prefix web ci --no-audit --no-fund
 - 本仓库是上游的裁剪 fork：已删除加速中继、Android、DemoView、访客计数；不要从 upstream 合并会重新引入这些功能的改动。
 - `data/`、`config.json`、`*.pem`/`*.key`、`.env*` 为本地私有内容，禁止入库。
 - 需要真实 TeamSpeak 服务器或浏览器媒体设备的测试，须单独记录环境与结果；不得用 mock 编解码器冒充真实音频验证。
-- 活跃改造计划见 `D:\develop\project\tsweb\reports\`（09/10 号报告头部有执行状态）。阶段 0/1/2/3 与 UI/UX 修复轮（10 号报告，2026-10-10 落地：皮肤切换/层级阶梯/成员交互/加入页/设备链/i18n 对齐/文档清扫，commit `919a22a…876d758`）已完成；**无剩余排期项**。条件重开项及触发器：T10 Opus-over-WS（诊断 `voiceTransports.compatRatio` 持续 >5%）、Opus DTX（实测 WebRTC 出向码率在语音活跃期逼近 3Mbps 上限时）、worker_threads（100 会话上限内不需要——基准 100 会话×4 说话人编解码地板 ≈1.3 核）、前端 shallowRef（性能面板实测到渲染开销时）、iOS 音频行为真机定级（volume/mute/输出路由，决定 P0 与否）、成员音量拖拽体系收敛（删 HTML5 DnD 统一 pointer，10 号报告 §4.3 方案 c）、入会前设备选择完整版（现仅对话框复用入口）、B-9 groupId 设备配对、AGC 移动端开关。
+- 活跃改造计划见 `D:\develop\project\tsweb\reports\`（09 号为性能/安全四阶段；10 号 §12 为当前活跃批次：批次一 = 拖拽统一指针体系 / 戳一戳通知策略 / 自动重连+刷新回归（含网关会话内重连票据），批次二 = 标签页收藏记住密码 / 下载页 / 移动引导页+逃生口）。阶段 0/1/2/3 与 UI/UX 修复轮（10 号报告，2026-10-10 落地并已推送 `ee12fa1…39ce6c5`：皮肤切换/层级阶梯/成员交互/加入页/设备链/i18n 对齐/安全头修复与收窄/文档清扫）已完成。条件重开项及触发器：T10 Opus-over-WS（诊断 `voiceTransports.compatRatio` 持续 >5%）、Opus DTX（实测 WebRTC 出向码率在语音活跃期逼近 3Mbps 上限时）、worker_threads（100 会话上限内不需要——基准 100 会话×4 说话人编解码地板 ≈1.3 核）、前端 shallowRef（性能面板实测到渲染开销时）、iOS 音频行为真机定级（volume/mute/输出路由，决定 P0 与否）、入会前设备选择完整版（现仅对话框复用入口）、B-9 groupId 设备配对、AGC 移动端开关、网关会话 resume token（自动重连方案一上线后重进闪烁/延迟仍被反馈时）、移动端代码整体删除（自研安卓端稳定上架后；此前只做引导页+逃生口，勿删移动端代码）。
 - 已评估否决项（勿重新立项）：重写 TeamSpeak SDK（无必要，性能热点全在网关层；fork 源码 + 更新 vendor 为兜底方案）；接入阿里云 ESA 等 CDN（语音走 WebRTC UDP 直连不经 CDN，对延迟与 3Mbps 出流量无益，仅在跨地域首屏慢或源站暴露需求时再议）；Opus DTX（只省 <200ms 语间停顿的码率——更长的静默已被 pacer 停表覆盖，CPU 无收益，且 DTX/PLC 切换有噪声风险、FEC 覆盖在 DTX 期下降，2026-10-09 基准数据后拍板）；前端 shallowRef 目录状态（阶段 1 delta 化已消灭全量替换触发源，剩余为事件级原位 patch，shallowRef 需手动 triggerRef 改写十余处 mutation 点，回归风险大于收益）；昵称冲突客户端自动重试（TS 服务端自带重名改名/拒绝处理，客户端加后缀重试是画蛇添足，2026-10-10 拍板）。
