@@ -340,6 +340,50 @@
         class="workspace"
         data-ws-part="voice.workspace"
       >
+        <!-- Desktop server rail: a vertical column left of the header/content
+             (grid placement comes from the ≥741 stylesheet block). Mobile
+             keeps the horizontal chip strip below instead. -->
+        <div
+          v-if="accessMode === 'open'"
+          class="favorite-server-rail"
+          data-ws-part="voice.favorite-server-rail"
+          role="toolbar"
+          :aria-label="t('favoriteServers')"
+        >
+          <button
+            v-for="server in quickServers"
+            :key="server.id"
+            type="button"
+            class="favorite-server-rail-row"
+            :class="{ active: server.address === currentTarget }"
+            :aria-pressed="server.address === currentTarget"
+            :disabled="Boolean(favoriteSwitchPending) || voiceState.connecting"
+            :title="server.label"
+            :aria-label="t('switchToServer', { name: server.label })"
+            @click="switchToQuickServer(server)"
+          ><Icon
+              v-if="server.password"
+              class="favorite-server-rail-lock"
+              name="lock"
+              :size="12"
+            /><span class="favorite-server-rail-label">{{ server.label }}</span><Icon
+              v-if="server.isFavorite"
+              class="favorite-server-rail-star"
+              name="star"
+              :size="11"
+          /></button>
+          <button
+            type="button"
+            class="favorite-server-rail-add"
+            data-ws-part="voice.favorite-server-rail.add"
+            :aria-label="t('addFavoriteServer')"
+            :title="t('addFavoriteServer')"
+            @click="openFavoriteServerDialog()"
+          ><Icon
+              name="plus"
+              :size="14"
+          /><span>{{ t("addFavoriteServer") }}</span></button>
+        </div>
         <div
           v-if="accessMode === 'open' && quickServers.length"
           class="favorite-server-strip"

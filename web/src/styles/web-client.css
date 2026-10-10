@@ -1107,6 +1107,114 @@
   filter: drop-shadow(0 1px 1px rgba(255, 255, 255, .85));
 }
 
+/* Desktop: the server list is a vertical rail left of header and content —
+ * the header keeps its full width. The horizontal strip below the rail rule
+ * only serves ≤740 touch layouts, where there is no room for a side column. */
+.favorite-server-rail {
+  display: none;
+}
+
+@media (min-width: 741px) {
+  .workspace {
+    display: grid;
+    grid-template-columns: 212px minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+  .workspace > .favorite-server-strip {
+    display: none;
+  }
+  .workspace > .favorite-switch-banner {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .workspace > .workspace-header {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .workspace > .workspace-scroll {
+    grid-column: 2;
+    grid-row: 3;
+  }
+  .favorite-server-rail {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    grid-column: 1;
+    grid-row: 1 / -1;
+    min-height: 0;
+    padding: 10px 8px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    border-right: 1px solid #eef2f0;
+  }
+}
+
+.favorite-server-rail-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 34px;
+  flex: 0 0 auto;
+  padding: 0 9px;
+  color: #52635d;
+  background: transparent;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.favorite-server-rail-row:hover,
+.favorite-server-rail-row.active {
+  color: #006a64;
+  background: #e5f3f0;
+}
+
+.favorite-server-rail-row:disabled {
+  opacity: .55;
+  cursor: default;
+}
+
+.favorite-server-rail-label {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favorite-server-rail-star {
+  flex: 0 0 auto;
+  color: #d9a13c;
+}
+
+.favorite-server-rail-lock {
+  flex: 0 0 auto;
+  color: #94a29d;
+}
+
+.favorite-server-rail-add {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  margin-top: 6px;
+  padding: 0 9px;
+  color: #7a8a84;
+  background: transparent;
+  border: 1px dashed #cfe0da;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.favorite-server-rail-add:hover {
+  color: #006a64;
+  border-color: #7fbcb2;
+}
+
 /* Desktop shows the initial only; the full label takes over on touch sizes. */
 .favorite-server-chip-label {
   display: none;
