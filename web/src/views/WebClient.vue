@@ -284,14 +284,6 @@
               :t="t"
             />
             <button
-              class="header-action"
-              :title="t('copyInvite')"
-              @click="doShare"
-              ><Icon
-                name="share"
-                :size="18"
-            /></button>
-            <button
               v-if="isMobileViewport"
               class="header-action microphone-header-toggle"
               :class="{ muted: microphoneMuted }"
@@ -1151,7 +1143,6 @@ watch(() => mobileViewport.height, () => chat.scrollIfFollowing(), { flush: "pos
 const { tab: chatTab, openPrivateChat } = chat;
 const {
   canJoin,
-  currentServerTarget,
   doConnect,
   doDisconnect,
   submitServerPassword,
@@ -1364,22 +1355,6 @@ function selectMobileSection(section: typeof mobileSection.value): void {
   if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
   memberMenu.value = null;
   mobileSection.value = section;
-}
-
-function doShare() {
-  const invite = new URL(location.href);
-  invite.searchParams.delete("token");
-  invite.searchParams.delete("target");
-  invite.searchParams.delete("tsHost");
-  invite.searchParams.delete("tsPort");
-  invite.searchParams.delete("server");
-  // A stale invite token carried over from the current URL would override the
-  // server link on the recipient's side and fail there; open mode shares by
-  // address, so it must not ride along.
-  if (accessMode.value === "open") invite.searchParams.delete("invite");
-  if (accessMode.value === "open" && serverHost.value.trim()) invite.searchParams.set("server", currentServerTarget());
-  if (channel.value) invite.searchParams.set("channel", channel.value);
-  navigator.clipboard?.writeText(invite.toString()).then(() => showToast(t("copiedToast")), () => showToast(t("copyFailedToast")));
 }
 
 async function clearBrowserData(): Promise<void> {
