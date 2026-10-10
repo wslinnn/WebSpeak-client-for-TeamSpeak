@@ -4578,6 +4578,18 @@
   cursor: pointer;
 }
 
+@media (max-width: 740px) {
+  /* Touch: a thicker track and a thumb near the 24px hit-target guidance. */
+  :deep(.menu-volume input) {
+    height: 8px;
+  }
+  :deep(.menu-volume input::-webkit-slider-thumb),
+  :deep(.menu-volume input::-moz-range-thumb) {
+    width: 20px;
+    height: 20px;
+  }
+}
+
 .poke-banner {
   position: fixed;
   z-index: var(--ws-z-toast);
@@ -6685,10 +6697,14 @@
   outline-offset: 2px;
 }
 
+:deep(.member-row) {
+  /* pan-y keeps vertical list scrolling working on touch; only horizontal
+     drags start a member move (the desktop HTML5 drag path sets the same). */
+  touch-action: pan-y;
+}
+
 :deep(.member-row[draggable="true"]) {
   cursor: grab;
-  /* pan-y keeps vertical list scrolling working on touch; only horizontal
-     drags start a member move. */
   touch-action: pan-y;
 }
 

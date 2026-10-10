@@ -202,6 +202,7 @@
                 type="range"
                 min="0"
                 max="400"
+                step="5"
                 :value="(volumes[member.id] ?? 1) * 100"
                 :style="rangeStyle((volumes[member.id] ?? 1) / 4, 1)"
                 :aria-label="t('memberVolume')"

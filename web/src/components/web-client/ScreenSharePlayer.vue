@@ -88,6 +88,7 @@
             type="range"
             min="0"
             max="100"
+            step="5"
             :value="screenShareRemoteVolume * 100"
             :aria-label="t('screenShareVolume')"
             @input="onScreenShareVolume"
