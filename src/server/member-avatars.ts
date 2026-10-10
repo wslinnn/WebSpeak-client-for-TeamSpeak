@@ -14,6 +14,11 @@ export interface AvatarCache {
   delete(uid: string): unknown;
 }
 
+// Every member's avatar is relayed to every other member over the shared
+// 3 Mbit/s uplink; oversized files (TeamSpeak allows several MB) would eat the
+// voice budget per viewer, so they are skipped like failed transfers.
+export const MAX_RELAY_AVATAR_BYTES = 256 * 1024;
+
 export interface MemberAvatarOptions {
   members: ReadonlyMap<number, AvatarMember>;
   /** Shared across sessions; positives survive reconnects, negatives do not. */
@@ -77,7 +82,7 @@ export class MemberAvatarLoader {
           if (!isCurrent()) return;
           const current = this.options.members.get(member.id);
           if (current?.uid !== member.uid) continue;
-          const avatar = loaded ? avatarDataUrl(loaded.data) : null;
+          const avatar = loaded && loaded.data.byteLength <= MAX_RELAY_AVATAR_BYTES ? avatarDataUrl(loaded.data) : null;
           this.options.cache.set(member.uid, avatar);
           if (avatar) this.options.publish(member.uid, avatar);
         } catch (error: unknown) {
