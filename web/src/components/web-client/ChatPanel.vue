@@ -135,25 +135,33 @@
         }}</span></div
       >
       <template
-        v-for="message in visibleChatMessages"
+        v-for="(message, index) in visibleChatMessages"
         :key="message.id"
       >
         <article
           v-if="chatTab !== 'events'"
-          :class="['message-row', { mine: message.isSelf }]"
+          :class="['message-row', { mine: message.isSelf, grouped: isGroupedMessage(visibleChatMessages, index) }]"
           data-ws-part="voice.chat.message"
           :data-ws-state="message.isSelf ? 'mine' : 'other'"
         >
           <div
+            v-if="!isGroupedMessage(visibleChatMessages, index)"
             class="message-avatar"
             data-ws-part="voice.chat.message-avatar"
             :style="avatarStyle(message.invokerName, message.isSelf, messageAvatar(message))"
             >{{ messageAvatar(message) ? "" : avatarInitial(message.invokerName) }}</div
           >
           <div
+            v-else
+            class="message-avatar message-avatar-spacer"
+            aria-hidden="true"
+          ></div>
+          <div
             class="message-body"
             data-ws-part="voice.chat.message-body"
-            ><div class="message-meta"
+            ><div
+              v-if="!isGroupedMessage(visibleChatMessages, index)"
+              class="message-meta"
               ><strong>{{ message.isSelf ? t("you") : message.invokerName }}</strong
               ><time>{{ formatTime(message.timestamp) }}</time></div
             ><div
@@ -251,5 +259,18 @@ const composing = ref(false);
 function guardComposition(event: KeyboardEvent): void {
   // Android IME and Safari can confirm a candidate with Enter; that is not Send.
   if (composing.value || event.isComposing || event.keyCode === 229) event.preventDefault();
+}
+
+// Consecutive messages from the same sender within the window render as one
+// visual group: avatar and name/time only on the first row.
+const MESSAGE_GROUP_WINDOW_MS = 5 * 60_000;
+function isGroupedMessage(messages: readonly ChatMessage[], index: number): boolean {
+  const current = messages[index];
+  const previous = messages[index - 1];
+  if (!previous || previous.isSelf !== current.isSelf) return false;
+  const currentKey = current.senderUid ?? `id:${current.senderId}`;
+  const previousKey = previous.senderUid ?? `id:${previous.senderId}`;
+  if (currentKey !== previousKey) return false;
+  return current.timestamp - previous.timestamp < MESSAGE_GROUP_WINDOW_MS;
 }
 </script>

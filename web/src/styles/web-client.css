@@ -1644,6 +1644,16 @@
   max-width: 78%;
 }
 
+/* Grouped rows tighten onto their predecessor; the avatar spacer keeps the
+ * bubble column aligned with the group head. */
+:deep(.message-row.grouped) {
+  margin-top: -11px;
+}
+
+:deep(.message-avatar-spacer) {
+  background: transparent;
+}
+
 :deep(.message-row.mine) {
   align-self: flex-end;
   flex-direction: row-reverse;
