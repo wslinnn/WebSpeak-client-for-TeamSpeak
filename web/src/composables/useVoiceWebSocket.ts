@@ -7,7 +7,7 @@ import { createAudioSinkRouter } from "../voice/audio-sink.js";
 import { createAccompaniment, type AccompanimentErrorCode } from "../voice/accompaniment.js";
 import { createWebRtcTransport } from "../voice/webrtc-transport.js";
 import { createVoiceConnection } from "../voice/connection.js";
-import { clearVoiceSessionIntent, readVoiceSessionIntent, writeVoiceSessionIntent } from "../voice/session-intent.js";
+import { clearVoiceSessionIntent, readLastResumeAt, readVoiceSessionIntent, writeLastResumeAt, writeVoiceSessionIntent } from "../voice/session-intent.js";
 import { createVoiceCommands } from "../voice/commands.js";
 import { createVoiceSessionState } from "../voice/session-state.js";
 import { createAudioDiagnostics, type AudioPermission, type VoiceAudioStatusSample } from "../voice/audio-diagnostics.js";
@@ -1184,10 +1184,18 @@ export function useVoiceWebSocket() {
   /** Page-load recovery: exchange the stored reconnect token for a fresh join
    *  ticket and rebuild the session. Returns false when there is nothing to
    *  resume, leaving the normal join form untouched. */
+  /** Per-tab cooldown for automatic resume: every manual refresh must not
+   *  turn into a fresh voice session — rapid refresh cycles are exactly the
+   *  pattern that trips TeamSpeak connection-flood bans. Past the window the
+   *  next reload may try again; explicit joins are never throttled. */
+  const RESUME_COOLDOWN_MS = 15_000;
   function tryResumeVoiceSession(): boolean {
     if (state.connected || state.connecting || state.reconnecting) return false;
+    const now = Date.now();
+    if (now - readLastResumeAt() < RESUME_COOLDOWN_MS) return false;
     const intent = readVoiceSessionIntent();
     if (!intent) return false;
+    writeLastResumeAt(now);
     reconnectTicket = intent.reconnectToken;
     state.error = "";
     state.errorCode = "";
