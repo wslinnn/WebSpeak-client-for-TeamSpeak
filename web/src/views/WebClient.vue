@@ -262,6 +262,87 @@
       data-ws-part="voice.shell"
       @click="memberMenu = null"
     >
+      <!-- Shell-level status banners sit outside .workspace so a mobile tab
+           switch (which hides the workspace) can never hide them. -->
+      <div class="voice-banners" data-ws-part="voice.banners">
+        <div
+          v-if="voiceState.reconnecting || voiceState.reconnectFailed"
+          :class="['reconnect-banner', { failed: voiceState.reconnectFailed }]"
+          data-ws-part="voice.connection-status"
+          role="status"
+        >
+          <div class="reconnect-copy"
+            ><strong>{{
+              voiceState.reconnectFailed ? t("reconnectFailed") : t("connectionInterrupted")
+            }}</strong
+            ><span v-if="voiceState.reconnecting">{{
+              t("reconnectingAttempt", { attempt: voiceState.reconnectAttempt })
+            }}</span
+            ><span v-else>{{ localizedMessage(voiceState.error) }}</span></div
+          >
+          <div class="reconnect-actions"
+            ><button
+              v-if="voiceState.reconnectFailed"
+              type="button"
+              class="secondary-button"
+              @click="reconnectMobile"
+              >{{ t("reconnectNow") }}</button
+            ><button
+              type="button"
+              class="text-button"
+              @click="leaveVoiceWorkspace"
+              >{{ t("back") }}</button
+            ></div
+          >
+        </div>
+        <div
+          v-if="voiceState.audioNotice"
+          class="reconnect-banner degraded"
+          data-ws-part="voice.audio-status"
+          role="status"
+          ><div class="reconnect-copy"
+            ><strong>{{ t("audioStatus") }}</strong
+            ><span>{{
+              localizedAudioNotice(voiceState.audioNoticeCode, voiceState.audioNotice)
+            }}</span></div
+          ></div
+        >
+        <div
+          v-if="voiceState.microphoneError"
+          class="reconnect-banner degraded"
+          data-ws-part="voice.microphone-status"
+          role="status"
+          ><div class="reconnect-copy"
+            ><strong>{{ t("microphone") }}</strong
+            ><span>{{
+              localizedMicrophoneError(voiceState.microphoneErrorCode, voiceState.microphoneError)
+            }}</span></div
+          ><button
+            type="button"
+            class="text-button"
+            @click="clearMicrophoneError"
+            >{{ t("close") }}</button
+          ></div
+        >
+        <div
+          v-for="poke in visiblePokes"
+          :key="poke.id"
+          class="poke-banner"
+          data-ws-part="voice.poke"
+          role="status"
+          ><Icon
+            name="bell"
+            :size="17" /><span
+            ><strong>{{ poke.invokerName }}</strong> {{ t("pokedYou")
+            }}<small v-if="poke.message">{{ t("pokeMessageSuffix", { message: poke.message }) }}</small></span
+          ><button
+            type="button"
+            @click="dismissPoke(poke.id)"
+            ><Icon
+              name="close"
+              :size="15" /></button
+        ></div>
+      </div>
       <main
         class="workspace"
         data-ws-part="voice.workspace"
@@ -408,84 +489,6 @@
           :t="t"
           @close="screenShareSettingsOpen = false"
         />
-
-        <div
-          v-if="voiceState.reconnecting || voiceState.reconnectFailed"
-          :class="['reconnect-banner', { failed: voiceState.reconnectFailed }]"
-          data-ws-part="voice.connection-status"
-          role="status"
-        >
-          <div class="reconnect-copy"
-            ><strong>{{
-              voiceState.reconnectFailed ? t("reconnectFailed") : t("connectionInterrupted")
-            }}</strong
-            ><span v-if="voiceState.reconnecting">{{
-              t("reconnectingAttempt", { attempt: voiceState.reconnectAttempt })
-            }}</span
-            ><span v-else>{{ localizedMessage(voiceState.error) }}</span></div
-          >
-          <div class="reconnect-actions"
-            ><button
-              v-if="voiceState.reconnectFailed"
-              type="button"
-              class="secondary-button"
-              @click="reconnectMobile"
-              >{{ t("reconnectNow") }}</button
-            ><button
-              type="button"
-              class="text-button"
-              @click="leaveVoiceWorkspace"
-              >{{ t("back") }}</button
-            ></div
-          >
-        </div>
-        <div
-          v-if="voiceState.audioNotice"
-          class="reconnect-banner degraded"
-          data-ws-part="voice.audio-status"
-          role="status"
-          ><div class="reconnect-copy"
-            ><strong>{{ t("audioStatus") }}</strong
-            ><span>{{
-              localizedAudioNotice(voiceState.audioNoticeCode, voiceState.audioNotice)
-            }}</span></div
-          ></div
-        >
-        <div
-          v-if="voiceState.microphoneError"
-          class="reconnect-banner degraded"
-          data-ws-part="voice.microphone-status"
-          role="status"
-          ><div class="reconnect-copy"
-            ><strong>{{ t("microphone") }}</strong
-            ><span>{{
-              localizedMicrophoneError(voiceState.microphoneErrorCode, voiceState.microphoneError)
-            }}</span></div
-          ><button
-            type="button"
-            class="text-button"
-            @click="clearMicrophoneError"
-            >{{ t("close") }}</button
-          ></div
-        >
-        <div
-          v-for="poke in visiblePokes"
-          :key="poke.id"
-          class="poke-banner"
-          data-ws-part="voice.poke"
-          role="status"
-          ><Icon
-            name="bell"
-            :size="17" /><span
-            ><strong>{{ poke.invokerName }}</strong> {{ t("pokedYou")
-            }}<small v-if="poke.message">{{ t("pokeMessageSuffix", { message: poke.message }) }}</small></span
-          ><button
-            type="button"
-            @click="dismissPoke(poke.id)"
-            ><Icon
-              name="close"
-              :size="15" /></button
-        ></div>
 
         <div
           class="workspace-scroll"
