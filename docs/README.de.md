@@ -175,6 +175,12 @@ Für den Bau von `@discordjs/opus` werden Python, Make und eine C/C++-Toolchain 
 3. Unter **Server** TeamSpeak-Ziel und Zugriffsmethode konfigurieren, zum Beispiel `voice.example.com#9987`.
 4. Für öffentliche Nutzung HTTPS einrichten; bei aktiviertem WebRTC den im Adminbereich angezeigten UDP-Bereich freigeben.
 
+### Häufige Fragen
+
+- **„Vom TeamSpeak-Server gebannt“ nach Aktualisierung oder Netzabbruch**: Das ist der Anti-Flood-Schutz des TeamSpeak-Servers bei schnellen Wiederanläufen; er ist temporär (meist wenige Minuten) — kurz warten und erneut versuchen. WebSpeak hält die Sitzung nach einem Abbruch 60 Sekunden lang — eine Aktualisierung oder Netzrückkehr führt direkt zurück in den Raum, ohne dass TeamSpeak neu verbindet; ein bewusstes Trennen verlässt sofort.
+- **Client-IPs im Log sind alle 127.0.0.1**: Das Gateway ignoriert Weiterleitungs-Header, solange kein Proxy als vertrauenswürdig deklariert ist. Hinter einem Reverse Proxy `WEBSPEAK_TRUST_PROXY=1` setzen und den Header `X-Forwarded-For` durchreichen (nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`). Das Gateway meldet diese Fehlkonfiguration einmalig im Log.
+- **Wie komme ich nach einer Aktualisierung zurück in den Raum?**: Innerhalb von 60 Sekunden wird die Sitzung automatisch fortgesetzt — ohne erneute Passworteingabe. Ein Klick auf „Trennen“ verlässt sofort und löscht die Wiederanlauf-Informationen.
+
 ## ⚠️ Voraussetzungen und Hinweise
 
 | Bereich | Hinweis |

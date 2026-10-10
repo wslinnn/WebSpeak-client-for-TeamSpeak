@@ -175,6 +175,12 @@ npm start
 3. 在“服务器”页配置 TeamSpeak 目标和访问方式，例如 `voice.example.com#9987`。
 4. 公网使用时配置 HTTPS；启用 WebRTC 时放行控制台显示的 UDP 范围。
 
+### 常见问题
+
+- **刷新或断网后提示被 TeamSpeak 服务器封禁**：这是 TeamSpeak 服务器反洪水保护对高频重连的临时封禁，通常几分钟自动解除，稍候重试即可。WebSpeak 会在断开后 60 秒内保留会话——刷新或网络恢复时直接回到原房间，TeamSpeak 侧零重连；主动断开立即下线。
+- **日志里的客户端 IP 都是 127.0.0.1**：网关默认不信任转发头。反代部署请设置 `WEBSPEAK_TRUST_PROXY=1` 并让反代发送 `X-Forwarded-For`（nginx：`proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`），否则日志与限流按代理地址区分；网关检测到该情况会在日志中主动提示。
+- **刷新后如何回到房间**：断开后 60 秒内重开页面会自动恢复原房间，无需重填密码；主动点击「断开」则立即下线并清除恢复信息。
+
 ## ⚠️ 要求和注意事项
 
 | 项目 | 要求或注意事项 |

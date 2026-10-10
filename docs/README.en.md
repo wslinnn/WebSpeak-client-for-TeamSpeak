@@ -173,6 +173,12 @@ Building `@discordjs/opus` requires Python, Make, and a C/C++ toolchain.
 3. Configure the TeamSpeak target and access mode under **Servers**, for example `voice.example.com#9987`.
 4. Configure HTTPS for public access; when WebRTC is enabled, allow the UDP range shown in the console.
 
+### FAQ
+
+- **"Banned from the TeamSpeak server" after a refresh or a network drop**: that is the TeamSpeak server's anti-flood protection reacting to rapid reconnects; it is temporary (usually a few minutes) — wait a moment and try again. WebSpeak keeps the session alive for 60 seconds after a drop, so a refresh or network recovery returns you straight to the room with zero TeamSpeak reconnects; clicking Disconnect leaves immediately.
+- **Client IPs in the logs are all 127.0.0.1**: the gateway ignores forwarded headers unless a proxy is declared trusted. Behind a reverse proxy set `WEBSPEAK_TRUST_PROXY=1` and make the proxy send `X-Forwarded-For` (nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`). The gateway logs a hint once when it detects this misconfiguration.
+- **How do I get back into the room after a refresh?**: within 60 seconds the session resumes automatically — no password re-entry. Clicking Disconnect leaves immediately and clears the resume state.
+
 ## ⚠️ Requirements and notes
 
 | Area | Requirement or note |
