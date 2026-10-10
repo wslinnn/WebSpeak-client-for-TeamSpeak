@@ -609,6 +609,25 @@
               </div>
             </section>
 
+            <!-- Mobile chat tab hides the voice cards entirely; this strip is
+                 the only place telling the user who is talking right now. -->
+            <div
+              v-if="isMobileViewport && mobileSection === 'chat' && speakingNowNames.length"
+              class="whisper-strip"
+              data-ws-part="voice.speaking-strip"
+              role="status"
+            >
+              <div class="whisper-strip-copy"
+                ><strong
+                  ><Icon
+                    name="volume"
+                    :size="15"
+                  />
+                  {{ t("speakingNow") }}</strong
+                ><span>{{ speakingNowNames.join("、") }}</span></div
+              >
+            </div>
+
             <ChatPanel
               :model="chat"
               :t="t"
@@ -1296,6 +1315,11 @@ const {
   whisperTargetIds,
   t,
 });
+// Speakers in the current channel, in roster order — feeds the mobile chat
+// tab's speaking strip.
+const speakingNowNames = computed(() => currentMembers.value
+  .filter(member => speakingIds.has(member.id))
+  .map(member => member.nickname));
 const memberControls = useWebClientMembers({
   channels: memberChannels,
   currentChannel,
