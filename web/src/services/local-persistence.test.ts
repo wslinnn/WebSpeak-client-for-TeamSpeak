@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { before, after, beforeEach, test } from "node:test";
 import { setImmediate as nextTurn } from "node:timers/promises";
-import { getChatHistoryConversationKey, loadLocalPreferences, normalizeChatHistoryServerKey, saveInstalledSkin, saveLocalPreferences } from "./local-persistence.js";
+import { clearNamespacedStorageEntries, getChatHistoryConversationKey, loadLocalPreferences, normalizeChatHistoryServerKey, saveInstalledSkin, saveLocalPreferences } from "./local-persistence.js";
 import type { InstalledSkin } from "./skin-pack.js";
 
 // Control IndexedDB's request and transaction completion separately. These tests
@@ -86,4 +86,38 @@ test("storage read success still returns its original data after transaction com
   await nextTurn(); const tx = transactions[0];
   tx.read({ schemaVersion: 1, skinId: "builtin.dark" }); tx.commit();
   assert.deepEqual(await pending, { schemaVersion: 1, skinId: "builtin.dark", volumesByUid: {} });
+});
+
+function createFakeStorage(entries: Record<string, string> = {}): Storage {
+  const map = new Map(Object.entries(entries));
+  return {
+    get length() { return map.size; },
+    key: (index: number) => Array.from(map.keys())[index] ?? null,
+    getItem: (key: string) => map.get(key) ?? null,
+    setItem: (key: string, value: string) => { map.set(key, String(value)); },
+    removeItem: (key: string) => { map.delete(key); },
+    clear: () => map.clear(),
+  } as Storage;
+}
+
+test("namespace sweep removes every webspeak key and nothing else", () => {
+  const storage = createFakeStorage({
+    "webspeak:nickname": "alice",
+    "webspeak:mobile-gate": "continue",
+    "other:theme": "dark",
+    "website:sound": "on",
+  });
+  assert.equal(clearNamespacedStorageEntries(storage), 2);
+  assert.equal(storage.getItem("webspeak:nickname"), null);
+  assert.equal(storage.getItem("webspeak:mobile-gate"), null);
+  assert.equal(storage.getItem("other:theme"), "dark");
+  assert.equal(storage.getItem("website:sound"), "on");
+});
+
+test("namespace sweep tolerates storage failures and custom prefixes", () => {
+  const broken = { get length(): number { throw new Error("denied"); } } as unknown as Storage;
+  assert.equal(clearNamespacedStorageEntries(broken), 0);
+  const storage = createFakeStorage({ "ws-a:1": "x", "keep:1": "y" });
+  assert.equal(clearNamespacedStorageEntries(storage, "ws-a:"), 1);
+  assert.equal(storage.getItem("keep:1"), "y");
 });

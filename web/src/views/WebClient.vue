@@ -769,7 +769,7 @@ import { useWebClientI18n } from "../composables/useWebClientI18n.js";
 import { useWebClientPublicConfig } from "../composables/useWebClientPublicConfig.js";
 import { useWebClientServerHistory } from "../composables/useWebClientServerHistory.js";
 import { getInitialLanguage, type Language } from "../i18n/web-client.js";
-import { clearLocalData as clearStoredLocalData, isLocalPersistenceAvailable, loadLocalPreferences, loadStoredIdentity, removeStoredIdentity, saveLocalPreferences, saveStoredIdentity } from "../services/local-persistence.js";
+import { clearLocalData as clearStoredLocalData, clearNamespacedStorageEntries, isLocalPersistenceAvailable, loadLocalPreferences, loadStoredIdentity, removeStoredIdentity, saveLocalPreferences, saveStoredIdentity } from "../services/local-persistence.js";
 import type { InstalledSkin, SkinHomeCopy } from "../services/skin-pack.js";
 import { isPublicSkinEnabled } from "../services/skin-catalog.js";
 import { BUILTIN_DARK_SKIN, BUILTIN_LIGHT_SKIN } from "../services/skin-runtime.js";
@@ -1361,7 +1361,11 @@ async function clearBrowserData(): Promise<void> {
   resetIdentityOperations();
   publicSkin.cancel();
   await clearStoredLocalData();
-  for (const key of ["webspeak:nickname", "webspeak:language", "webspeak:theme", "webspeak:active-skin", "webspeak:skin-choice", "webspeak:input-device", "webspeak:output-device", "webspeak:remember-identity"]) localStorage.removeItem(key);
+  // Namespace sweep, not an enumerated key list: every webspeak:* setting —
+  // past and future — dies here, including the mobile-gate choice, the
+  // desktop-notification opt-in and the voice-session resume token.
+  clearNamespacedStorageEntries(localStorage);
+  clearNamespacedStorageEntries(sessionStorage);
   await publicSkin.reset();
   identityMaterial.value = "";
   rememberIdentity.value = false;

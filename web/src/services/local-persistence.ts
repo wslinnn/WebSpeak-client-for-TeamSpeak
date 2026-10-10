@@ -388,3 +388,21 @@ export async function clearLocalData(): Promise<void> {
     // Clearing local data is best effort when storage is unavailable.
   }
 }
+
+/** Remove every `webspeak:`-prefixed entry from a web storage area. The wipe
+ *  targets the namespace, never an enumerated key list — enumerated lists are
+ *  how "a new setting survives the data wipe" bugs happen. Returns the number
+ *  of removed keys. */
+export function clearNamespacedStorageEntries(storage: Pick<Storage, "key" | "length" | "removeItem">, prefix = "webspeak:"): number {
+  try {
+    const keys: string[] = [];
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (key?.startsWith(prefix)) keys.push(key);
+    }
+    for (const key of keys) storage.removeItem(key);
+    return keys.length;
+  } catch {
+    return 0;
+  }
+}
