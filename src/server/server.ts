@@ -18,6 +18,7 @@ import { identityFromString } from "@echosixhiya/teamspeak-client";
 import { JoinRateLimiter } from "./join-rate-limit.js";
 import { SkinDownloadRateLimiter } from "./skin-download-rate-limit.js";
 import { rateLimitPeerKey, resolveClientAddress } from "./client-ip.js";
+import { createProxyHint } from "./proxy-hint.js";
 import type { ServerPasswordGuard } from "./server-password-guard.js";
 import type { AndroidReleaseInfo } from "./downloads.js";
 import { teamSpeakTargetKey } from "../domain/teamspeak-target.js";
@@ -54,6 +55,17 @@ export function createWebServer(options: WebServerOptions): WebServer {
   const logger = options.logger.child({ component: "web" });
   const trustProxy = options.trustProxy === true;
   if (trustProxy) app.set("trust proxy", true);
+  // Without a declared trusted proxy, forwarded headers are ignored by design
+  // — which renders a same-host proxy invisible: every client looks like
+  // 127.0.0.1 in logs and shares one rate-limit bucket. Surface that
+  // misconfiguration once instead of letting it degrade silently.
+  if (!trustProxy) {
+    const hintProxyMisconfigured = createProxyHint((message) => logger.warn(message));
+    app.use((request, _response, next) => {
+      hintProxyMisconfigured(request.socket.remoteAddress, request.headers["x-forwarded-for"]);
+      next();
+    });
+  }
 
   let server: ReturnType<typeof createHttpsServer> | ReturnType<typeof createHttpServer>;
 
