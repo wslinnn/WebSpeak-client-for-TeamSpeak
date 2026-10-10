@@ -27,6 +27,7 @@
         :aria-label="t('searchMembers')"
     /></div>
     <div
+      ref="memberTreeEl"
       class="member-tree"
       data-ws-part="voice.member-panel.channels"
     >
@@ -51,9 +52,9 @@
         "
         :data-member-channel-id="channelItem.id"
         :style="{ marginLeft: `${channelItem.depth * 10}px` }"
-        @pointermove="onMemberPointerMove($event)"
-        @pointerup="onMemberPointerUp($event)"
-        @pointercancel="onMemberPointerCancel($event)"
+        @pointermove="onTreePointerMove($event)"
+        @pointerup="onTreePointerEnd($event)"
+        @pointercancel="onTreePointerCancel($event)"
       >
         <div
           class="member-channel-heading-row"
@@ -118,9 +119,9 @@
                   : 'connected'
             "
             @pointerdown="onMemberPointerDown(member, $event)"
-            @pointermove="onMemberPointerMove($event)"
-            @pointerup="onMemberPointerUp($event)"
-            @pointercancel="onMemberPointerCancel($event)"
+            @pointermove="onTreePointerMove($event)"
+            @pointerup="onTreePointerEnd($event)"
+            @pointercancel="onTreePointerCancel($event)"
             @contextmenu="onMemberContextMenu(member, $event)"
           >
             <div
@@ -237,7 +238,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type CSSProperties } from "vue";
+import { computed, onUnmounted, ref, type CSSProperties } from "vue";
 import Icon from "../Icon.vue";
 import type { TreeChannel } from "../../composables/useWebClientChannels.js";
 import type { useWebClientMembers } from "../../composables/useWebClientMembers.js";
@@ -282,6 +283,53 @@ const searchActive = computed(() => memberQuery.value.trim().length > 0);
 function isFolded(id: string): boolean {
   return !searchActive.value && props.foldedChannels.has(id);
 }
+
+// While a member is being dragged, hovering near the tree's top/bottom edge
+// scrolls the list so off-screen channels become drop targets. Speed ramps
+// with edge proximity; the loop stops on drop, cancel and unmount.
+const memberTreeEl = ref<HTMLElement | null>(null);
+const DRAG_EDGE_PX = 44;
+let autoScrollFrame = 0;
+let autoScrollDelta = 0;
+function stepAutoScroll(): void {
+  autoScrollFrame = 0;
+  const tree = memberTreeEl.value;
+  if (!tree || !draggedMember.value || !autoScrollDelta) return;
+  tree.scrollTop += autoScrollDelta;
+  autoScrollFrame = requestAnimationFrame(stepAutoScroll);
+}
+function stopAutoScroll(): void {
+  if (autoScrollFrame) cancelAnimationFrame(autoScrollFrame);
+  autoScrollFrame = 0;
+  autoScrollDelta = 0;
+}
+function onTreePointerMove(event: PointerEvent): void {
+  onMemberPointerMove(event);
+  const tree = memberTreeEl.value;
+  if (!tree || !draggedMember.value) {
+    stopAutoScroll();
+    return;
+  }
+  const rect = tree.getBoundingClientRect();
+  if (event.clientY < rect.top + DRAG_EDGE_PX) {
+    autoScrollDelta = -Math.ceil((rect.top + DRAG_EDGE_PX - event.clientY) / 6);
+  } else if (event.clientY > rect.bottom - DRAG_EDGE_PX) {
+    autoScrollDelta = Math.ceil((event.clientY - (rect.bottom - DRAG_EDGE_PX)) / 6);
+  } else {
+    stopAutoScroll();
+    return;
+  }
+  if (!autoScrollFrame) autoScrollFrame = requestAnimationFrame(stepAutoScroll);
+}
+function onTreePointerEnd(event: PointerEvent): void {
+  stopAutoScroll();
+  onMemberPointerUp(event);
+}
+function onTreePointerCancel(event: PointerEvent): void {
+  stopAutoScroll();
+  onMemberPointerCancel(event);
+}
+onUnmounted(stopAutoScroll);
 
 // The page retains the controller and slot content across mobile view changes.
 const {
