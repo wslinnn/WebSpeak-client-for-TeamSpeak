@@ -227,38 +227,6 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
     response.json({ ok: true });
   });
 
-  router.get("/invites", (_request, response) => {
-    response.json({ invites: options.service.listManagedInvites() });
-  });
-
-  router.post("/invites", requireSameOrigin, requireCsrf(options.sessions), (request, response) => {
-    try {
-      const body = asRecord(request.body);
-      const created = options.service.createManagedInvite({
-        channel: readOptionalString(body, "channel", 100),
-        expiresInHours: readOptionalNumber(body, "expiresInHours", 1),
-        maxUses: readOptionalNumber(body, "maxUses", 0),
-      });
-      response.status(201).json({ ok: true, ...created });
-    } catch (error: unknown) {
-      sendAdminError(response, error);
-    }
-  });
-
-  router.post("/invites/:id/revoke", requireSameOrigin, requireCsrf(options.sessions), (request, response) => {
-    try {
-      const id = typeof request.params.id === "string" ? request.params.id : "";
-      if (!id) throw new AdminInputError("INVALID_INVITE_ID", "Invite id is invalid");
-      if (!options.service.revokeManagedInvite(id)) {
-        response.status(404).json({ ok: false, code: "INVITE_NOT_FOUND" });
-        return;
-      }
-      response.json({ ok: true });
-    } catch (error: unknown) {
-      sendAdminError(response, error);
-    }
-  });
-
   router.get("/audit", (request, response) => {
     response.json({ events: options.service.database.recentAudit(readLimit(request.query.limit, 50)) });
   });
@@ -512,10 +480,6 @@ function readOptionalInteger(body: Record<string, unknown>, key: string): number
 
 function readOptionalString(body: Record<string, unknown>, key: string, max: number): string {
   return typeof body[key] === "string" ? body[key].slice(0, max) : "";
-}
-
-function readOptionalNumber(body: Record<string, unknown>, key: string, fallback: number): number {
-  return body[key] === undefined ? fallback : typeof body[key] === "number" ? body[key] : Number.NaN;
 }
 
 function readLimit(value: unknown, fallback: number): number {

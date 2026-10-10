@@ -21,8 +21,8 @@ Derzeit ist keine öffentliche Live-Demo verfügbar. Um WebSpeak auszuprobieren,
 | Browserseitige Geräuschunterdrückung | Optionale Mikrofon-Geräuschunterdrückung in der Browseraufnahme, ohne zusätzliche serverseitige Audioverarbeitung. |
 | Nachrichten und Aktionen | Kanal- und Serverchat, private Nachrichten, Anstupsen und Flüsterziele. |
 | Desktop-Begleitton | Audio eines freigegebenen Fensters oder Browser-Tabs im aktuellen Kanal teilen. |
-| Identität und Zugriff | Gespeicherte Identität, eigene Ziele, widerrufbare Einladungen sowie Import, Konvertierung, Prüfung und Export von TeamSpeak-3-Identitäten. |
-| Administration | Ziele, Zugriff, öffentliche Medienadresse, IPv6-Kandidaten, Sprach-STUN, Einladungen, Sitzungen, Protokolle, Diagnosen und Backups verwalten. |
+| Identität und Zugriff | Gespeicherte Identität, eigene Ziele sowie Import, Konvertierung, Prüfung und Export von TeamSpeak-3-Identitäten. |
+| Administration | Ziele, Zugriff, öffentliche Medienadresse, IPv6-Kandidaten, Sprach-STUN, Sitzungen, Protokolle, Diagnosen und Backups verwalten. |
 | Projektstruktur | In 0.2.6 wurden Sprach-Gateway, Sitzungsereignisse, Audio und Bildschirmfreigabe in Module aufgeteilt; Sprach- und Admin-Oberflächen in Komponenten, Composables und Dienste zerlegt und um Lebenszyklus- und Wiederverbindungstests ergänzt. |
 | Skins | Geschützte Tages-, Nacht- und ILLUSIA-Skins sowie instanzverwaltete `.wskin`-Designs mit Aktivierungs- und Standardauswahl im Adminbereich. |
 | Oberfläche | Chinesische, englische, deutsche, russische und japanische Oberfläche sowie responsive Desktop-/Mobilansicht. |

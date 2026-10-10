@@ -21,7 +21,7 @@ test("schema 7 upgrades preserve the previously unused public host and initializ
   const original = new WebSpeakDatabase(filename);
   original.close();
   const legacy = new DatabaseSync(filename);
-  legacy.exec("ALTER TABLE settings DROP COLUMN ts_target; ALTER TABLE managed_invites DROP COLUMN target_text; ALTER TABLE settings DROP COLUMN webrtc_ipv6_enabled; ALTER TABLE settings DROP COLUMN webrtc_stun_server; PRAGMA user_version = 7;");
+  legacy.exec("CREATE TABLE managed_invites (id TEXT PRIMARY KEY, token_hash TEXT NOT NULL UNIQUE, target_host TEXT NOT NULL, target_port INTEGER NOT NULL, server_password_encrypted TEXT, channel TEXT NOT NULL DEFAULT '', expires_at TEXT NOT NULL, max_uses INTEGER NOT NULL, use_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, revoked_at TEXT); ALTER TABLE settings DROP COLUMN ts_target; ALTER TABLE settings DROP COLUMN webrtc_ipv6_enabled; ALTER TABLE settings DROP COLUMN webrtc_stun_server; PRAGMA user_version = 7;");
   legacy.prepare("UPDATE settings SET webrtc_public_host = ?").run("media.example.com");
   legacy.close();
   const migrated = new WebSpeakDatabase(filename);
@@ -106,10 +106,6 @@ test("browser admin API consumes the actual HTTP router and preserves keep/repla
   }
   const settings = service.getAdminSettings();
   assert.deepEqual(adminResponses.settings({ ...settings, passwordAction: "remove", serverPassword: "injected" }), settings);
-  const created = await api.createInvite({ channel: "Lobby", expiresInHours: 1, maxUses: 1 });
-  assert.equal((await api.invites()).invites[0].id, created.invite.id);
-  await api.revokeInvite(created.invite.id);
-  assert.equal((await api.invites()).invites[0].status, "revoked");
   assert.deepEqual((await api.sessions()).sessions, []);
   assert.equal((await api.diagnostics()).gateway.version, "test-version");
   assert.equal((await api.logs()).available, false);

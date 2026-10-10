@@ -5,7 +5,7 @@
 ### Changed
 
 - 安全：首次启动不再有默认管理员口令，改为日志中打印的一次性设置令牌（登录后强制修改）；新增 WEBSPEAK_TRUST_PROXY 反代信任开关、安全响应头（CSP/HSTS 等）、WebSocket 控制消息令牌桶限流、TeamSpeak 服务器密码错误按目标退避；fixed 模式不再向普通用户暴露真实目标地址。
-- 删除：加速中继、Android 客户端、DemoView、访客计数（延续 fork 裁剪方向）。
+- 删除：加速中继、Android 客户端、DemoView、访客计数（延续 fork 裁剪方向）；删除管理端邀请功能——fixed 模式下站点链接本身即可免密进入，可撤销/过期的邀请链接无法构成真正的门禁，只留下频道深链（可用 `?channel=` 参数替代）；数据库迁移至 schema 12 并删除 `managed_invites` 表。
 - 运维：新增 WEBSPEAK_LOG_LEVEL、WEBSPEAK_SDK_DEBUG 环境变量；`npm run benchmark` 音频管线基准脚本；诊断端点新增 voiceTransports/rssMb。
 
 ### Fixed

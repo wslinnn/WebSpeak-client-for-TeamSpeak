@@ -255,7 +255,7 @@ export class VoiceBridge {
       }
       // One reconnect ticket per accepted socket: the browser holds it for a
       // page reload or a transport drop, and the `connected` message delivers
-      // it. It never re-consumes the invite; TTL and single-consume bound reuse.
+      // it. Single consumption plus the TTL bound replay.
       const reconnectTicketToken = this.options.reconnectTickets?.issue(connection, entryId);
       entry = {
         id: entryId,

@@ -21,8 +21,8 @@ No public live demo is available at the moment. To try WebSpeak, deploy your own
 | Browser-side noise suppression | Optional microphone noise suppression runs at the browser capture stage, without adding server-side audio processing. |
 | Messaging and actions | Channel chat, server chat, private messages, poke actions, and whisper targets. |
 | Desktop accompaniment | Select an audio-enabled window or browser tab and share its sound with the current channel. |
-| Identity and access | Remembered identity, visitor-defined targets, revocable expiring invite links, and TeamSpeak 3 identity import, conversion, validation, and export. |
-| Administration | Manage targets, access policy, public media address, IPv6 candidates, voice STUN, invites, sessions, logs, diagnostics, and backups. |
+| Identity and access | Remembered identity, visitor-defined targets, and TeamSpeak 3 identity import, conversion, validation, and export. |
+| Administration | Manage targets, access policy, public media address, IPv6 candidates, voice STUN, sessions, logs, diagnostics, and backups. |
 | Engineering structure | In 0.2.6, gateway voice, session events, audio, and screen-share coordination were split into modules; frontend voice and admin pages were decomposed into components, composables, and services, with lifecycle and reconnect tests. |
 | Skins | Protected Day, Night, and ILLUSIA skins, plus instance-managed `.wskin` appearances with administrator enable/default controls. |
 | User experience | Chinese, English, German, Russian, and Japanese UI with responsive desktop/mobile layouts. |

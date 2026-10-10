@@ -20,7 +20,7 @@ const settings = (target: string, accessMode: "open" | "fixed" = "open"): AdminS
   serverPassword: "stored-password", passwordAction: "replace",
 });
 
-test("settings, tests, invites, and join tickets resolve nicknames through the gateway", async (context) => {
+test("settings, tests, and join tickets resolve nicknames through the gateway", async (context) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "webspeak-alias-"));
   const database = new WebSpeakDatabase(path.join(directory, "webspeak.db"));
   const service = new AdminService(database, Buffer.alloc(32, 1), logger, path.join(directory, "missing-config.json"), async (target) => {
@@ -85,38 +85,6 @@ test("settings, tests, invites, and join tickets resolve nicknames through the g
   const fixed = await join({ target: "untrusted guild" });
   assert.equal(fixed.status, 201);
   assert.equal(fixed.payload?.target.host, "127.0.0.1");
-  const invite = service.createManagedInvite({ channel: "Lobby", expiresInHours: 1, maxUses: 0 });
-  assert.equal(invite.invite.target, "team eco");
-  service.updateSettings(settings("different guild:9987"));
-  lookupBody = "1.1.1.1:10001";
-  const invited = await join({ invite: invite.token, target: "ignored target" });
-  assert.equal(invited.status, 201);
-  assert.deepEqual(invited.payload?.target, { host: "1.1.1.1", port: 10001 });
-  assert.equal(invited.payload?.channel, "Lobby");
-  assert.equal(invited.payload?.serverPassword, "stored-password");
-  assert.equal(service.getConnectionPolicy().defaultTarget, "different guild:9987");
-
-  // Invites consume the admin's CURRENT password: rotating the settings
-  // password must not strand outstanding invites with a stale snapshot.
-  service.updateSettings({ ...settings("different guild:9987"), serverPassword: "rotated-password" });
-  const rotated = await join({ invite: invite.token });
-  assert.equal(rotated.payload?.serverPassword, "rotated-password");
-  // A dialog retry carries the user's just-typed password and overrides the
-  // stored one for this attempt — otherwise the same failed credential would
-  // be resent forever and the password modal would never close.
-  const retriedPassword = await join({ invite: invite.token, serverPassword: "typed-by-user" });
-  assert.equal(retriedPassword.payload?.serverPassword, "typed-by-user");
-
-  service.updateSettings(settings("retry guild", "fixed"));
-  const retryInvite = service.createManagedInvite({ channel: "Lobby", expiresInHours: 1, maxUses: 1 });
-  lookupBody = "";
-  assert.equal((await join({ invite: retryInvite.token })).code, "HOST_NOT_FOUND");
-  assert.equal(service.listManagedInvites().find((item) => item.id === retryInvite.invite.id)?.useCount, 0);
-  lookupBody = "1.1.1.1:10001";
-  const retriedInvite = await join({ invite: retryInvite.token });
-  assert.equal(retriedInvite.status, 201);
-  assert.deepEqual(retriedInvite.payload?.target, { host: "1.1.1.1", port: 10001 });
-  assert.equal(service.listManagedInvites().find((item) => item.id === retryInvite.invite.id)?.useCount, 1);
 
   lookupBody = "";
   assert.equal((await join({ target: "missing guild" })).code, "HOST_NOT_FOUND");
@@ -130,28 +98,45 @@ test("settings, tests, invites, and join tickets resolve nicknames through the g
   assert.equal(direct.payload?.serverPassword, "stored-password");
 });
 
-test("schema 8 settings and invites survive the nickname migration", async (context) => {
+test("schema 8 settings survive the nickname migration and managed_invites is dropped", async (context) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "webspeak-alias-migration-"));
   context.after(() => rm(directory, { recursive: true, force: true }));
   const file = path.join(directory, "webspeak.db");
   const database = new WebSpeakDatabase(file);
-  database.createManagedInvite({
-    id: "legacy", tokenHash: "legacy-token", targetHost: "voice.example.com", targetPort: 9988,
-    channel: "", expiresAt: new Date(Date.now() + 3600000).toISOString(), maxUses: 0, serverPasswordEncrypted: null,
-  });
   database.close();
+  // Recreate the schema-8 era: settings without ts_target and the
+  // managed_invites table as the v1 migration created it (no target_text).
   const legacy = new DatabaseSync(file);
-  legacy.exec("ALTER TABLE settings DROP COLUMN ts_target; ALTER TABLE managed_invites DROP COLUMN target_text; PRAGMA user_version = 8;");
+  legacy.exec(`
+    CREATE TABLE managed_invites (
+      id TEXT PRIMARY KEY,
+      token_hash TEXT NOT NULL UNIQUE,
+      target_host TEXT NOT NULL,
+      target_port INTEGER NOT NULL CHECK (target_port BETWEEN 1 AND 65535),
+      server_password_encrypted TEXT,
+      channel TEXT NOT NULL DEFAULT '',
+      expires_at TEXT NOT NULL,
+      max_uses INTEGER NOT NULL CHECK (max_uses >= 0),
+      use_count INTEGER NOT NULL DEFAULT 0 CHECK (use_count >= 0),
+      created_at TEXT NOT NULL,
+      revoked_at TEXT
+    );
+    ALTER TABLE settings DROP COLUMN ts_target;
+    PRAGMA user_version = 8;
+  `);
   legacy.close();
   const migrated = new WebSpeakDatabase(file);
   try {
-    assert.equal(migrated.schemaVersion, 11);
+    assert.equal(migrated.schemaVersion, 12);
     assert.equal(migrated.getSettings().tsHost, "127.0.0.1");
     assert.equal(migrated.getSettings().tsTarget, null);
-    const invite = migrated.consumeManagedInvite("legacy-token");
-    assert.equal(invite?.targetHost, "voice.example.com");
-    assert.equal(invite?.targetPort, 9988);
-    assert.equal(invite?.targetText, null);
+    const check = new DatabaseSync(file);
+    try {
+      const tables = check.prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'managed_invites'",
+      ).all() as Array<{ name: string }>;
+      assert.equal(tables.length, 0);
+    } finally { check.close(); }
   } finally { migrated.close(); }
 });
 

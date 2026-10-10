@@ -867,7 +867,6 @@ const { panelOpen: performancePanelOpen } = performance;
 
 const query = new URLSearchParams(location.search);
 const initialChannel = query.get("channel") ?? "";
-const inviteToken = query.get("invite") ?? "";
 const initialTarget = initialServerTarget();
 const nickname = ref(localStorage.getItem("webspeak:nickname") ?? "");
 const channel = ref(initialChannel);
@@ -983,7 +982,6 @@ const skinHomeCopy = computed<SkinHomeCopy>(() => resolveSkinHomeCopy(activeSkin
 const skinHomeFeatures = computed(() => {
   const defaults = [
     { id: "quality", title: t("highQuality"), description: t("opusAudio"), icon: "waveform", tone: "" },
-    { id: "secure", title: t("secureJoin"), description: t("inviteProtected"), icon: "shield", tone: "mint" },
     { id: "realtime", title: t("realtime"), description: t("membersSync"), icon: "users", tone: "sand" },
   ];
   const features = [...defaults];
@@ -1175,7 +1173,6 @@ const {
   serverPassword,
   rememberIdentity,
   identityMaterial,
-  inviteToken,
   selectedChannelId,
   channels: channelTree,
   clientId: computed(() => voiceState.tsClientId),
@@ -1321,11 +1318,11 @@ onMounted(() => {
   applyTheme(themeMode.value);
   browserError.value = checkSupport() ?? "";
   browserWarning.value = checkBrowserWarning() ?? "";
-  // Explicit join navigation (invite link, shared server link, one-click
-  // token) outranks a stale resume intent: skip the auto-resume and drop the
+  // Explicit join navigation (shared server link, direct target parameters)
+  // outranks a stale resume intent: skip the auto-resume and drop the
   // old intent so it cannot shadow this destination later either.
   const joinIntentParams = new URLSearchParams(location.search);
-  if (["invite", "token", "server", "tsHost", "target"].some((key) => joinIntentParams.has(key))) clearVoiceSessionIntent();
+  if (["server", "tsHost", "target"].some((key) => joinIntentParams.has(key))) clearVoiceSessionIntent();
   // A reload in a tab that still holds a reconnect token rebuilds the voice
   // session instead of dropping the user back onto the join form.
   else tryResumeVoiceSession();

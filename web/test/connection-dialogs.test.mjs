@@ -21,7 +21,7 @@ function mount(t) {
     errorMessage: message, channelSwitchedChannelId: switched,
     nickname: ref("Preview"), channelName: ref("Room"), serverHost, serverPort,
     serverPassword: ref(""), rememberIdentity: ref(false), identityMaterial: ref(""), accelerationRelayId: ref(""),
-    inviteToken: "", selectedChannelId: ref("2"), channels: ref([]), clientId: ref(1),
+    selectedChannelId: ref("2"), channels: ref([]), clientId: ref(1),
     channelPasswordDialog: dialog, serverPasswordDialog: reactive({ open: false, password: "", errorCode: "" }),
     chatTab: ref("channel"),
     // The real switchChannel awaits the gateway; a never-settling promise

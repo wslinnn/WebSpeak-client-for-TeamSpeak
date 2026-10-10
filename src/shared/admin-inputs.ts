@@ -16,9 +16,3 @@ export interface AdminSettingsInput {
   webRtcUdpStart?: number;
   webRtcUdpEnd?: number;
 }
-
-export interface ManagedInviteInput {
-  channel: string;
-  expiresInHours: number;
-  maxUses: number;
-}

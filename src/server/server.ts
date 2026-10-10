@@ -241,7 +241,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
     const body = isRecord(request.body) ? request.body : {};
     // In-session reconnect: an opaque token from the `connected` message
     // restores the original join payload (target, password, nickname, channel,
-    // identity) without consuming the invite again. Same-origin and the join
+    // identity) without a new TeamSpeak join. Same-origin and the join
     // rate limit above still apply; an unknown/expired token is a plain 400 so
     // a stale browser tab simply falls back to the normal join form.
     const reconnectToken = typeof body.reconnect === "string" ? body.reconnect.trim().slice(0, 128) : "";
@@ -265,7 +265,6 @@ export function createWebServer(options: WebServerOptions): WebServer {
     }
     const nickname = typeof body.nickname === "string" ? body.nickname.trim().slice(0, 30) : "";
     const requestedChannel = typeof body.channel === "string" ? body.channel.trim().slice(0, 100) : "";
-    const inviteToken = typeof body.invite === "string" ? body.invite.trim().slice(0, 128) : "";
     const requestedIdentity = typeof body.identity === "string" && body.identity.length <= 8192 ? body.identity : "";
     let identity: string | undefined;
     if (requestedIdentity) {
@@ -282,41 +281,32 @@ export function createWebServer(options: WebServerOptions): WebServer {
     }
 
     const policy = options.adminService.getConnectionPolicy();
-    const managedInvite = inviteToken ? options.adminService.getManagedInvite(inviteToken) : null;
-    if (inviteToken && !managedInvite) {
-      response.status(400).json({ ok: false, code: "INVITE_INVALID" });
-      return;
-    }
-    let targetText = managedInvite?.target ?? policy.defaultTarget;
+    let targetText = policy.defaultTarget;
     let target: TeamSpeakTarget;
     let serverPassword = policy.serverPassword;
-    const requestedServerPassword = typeof body.serverPassword === "string" ? body.serverPassword : "";
-    // Whether this request brought its own password (open-mode custom target,
-    // a fixed-mode retry, or an invite-join dialog retry). Only those attempts
-    // can probe for a server's password, so only those are subject to the
-    // shared wrong-password guard.
-    let usesUserPassword = Boolean(inviteToken && requestedServerPassword.trim());
-    const channel = requestedChannel || managedInvite?.channel || "";
+    // Whether this request brought its own password (an open-mode custom
+    // target or a fixed-mode password retry). Only those attempts can probe
+    // for a server's password, so only those are subject to the shared
+    // wrong-password guard.
+    let usesUserPassword = false;
     try {
-      if (!managedInvite) {
-        if (policy.accessMode === "open" && typeof body.target === "string" && body.target.trim()) {
-          targetText = formatTeamSpeakConnectionTarget(parseTeamSpeakConnectionTarget(body.target));
-          const isDefault = targetText === policy.defaultTarget;
-          if (!isDefault) serverPassword = typeof body.serverPassword === "string" ? body.serverPassword.slice(0, 512) : "";
-          else if (typeof body.serverPassword === "string" && body.serverPassword.trim()) serverPassword = body.serverPassword.slice(0, 512);
-          usesUserPassword = typeof body.serverPassword === "string" && body.serverPassword.trim().length > 0;
-        } else if (policy.accessMode === "fixed" && typeof body.serverPassword === "string" && body.serverPassword.trim()) {
-          // The fixed target remains administrator-controlled, but a user may
-          // retry its server password after the gateway reports that one is
-          // required. The target itself is never taken from this request.
-          serverPassword = body.serverPassword.slice(0, 512);
-          usesUserPassword = true;
-        }
+      if (policy.accessMode === "open" && typeof body.target === "string" && body.target.trim()) {
+        targetText = formatTeamSpeakConnectionTarget(parseTeamSpeakConnectionTarget(body.target));
+        const isDefault = targetText === policy.defaultTarget;
+        if (!isDefault) serverPassword = typeof body.serverPassword === "string" ? body.serverPassword.slice(0, 512) : "";
+        else if (typeof body.serverPassword === "string" && body.serverPassword.trim()) serverPassword = body.serverPassword.slice(0, 512);
+        usesUserPassword = typeof body.serverPassword === "string" && body.serverPassword.trim().length > 0;
+      } else if (policy.accessMode === "fixed" && typeof body.serverPassword === "string" && body.serverPassword.trim()) {
+        // The fixed target remains administrator-controlled, but a user may
+        // retry its server password after the gateway reports that one is
+        // required. The target itself is never taken from this request.
+        serverPassword = body.serverPassword.slice(0, 512);
+        usesUserPassword = true;
       }
       target = await resolveTeamSpeakTarget(targetText);
       // Open-mode defaults are user targets too; validate the resolved address
       // and pass that exact IP to the voice connection to prevent DNS rebinding.
-      if (!managedInvite && policy.accessMode === "open") target = await resolveSafeOpenTarget(target);
+      if (policy.accessMode === "open") target = await resolveSafeOpenTarget(target);
     } catch (error) {
       response.status(400).json({ ok: false, code: error instanceof TeamSpeakAliasLookupError ? "HOST_NOT_FOUND" : "TARGET_NOT_ALLOWED" });
       return;
@@ -330,23 +320,11 @@ export function createWebServer(options: WebServerOptions): WebServer {
       }
     }
 
-    if (inviteToken) {
-      const consumedInvite = options.adminService.consumeManagedInvite(inviteToken);
-      if (!consumedInvite) {
-        response.status(400).json({ ok: false, code: "INVITE_INVALID" });
-        return;
-      }
-      // A dialog retry must win over the invite's stored password: the user
-      // typed the CURRENT server password after the stored one failed, and
-      // resending the failed credential is an endless modal loop.
-      serverPassword = usesUserPassword ? requestedServerPassword.slice(0, 512) : consumedInvite.serverPassword;
-    }
-
     const ticket = options.voiceBridgeOptions.joinTickets.create({
       target,
       serverPassword,
       nickname,
-      ...(channel ? { channel } : {}),
+      ...(requestedChannel ? { channel: requestedChannel } : {}),
       ...(identity ? { identity, rememberIdentity: true } : body.rememberIdentity === true ? { rememberIdentity: true } : {}),
     });
     response.status(201).json({ ok: true, ticket });

@@ -231,7 +231,7 @@ export function useVoiceWebSocket() {
   let lastConnection: { target: string; channel: string; nickname: string; serverPassword: string; identity?: string; rememberIdentity: boolean } | null = null;
   // Browser-level reconnect: when the gateway WebSocket itself drops (network
   // loss, proxy timeout, server restart) the reconnect ticket restores the
-  // whole session without re-consuming the invite. Delays mirror the gateway's
+  // whole session. Delays mirror the gateway's
   // own TeamSpeak-reconnect pacing; after the budget the user retries manually.
   const BROWSER_RECONNECT_DELAYS_MS = [1_000, 2_000, 4_000, 8_000, 15_000];
   const BROWSER_RECONNECTABLE_CLOSE_CODES = new Set([1006, 1011, 4004]);
@@ -1006,7 +1006,7 @@ export function useVoiceWebSocket() {
     }
   }
 
-  function connect(target: string, channel: string, nickname: string, serverPassword = "", identity = "", rememberIdentity = false, inviteToken = ""): void {
+  function connect(target: string, channel: string, nickname: string, serverPassword = "", identity = "", rememberIdentity = false): void {
     disconnect(true);
     lastConnection = { target, channel, nickname, serverPassword, ...(identity ? { identity } : {}), rememberIdentity };
     identityMaterial.value = identity;
@@ -1022,7 +1022,6 @@ export function useVoiceWebSocket() {
     state.reconnectFailed = false;
     voiceConnection.start(JSON.stringify({
       target, nickname, channel, serverPassword,
-      ...(inviteToken ? { invite: inviteToken } : {}),
       ...(rememberIdentity && identity ? { identity } : {}),
       ...(rememberIdentity ? { rememberIdentity: true } : {}),
     }), audioPreferencesReady);
@@ -1036,7 +1035,6 @@ export function useVoiceWebSocket() {
       PASSWORD_RETRY_LATER: "服务器密码已多次输错，请稍等一分钟后再试",
       TARGET_NOT_ALLOWED: "此 TeamSpeak 服务器地址不允许连接",
       INVALID_NICKNAME: "请输入有效的昵称",
-      INVITE_INVALID: "邀请链接已失效或已被撤销",
       REQUEST_TIMEOUT: "等待 WebSpeak 网关响应超时，请检查网络后重试",
     };
     const normalized = normalizedClientErrorCode(code);
@@ -1513,8 +1511,8 @@ export function useVoiceWebSocket() {
   function reconnectNow(): void {
     if (state.connecting) return;
     if (reconnectTicket) {
-      // Prefer the ticket: it restores the exact session payload without
-      // re-consuming the invite, unlike a manual form reconnect.
+      // Prefer the ticket: it restores the exact session payload, unlike a
+      // manual form reconnect.
       cancelBrowserReconnect();
       state.reconnectFailed = false;
       state.reconnectAttempt = 0;

@@ -1,6 +1,6 @@
 import type { Ref } from "vue";
 import type { SiteLanguage } from "../../../src/site-copy.js";
-import type { AdminConnectionRecord, ManagedInvite } from "../../../src/shared/admin-responses.js";
+import type { AdminConnectionRecord } from "../../../src/shared/admin-responses.js";
 import { copy, germanCopy, russianCopy, japaneseCopy, type AdminTranslationKey } from "../i18n/admin.js";
 
 const translations: Record<SiteLanguage, Record<AdminTranslationKey, string>> = {
@@ -14,9 +14,6 @@ const sessionLabels: Record<string, AdminTranslationKey> = {
 };
 const connectionLabels: Record<AdminConnectionRecord["status"], AdminTranslationKey> = {
   active: "connectionActive", connecting: "connectionConnecting", disconnected: "connectionDisconnected", failed: "connectionFailed",
-};
-const inviteLabels: Record<ManagedInvite["status"], AdminTranslationKey> = {
-  active: "active", expired: "expired", exhausted: "exhausted", revoked: "revoked",
 };
 const eventLabels: Record<string, AdminTranslationKey> = {
   ADMIN_LOGIN_FAILED: "adminLoginFailedEvent", CONNECTION_TEST_SUCCEEDED: "connectionTestSucceededEvent", CONNECTION_TEST_FAILED: "connectionTestFailedEvent",
@@ -67,12 +64,11 @@ export function useAdminI18n(language: Ref<SiteLanguage>) {
   }
   function sessionStateLabel(state: string) { const key = keyFor(sessionLabels, state); return key ? tr(key) : state; }
   function connectionStatusLabel(status: AdminConnectionRecord["status"]) { return tr(connectionLabels[status]); }
-  function inviteStatusLabel(status: ManagedInvite["status"]) { return tr(inviteLabels[status]); }
   function eventName(event: string) {
     const key = keyFor(eventLabels, event);
     return key ? tr(key) : language.value === "zh" ? tr("systemEvent") : event.replaceAll("_", " ");
   }
   function errorText(code?: string) { return tr(keyFor(errorLabels, code || "") ?? "requestFailed"); }
   function connectionFailureText(code?: string) { const key = keyFor(connectionErrors, code || ""); return key ? tr(key) : errorText(code); }
-  return { tr, formatDate, formatUptime, formatAge, sessionStateLabel, connectionStatusLabel, inviteStatusLabel, eventName, errorText, connectionFailureText };
+  return { tr, formatDate, formatUptime, formatAge, sessionStateLabel, connectionStatusLabel, eventName, errorText, connectionFailureText };
 }

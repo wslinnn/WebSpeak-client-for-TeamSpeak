@@ -1,14 +1,14 @@
-import type { AdminSettingsInput, ManagedInviteInput } from "../shared/admin-inputs.js";
-export type { AdminSettingsInput, ManagedInviteInput } from "../shared/admin-inputs.js";
+import type { AdminSettingsInput } from "../shared/admin-inputs.js";
+export type { AdminSettingsInput } from "../shared/admin-inputs.js";
 import type { AdminOverview, AdminSettings } from "../shared/admin-responses.js";
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { Logger } from "../logger.js";
 import { loadConfig } from "../config.js";
 import { DEFAULT_TEAM_SPEAK_PORT, formatTeamSpeakTarget, type TeamSpeakTarget } from "../domain/teamspeak-target.js";
 import { formatTeamSpeakConnectionTarget, parseTeamSpeakConnectionTarget, type TeamSpeakConnectionTarget } from "../domain/teamspeak-connection-target.js";
 import { resolveTeamSpeakTarget, TeamSpeakAliasLookupError } from "../server/teamspeak-alias.js";
-import { type AccessMode, type ManagedInviteRecord, type SettingsUpdate, WebSpeakDatabase } from "../persistence/database.js";
+import { type AccessMode, type SettingsUpdate, WebSpeakDatabase } from "../persistence/database.js";
 import { hashAdminPassword, validateAdminPassword, verifyAdminPassword } from "../security/admin-password.js";
 import { decryptSecret, encryptSecret } from "../security/secret-crypto.js";
 import { probeTeamSpeak, TeamSpeakProbeError } from "../server/teamspeak-probe.js";
@@ -22,18 +22,6 @@ export interface ConnectionPolicy {
   defaultTarget: string;
   serverPassword: string;
   accessMode: AccessMode;
-}
-
-export interface ManagedInviteView {
-  id: string;
-  target: string;
-  channel: string;
-  expiresAt: string;
-  maxUses: number;
-  useCount: number;
-  createdAt: string;
-  revokedAt: string | null;
-  status: "active" | "expired" | "exhausted" | "revoked";
 }
 
 type ProbeFunction = typeof probeTeamSpeak;
@@ -252,70 +240,6 @@ export class AdminService {
     };
   }
 
-  createManagedInvite(input: ManagedInviteInput): { invite: ManagedInviteView; token: string } {
-    const channel = input.channel.trim();
-    if (channel.length > 100) throw new AdminInputError("INVALID_INVITE_CHANNEL", "Invite channel cannot exceed 100 characters");
-    if (!Number.isFinite(input.expiresInHours) || input.expiresInHours < 1 || input.expiresInHours > 720) {
-      throw new AdminInputError("INVALID_INVITE_EXPIRY", "Invite expiry must be between 1 and 720 hours");
-    }
-    if (!Number.isInteger(input.maxUses) || input.maxUses < 0 || input.maxUses > 10000) {
-      throw new AdminInputError("INVALID_INVITE_USES", "Invite max uses must be between 0 and 10000");
-    }
-    const settings = this.database.getSettings();
-    const token = randomBytes(32).toString("base64url");
-    const record = this.database.createManagedInvite({
-      id: `invite-${Date.now().toString(36)}-${randomBytes(4).toString("hex")}`,
-      tokenHash: hashInviteToken(token),
-      targetHost: settings.tsHost,
-      targetPort: settings.tsPort,
-      targetText: settings.tsTarget,
-      serverPasswordEncrypted: settings.tsPasswordEncrypted,
-      channel,
-      expiresAt: new Date(Date.now() + input.expiresInHours * 60 * 60 * 1000).toISOString(),
-      maxUses: input.maxUses,
-    });
-    this.database.addAudit("INVITE_CREATED", { id: record.id, channel, maxUses: input.maxUses });
-    return { invite: this.toInviteView(record), token };
-  }
-
-  listManagedInvites(): ManagedInviteView[] {
-    return this.database.listManagedInvites().map((record) => this.toInviteView(record));
-  }
-
-  revokeManagedInvite(id: string): boolean {
-    if (!/^invite-[a-z0-9-]+$/i.test(id) || id.length > 100) throw new AdminInputError("INVALID_INVITE_ID", "Invite id is invalid");
-    const revoked = this.database.revokeManagedInvite(id);
-    if (revoked) this.database.addAudit("INVITE_REVOKED", { id });
-    return revoked;
-  }
-
-  getManagedInvite(token: string): { target: string; channel: string } | null {
-    if (!/^[A-Za-z0-9_-]{32,128}$/.test(token)) return null;
-    const record = this.database.getManagedInvite(hashInviteToken(token));
-    if (!record) return null;
-    return {
-      target: record.targetText ?? formatTeamSpeakTarget({ host: record.targetHost, port: record.targetPort }),
-      channel: record.channel,
-    };
-  }
-
-  consumeManagedInvite(token: string): { target: string; serverPassword: string; channel: string } | null {
-    if (!/^[A-Za-z0-9_-]{32,128}$/.test(token)) return null;
-    const record = this.database.consumeManagedInvite(hashInviteToken(token));
-    if (!record) return null;
-    // Invites carry the admin's CURRENT TeamSpeak password, not a snapshot
-    // taken at creation: rotating the settings password must not strand
-    // outstanding invites with a stale credential.
-    let serverPassword = "";
-    try {
-      serverPassword = decryptSecret(this.database.getSettings().tsPasswordEncrypted, this.masterSecret);
-    } catch (error: unknown) {
-      this.logger.error({ err: error instanceof Error ? error.message : String(error), inviteId: record.id }, "Managed invite password could not be decrypted");
-    }
-    this.database.addAudit("INVITE_CONSUMED", { id: record.id });
-    return { target: record.targetText ?? formatTeamSpeakTarget({ host: record.targetHost, port: record.targetPort }), serverPassword, channel: record.channel };
-  }
-
   dismissLegacyImportNotice(): void {
     this.database.setMeta("legacy_import_notice_pending", "0");
   }
@@ -390,23 +314,6 @@ export class AdminService {
     };
   }
 
-  private toInviteView(record: ManagedInviteRecord): ManagedInviteView {
-    const now = Date.now();
-    const expired = Date.parse(record.expiresAt) <= now;
-    const exhausted = record.maxUses > 0 && record.useCount >= record.maxUses;
-    return {
-      id: record.id,
-      target: record.targetText ?? formatTeamSpeakTarget({ host: record.targetHost, port: record.targetPort }),
-      channel: record.channel,
-      expiresAt: record.expiresAt,
-      maxUses: record.maxUses,
-      useCount: record.useCount,
-      createdAt: record.createdAt,
-      revokedAt: record.revokedAt,
-      status: record.revokedAt ? "revoked" : expired ? "expired" : exhausted ? "exhausted" : "active",
-    };
-  }
-
   private toSettingsUpdate(settings: ReturnType<WebSpeakDatabase["getSettings"]>): SettingsUpdate {
     return {
       siteName: settings.siteName,
@@ -459,10 +366,6 @@ export class AdminService {
     }
     this.database.setMeta("legacy_config_checked", "1");
   }
-}
-
-function hashInviteToken(token: string): string {
-  return createHash("sha256").update(token).digest("hex");
 }
 
 function settingsTarget(settings: { tsHost: string; tsPort: number; tsTarget?: string | null }): string {

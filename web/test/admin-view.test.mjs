@@ -35,7 +35,7 @@ const overview = { gateway: { status: "running", version: "test", uptimeSeconds:
 const session = nickname => ({ id: nickname, nickname, target: "voice.example:9987", state: "connected", createdAt: "2026-10-01T00:00:00Z", ageSeconds: 0, tsClientId: 1, channelId: "1", memberCount: 1 });
 const defaults = path => ({
   "/session": { authenticated: true, mustChangePassword: false, csrfToken: "test-csrf" },
-  "/server": settings(), "/overview": overview, "/sessions": { sessions: [] }, "/invites": { invites: [] },
+  "/server": settings(), "/overview": overview, "/sessions": { sessions: [] },
   "/diagnostics": { gateway: { version: "test", node: "test", platform: "test", arch: "test" }, database: { schemaVersion: 1 }, sessions: { created: 0 } },
   "/logs?limit=100": { available: false, entries: [], sessions: [] }, "/audit?limit=50": { events: [] },
   "/skins": { skins: [], defaultSkinId: "builtin.light" },
@@ -281,14 +281,11 @@ test("leaving a management section discards its pending read and returning loads
 test("a failed logout preserves the authenticated draft and a successful logout clears private state", async () => {
   await mount("/admin/operations");
   serverModel.serverForm.siteName = "Draft"; serverModel.serverForm.serverPassword = "private-test-password";
-  operationsModel.inviteForm.expiresInHours = 48; operationsModel.inviteForm.maxUses = 10;
-  operationsModel.createdInvite = { token: "test-only-invite", link: "https://gateway.example/?invite=test-only-invite" };
   handler = path => Promise.resolve(path === "/logout" ? json({ code: "REQUEST_FAILED" }, 500) : json(defaults(path)));
   await state.logout();
   assert.equal(state.screen, "admin");
   assert.equal(serverModel.serverForm.siteName, "Draft");
   assert.equal(serverModel.serverForm.serverPassword, "private-test-password");
-  assert.equal(operationsModel.createdInvite?.token, "test-only-invite");
   assert.equal(state.loggingOut, false);
   assert.ok(state.errorMessage);
   handler = path => Promise.resolve(json(path === "/logout" ? { ok: true } : defaults(path)));
@@ -297,9 +294,6 @@ test("a failed logout preserves the authenticated draft and a successful logout 
   assert.equal(state.csrfToken, "");
   assert.equal(serverModel.serverForm.serverPassword, "");
   assert.equal(operationsModel.operations.diagnostics.node, "");
-  assert.equal(operationsModel.inviteForm.expiresInHours, 24);
-  assert.equal(operationsModel.inviteForm.maxUses, 0);
-  assert.equal(operationsModel.createdInvite, null);
   assert.equal(router.currentRoute.value.path, "/admin/login");
 });
 
@@ -385,13 +379,3 @@ test("a settings response cannot overwrite a newer probe completed during the sa
   assert.equal(serverModel.serverForm.lastTestLatencyMs, 10);
 });
 
-test("duplicate invite revocation sends one mutation", async () => {
-  await mount("/admin/operations");
-  const revoke = deferred(); let calls = 0;
-  handler = path => path === "/invites/test/revoke" ? (++calls, revoke.promise) : Promise.resolve(json(defaults(path)));
-  const pending = operationsModel.revokeInvite({ id: "test" });
-  const duplicate = operationsModel.revokeInvite({ id: "test" });
-  revoke.resolve(json({ ok: true }));
-  await Promise.all([pending, duplicate]);
-  assert.equal(calls, 1);
-});

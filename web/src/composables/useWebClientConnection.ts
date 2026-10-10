@@ -31,14 +31,13 @@ interface UseWebClientConnectionOptions {
   serverPassword: Ref<string>;
   rememberIdentity: Readonly<Ref<boolean>>;
   identityMaterial: Ref<string>;
-  inviteToken: string;
   selectedChannelId: Ref<string>;
   channels: Readonly<Ref<TreeChannel[]>>;
   clientId: Readonly<Ref<number>>;
   channelPasswordDialog: ChannelPasswordDialogState;
   serverPasswordDialog: ServerPasswordDialogState;
   chatTab: Ref<WebClientChatTab>;
-  connect: (target: string, channel: string, nickname: string, password: string, identity: string, remember: boolean, invite: string) => void;
+  connect: (target: string, channel: string, nickname: string, password: string, identity: string, remember: boolean) => void;
   disconnect: () => void;
   switchChannel: (channelId: string, password?: string) => Promise<void>;
   clearError: () => void;
@@ -63,7 +62,6 @@ export function useWebClientConnection({
   serverPassword,
   rememberIdentity,
   identityMaterial,
-  inviteToken,
   selectedChannelId,
   channels,
   clientId,
@@ -113,7 +111,6 @@ export function useWebClientConnection({
       serverPassword.value,
       rememberIdentity.value ? identityMaterial.value : "",
       rememberIdentity.value,
-      inviteToken,
     );
   }
 

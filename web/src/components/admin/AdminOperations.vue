@@ -79,89 +79,6 @@
           /><span>{{ tr("sessionEmpty") }}</span></div
         ></article
       >
-      <article class="operation-card"
-        ><header
-          ><div
-            ><h3>{{ tr("invites") }}</h3
-            ><p>{{ tr("invitesLead") }}</p></div
-          ></header
-        ><form
-          class="invite-form"
-          @submit.prevent="createInvite"
-          ><label
-            ><span>{{ tr("inviteChannel") }}</span
-            ><input
-              v-model.trim="inviteForm.channel"
-              maxlength="100"
-              :placeholder="tr('inviteChannelPlaceholder')" /></label
-          ><div class="invite-form-grid"
-            ><label
-              ><span>{{ tr("expiresIn") }}</span
-              ><input
-                v-model.number="inviteForm.expiresInHours"
-                type="number"
-                min="1"
-                max="720" /></label
-            ><label
-              ><span>{{ tr("maxUses") }}</span
-              ><input
-                v-model.number="inviteForm.maxUses"
-                type="number"
-                min="0"
-                max="10000" /></label></div
-          ><small class="field-help">{{ tr("unlimitedUses") }}</small
-          ><button
-            class="primary-button"
-            type="submit"
-            :disabled="inviteSubmitting"
-            ><span
-              v-if="inviteSubmitting"
-              class="spinner small"
-            ></span
-            >{{ tr("createInvite") }}</button
-          ></form
-        ><div
-          v-if="createdInvite"
-          class="generated-invite"
-          ><strong>{{ tr("inviteCreated") }}</strong
-          ><div class="generated-link"
-            ><input
-              :value="createdInvite.link"
-              readonly
-            /><button
-              class="secondary-button"
-              type="button"
-              @click="copyInviteLink"
-              >{{ tr("copyLink") }}</button
-            ></div
-          ><small>{{ tr("inviteSecurity") }}</small></div
-        ><div
-          v-if="operations.invites.length"
-          class="invite-list"
-          ><div
-            v-for="invite in operations.invites"
-            :key="invite.id"
-            class="invite-row"
-            ><div
-              ><strong>{{ invite.channel || tr("defaultChannel") }}</strong
-              ><small>{{ invite.target }} · {{ formatDate(invite.expiresAt) }}</small></div
-            ><div class="invite-row-meta"
-              ><span :class="['state-pill', invite.status]">{{
-                inviteStatusLabel(invite.status)
-              }}</span
-              ><span>{{ invite.useCount }}/{{ invite.maxUses || "∞" }}</span
-              ><button
-                v-if="invite.status === 'active'"
-                class="text-danger"
-                type="button"
-                :disabled="revokingInvites.has(invite.id)"
-                @click="revokeInvite(invite)"
-                >{{ tr("revoke") }}</button
-              ></div
-            ></div
-          ></div
-        ></article
-      >
     </div>
     <div class="operations-grid lower-operations">
       <article class="operation-card diagnostics-card"
@@ -315,12 +232,12 @@ import type { AdminConnectionRecord } from "../../../../src/shared/admin-respons
 
 const props = defineProps<{
   model: ReturnType<typeof useAdminOperations>;
-  i18n: Pick<ReturnType<typeof useAdminI18n>, "tr" | "formatDate" | "formatAge" | "sessionStateLabel" | "connectionStatusLabel" | "inviteStatusLabel" | "eventName" | "connectionFailureText">;
+  i18n: Pick<ReturnType<typeof useAdminI18n>, "tr" | "formatDate" | "formatAge" | "sessionStateLabel" | "connectionStatusLabel" | "eventName" | "connectionFailureText">;
 }>();
 // Request ownership, cancellation and drafts remain in the page's controller.
-const { operations, operationsLoading, terminatingSession, inviteSubmitting, revokingInvites, inviteForm, createdInvite,
-  loadOperations, terminateSession, createInvite, revokeInvite, copyInviteLink, downloadBackup } = props.model;
-const { tr, formatDate, formatAge, sessionStateLabel, connectionStatusLabel, inviteStatusLabel, eventName, connectionFailureText } = props.i18n;
+const { operations, operationsLoading, terminatingSession,
+  loadOperations, terminateSession, downloadBackup } = props.model;
+const { tr, formatDate, formatAge, sessionStateLabel, connectionStatusLabel, eventName, connectionFailureText } = props.i18n;
 
 function connectionRoute(record: AdminConnectionRecord) {
   return tr("connectionFromTo", { ip: record.clientIp || "—", target: record.target || "—" });

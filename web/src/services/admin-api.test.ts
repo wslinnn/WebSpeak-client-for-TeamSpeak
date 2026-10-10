@@ -108,10 +108,10 @@ test("admin mutations read the current CSRF token and encode resource IDs", asyn
   } });
   await api.changePassword("test-password");
   token = "replacement-test-token";
-  await api.revokeInvite("a/b ?");
+  await api.terminateSession("a/b ?");
   assert.equal(new Headers(calls[0].init.headers).get("x-csrf-token"), "first-test-token");
   assert.equal(new Headers(calls[1].init.headers).get("x-csrf-token"), token);
-  assert.equal(calls[1].url, "/api/admin/invites/a%2Fb%20%3F/revoke");
+  assert.equal(calls[1].url, "/api/admin/sessions/a%2Fb%20%3F/terminate");
   assert.equal(calls[0].init.body, JSON.stringify({ newPassword: "test-password" }));
 });
 

@@ -1,5 +1,5 @@
 import { adminResponses, type AdminResponseReader } from "../../../src/shared/admin-responses.js";
-import type { AdminSettingsInput, ManagedInviteInput } from "../../../src/shared/admin-inputs.js";
+import type { AdminSettingsInput } from "../../../src/shared/admin-inputs.js";
 
 export class AdminApiError extends Error {
   constructor(readonly code: string, readonly status = 0, message = code) {
@@ -109,9 +109,6 @@ export function createAdminApi(options: AdminApiOptions) {
     probe: (body: Pick<AdminSettingsInput, "target" | "serverPassword" | "passwordAction">, signal?: AbortSignal) => request("/server/test", adminResponses.probe, "POST", body, true, signal),
     sessions: (signal?: AbortSignal) => request("/sessions", adminResponses.sessions, "GET", undefined, true, signal),
     terminateSession: (id: string, signal?: AbortSignal) => request(`/sessions/${encodeURIComponent(id)}/terminate`, adminResponses.ok, "POST", {}, true, signal),
-    invites: (signal?: AbortSignal) => request("/invites", adminResponses.invites, "GET", undefined, true, signal),
-    createInvite: (body: ManagedInviteInput, signal?: AbortSignal) => request("/invites", adminResponses.createdInvite, "POST", body, true, signal),
-    revokeInvite: (id: string, signal?: AbortSignal) => request(`/invites/${encodeURIComponent(id)}/revoke`, adminResponses.ok, "POST", {}, true, signal),
     diagnostics: (signal?: AbortSignal) => request("/diagnostics", adminResponses.diagnostics, "GET", undefined, true, signal),
     logs: (signal?: AbortSignal) => request("/logs?limit=100", adminResponses.logs, "GET", undefined, true, signal),
     audit: (signal?: AbortSignal) => request("/audit?limit=50", adminResponses.audit, "GET", undefined, true, signal),

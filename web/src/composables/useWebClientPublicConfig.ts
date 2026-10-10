@@ -61,12 +61,12 @@ export function useWebClientPublicConfig({
         }
       }
       accessMode.value = config.accessMode === "open" ? "open" : "fixed";
-      const hasInviteTarget = query.has("server") || query.has("target") || query.has("tsHost") || query.has("tsPort");
-      openTargetPrefillBlocked.value = !hasInviteTarget && accessMode.value === "open" && config.targetPrefillBlocked === true;
+      const hasExplicitTarget = query.has("server") || query.has("target") || query.has("tsHost") || query.has("tsPort");
+      openTargetPrefillBlocked.value = !hasExplicitTarget && accessMode.value === "open" && config.targetPrefillBlocked === true;
       if (openTargetPrefillBlocked.value) {
         serverHost.value = "";
         serverPort.value = DEFAULT_TEAM_SPEAK_PORT;
-      } else if (!hasInviteTarget && typeof config.target === "string" && config.target.trim()) {
+      } else if (!hasExplicitTarget && typeof config.target === "string" && config.target.trim()) {
         const target = splitTeamSpeakTarget(config.target);
         serverHost.value = target.address;
         serverPort.value = target.port;

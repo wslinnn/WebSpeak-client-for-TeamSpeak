@@ -44,10 +44,6 @@ const session = object({
   id: text, nickname: text, target: text, state: text, createdAt: text,
   ageSeconds: number, tsClientId: nullable(number), channelId: nullable(text), memberCount: number,
 });
-const invite = object({
-  id: text, target: text, channel: text, expiresAt: text, maxUses: number,
-  useCount: number, createdAt: text, revokedAt: nullable(text), status: choice("active", "expired", "exhausted", "revoked"),
-});
 const logContext: AdminResponseReader<Record<string, string | number | boolean>> = value => Object.fromEntries(
   Object.entries(record(value)).map(([key, entry]) => [key, typeof entry === "string" || typeof entry === "boolean" ? entry : number(entry)]),
 );
@@ -76,8 +72,6 @@ export const adminResponses = {
   settings,
   savedSettings: object({ ok: choice(true), settings }),
   sessions: object({ sessions: array(session) }),
-  invites: object({ invites: array(invite) }),
-  createdInvite: object({ ok: choice(true), token: nonempty, invite }),
   audit: object({ events: array(auditEvent) }),
   logs: object({ available: boolean, entries: array(logEntry), sessions: array(connection) }),
   diagnostics: object({
@@ -99,6 +93,5 @@ export const adminResponses = {
 export type AdminSettings = ReturnType<typeof settings>;
 export type AdminOverview = ReturnType<typeof overview>;
 export type AdminSession = ReturnType<typeof session>;
-export type ManagedInvite = ReturnType<typeof invite>;
 export type AdminLog = ReturnType<typeof logEntry>;
 export type AdminConnectionRecord = ReturnType<typeof connection>;

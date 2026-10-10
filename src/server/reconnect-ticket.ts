@@ -11,8 +11,8 @@ interface StoredReconnectTicket {
  * In-session reconnect tickets: one is issued per accepted voice WebSocket and
  * delivered to the browser in the `connected` message. A page reload or a
  * browser-level drop exchanges the token for a fresh join ticket, restoring
- * target/password/nickname/channel/identity without consuming the invite
- * again. Single-consume plus a short TTL bounds replay; switching channels
+ * target/password/nickname/channel/identity without new TeamSpeak joins.
+ * Single-consume plus a short TTL bounds replay; switching channels
  * updates the stored payload so the rebuilt session rejoins the right channel.
  */
 export class ReconnectTicketStore {
