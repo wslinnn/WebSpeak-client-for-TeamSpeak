@@ -23,8 +23,12 @@ function mount(t) {
     serverPassword: ref(""), rememberIdentity: ref(false), identityMaterial: ref(""), accelerationRelayId: ref(""),
     inviteToken: "", selectedChannelId: ref("2"), channels: ref([]), clientId: ref(1),
     channelPasswordDialog: dialog, serverPasswordDialog: reactive({ open: false, password: "", errorCode: "" }),
-    chatTab: ref("channel"), switchChannel: (...args) => calls.push(args),
-    clearError: () => { errors.value = ""; message.value = ""; }, t: key => key,
+    chatTab: ref("channel"),
+    // The real switchChannel awaits the gateway; a never-settling promise
+    // mirrors "no reply yet" so the errorCode watch drives the dialog exactly
+    // as it does in the room.
+    switchChannel: (...args) => { calls.push(args); return new Promise(() => {}); },
+    clearError: () => { errors.value = ""; message.value = ""; }, t: key => key, localizedMessage: message => message,
   }));
   t.after(() => scope.stop());
   return { dialog, connection, errors, message, switched, calls, serverHost, serverPort };

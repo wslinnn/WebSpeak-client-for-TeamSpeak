@@ -1155,6 +1155,7 @@ const {
     void saveLocalPreferences({ schemaVersion: 1, lastNickname: value });
   },
   showToast,
+  localizedMessage,
   t,
 });
 const visiblePokes = computed(() => pokeNotifications.slice(-3));

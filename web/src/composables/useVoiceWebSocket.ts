@@ -1260,11 +1260,14 @@ export function useVoiceWebSocket() {
     return commands.sendAndWait(type, payload, timeoutMs);
   }
 
-  function switchChannel(channelId: string, password = ""): void {
+  function switchChannel(channelId: string, password = ""): Promise<void> {
     state.error = "";
     state.errorCode = "";
     state.channelSwitchedChannelId = "";
-    sendCmd("switchChannel", { channelId, ...(password ? { password } : {}) });
+    // Await the gateway so a refused switch (full, no permission) becomes a
+    // catchable rejection — the UI rolls back instead of drifting to a channel
+    // it never entered. Send-and-pray stays for genuinely fire-and-forget cmds.
+    return sendCommandAndWait("switchChannel", { channelId, ...(password ? { password } : {}) });
   }
 
   function moveClient(clientId: number, channelId: string, password = ""): Promise<void> {

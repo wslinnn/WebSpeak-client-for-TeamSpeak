@@ -26,6 +26,7 @@ function localizedMessage(message: string) {
     "麦克风设备已断开或权限被回收，采集已停止：请在音频设置中重新选择设备或重新授权": "Микрофон отключён или доступ был отозван, захват остановлен. Выберите устройство заново или снова выдайте разрешение в настройках звука",
     "麦克风被系统或浏览器静音，其他成员暂时听不到你": "Микрофон отключён системой или браузером — другие участники сейчас вас не слышат",
     "输出设备将在语音通道建立后生效，当前连接尚未建立音频输出": "Устройство вывода заработает после установления голосового канала; для текущего подключения вывод звука ещё не создан",
+    "操作超时，请稍后重试": "Истекло время ожидания операции. Повторите попытку",
     "语音功能需要 HTTPS 安全连接：浏览器仅在 https:// 或 localhost 页面开放麦克风，请改用安全地址访问": "Голосовым функциям нужен безопасный контекст: браузер предоставляет микрофон только на страницах https:// или localhost. Откройте сайт по безопасному адресу",
     "当前浏览器不支持麦克风访问，请更换最新版 Chrome 或 Edge": "Этот браузер не поддерживает доступ к микрофону. Используйте актуальный Chrome или Edge",
     "当前浏览器不支持 Web Audio 音频处理，请更换最新版 Chrome 或 Edge": "Этот браузер не поддерживает обработку Web Audio. Используйте актуальный Chrome или Edge",
@@ -44,6 +45,7 @@ function localizedMessage(message: string) {
     "麦克风被系统或浏览器静音，其他成员暂时听不到你": "マイクがシステムまたはブラウザーでミュートされています。他のメンバーには現在あなたの声が聞こえていません",
     "输出设备将在语音通道建立后生效，当前连接尚未建立音频输出": "出力デバイスは音声チャンネル確立後に有効になります。現在の接続ではまだ音声出力が確立されていません",
     "语音功能需要 HTTPS 安全连接：浏览器仅在 https:// 或 localhost 页面开放麦克风，请改用安全地址访问": "音声機能には安全なコンテキストが必要です。ブラウザーは https:// または localhost のページでのみマイクを提供します。安全なアドレスでアクセスしてください",
+    "操作超时，请稍后重试": "操作がタイムアウトしました。しばらくしてから再試行してください",
     "当前浏览器不支持麦克风访问，请更换最新版 Chrome 或 Edge": "このブラウザーはマイクへのアクセスに対応していません。最新の Chrome または Edge を使用してください",
     "当前浏览器不支持 Web Audio 音频处理，请更换最新版 Chrome 或 Edge": "このブラウザーは Web Audio 処理に対応していません。最新の Chrome または Edge を使用してください",
     "当前浏览器不支持音频解码，兼容传输模式下可能听不到声音，请使用最新版 Chrome 或 Edge": "このブラウザーは音声デコードに対応しておらず、互換トランスポートでは音が聞こえない場合があります。最新の Chrome または Edge を使用してください",
@@ -61,6 +63,7 @@ function localizedMessage(message: string) {
   }
   const exact: Record<string, string> = {
     "语音功能需要 HTTPS 安全连接：浏览器仅在 https:// 或 localhost 页面开放麦克风，请改用安全地址访问": "Voice features require a secure context: browsers only expose the microphone on https:// or localhost pages. Reopen the site via a secure address",
+    "操作超时，请稍后重试": "Operation timed out. Try again shortly",
     "当前浏览器不支持麦克风访问，请更换最新版 Chrome 或 Edge": "This browser does not support microphone access. Switch to an up-to-date Chrome or Edge",
     "当前浏览器不支持 Web Audio 音频处理，请更换最新版 Chrome 或 Edge": "This browser does not support Web Audio processing. Switch to an up-to-date Chrome or Edge",
     "当前浏览器不支持音频解码，兼容传输模式下可能听不到声音，请使用最新版 Chrome 或 Edge": "This browser does not support audio decoding; the compatibility transport may be silent. Use the latest Chrome or Edge",
@@ -157,6 +160,7 @@ function localizedMessage(message: string) {
   if (language.value === "de") {
     const german: Record<string, string> = {
       "语音功能需要 HTTPS 安全连接：浏览器仅在 https:// 或 localhost 页面开放麦克风，请改用安全地址访问": "Sprachfunktionen benötigen einen sicheren Kontext: Der Browser stellt das Mikrofon nur auf https://- oder localhost-Seiten bereit. Öffne die Seite über eine sichere Adresse",
+      "操作超时，请稍后重试": "Der Vorgang hat zu lange gedauert. Versuche es erneut",
       "当前浏览器不支持麦克风访问，请更换最新版 Chrome 或 Edge": "Dieser Browser unterstützt keinen Mikrofonzugriff. Wechsle zu einem aktuellen Chrome oder Edge",
       "当前浏览器不支持 Web Audio 音频处理，请更换最新版 Chrome 或 Edge": "Dieser Browser unterstützt keine Web-Audio-Verarbeitung. Wechsle zu einem aktuellen Chrome oder Edge",
       "当前浏览器不支持音频解码，兼容传输模式下可能听不到声音，请使用最新版 Chrome 或 Edge": "Dieser Browser unterstützt keine Audiodekodierung; im Kompatibilitätstransport ist möglicherweise kein Ton hörbar. Verwende das aktuelle Chrome oder Edge",

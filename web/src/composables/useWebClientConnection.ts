@@ -40,10 +40,11 @@ interface UseWebClientConnectionOptions {
   chatTab: Ref<WebClientChatTab>;
   connect: (target: string, channel: string, nickname: string, password: string, identity: string, remember: boolean, invite: string) => void;
   disconnect: () => void;
-  switchChannel: (channelId: string, password?: string) => void;
+  switchChannel: (channelId: string, password?: string) => Promise<void>;
   clearError: () => void;
   saveNickname: (nickname: string) => void;
   showToast: (message: string) => void;
+  localizedMessage: (message: string) => string;
   t: (key: string) => string;
   beforeConnect?: () => void;
 }
@@ -74,6 +75,7 @@ export function useWebClientConnection({
   switchChannel,
   clearError,
   saveNickname,
+  localizedMessage,
   showToast,
   t,
   beforeConnect,
@@ -140,18 +142,33 @@ export function useWebClientConnection({
     clearError();
   }
 
-  function selectChannel(channel: TreeChannel): void {
+  async function selectChannel(channel: TreeChannel): Promise<void> {
+    const previousChannelId = selectedChannelId.value;
+    const previousChannelName = channelName.value;
     selectedChannelId.value = channel.id;
     channelName.value = channel.name;
     chatTab.value = "channel";
-    switchChannel(channel.id);
+    try {
+      await switchChannel(channel.id);
+    } catch (error) {
+      // The password dialog owns this failure: its watch reopens the dialog,
+      // so the optimistic selection must survive for the retry to land here.
+      if (error instanceof Error && (error as Error & { code?: string }).code === "CHANNEL_PASSWORD_REQUIRED") return;
+      selectedChannelId.value = previousChannelId;
+      channelName.value = previousChannelName;
+      showToast(localizedMessage(error instanceof Error && error.message ? error.message : "切换频道失败"));
+    }
   }
 
   function submitChannelPassword(): void {
     if (!channelPasswordDialog.open || channelPasswordDialog.submitting || !channelPasswordDialog.channelId || !channelPasswordDialog.password) return;
     channelPasswordDialog.error = "";
     channelPasswordDialog.submitting = true;
-    switchChannel(channelPasswordDialog.channelId, channelPasswordDialog.password);
+    // Failures reach the dialog through the errorCode watch; only a timeout
+    // (which carries no error code) would otherwise leave the spinner stuck.
+    switchChannel(channelPasswordDialog.channelId, channelPasswordDialog.password).catch(() => {
+      if (!errorCode.value) channelPasswordDialog.submitting = false;
+    });
   }
 
   function cancelChannelPassword(): void {
