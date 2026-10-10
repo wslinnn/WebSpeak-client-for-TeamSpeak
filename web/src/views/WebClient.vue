@@ -1285,6 +1285,10 @@ function doShare() {
   invite.searchParams.delete("tsHost");
   invite.searchParams.delete("tsPort");
   invite.searchParams.delete("server");
+  // A stale invite token carried over from the current URL would override the
+  // server link on the recipient's side and fail there; open mode shares by
+  // address, so it must not ride along.
+  if (accessMode.value === "open") invite.searchParams.delete("invite");
   if (accessMode.value === "open" && serverHost.value.trim()) invite.searchParams.set("server", currentServerTarget());
   if (channel.value) invite.searchParams.set("channel", channel.value);
   navigator.clipboard?.writeText(invite.toString()).then(() => showToast(t("copiedToast")), () => showToast(t("copyFailedToast")));
