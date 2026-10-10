@@ -50,9 +50,6 @@
         "
         :data-member-channel-id="channelItem.id"
         :style="{ marginLeft: `${channelItem.depth * 10}px` }"
-        @dragover="onChannelDragOver(channelItem, $event)"
-        @dragleave="onChannelDragLeave(channelItem, $event)"
-        @drop="onChannelDrop(channelItem, $event)"
         @pointermove="onMemberPointerMove($event)"
         @pointerup="onMemberPointerUp($event)"
         @pointercancel="onMemberPointerCancel($event)"
@@ -88,9 +85,6 @@
                   ? 'speaking'
                   : 'connected'
             "
-            :draggable="!member.isSelf"
-            @dragstart="onMemberDragStart(member, $event)"
-            @dragend="onMemberDragEnd"
             @pointerdown="onMemberPointerDown(member, $event)"
             @pointermove="onMemberPointerMove($event)"
             @pointerup="onMemberPointerUp($event)"
@@ -160,17 +154,16 @@
             <div
               class="member-volume"
               data-ws-part="voice.member-row.volume"
+              @pointerdown.stop
               ><Icon
                 :name="(volumes[member.id] ?? 1) === 0 ? 'volume-off' : 'volume'"
                 :size="14" /><input
                 type="range"
                 min="0"
                 max="400"
-                draggable="false"
                 :value="(volumes[member.id] ?? 1) * 100"
                 :style="rangeStyle((volumes[member.id] ?? 1) / 4, 1)"
                 :aria-label="t('memberVolume')"
-                @dragstart.stop.prevent
                 @input="emit('volumeInput', member.id, $event)"
             /></div>
             <button
@@ -215,16 +208,11 @@ type MemberPanelModel = Pick<ReturnType<typeof useWebClientMembers>,
   | "isSpeaking"
   | "memberDisplayName"
   | "openMemberActions"
-  | "onMemberDragStart"
-  | "onMemberDragEnd"
   | "onMemberContextMenu"
   | "onMemberPointerDown"
   | "onMemberPointerMove"
   | "onMemberPointerUp"
   | "onMemberPointerCancel"
-  | "onChannelDragOver"
-  | "onChannelDragLeave"
-  | "onChannelDrop"
 >;
 const memberQuery = defineModel<string>("query", { required: true });
 const props = defineProps<{
@@ -253,15 +241,10 @@ const {
   isSpeaking,
   memberDisplayName,
   openMemberActions,
-  onMemberDragStart,
-  onMemberDragEnd,
   onMemberContextMenu,
   onMemberPointerDown,
   onMemberPointerMove,
   onMemberPointerUp,
   onMemberPointerCancel,
-  onChannelDragOver,
-  onChannelDragLeave,
-  onChannelDrop,
 } = props.model;
 </script>

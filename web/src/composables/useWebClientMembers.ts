@@ -115,20 +115,6 @@ export function useWebClientMembers({
     }
   }
 
-  function onMemberDragStart(member: ChannelMember, event: DragEvent): void {
-    // The row is the drag source, so child controls must never start a member
-    // drag — a volume-slider gesture used to hijack the row into a channel move.
-    const target = event.target instanceof Element ? event.target : null;
-    if (member.isSelf || target?.closest("input,button,select,textarea,a")) {
-      event.preventDefault();
-      return;
-    }
-    draggedMember.value = member;
-    dragOverChannelId.value = "";
-    event.dataTransfer?.setData("text/plain", String(member.id));
-    if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
-  }
-
   /** Right-click on the row itself opens the member menu; on controls and on
    *  the user's own row the browser menu stays available. */
   function onMemberContextMenu(member: ChannelMember, event: MouseEvent): void {
@@ -138,7 +124,7 @@ export function useWebClientMembers({
     openMemberMenu(member, event);
   }
 
-  function onMemberDragEnd(): void {
+  function resetMemberDragState(): void {
     draggedMember.value = null;
     dragOverChannelId.value = "";
   }
@@ -187,8 +173,7 @@ export function useWebClientMembers({
     memberPointerDrag.pointerId = null;
     memberPointerDrag.active = false;
     memberPointerDrag.targetChannelId = "";
-    draggedMember.value = null;
-    dragOverChannelId.value = "";
+    resetMemberDragState();
     if (targetChannelId) void moveMemberDirect(member, targetChannelId);
   }
 
@@ -200,36 +185,7 @@ export function useWebClientMembers({
     memberPointerDrag.pointerId = null;
     memberPointerDrag.active = false;
     memberPointerDrag.targetChannelId = "";
-    draggedMember.value = null;
-    dragOverChannelId.value = "";
-  }
-
-  function onChannelDragOver(channel: TreeChannel, event: DragEvent): void {
-    const member = draggedMember.value;
-    if (!member || channel.id === "__current__") return;
-    const sourceChannel = channels.value.find((item) => item.members.some((candidate) => candidate.id === member.id));
-    if (!sourceChannel || sourceChannel.id === channel.id) return;
-    event.preventDefault();
-    if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
-    dragOverChannelId.value = channel.id;
-  }
-
-  function onChannelDragLeave(channel: TreeChannel, event: DragEvent): void {
-    const currentTarget = event.currentTarget;
-    const relatedTarget = event.relatedTarget;
-    if (currentTarget instanceof HTMLElement && relatedTarget instanceof Node && currentTarget.contains(relatedTarget)) return;
-    if (dragOverChannelId.value === channel.id) dragOverChannelId.value = "";
-  }
-
-  function onChannelDrop(channel: TreeChannel, event: DragEvent): void {
-    const member = draggedMember.value;
-    // An empty drag (files, external text) must keep the browser's default
-    // behavior instead of swallowing the drop.
-    if (!member) return;
-    event.preventDefault();
-    onMemberDragEnd();
-    if (channel.id === "__current__") return;
-    void moveMemberDirect(member, channel.id);
+    resetMemberDragState();
   }
 
   function toggleWhisperTarget(member: ChannelMember): void {
@@ -302,16 +258,11 @@ export function useWebClientMembers({
     setAutomaticAway,
     toggleMemberMoveMenu,
     moveMemberDirect,
-    onMemberDragStart,
-    onMemberDragEnd,
     onMemberContextMenu,
     onMemberPointerDown,
     onMemberPointerMove,
     onMemberPointerUp,
     onMemberPointerCancel,
-    onChannelDragOver,
-    onChannelDragLeave,
-    onChannelDrop,
     toggleWhisperTarget,
     clearWhisperTargets,
     pokeMember,
