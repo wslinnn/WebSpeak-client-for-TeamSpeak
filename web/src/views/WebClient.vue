@@ -6,6 +6,7 @@
       `language-${language}`,
       { 'skin-initializing': !skinReady, 'keyboard-open': mobileViewport.keyboardOpen },
     ]"
+    :lang="language"
     :style="{ '--ws-viewport-height': `${mobileViewport.height}px`, '--ws-viewport-top': `${mobileViewport.top}px` }"
     data-ws-part="app"
     :data-ws-page="voiceShellVisible ? 'voice' : 'home'"

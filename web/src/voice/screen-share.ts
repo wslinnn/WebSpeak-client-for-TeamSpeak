@@ -579,6 +579,10 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     screenShareOutputSettings = settings ?? null;
     let acquiredStream: MediaStream | null = null;
     try {
+      // getDisplayMedia must stay the first await on the trusted-click path:
+      // transient user activation does not survive intermediate async work, so
+      // anything awaited before this call would make the picker throw
+      // "Invalid state" / require a second gesture. Keep it first-hop.
       const stream = acquiredStream = await navigator.mediaDevices.getDisplayMedia({
         // Capture the selected surface at its native browser-provided size.
         // Output resolution/FPS are applied later on each RTCRtpSender so the

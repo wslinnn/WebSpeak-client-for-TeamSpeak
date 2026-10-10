@@ -1894,6 +1894,43 @@
   color: #2c3935;
   background: #fbfcfc;
   border-left: 1px solid #eef2f0;
+  /* A full roster scrolls instead of clipping: overflow hidden here once hid
+   * members beyond the fold with no way to reach them. */
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+/* Staggered entrance for member rows: cheap KOOK-style life without motion
+ * sickness — disabled under prefers-reduced-motion below. */
+:deep(.member-list) .member-row {
+  animation: member-row-in .32s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+:deep(.member-list) .member-row:nth-child(2) { animation-delay: .035s; }
+:deep(.member-list) .member-row:nth-child(3) { animation-delay: .07s; }
+:deep(.member-list) .member-row:nth-child(4) { animation-delay: .105s; }
+:deep(.member-list) .member-row:nth-child(5) { animation-delay: .14s; }
+:deep(.member-list) .member-row:nth-child(6) { animation-delay: .175s; }
+:deep(.member-list) .member-row:nth-child(7) { animation-delay: .21s; }
+:deep(.member-list) .member-row:nth-child(n + 8) { animation-delay: .245s; }
+
+@keyframes member-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :deep(.member-list) .member-row {
+    animation: none;
+  }
 }
 
 :deep(.member-panel-heading) {
@@ -2787,6 +2824,25 @@
   }
   .favorite-switch-banner {
     padding: 8px 14px;
+  }
+  /* Touch targets: icon buttons and picker chips are primary taps on phones,
+   * so they get near-44px hit areas instead of their desktop icon sizes. */
+  .workspace-actions .header-action {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+  }
+  .favorite-server-chip,
+  .favorite-server-add {
+    width: 38px;
+    height: 38px;
+  }
+  :deep(.local-server-select) {
+    padding: 9px 10px;
+    font-size: 11px;
+  }
+  :deep(.local-server-favorite) {
+    width: 38px;
   }
   .crumb-muted,
   .breadcrumbs > .ui-icon,
