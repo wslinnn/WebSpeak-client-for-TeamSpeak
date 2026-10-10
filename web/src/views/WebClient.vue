@@ -387,7 +387,12 @@
             :title="server.label"
             :aria-label="t('switchToServer', { name: server.label })"
             @click="switchToQuickServer(server)"
-          >{{ avatarInitial(server.label) }}</button>
+          ><span
+              class="favorite-server-chip-initial"
+              aria-hidden="true"
+            >{{ avatarInitial(server.label) }}</span><span
+              class="favorite-server-chip-label"
+            >{{ server.label }}</span></button>
           <button
             type="button"
             class="favorite-server-add"
