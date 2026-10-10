@@ -213,6 +213,27 @@ export function createWebServer(options: WebServerOptions): WebServer {
       return;
     }
     const body = isRecord(request.body) ? request.body : {};
+    // In-session reconnect: an opaque token from the `connected` message
+    // restores the original join payload (target, password, nickname, channel,
+    // identity) without consuming the invite again. Same-origin and the join
+    // rate limit above still apply; an unknown/expired token is a plain 400 so
+    // a stale browser tab simply falls back to the normal join form.
+    const reconnectToken = typeof body.reconnect === "string" ? body.reconnect.trim().slice(0, 128) : "";
+    if (reconnectToken) {
+      const record = options.voiceBridgeOptions.reconnectTickets?.consume(reconnectToken);
+      if (!record) {
+        response.status(400).json({ ok: false, code: "RECONNECT_INVALID" });
+        return;
+      }
+      const ticket = options.voiceBridgeOptions.joinTickets.create({
+        ...record.payload,
+        // Let the voice bridge evict the predecessor session so a fast
+        // reconnect reuses the identity lease instead of tripping 4005.
+        reconnectOfEntryId: record.entryId,
+      });
+      response.status(201).json({ ok: true, ticket });
+      return;
+    }
     const nickname = typeof body.nickname === "string" ? body.nickname.trim().slice(0, 30) : "";
     const requestedChannel = typeof body.channel === "string" ? body.channel.trim().slice(0, 100) : "";
     const inviteToken = typeof body.invite === "string" ? body.invite.trim().slice(0, 128) : "";

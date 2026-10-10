@@ -17,7 +17,7 @@ const APP_VERSION = readPackageVersion();
 const SCREEN_SHARE_ICE_SERVERS = readScreenShareIceServers(process.env.WEBSPEAK_SCREEN_SHARE_ICE_SERVERS);
 
 async function main() {
-  const [{ createLogger }, { createWebServer }, { APP_PORT }, { WebSpeakDatabase }, { loadOrCreateMasterSecret }, { AdminService }, { JoinTicketStore }, { ServerPasswordGuard }] = await Promise.all([
+  const [{ createLogger }, { createWebServer }, { APP_PORT }, { WebSpeakDatabase }, { loadOrCreateMasterSecret }, { AdminService }, { JoinTicketStore }, { ReconnectTicketStore }, { ServerPasswordGuard }] = await Promise.all([
     import("./logger.js"),
     import("./server/server.js"),
     import("./constants.js"),
@@ -25,6 +25,7 @@ async function main() {
     import("./security/master-secret.js"),
     import("./admin/admin-service.js"),
     import("./server/join-ticket.js"),
+    import("./server/reconnect-ticket.js"),
     import("./server/server-password-guard.js"),
   ]);
   // WEBSPEAK_LOG_LEVEL=debug restores verbose file logging (SDK protocol
@@ -44,6 +45,7 @@ async function main() {
   await adminService.initialize();
   removeObsoleteBootstrapFile();
   const joinTickets = new JoinTicketStore();
+  const reconnectTickets = new ReconnectTicketStore();
   // WEBSPEAK_TRUST_PROXY=1 declares a reverse proxy in front of the gateway:
   // forwarded headers then identify clients for rate limits and logs, and
   // proxy-terminated TLS keeps secure cookies and HSTS working.
@@ -65,6 +67,7 @@ async function main() {
     certDir: hasCert ? CERT_DIR : undefined,
     voiceBridgeOptions: {
       joinTickets,
+      reconnectTickets,
       webRtc: () => adminService.getWebRtcAudioOptions(),
       screenShareIceServers: () => SCREEN_SHARE_ICE_SERVERS,
       trustProxy,

@@ -16,6 +16,7 @@ import type { Logger as LoggerType } from "../logger.js";
 import { clientConnectionFailureCode, describeTeamSpeakError, normalizeTeamSpeakError } from "../errors.js";
 import { formatTeamSpeakTarget, teamSpeakTargetKey, type TeamSpeakTarget } from "../domain/teamspeak-target.js";
 import { JoinTicketStore, type JoinTicketPayload } from "./join-ticket.js";
+import type { ReconnectTicketStore } from "./reconnect-ticket.js";
 import { IdentityLeaseStore } from "./identity-lease.js";
 import { SessionManager, type ManagedSession, type SessionTeardownReason } from "./session-manager.js";
 import { parseClientCommand } from "./voice-protocol.js";
@@ -42,6 +43,7 @@ function publicFailureDetail(error: ReturnType<typeof normalizeTeamSpeakError>):
 
 export interface VoiceBridgeOptions {
   joinTickets: JoinTicketStore;
+  reconnectTickets?: ReconnectTicketStore;
   webRtc?: WebRtcAudioOptions | (() => WebRtcAudioOptions);
   screenShareIceServers?: ScreenShareIceServer[] | (() => ScreenShareIceServer[]);
   trustProxy?: boolean;
@@ -95,6 +97,8 @@ interface WebClientEntry extends SessionDirectoryState {
   webrtcEverUsed: boolean;
   connectionFailureCode?: string;
   screenPeerId: string;
+  /** Token delivered in `connected` for browser reload/drop recovery. */
+  reconnectTicketToken?: string;
 }
 
 export class VoiceBridge {
@@ -132,7 +136,7 @@ export class VoiceBridge {
     this.wss = new WebSocketServer({ server, path: "/ws/voice", maxPayload: 512 * 1024 });
     this.startHeartbeat();
 
-    this.wss.on("connection", (ws: WebSocket, req: IncomingMessage) => {
+    this.wss.on("connection", async (ws: WebSocket, req: IncomingMessage) => {
       const url = new URL(req.url ?? "/", `https://${req.headers.host ?? "localhost"}`);
       const connection = this.resolveConnection(url);
       if (!connection) {
@@ -168,6 +172,23 @@ export class VoiceBridge {
       const identityLeaseKey = identity
         ? `${teamSpeakTargetKey(target)}:${identity.toString()}`
         : "";
+      // A reconnect successor takes over its predecessor's session: the old
+      // socket may be a zombie for up to a heartbeat interval, and without
+      // this eviction the rebuilt connection would trip the identity lease.
+      const predecessorEntryId = typeof connection.reconnectOfEntryId === "string" ? connection.reconnectOfEntryId : "";
+      if (predecessorEntryId) {
+        const predecessor = this.entries.get(predecessorEntryId);
+        if (predecessor && predecessor.id !== entryId) {
+          // A hung TeamSpeak disconnect must not stall admission forever: the
+          // explicit lease release below is idempotent and unblocks the lease
+          // even if the full teardown is still waiting on the SDK.
+          await Promise.race([
+            this.sessionManager.teardown(predecessor.id, "superseded"),
+            new Promise<void>((resolve) => setTimeout(resolve, 1_500)),
+          ]);
+          if (predecessor.identityLeaseKey) this.identityLeases.release(predecessor.identityLeaseKey, predecessor.id);
+        }
+      }
       if (identityLeaseKey && !this.identityLeases.acquire(identityLeaseKey, entryId)) {
         this.logger.warn({ entryId, nickname, target: formatTeamSpeakTarget(target) }, "TeamSpeak identity already in use");
         void this.sessionManager.teardown(entryId, "teamSpeak-connect-failed");
@@ -197,6 +218,10 @@ export class VoiceBridge {
         ws.close(4003, "TEAM_SPEAK_CLIENT_UNAVAILABLE");
         return;
       }
+      // One reconnect ticket per accepted socket: the browser holds it for a
+      // page reload or a transport drop, and the `connected` message delivers
+      // it. It never re-consumes the invite; TTL and single-consume bound reuse.
+      const reconnectTicketToken = this.options.reconnectTickets?.issue(connection, entryId);
       entry = {
         id: entryId,
         session,
@@ -208,6 +233,7 @@ export class VoiceBridge {
         target,
         ...(identityLeaseKey ? { identityLeaseKey } : {}),
         ...(webrtcPublicHost ? { webrtcPublicHost } : {}),
+        ...(reconnectTicketToken ? { reconnectTicketToken } : {}),
         channelTree: [],
         members: new Map(),
         events: null,
@@ -231,6 +257,12 @@ export class VoiceBridge {
       this.entries.set(entryId, entry!);
       let tsReady = false;
       const sendJson = (message: ServerMessage) => {
+        // Keep the reconnect payload's channel in sync with mid-session
+        // switches so a rebuilt session rejoins where the user actually was.
+        if (message.type === "channelSwitched" && entry?.reconnectTicketToken) {
+          const channelName = entry.channelTree.find(item => item.id === String(message.channelId))?.name;
+          if (channelName) this.options.reconnectTickets?.updateChannel(entryId, channelName);
+        }
         if (this.entries.get(entryId) === entry && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message));
       };
       try {
@@ -292,6 +324,7 @@ export class VoiceBridge {
           webrtcAvailable: this.getWebRtcOptions()?.enabled === true,
           webRtcStunServer: this.getWebRtcOptions()?.stunServer ?? "",
           screenShareIceServers: this.getScreenShareIceServers(),
+          ...(entry!.reconnectTicketToken ? { reconnectTicket: entry!.reconnectTicketToken } : {}),
           ...(entry!.rememberIdentity ? { identity: tsClient.getIdentityString() } : {}),
         });
         sendJson({ type: "channelList", channels: entry!.channelTree });

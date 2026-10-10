@@ -815,6 +815,7 @@ const {
   playNotification,
   connect,
   reconnectNow,
+  tryResumeVoiceSession,
   disconnect,
   switchChannel,
   moveClient,
@@ -1274,6 +1275,9 @@ onMounted(() => {
   applyTheme(themeMode.value);
   browserError.value = checkSupport() ?? "";
   browserWarning.value = checkBrowserWarning() ?? "";
+  // A reload in a tab that still holds a reconnect token rebuilds the voice
+  // session instead of dropping the user back onto the join form.
+  tryResumeVoiceSession();
   void watchMicrophonePermission();
   void loadPublicConfig();
   void initializeSkin();

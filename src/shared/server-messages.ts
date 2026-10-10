@@ -12,7 +12,7 @@ type ChatFields = { invokerId?: number; invokerName?: string; message: string; t
 
 /** Public JSON messages. Internal sockets, SDK clients and media objects stay out. */
 export type ServerMessage =
-  | Message<"connected", { tsClientId: number; members?: ChannelMember[]; serverEventLog?: ServerEvent[]; identity?: string; webrtcAvailable?: boolean; webRtcStunServer?: string; whisperTargetIds?: number[]; whisperActive?: boolean; screenShareIceServers?: ScreenShareIceServer[] }>
+  | Message<"connected", { tsClientId: number; members?: ChannelMember[]; serverEventLog?: ServerEvent[]; identity?: string; webrtcAvailable?: boolean; webRtcStunServer?: string; whisperTargetIds?: number[]; whisperActive?: boolean; screenShareIceServers?: ScreenShareIceServer[]; reconnectTicket?: string }>
   | Message<"memberEnter", ChannelMember & { channelId?: string }>
   | Message<"memberLeave", { id: number }>
   | Message<"memberUpdated", { id: number } & Partial<Pick<ChannelMember, "nickname" | "uid" | "away" | "awayMessage" | "inputMuted" | "outputMuted" | "channelCommander">>>
@@ -116,7 +116,8 @@ export function parseScreenShareStream(value: unknown): ScreenShareStreamDescrip
 const valid: Record<ServerMessage["type"], (message: RecordValue) => boolean> = {
   connected: m => clientId(m.tsClientId) && optional(m.members, v => arrayOf(v, member)) && optional(m.serverEventLog, v => arrayOf(v, event))
     && optional(m.identity, v => text(v) && v.length <= 8192) && optional(m.webrtcAvailable, boolean) && optional(m.webRtcStunServer, v => normalizeVoiceStunServer(v) !== null)
-    && optional(m.whisperTargetIds, v => arrayOf(v, clientId)) && optional(m.whisperActive, boolean),
+    && optional(m.whisperTargetIds, v => arrayOf(v, clientId)) && optional(m.whisperActive, boolean)
+    && optional(m.reconnectTicket, v => text(v) && v.length <= 128),
   memberEnter: m => member(m) && optional(m.channelId, channelId),
   memberLeave: m => clientId(m.id),
   memberUpdated: m => clientId(m.id)

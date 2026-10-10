@@ -8,6 +8,10 @@ export interface JoinTicketPayload {
   channel?: string;
   identity?: string;
   rememberIdentity?: boolean;
+  /** Set when the ticket was minted from a reconnect token: the voice bridge
+   *  evicts this predecessor session (releasing its identity lease) before
+   *  admitting the new connection, so a fast reconnect cannot trip 4005. */
+  reconnectOfEntryId?: string;
 }
 
 interface StoredTicket {
