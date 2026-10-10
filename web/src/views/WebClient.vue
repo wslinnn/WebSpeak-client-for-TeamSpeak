@@ -701,6 +701,8 @@
       :microphone-error="voiceState.microphoneError"
       :microphone-error-code="voiceState.microphoneErrorCode"
       :is-mobile-viewport="isMobileViewport"
+      :desktop-notifications-enabled="desktopNotificationsEnabled"
+      :on-desktop-notifications-toggle="onDesktopNotificationsToggle"
       :t="t"
       :localized-message="localizedMessage"
       :localized-microphone-error="localizedMicrophoneError"
@@ -763,6 +765,7 @@ import { isPublicSkinEnabled } from "../services/skin-catalog.js";
 import { BUILTIN_DARK_SKIN, BUILTIN_LIGHT_SKIN } from "../services/skin-runtime.js";
 import { applyTheme, getStoredTheme, type ThemeMode } from "../services/theme.js";
 import { createScreenWakeLockController, getScreenWakeLockApi, type ScreenWakeLockController, type ScreenWakeLockSnapshot } from "../services/screen-wake-lock.js";
+import { desktopNotificationPermission, readDesktopNotificationSetting, requestDesktopNotificationPermission, showBackgroundTabNotification, writeDesktopNotificationSetting } from "../services/desktop-notifications.js";
 import { createMobileAwayController, type MobileAwayController } from "../services/mobile-away.js";
 import { combineTeamSpeakTarget, DEFAULT_TEAM_SPEAK_PORT, splitTeamSpeakTarget } from "../services/teamspeak-target.js";
 
@@ -1173,13 +1176,33 @@ const {
 });
 const visiblePokes = computed(() => pokeNotifications.slice(-3));
 const pokeAutoDismissTimers = new Map<string, number>();
+const desktopNotificationsEnabled = ref(readDesktopNotificationSetting());
+async function onDesktopNotificationsToggle(event: Event): Promise<void> {
+  const enabled = (event.target as HTMLInputElement).checked;
+  desktopNotificationsEnabled.value = enabled;
+  writeDesktopNotificationSetting(enabled);
+  if (!enabled || desktopNotificationPermission() === "granted") return;
+  // Ask from the toggle's user gesture; reverting silently keeps the stored
+  // flag in sync with what the browser actually allows.
+  const permission = await requestDesktopNotificationPermission();
+  if (permission === "granted") {
+    showToast(t("desktopNotificationsOn"));
+    return;
+  }
+  desktopNotificationsEnabled.value = false;
+  writeDesktopNotificationSetting(false);
+  showToast(t("desktopNotificationsBlocked"));
+}
 
 watch(() => pokeNotifications.length, (length, previousLength) => {
   const latest = pokeNotifications[length - 1];
   if (!latest || length <= previousLength) return;
-  showToast(`${latest.invokerName} ${t("pokedYou")}${latest.message ? t("pokeMessageSuffix", { message: latest.message }) : ""}`);
+  const body = `${latest.invokerName} ${t("pokedYou")}${latest.message ? t("pokeMessageSuffix", { message: latest.message }) : ""}`;
   playNotification("poke");
-  if (typeof Notification !== "undefined" && Notification.permission === "granted") new Notification(t("poke"), { body: `${latest.invokerName} ${t("pokedYou")}${latest.message ? t("pokeMessageSuffix", { message: latest.message }) : ""}` });
+  // Foreground users read the banner; only a hidden tab with an explicit
+  // opt-in also raises a system notification. No toast — it duplicated the
+  // banner one-for-one.
+  showBackgroundTabNotification(desktopNotificationsEnabled.value, t("poke"), body);
   // Banners used to pile up indefinitely; each one now leaves on its own
   // unless dismissed manually first.
   if (!pokeAutoDismissTimers.has(latest.id)) {

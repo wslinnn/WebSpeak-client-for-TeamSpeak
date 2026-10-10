@@ -208,7 +208,17 @@
               :style="rangeStyle(notificationVolume, 1)"
               :aria-label="t('notificationVolume')"
               @input="onNotificationVolume"
-            /><div class="audio-diagnostic"
+            /><label
+              class="desktop-notification-toggle"
+              ><span
+                ><strong>{{ t("desktopNotifications") }}</strong
+                ><small>{{ t("desktopNotificationsHint") }}</small></span
+              ><input
+                type="checkbox"
+                :checked="desktopNotificationsEnabled"
+                :aria-label="t('desktopNotifications')"
+                @change="onDesktopNotificationsToggle" /></label
+            ><div class="audio-diagnostic"
               ><span>{{ t("audioStatus") }}</span
               ><strong>{{
                 audioContextState === "running"
@@ -288,6 +298,8 @@ const props = defineProps<{
   microphoneError: string;
   microphoneErrorCode: string;
   isMobileViewport: boolean;
+  desktopNotificationsEnabled: boolean;
+  onDesktopNotificationsToggle: (event: Event) => void;
   t: (key: string, variables?: Record<string, string | number>) => string;
   localizedMessage: (message: string) => string;
   localizedMicrophoneError: (code: string, message: string) => string;
