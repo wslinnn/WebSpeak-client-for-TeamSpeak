@@ -235,10 +235,18 @@ export function useWebClientMembers({
   function toggleWhisperTarget(member: ChannelMember): void {
     if (member.isSelf) return;
     const targets = new Set(whisperTargetIds);
-    if (targets.has(member.id)) targets.delete(member.id);
-    else if (targets.size < 8) targets.add(member.id);
-    setWhisperTargets([...targets]);
-    showToast(t(targets.has(member.id) ? "setWhisperTarget" : "removeWhisperTarget"));
+    if (targets.has(member.id)) {
+      targets.delete(member.id);
+      setWhisperTargets([...targets]);
+      showToast(t("removeWhisperTarget"));
+    } else if (targets.size < 8) {
+      targets.add(member.id);
+      setWhisperTargets([...targets]);
+      showToast(t("setWhisperTarget"));
+    } else {
+      // A silent no-op used to announce itself as "removed" — say why instead.
+      showToast(t("whisperTargetLimitReached"));
+    }
   }
 
   function clearWhisperTargets(): void {
