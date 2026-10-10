@@ -5,6 +5,7 @@ import { createServer } from "node:http";
 import { setImmediate as nextTurn } from "node:timers/promises";
 import { WebSocket, type WebSocketServer } from "ws";
 import pino from "pino";
+import { ReconnectTicketStore } from "./reconnect-ticket.js";
 import { VoiceBridge } from "./voice-bridge.js";
 import { JoinTicketStore } from "./join-ticket.js";
 import { OpusEncoder } from "./opus-codec.js";
@@ -36,11 +37,12 @@ async function fixture(t: TestContext, overrides: {
   createTeamSpeakClient?: () => TSClient;
   createEncoder?: () => Pick<OpusEncoder, "encode" | "dispose">;
   configureSdk?: (sdk: TeamSpeakStub) => void;
+  bridgeOptions?: { reconnectTickets?: ReconnectTicketStore };
 } = {}) {
   const sdk = new TeamSpeakStub();
   overrides.configureSdk?.(sdk);
   const tickets = new JoinTicketStore();
-  const bridge = new VoiceBridge({ joinTickets: tickets }, pino({ enabled: false }), undefined, {
+  const bridge = new VoiceBridge({ joinTickets: tickets, ...(overrides.bridgeOptions ?? {}) }, pino({ enabled: false }), undefined, {
     createTeamSpeakClient: overrides.createTeamSpeakClient ?? (() => sdk as unknown as TSClient),
     ...(overrides.createEncoder ? { createEncoder: overrides.createEncoder } : {}),
   });
@@ -71,7 +73,7 @@ async function fixture(t: TestContext, overrides: {
     isAlive: boolean; avatarCache: Map<string, string | null>;
     members: Map<number, { id: number; uid: string }>; eventLog: unknown[];
   }> }).entries;
-  return { bridge, sdk, socket, messages, entries, wss };
+  return { bridge, sdk, socket, messages, entries, wss, tickets, port: address.port };
 }
 
 test("a TeamSpeak constructor failure releases the admitted gateway slot", { timeout: 5_000 }, async t => {
@@ -254,3 +256,93 @@ for (const order of ["kick-first", "disconnect-first"] as const) {
     assert.match(failures[0].detail, /Removed by operator/);
   });
 }
+
+async function waitFor(condition: () => boolean, timeoutMs = 2_000): Promise<void> {
+  const start = Date.now();
+  while (!condition()) {
+    if (Date.now() - start > timeoutMs) throw new Error("condition not met within timeout");
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+}
+
+interface DetachableEntry {
+  id: string;
+  ws: WebSocket;
+  detached?: boolean;
+  detachedAt?: number;
+}
+
+test("a dropped browser socket keeps the TeamSpeak session and a resume reattaches without a TeamSpeak reconnect", { timeout: 5_000 }, async t => {
+  const reconnectTickets = new ReconnectTicketStore();
+  let sdkConnects = 0;
+  const f = await fixture(t, {
+    bridgeOptions: { reconnectTickets },
+    configureSdk: (sdk) => {
+      t.mock.method(sdk, "connect", async () => {
+        sdkConnects += 1;
+        sdk.disconnected = false;
+        sdk.emit("directorySnapshot", sdk.directory);
+      });
+    },
+  });
+  const first = JSON.parse(f.messages[0]!.data.toString()) as { type: string; reconnectTicket?: string };
+  assert.equal(first.type, "connected");
+  const token = first.reconnectTicket;
+  assert.equal(typeof token, "string");
+
+  // The view goes away abnormally (reload, network loss): the TeamSpeak
+  // session and the admission slot are kept for the resume window.
+  const entry = [...f.entries.values()][0]! as DetachableEntry;
+  const serverSocketBefore = entry.ws;
+  f.socket.close(1001, "going away");
+  await once(f.socket, "close");
+  await waitFor(() => entry.detached === true);
+  assert.equal(f.sdk.disconnected, false);
+  assert.equal(f.bridge.getActiveCount(), 1);
+
+  // The exchange finds a resumable session and mints a resume ticket (the
+  // server.ts branch, simulated at the store level here).
+  const record = reconnectTickets.consume(token!);
+  assert.ok(record);
+  assert.equal(f.bridge.isDetachedResumable(record.entryId), true);
+  const resumeTicket = f.tickets.create({ ...record.payload, resumeOfEntryId: record.entryId });
+
+  const secondSocket = new WebSocket(`ws://127.0.0.1:${f.port}/ws/voice?ticket=${resumeTicket}`);
+  const secondConnected = once(secondSocket, "message");
+  await once(secondSocket, "open");
+  const second = JSON.parse((await secondConnected)[0].toString()) as { type: string; reconnectTicket?: string };
+  assert.equal(second.type, "connected");
+  assert.ok(second.reconnectTicket && second.reconnectTicket !== token, "a fresh token is issued on reattach");
+  await nextTurn();
+  assert.equal(sdkConnects, 1, "the kept TeamSpeak session is reused, never reconnected");
+  assert.equal(f.entries.size, 1, "the same entry is adopted, not duplicated");
+  const adopted = [...f.entries.values()][0]! as DetachableEntry;
+  assert.equal(adopted.id, entry.id);
+  assert.equal(adopted.detached, false);
+  // entry.ws is the SERVER-side peer of the client socket: a fresh, open
+  // socket that is not the one that dropped.
+  assert.notEqual(adopted.ws, serverSocketBefore);
+  assert.equal(adopted.ws.readyState, WebSocket.OPEN);
+  assert.equal(f.bridge.isDetachedResumable(record.entryId), false);
+
+  // A deliberate 1000 close after the resume tears the session down normally.
+  secondSocket.close(1000, "done");
+  await once(secondSocket, "close");
+  await waitFor(() => f.sdk.disconnected === true);
+  assert.equal(f.bridge.getActiveCount(), 0);
+});
+
+test("a detached session past its grace window releases the kept TeamSpeak connection", { timeout: 5_000 }, async t => {
+  const reconnectTickets = new ReconnectTicketStore();
+  const f = await fixture(t, { bridgeOptions: { reconnectTickets } });
+  const entry = [...f.entries.values()][0]! as DetachableEntry;
+  f.socket.close(1001, "going away");
+  await once(f.socket, "close");
+  await waitFor(() => entry.detached === true);
+  assert.equal(f.sdk.disconnected, false);
+
+  (f.bridge as unknown as { sweepDetachedSessions(now: number): void }).sweepDetachedSessions(Date.now() + 120_000);
+  await nextTurn();
+  assert.equal(f.sdk.disconnected, true);
+  assert.equal(f.bridge.getActiveCount(), 0);
+});

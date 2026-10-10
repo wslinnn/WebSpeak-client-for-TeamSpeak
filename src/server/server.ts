@@ -239,11 +239,14 @@ export function createWebServer(options: WebServerOptions): WebServer {
         response.status(400).json({ ok: false, code: "RECONNECT_INVALID" });
         return;
       }
+      // A predecessor still in the detached pool means the kept TeamSpeak
+      // session is claimed back (zero TeamSpeak reconnects). Anything else —
+      // expired grace, dead session, server restart — rebuilds a fresh
+      // session and evicts the zombie predecessor.
+      const resumable = voiceBridge.isDetachedResumable(record.entryId);
       const ticket = options.voiceBridgeOptions.joinTickets.create({
         ...record.payload,
-        // Let the voice bridge evict the predecessor session so a fast
-        // reconnect reuses the identity lease instead of tripping 4005.
-        reconnectOfEntryId: record.entryId,
+        ...(resumable ? { resumeOfEntryId: record.entryId } : { reconnectOfEntryId: record.entryId }),
       });
       response.status(201).json({ ok: true, ticket });
       return;

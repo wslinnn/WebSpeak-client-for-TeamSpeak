@@ -30,6 +30,10 @@ import { resolveClientAddress } from "./client-ip.js";
 import type { ServerPasswordGuard } from "./server-password-guard.js";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
+// Detached sessions hold a live TeamSpeak connection, so the window is long
+// enough to cover a page reload or a network blip, and short enough that an
+// abandoned session releases its slot and identity lease promptly.
+const RESUME_GRACE_MS = 90_000;
 // Avatars are rare downloads for a self-hosted deployment; the cap bounds
 // worst-case memory (cap × 256KB SDK transfer ceiling) well below concern.
 const AVATAR_CACHE_CAPACITY = 128;
@@ -44,6 +48,9 @@ function publicFailureDetail(error: ReturnType<typeof normalizeTeamSpeakError>):
 export interface VoiceBridgeOptions {
   joinTickets: JoinTicketStore;
   reconnectTickets?: ReconnectTicketStore;
+  /** How long a detached (browser-gone, TeamSpeak-kept) session waits for its
+   *  resume before the kept TeamSpeak connection is released. */
+  resumeGraceMs?: number;
   webRtc?: WebRtcAudioOptions | (() => WebRtcAudioOptions);
   screenShareIceServers?: ScreenShareIceServer[] | (() => ScreenShareIceServer[]);
   trustProxy?: boolean;
@@ -99,6 +106,16 @@ interface WebClientEntry extends SessionDirectoryState {
   screenPeerId: string;
   /** Token delivered in `connected` for browser reload/drop recovery. */
   reconnectTicketToken?: string;
+  /** Session kept alive while its browser is gone (see detachEntry): no live
+   *  socket, TeamSpeak connection and directory state held for the resume
+   *  window, then released by the heartbeat sweep. */
+  detached?: boolean;
+  detachedAt?: number;
+  /** Set by the owning connection closure: rebinds a resume socket onto the
+   *  kept session (re-registering handlers, recreating the audio transport
+   *  and resending initial state) without touching TeamSpeak. Returns false
+   *  when the session is no longer attachable. */
+  attachSocket?: (socket: WebSocket) => boolean;
 }
 
 export class VoiceBridge {
@@ -116,6 +133,7 @@ export class VoiceBridge {
   private wss: WebSocketServer | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private logger: LoggerType;
+  private readonly resumeGraceMs: number;
 
   constructor(
     private options: VoiceBridgeOptions,
@@ -124,6 +142,7 @@ export class VoiceBridge {
     private readonly dependencies: VoiceBridgeDependencies = {},
   ) {
     this.logger = logger.child({ component: "voice-bridge" });
+    this.resumeGraceMs = options.resumeGraceMs ?? RESUME_GRACE_MS;
     this.screenShares = new ScreenShareCoordinator(this.entries, (entryId, message) => {
       const entry = this.entries.get(entryId);
       if (entry?.ws.readyState === WebSocket.OPEN) entry.ws.send(JSON.stringify(message));
@@ -141,6 +160,21 @@ export class VoiceBridge {
       const connection = this.resolveConnection(url);
       if (!connection) {
         ws.close(4001, "Join ticket required");
+        return;
+      }
+
+      // A resume ticket whose predecessor still sits in the detached pool
+      // adopts the kept TeamSpeak session instead of building a new one: the
+      // browser view reattaches and TeamSpeak never sees a reconnect.
+      const resumeEntryId = typeof connection.resumeOfEntryId === "string" ? connection.resumeOfEntryId : "";
+      const resumeTarget = resumeEntryId ? this.entries.get(resumeEntryId) : undefined;
+      if (resumeTarget?.detached === true && typeof resumeTarget.attachSocket === "function") {
+        if (resumeTarget.attachSocket(ws)) {
+          this.logger.info({ entryId: resumeEntryId, nickname: resumeTarget.nickname, target: formatTeamSpeakTarget(resumeTarget.target) }, "Voice session resumed onto kept TeamSpeak connection");
+          return;
+        }
+        this.logger.warn({ entryId: resumeEntryId }, "Resume target no longer attachable; the browser must rebuild the session");
+        ws.close(4001, "RESUME_UNAVAILABLE");
         return;
       }
 
@@ -256,25 +290,36 @@ export class VoiceBridge {
       };
       this.entries.set(entryId, entry!);
       let tsReady = false;
+      // The live join payload for this session: the reconnect store keeps it
+      // channel-synced, and a resume re-issue must carry those updates too.
+      let currentConnection = connection;
+      // All browser-bound messages flow through the entry's CURRENT socket, so
+      // an adopted resume socket transparently takes over every producer
+      // (TeamSpeak events, reconnect notices, avatars) of the old closure.
       const sendJson = (message: ServerMessage) => {
         // Keep the reconnect payload's channel in sync with mid-session
         // switches so a rebuilt session rejoins where the user actually was.
         if (message.type === "channelSwitched" && entry?.reconnectTicketToken) {
           const channelName = entry.channelTree.find(item => item.id === String(message.channelId))?.name;
-          if (channelName) this.options.reconnectTickets?.updateChannel(entryId, channelName);
+          if (channelName) {
+            this.options.reconnectTickets?.updateChannel(entryId, channelName);
+            currentConnection = { ...currentConnection, channel: channelName };
+          }
         }
-        if (this.entries.get(entryId) === entry && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(message));
+        const socket = entry?.ws;
+        if (this.entries.get(entryId) === entry && socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
       };
+      const createAudioTransport = (socket: WebSocket): SessionAudioTransport => new SessionAudioTransport({
+        audio: entry!.audio, socket, client: tsClient,
+        isCurrent: () => this.entries.get(entryId) === entry,
+        isReady: () => tsReady && session.state === "connected",
+        selfId: () => entry!.events?.selfId ?? 0,
+        peer: () => entry!.webrtc,
+        whisperTargets: () => entry!.whisperActive ? [...entry!.whisperTargetIds] : null,
+        sendJson: message => sendJson(message),
+      }, this.dependencies.createEncoder?.() ?? createVoiceEncoder());
       try {
-        entry.audioTransport = new SessionAudioTransport({
-          audio: entry.audio, socket: ws, client: tsClient,
-          isCurrent: () => this.entries.get(entryId) === entry,
-          isReady: () => tsReady && session.state === "connected",
-          selfId: () => entry!.events?.selfId ?? 0,
-          peer: () => entry!.webrtc,
-          whisperTargets: () => entry!.whisperActive ? [...entry!.whisperTargetIds] : null,
-          sendJson: message => sendJson(message),
-        }, this.dependencies.createEncoder?.() ?? createVoiceEncoder());
+        entry.audioTransport = createAudioTransport(ws);
       } catch (error: unknown) {
         this.logger.error({ err: error, entryId }, "Could not create Opus encoder");
         void this.teardown(entryId, "teamSpeak-connect-failed");
@@ -314,22 +359,50 @@ export class VoiceBridge {
           }, "Web client connected to TeamSpeak");
         }
         session.transition("connected");
-        sendJson({
-          type: "connected",
-          tsClientId: events.selfId,
-          members: Array.from(entry!.members.values()),
-          serverEventLog: entry!.eventLog,
-          whisperTargetIds: [...entry!.whisperTargetIds],
-          whisperActive: entry!.whisperActive,
-          webrtcAvailable: this.getWebRtcOptions()?.enabled === true,
-          webRtcStunServer: this.getWebRtcOptions()?.stunServer ?? "",
-          screenShareIceServers: this.getScreenShareIceServers(),
-          ...(entry!.reconnectTicketToken ? { reconnectTicket: entry!.reconnectTicketToken } : {}),
-          ...(entry!.rememberIdentity ? { identity: tsClient.getIdentityString() } : {}),
-        });
+        sendJson(connectedMessage());
         sendJson({ type: "channelList", channels: entry!.channelTree });
         if (wasReconnecting) sendJson({ type: "reconnected" });
         events.scheduleAvatars();
+      };
+
+      /** The `connected` snapshot: used for the first join and identically for
+       *  every resume reattach, where it carries a freshly re-issued token. */
+      const connectedMessage = (): ServerMessage => ({
+        type: "connected",
+        tsClientId: events.selfId,
+        members: Array.from(entry!.members.values()),
+        serverEventLog: entry!.eventLog,
+        whisperTargetIds: [...entry!.whisperTargetIds],
+        whisperActive: entry!.whisperActive,
+        webrtcAvailable: this.getWebRtcOptions()?.enabled === true,
+        webRtcStunServer: this.getWebRtcOptions()?.stunServer ?? "",
+        screenShareIceServers: this.getScreenShareIceServers(),
+        ...(entry!.reconnectTicketToken ? { reconnectTicket: entry!.reconnectTicketToken } : {}),
+        ...(entry!.rememberIdentity ? { identity: tsClient.getIdentityString() } : {}),
+      });
+
+      /** Reattach a resume socket to this kept session: swap the entry's
+       *  socket, re-register the handlers, recreate the audio transport and
+       *  resend the full state. TeamSpeak never learns the view went away. */
+      entry!.attachSocket = (next: WebSocket): boolean => {
+        if (this.entries.get(entryId) !== entry || !entry!.detached) return false;
+        if (!tsReady || !initialStateSent || session.state !== "connected") return false;
+        entry!.ws = next;
+        entry!.detached = false;
+        entry!.detachedAt = undefined;
+        entry!.reconnectTicketToken = this.options.reconnectTickets?.issue(currentConnection, entryId);
+        bindSocketHandlers(next);
+        try {
+          entry!.audioTransport = createAudioTransport(next);
+        } catch (error: unknown) {
+          this.logger.error({ err: error, entryId }, "Could not recreate Opus encoder for the resumed socket");
+          void this.teardown(entryId, "protocol-error");
+          return false;
+        }
+        sendJson(connectedMessage());
+        sendJson({ type: "channelList", channels: entry!.channelTree });
+        events.scheduleAvatars();
+        return true;
       };
 
       const resetDirectoryForReconnect = () => {
@@ -488,79 +561,92 @@ export class VoiceBridge {
       });
       entry.events = events;
 
-      ws.on("pong", () => { if (entry) entry.isAlive = true; });
-      ws.on("message", (data: Buffer | string, isBinary: boolean) => {
-        if (this.entries.get(entryId) !== entry) return;
-        if (isBinary) {
-          entry!.audioTransport?.receivePcm(typeof data === "string" ? Buffer.from(data) : data);
-          return;
-        }
-        // Control messages (probes, chat, screen share, renegotiations) all end
-        // in gateway or TeamSpeak work; the TS server's flood protection bans
-        // the gateway identity shared by every session, so one abusive client
-        // must not be able to trigger it for everyone.
-        if (!entry!.commandLimiter.tryRemoveToken()) {
-          const now = Date.now();
-          if (shouldReportRateLimit(entry!.lastRateLimitNoticeAt, now)) {
-            entry!.lastRateLimitNoticeAt = now;
-            sendProtocolError(sendJson, "RATE_LIMITED", "操作过于频繁，请稍后重试");
+      /** Register the browser-socket handlers. Runs for the initial join and
+       *  again for every adopted resume socket; all state it touches is
+       *  entry-level or closure-level, never socket-level. */
+      const bindSocketHandlers = (socket: WebSocket): void => {
+        socket.on("pong", () => { if (entry) entry.isAlive = true; });
+        socket.on("message", (data: Buffer | string, isBinary: boolean) => {
+          if (this.entries.get(entryId) !== entry) return;
+          if (isBinary) {
+            entry!.audioTransport?.receivePcm(typeof data === "string" ? Buffer.from(data) : data);
+            return;
           }
-          return;
-        }
+          // Control messages (probes, chat, screen share, renegotiations) all end
+          // in gateway or TeamSpeak work; the TS server's flood protection bans
+          // the gateway identity shared by every session, so one abusive client
+          // must not be able to trigger it for everyone.
+          if (!entry!.commandLimiter.tryRemoveToken()) {
+            const now = Date.now();
+            if (shouldReportRateLimit(entry!.lastRateLimitNoticeAt, now)) {
+              entry!.lastRateLimitNoticeAt = now;
+              sendProtocolError(sendJson, "RATE_LIMITED", "操作过于频繁，请稍后重试");
+            }
+            return;
+          }
 
-        const rawMessage = typeof data === "string" ? data : data.toString("utf-8");
-        const webRtcMessage = parseWebRtcClientMessage(rawMessage);
-        if (webRtcMessage?.type === "webrtcOffer") {
-          if (this.getWebRtcOptions()?.enabled !== true) {
-            sendProtocolError(sendJson, "WEBRTC_DISABLED", "WebRTC 音频传输未启用");
+          const rawMessage = typeof data === "string" ? data : data.toString("utf-8");
+          const webRtcMessage = parseWebRtcClientMessage(rawMessage);
+          if (webRtcMessage?.type === "webrtcOffer") {
+            if (this.getWebRtcOptions()?.enabled !== true) {
+              sendProtocolError(sendJson, "WEBRTC_DISABLED", "WebRTC 音频传输未启用");
+              return;
+            }
+            if (!tsReady || session.state !== "connected") {
+              sendProtocolError(sendJson, "SESSION_NOT_READY", "TeamSpeak 会话尚未就绪");
+              return;
+            }
+            const { sdp, muted, accompanimentActive } = webRtcMessage.payload;
+            void this.handleWebRtcOffer(entry!, { ...sdp, muted, accompanimentActive }, sendJson);
+            return;
+          }
+          if (webRtcMessage?.type === "webrtcStop") {
+            void this.stopWebRtc(entry!);
+            return;
+          }
+          const screenShareMessage = parseScreenShareMessage(rawMessage);
+          if (screenShareMessage) {
+            if ("error" in screenShareMessage) {
+              sendProtocolError(sendJson, screenShareMessage.error.code, screenShareMessage.error.message);
+              return;
+            }
+            if (!tsReady || session.state !== "connected") {
+              sendProtocolError(sendJson, "SESSION_NOT_READY", "TeamSpeak 会话尚未就绪");
+              return;
+            }
+            this.screenShares.handleMessage(entry!, screenShareMessage, sendJson);
+            return;
+          }
+          const command = parseClientCommand(rawMessage);
+          if ("error" in command) {
+            sendProtocolError(sendJson, command.error.code, command.error.message);
             return;
           }
           if (!tsReady || session.state !== "connected") {
-            sendProtocolError(sendJson, "SESSION_NOT_READY", "TeamSpeak 会话尚未就绪");
+            sendProtocolError(sendJson, "SESSION_NOT_READY", "TeamSpeak 会话尚未就绪", command.requestId);
             return;
           }
-          const { sdp, muted, accompanimentActive } = webRtcMessage.payload;
-          void this.handleWebRtcOffer(entry!, { ...sdp, muted, accompanimentActive }, sendJson);
-          return;
-        }
-        if (webRtcMessage?.type === "webrtcStop") {
-          void this.stopWebRtc(entry!);
-          return;
-        }
-        const screenShareMessage = parseScreenShareMessage(rawMessage);
-        if (screenShareMessage) {
-          if ("error" in screenShareMessage) {
-            sendProtocolError(sendJson, screenShareMessage.error.code, screenShareMessage.error.message);
+          void handleCommand(entry!, command, sendJson);
+        });
+        socket.on("close", (code) => {
+          this.logger.info({ entryId, code, detached: entry?.detached === true }, "WebSocket closed");
+          // 1000 is a deliberate leave (user disconnect or server-initiated
+          // teardown): release everything. Any other close — reload, network
+          // loss, proxy drop — keeps the TeamSpeak session for the resume
+          // window when the session holds a reconnect ticket at all.
+          if (code === 1000 || !this.canDetachEntry(entry)) {
+            void this.teardown(entryId, "websocket-close");
             return;
           }
-          if (!tsReady || session.state !== "connected") {
-            sendProtocolError(sendJson, "SESSION_NOT_READY", "TeamSpeak 会话尚未就绪");
-            return;
-          }
-          this.screenShares.handleMessage(entry!, screenShareMessage, sendJson);
-          return;
-        }
-        const command = parseClientCommand(rawMessage);
-        if ("error" in command) {
-          sendProtocolError(sendJson, command.error.code, command.error.message);
-          return;
-        }
-        if (!tsReady || session.state !== "connected") {
-          sendProtocolError(sendJson, "SESSION_NOT_READY", "TeamSpeak 会话尚未就绪", command.requestId);
-          return;
-        }
-        void handleCommand(entry!, command, sendJson);
-      });
-
-      ws.on("close", () => {
-        this.logger.info({ entryId }, "WebSocket closed");
-        void this.teardown(entryId, "websocket-close");
-      });
-
-      ws.on("error", (error) => {
-        this.logger.error({ err: error, entryId }, "WebSocket error");
-        void this.teardown(entryId, "websocket-error");
-      });
+          this.detachEntry(entry!);
+        });
+        // The close event decides detach vs teardown; an error alone (usually
+        // followed by an abnormal close) must not pre-empt that decision.
+        socket.on("error", (error) => {
+          this.logger.warn({ entryId, err: error instanceof Error ? error.message : String(error) }, "WebSocket error");
+        });
+      };
+      bindSocketHandlers(ws);
 
       try {
         session.transition("connecting");
@@ -654,12 +740,51 @@ export class VoiceBridge {
     return true;
   }
 
+  /** Whether the entry currently sits in the detached pool with a healthy
+   *  TeamSpeak session, i.e. a resume exchange should keep (not rebuild) it. */
+  isDetachedResumable(entryId: string): boolean {
+    const entry = this.entries.get(entryId);
+    return Boolean(entry?.detached === true && entry.attachSocket && entry.session.state === "connected");
+  }
+
+  private canDetachEntry(entry: WebClientEntry | null): entry is WebClientEntry {
+    return Boolean(
+      entry
+      && this.entries.get(entry.id) === entry
+      && entry.detached !== true
+      && entry.reconnectTicketToken
+      && entry.attachSocket
+      && entry.session.state === "connected",
+    );
+  }
+
+  /** Browser gone (reload, network loss, proxy drop) with a healthy TeamSpeak
+   *  session and a reconnect ticket: keep the TeamSpeak connection and
+   *  directory state for the resume window instead of tearing down. The
+   *  heartbeat sweep releases it when nobody claims it back. */
+  private detachEntry(entry: WebClientEntry): void {
+    entry.detached = true;
+    entry.detachedAt = Date.now();
+    entry.audioTransport?.close();
+    entry.audioTransport = null;
+    void this.stopWebRtc(entry);
+    this.screenShares.removePeer(entry.id);
+    this.logger.info({
+      entryId: entry.id,
+      nickname: entry.nickname,
+      graceMs: this.resumeGraceMs,
+    }, "Voice session detached; keeping the TeamSpeak connection for resume");
+  }
+
   private async teardown(entryId: string, reason: SessionTeardownReason): Promise<void> {
     await this.sessionManager.teardown(entryId, reason);
   }
 
   private async cleanupEntry(entry: WebClientEntry, reason: SessionTeardownReason): Promise<void> {
     this.screenShares.removePeer(entry.id);
+    // A torn-down session can never be adopted, not even during the close
+    // handshake's async window.
+    entry.attachSocket = undefined;
     if (this.entries.get(entry.id) === entry) this.entries.delete(entry.id);
     if (entry.connectedOnce) {
       this.transportOutcomes.connected += 1;
@@ -701,10 +826,25 @@ export class VoiceBridge {
     }, "Client session torn down");
   }
 
+  /** Heartbeat-tick work for the detached pool: release kept sessions nobody
+   *  claimed within the grace window. Public for tests. */
+  sweepDetachedSessions(now: number): void {
+    for (const entry of this.entries.values()) {
+      if (entry.detached !== true || entry.detachedAt === undefined) continue;
+      if (now - entry.detachedAt < this.resumeGraceMs) continue;
+      this.logger.info({ entryId: entry.id, nickname: entry.nickname }, "Resume grace window elapsed; releasing the kept session");
+      void this.teardown(entry.id, "resume-grace-elapsed");
+    }
+  }
+
   private startHeartbeat(): void {
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     this.heartbeatTimer = setInterval(() => {
+      this.sweepDetachedSessions(Date.now());
       for (const entry of this.entries.values()) {
+        // Detached sessions hold no live socket to ping; the sweep above owns
+        // their lifecycle.
+        if (entry.detached) continue;
         if (entry.ws.readyState !== WebSocket.OPEN) continue;
         if (!entry.isAlive) {
           entry.ws.terminate();

@@ -22,6 +22,7 @@ export type SessionTeardownReason =
   | "heartbeat-timeout"
   | "admin-terminated"
   | "superseded" // 同一会话的重连续任者接管（释放身份租约后让新连接进入）
+  | "resume-grace-elapsed" // detached 会话宽限期内无人认领，释放保活的 TeamSpeak 连接
   | "gateway-shutdown";
 
 const ALLOWED_TRANSITIONS: Record<ConnectionState, readonly ConnectionState[]> = {

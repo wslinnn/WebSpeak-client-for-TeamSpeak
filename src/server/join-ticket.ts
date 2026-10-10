@@ -12,6 +12,10 @@ export interface JoinTicketPayload {
    *  evicts this predecessor session (releasing its identity lease) before
    *  admitting the new connection, so a fast reconnect cannot trip 4005. */
   reconnectOfEntryId?: string;
+  /** Set instead of `reconnectOfEntryId` when the predecessor sits in the
+   *  detached pool: the new socket ADOPTS the kept TeamSpeak session (zero
+   *  TeamSpeak reconnects) instead of evicting and rebuilding it. */
+  resumeOfEntryId?: string;
 }
 
 interface StoredTicket {
