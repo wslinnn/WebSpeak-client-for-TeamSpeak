@@ -3148,11 +3148,19 @@
   margin-top: 8px;
 }
 
+:deep(.member-channel-heading-row) {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+}
+
 :deep(.member-channel-heading) {
   display: flex;
   align-items: center;
   gap: 7px;
-  width: 100%;
+  min-width: 0;
+  flex: 1;
   padding: 5px 4px;
   color: #52635d;
   background: transparent;
@@ -3180,6 +3188,33 @@
 :deep(.member-channel-heading small) {
   color: #94a29d;
   font-size: 10px;
+}
+
+:deep(.member-channel-fold) {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: #94a29d;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+:deep(.member-channel-fold:hover),
+:deep(.member-channel-group.current .member-channel-fold) {
+  color: #006a64;
+  background: #e5f3f0;
+}
+
+:deep(.member-channel-fold .ui-icon) {
+  transition: transform .15s ease;
+}
+
+:deep(.member-channel-group.folded .member-channel-fold .ui-icon) {
+  transform: rotate(-90deg);
 }
 
 :deep(.member-channel-group.current .member-channel-heading small) {

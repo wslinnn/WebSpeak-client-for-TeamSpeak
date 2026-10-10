@@ -632,11 +632,13 @@
         :mobile-visible="mobileSection === 'channels'"
         :is-mobile-viewport="isMobileViewport"
         :volumes="volumes"
+        :folded-channels="foldedChannels"
         :avatar-style="avatarStyle"
         :avatar-initial="avatarInitial"
         :range-style="rangeStyle"
         :t="t"
         @select-channel="selectChannel"
+        @toggle-fold="toggleChannelFold"
         @volume-input="onVolInput"
       >
         <div v-if="isMobileViewport" class="mobile-member-controls" role="toolbar" :aria-label="t('desktopAudioControls')">
@@ -859,6 +861,7 @@ import { useWebClientI18n } from "../composables/useWebClientI18n.js";
 import { useWebClientPublicConfig } from "../composables/useWebClientPublicConfig.js";
 import { useWebClientServerHistory } from "../composables/useWebClientServerHistory.js";
 import { useVoiceServerSwitch } from "../composables/useVoiceServerSwitch.js";
+import { useChannelFold } from "../composables/useChannelFold.js";
 import { getInitialLanguage, type Language } from "../i18n/web-client.js";
 import { clearLocalData as clearStoredLocalData, clearNamespacedStorageEntries, isLocalPersistenceAvailable, loadLocalPreferences, loadStoredIdentity, removeStoredIdentity, saveLocalPreferences, saveStoredIdentity } from "../services/local-persistence.js";
 import type { InstalledSkin, SkinHomeCopy } from "../services/skin-pack.js";
@@ -980,6 +983,11 @@ function continueOnMobile(): void {
 const memberQuery = ref("");
 const selectedChannelId = ref("");
 const settingsOpen = ref(false);
+// Channel fold memory, scoped to the current server target so switching
+// servers swaps the remembered collapsed set with it.
+const { folded: foldedChannels, toggle: toggleChannelFold } = useChannelFold(
+  () => combineTeamSpeakTarget(serverHost.value, serverPort.value),
+);
 // Password-retry backoff (PASSWORD_RETRY_LATER): park the join button until the
 // gateway's retryAfterMs elapses, with a live seconds countdown in its place.
 const retryNowTick = ref(Date.now());

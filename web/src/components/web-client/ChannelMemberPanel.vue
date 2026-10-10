@@ -38,6 +38,7 @@
           {
             current: currentChannelId === channelItem.id,
             'drag-over': dragOverChannelId === channelItem.id,
+            folded: isFolded(channelItem.id),
           },
         ]"
         data-ws-part="voice.channel-group"
@@ -54,22 +55,38 @@
         @pointerup="onMemberPointerUp($event)"
         @pointercancel="onMemberPointerCancel($event)"
       >
-        <button
-          class="member-channel-heading"
-          data-ws-part="voice.channel-group.heading"
-          :data-ws-state="channelItem.id === currentChannelId ? 'current' : 'idle'"
-          :title="t('switchChannel')"
-          @click="emit('selectChannel', channelItem)"
-        >
-          <Icon
-            name="volume"
-            :size="16"
-          />
-          <span>{{ channelItem.name }}</span>
-          <small>{{ channelItem.members.length }}</small>
-        </button>
         <div
-          v-if="channelItem.members.length"
+          class="member-channel-heading-row"
+          data-ws-part="voice.channel-group.heading-row"
+        >
+          <button
+            class="member-channel-heading"
+            data-ws-part="voice.channel-group.heading"
+            :data-ws-state="channelItem.id === currentChannelId ? 'current' : 'idle'"
+            :title="t('switchChannel')"
+            @click="emit('selectChannel', channelItem)"
+          >
+            <Icon
+              name="volume"
+              :size="16"
+            />
+            <span>{{ channelItem.name }}</span>
+            <small>{{ channelItem.members.length }}</small>
+          </button>
+          <button
+            type="button"
+            class="member-channel-fold"
+            data-ws-part="voice.channel-group.fold"
+            :aria-expanded="!isFolded(channelItem.id)"
+            :aria-label="isFolded(channelItem.id) ? t('expandChannel') : t('collapseChannel')"
+            @click="emit('toggleFold', channelItem.id)"
+          ><Icon
+              name="chevron-down"
+              :size="14"
+          /></button>
+        </div>
+        <div
+          v-if="!isFolded(channelItem.id) && channelItem.members.length"
           class="member-list"
           data-ws-part="voice.channel-group.members"
         >
@@ -179,7 +196,7 @@
           </div>
         </div>
         <div
-          v-else
+          v-else-if="!isFolded(channelItem.id)"
           class="channel-no-members"
           >{{ t("noMembersInChannel") }}</div
         >
@@ -195,7 +212,7 @@
 </template>
 
 <script setup lang="ts">
-import type { CSSProperties } from "vue";
+import { computed, type CSSProperties } from "vue";
 import Icon from "../Icon.vue";
 import type { TreeChannel } from "../../composables/useWebClientChannels.js";
 import type { useWebClientMembers } from "../../composables/useWebClientMembers.js";
@@ -222,6 +239,7 @@ const props = defineProps<{
   mobileVisible: boolean;
   isMobileViewport: boolean;
   volumes: Record<number, number>;
+  foldedChannels: ReadonlySet<string>;
   avatarStyle: (name: string, isSelf?: boolean, avatar?: string) => CSSProperties;
   avatarInitial: (name: string) => string;
   rangeStyle: (value: number, max: number) => CSSProperties;
@@ -229,8 +247,16 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
   selectChannel: [channel: TreeChannel];
+  toggleFold: [channelId: string];
   volumeInput: [clientId: number, event: Event];
 }>();
+
+// Searching targets people, not structure: the fold memory is ignored while
+// a query is active so every match stays visible.
+const searchActive = computed(() => memberQuery.value.trim().length > 0);
+function isFolded(id: string): boolean {
+  return !searchActive.value && props.foldedChannels.has(id);
+}
 
 // The page retains the controller and slot content across mobile view changes.
 const {
