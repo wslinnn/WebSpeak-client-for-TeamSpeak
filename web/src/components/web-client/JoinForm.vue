@@ -51,30 +51,22 @@
       ></label>
     </div>
     <div
-      v-if="openTargetPrefillBlocked"
-      class="notice warning-notice"
-      data-ws-part="home.notice"
-      data-ws-state="target-prefill-blocked"
-      ><span class="notice-symbol">i</span
-      ><span>{{ t("openTargetDefaultNotPrefilled") }}</span></div
-    >
-    <div
-      v-if="accessMode === 'open' && quickServers.length"
+      v-if="accessMode === 'open' && favoriteServers.length"
       class="local-servers"
       data-ws-part="home.server-history"
     >
       <div
-        v-for="server in quickServers"
+        v-for="server in favoriteServers"
         :key="server.id"
         class="local-server-item"
         data-ws-part="home.server-history.item"
-        :data-ws-state="server.isFavorite ? 'favorite' : 'recent'"
+        data-ws-state="favorite"
       >
         <button
           type="button"
           class="local-server-select"
           :class="{ active: server.address === currentTarget }"
-          :title="server.isFavorite ? t('favoriteConnectHint') : server.label"
+          :title="server.label"
           @click="rowConnect(server)"
           @contextmenu.prevent="openRowMenu(server, $event)"
         ><Icon
@@ -86,10 +78,10 @@
           type="button"
           class="local-server-favorite"
           data-ws-part="home.server-history.favorite-toggle"
-          :aria-pressed="server.isFavorite"
-          :aria-label="server.isFavorite ? t('removeFavoriteNamed', { name: server.label }) : t('saveFavoriteNamed', { name: server.label })"
-          :title="server.isFavorite ? t('removeFavoriteNamed', { name: server.label }) : t('saveFavoriteNamed', { name: server.label })"
-          @click="emit('toggleQuickFavorite', server)"
+          :aria-pressed="true"
+          :aria-label="t('removeFavoriteNamed', { name: server.label })"
+          :title="t('removeFavoriteNamed', { name: server.label })"
+          @click="emit('removeFavorite', server)"
         ><Icon
             name="star"
             :size="13"
@@ -113,8 +105,7 @@
       :in-room="false"
       :t="t"
       @edit="emit('editFavorite', $event)"
-      @toggle-favorite="emit('toggleQuickFavorite', $event)"
-      @remove="emit('removeRecent', $event)"
+      @remove-favorite="emit('removeFavorite', $event)"
       @close="rowMenuState = null"
     />
     <button
@@ -280,7 +271,7 @@ import { computed, onMounted, onUnmounted, ref, shallowRef } from "vue";
 import Icon from "../Icon.vue";
 import ServerContextMenu from "./ServerContextMenu.vue";
 import { combineTeamSpeakTarget } from "../../services/teamspeak-target.js";
-import type { QuickServer } from "../../services/quick-servers.js";
+import type { FavoriteServer } from "../../services/local-persistence.js";
 
 const serverHost = defineModel<string>("serverHost", { required: true });
 const serverPort = defineModel<string>("serverPort", { required: true });
@@ -292,8 +283,7 @@ const rememberIdentity = defineModel<boolean>("rememberIdentity", { required: tr
 defineProps<{
   autofocusNickname?: boolean;
   accessMode: "fixed" | "open";
-  openTargetPrefillBlocked: boolean;
-  quickServers: readonly QuickServer[];
+  favoriteServers: readonly FavoriteServer[];
   isFavorite: boolean;
   identityExportBusy: boolean;
   hasIdentity: boolean;
@@ -305,24 +295,15 @@ defineProps<{
 
 const currentTarget = computed(() => combineTeamSpeakTarget(serverHost.value, serverPort.value));
 
-// Favorites connect outright (stored password rides along); a recent fills
-// the form for editing. Right-click / long-press opens the shared context
-// menu (edit / favorite / delete) for both row types.
-function rowConnect(server: QuickServer): void {
-  if (server.isFavorite) {
-    emit("connectServer", { address: server.address, nickname: server.nickname, channel: server.lastChannelHint?.name, password: server.password });
-    return;
-  }
-  rowFill(server);
+// Favorites connect outright (stored password rides along). Right-click /
+// long-press opens the shared context menu (edit / remove).
+function rowConnect(server: FavoriteServer): void {
+  emit("connectServer", { address: server.address, nickname: server.nickname, channel: server.lastChannelHint?.name, password: server.password });
 }
 
-const rowMenuState = shallowRef<{ server: QuickServer; x: number; y: number } | null>(null);
-function openRowMenu(server: QuickServer, event: MouseEvent): void {
+const rowMenuState = shallowRef<{ server: FavoriteServer; x: number; y: number } | null>(null);
+function openRowMenu(server: FavoriteServer, event: MouseEvent): void {
   rowMenuState.value = { server, x: event.clientX, y: event.clientY };
-}
-
-function rowFill(server: QuickServer): void {
-  emit("selectServer", { address: server.address, nickname: server.nickname, channel: server.lastChannelHint?.name, password: server.password });
 }
 
 // iOS Safari has no output-device picker at all; say so before joining instead
@@ -354,11 +335,9 @@ const emit = defineEmits<{
   importIdentity: [];
   exportIdentity: [];
   toggleFavorite: [];
-  toggleQuickFavorite: [server: QuickServer];
   openFavoriteDialog: [];
-  removeRecent: [server: QuickServer];
-  editFavorite: [server: QuickServer];
-  selectServer: [entry: { address: string; nickname?: string; channel?: string; password?: string }];
+  removeFavorite: [server: FavoriteServer];
+  editFavorite: [server: FavoriteServer];
   connectServer: [entry: { address: string; nickname?: string; channel?: string; password?: string }];
   openDeviceSettings: [];
 }>();

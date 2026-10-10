@@ -40,24 +40,12 @@
     <button
       role="menuitem"
       type="button"
-      @click="act('toggleFavorite')"
+      class="danger"
+      @click="act('removeFavorite')"
       ><Icon
         name="star"
         :size="15"
-      /><span>{{ server.isFavorite
-        ? t("removeFavoriteNamed", { name: server.label })
-        : t("saveFavoriteNamed", { name: server.label }) }}</span></button
-    >
-    <button
-      v-if="!server.isFavorite"
-      role="menuitem"
-      type="button"
-      class="danger"
-      @click="act('remove')"
-      ><Icon
-        name="close"
-        :size="15"
-      /><span>{{ t("serverMenuDeleteRecent") }}</span></button
+      /><span>{{ t("removeFavoriteNamed", { name: server.label }) }}</span></button
     >
   </div>
 </template>
@@ -66,10 +54,10 @@
 import { nextTick, onMounted, onUnmounted, ref, shallowRef, type CSSProperties } from "vue";
 import Icon from "../Icon.vue";
 import { placeMemberMenu } from "../../services/member-menu-placement.js";
-import type { QuickServer } from "../../services/quick-servers.js";
+import type { FavoriteServer } from "../../services/local-persistence.js";
 
 const props = defineProps<{
-  server: QuickServer;
+  server: FavoriteServer;
   position: { x: number; y: number };
   /** Skin scope: voice.* in the room, home.* on the join page. */
   part: string;
@@ -79,10 +67,9 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
   close: [];
-  switch: [server: QuickServer];
-  edit: [server: QuickServer];
-  toggleFavorite: [server: QuickServer];
-  remove: [server: QuickServer];
+  switch: [server: FavoriteServer];
+  edit: [server: FavoriteServer];
+  removeFavorite: [server: FavoriteServer];
 }>();
 
 const menuElement = ref<HTMLElement | null>(null);
@@ -100,11 +87,10 @@ function updatePlacement(): void {
   menuElement.value?.focus();
 }
 
-function act(action: "switch" | "edit" | "toggleFavorite" | "remove"): void {
+function act(action: "switch" | "edit" | "removeFavorite"): void {
   if (action === "switch") emit("switch", props.server);
   else if (action === "edit") emit("edit", props.server);
-  else if (action === "toggleFavorite") emit("toggleFavorite", props.server);
-  else emit("remove", props.server);
+  else emit("removeFavorite", props.server);
   emit("close");
 }
 function onKeydown(event: KeyboardEvent): void {

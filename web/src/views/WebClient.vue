@@ -184,8 +184,7 @@
             v-model:channel="channel"
             v-model:remember-identity="rememberIdentity"
             :access-mode="accessMode"
-            :open-target-prefill-blocked="openTargetPrefillBlocked"
-            :quick-servers="quickServers"
+            :favorite-servers="favoriteServers"
             :is-favorite="isFavorite"
             :identity-export-busy="identityExportBusy"
             :has-identity="Boolean(identityMaterial)"
@@ -199,10 +198,8 @@
             @select-server="selectLocalServer"
             @connect-server="connectFromServerTab"
             @toggle-favorite="toggleFavorite"
-            @toggle-quick-favorite="toggleQuickServerFavorite"
             @open-favorite-dialog="openFavoriteServerDialog()"
             @edit-favorite="editFavoriteServer"
-            @remove-recent="removeRecentServerEntry"
             @import-identity="openIdentityImport"
             @export-identity="exportIdentity"
           />
@@ -347,7 +344,7 @@
         :aria-label="t('favoriteServers')"
       >
         <button
-          v-for="server in quickServers"
+          v-for="server in favoriteServers"
           :key="server.id"
           type="button"
           class="favorite-server-rail-row"
@@ -356,19 +353,18 @@
           :disabled="Boolean(favoriteSwitchPending) || voiceState.connecting"
           :title="server.label"
           :aria-label="t('switchToServer', { name: server.label })"
-          @click="switchToQuickServer(server)"
+          @click="switchServer(server)"
           @contextmenu.prevent="openServerMenu(server, $event)"
-        ><Icon
+        ><span
+            class="favorite-server-rail-icon"
+            :style="avatarStyle(server.label, false, '')"
+          >{{ avatarInitial(server.label) }}</span><span
             v-if="server.password"
             class="favorite-server-rail-lock"
-            name="lock"
-            :size="12"
-          /><span class="favorite-server-rail-label">{{ server.label }}</span><Icon
-            v-if="server.isFavorite"
-            class="favorite-server-rail-star"
-            name="star"
-            :size="11"
-        /></button>
+          ><Icon
+              name="lock"
+              :size="9"
+          /></span></button>
         <button
           type="button"
           class="favorite-server-rail-add"
@@ -378,22 +374,22 @@
           @click="openFavoriteServerDialog()"
         ><Icon
             name="plus"
-            :size="14"
-        /><span>{{ t("addFavoriteServer") }}</span></button>
+            :size="17"
+        /></button>
       </div>
       <main
         class="workspace"
         data-ws-part="voice.workspace"
       >
         <div
-          v-if="accessMode === 'open' && quickServers.length"
+          v-if="accessMode === 'open' && favoriteServers.length"
           class="favorite-server-strip"
           data-ws-part="voice.favorite-server-strip"
           role="toolbar"
           :aria-label="t('favoriteServers')"
         >
           <button
-            v-for="server in quickServers"
+            v-for="server in favoriteServers"
             :key="server.id"
             type="button"
             class="favorite-server-chip"
@@ -403,18 +399,13 @@
             :disabled="Boolean(favoriteSwitchPending) || voiceState.connecting"
             :title="server.label"
             :aria-label="t('switchToServer', { name: server.label })"
-            @click="switchToQuickServer(server)"
+            @click="switchServer(server)"
           ><span
               class="favorite-server-chip-initial"
               aria-hidden="true"
             >{{ avatarInitial(server.label) }}</span><span
               class="favorite-server-chip-label"
-            >{{ server.label }}</span><Icon
-              v-if="server.isFavorite"
-              class="favorite-server-chip-star"
-              name="star"
-              :size="11"
-            /></button>
+            >{{ server.label }}</span></button>
           <button
             type="button"
             class="favorite-server-add"
@@ -891,10 +882,9 @@
       part="voice.server-context-menu"
       :in-room="true"
       :t="t"
-      @switch="switchToQuickServer"
+      @switch="switchServer"
       @edit="editFavoriteServer"
-      @toggle-favorite="toggleQuickServerFavorite"
-      @remove="removeRecentServerEntry"
+      @remove-favorite="removeFavoriteRow"
       @close="serverMenuState = null"
     />
 
@@ -935,7 +925,7 @@ import WebClientHeader from "../components/web-client/WebClientHeader.vue";
 import IdentityImportDialog from "../components/web-client/IdentityImportDialog.vue";
 import FavoriteServerDialog, { type FavoriteServerDraft } from "../components/web-client/FavoriteServerDialog.vue";
 import ServerContextMenu from "../components/web-client/ServerContextMenu.vue";
-import type { QuickServer } from "../services/quick-servers.js";
+import type { FavoriteServer } from "../services/local-persistence.js";
 import { usePublicSkin } from "../composables/usePublicSkin.js";
 import { useWebClientIdentity } from "../composables/useWebClientIdentity.js";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
@@ -1135,23 +1125,20 @@ const {
 } = useWebClientIdentity({ identityMaterial, rememberIdentity, nickname, t, showToast });
 const {
   favoriteServers,
-  quickServers,
   isFavorite,
   currentTarget,
   loadSavedServers,
-  recordCurrentServer,
   selectLocalServer,
-  syncFavoritePassword,
   toggleFavorite,
-  toggleQuickServerFavorite,
+  removeFavoriteRow,
+  syncFavoriteConnection,
   upsertFavoriteServer,
   clearServerHistory,
-  removeRecentServerEntry,
 } = useWebClientServerHistory({ serverHost, serverPort, serverPassword, nickname, channel, rememberIdentity, identityMaterial, t, showToast });
 // Right-click / long-press on a server row (rail or join form): the context
 // menu owns edit / favorite / delete instead of hidden single actions.
-const serverMenuState = shallowRef<{ server: QuickServer; x: number; y: number } | null>(null);
-function openServerMenu(server: QuickServer, event: MouseEvent): void {
+const serverMenuState = shallowRef<{ server: FavoriteServer; x: number; y: number } | null>(null);
+function openServerMenu(server: FavoriteServer, event: MouseEvent): void {
   serverMenuState.value = { server, x: event.clientX, y: event.clientY };
 }
 const favoriteServerDialogOpen = ref(false);
@@ -1168,7 +1155,7 @@ function openFavoriteServerDialog(initial?: Partial<FavoriteServerDraft>): void 
 }
 // Right-click / long-press on a favorite row: prefill the dialog with the
 // stored entry so it can be renamed or re-pointed without connecting first.
-function editFavoriteServer(server: QuickServer): void {
+function editFavoriteServer(server: FavoriteServer): void {
   const target = splitTeamSpeakTarget(server.address);
   openFavoriteServerDialog({
     label: server.label,
@@ -1203,7 +1190,7 @@ const favoriteSwitchError = ref("");
 watch(favoriteSwitchFailed, (failed) => {
   favoriteSwitchError.value = failed ? localizedMessage(voiceState.error) : "";
 });
-function switchToQuickServer(server: QuickServer): void {
+function switchServer(server: FavoriteServer): void {
   if (favoriteSwitchPending.value || voiceState.connecting) return;
   // Same-target row clicks are not switches; channel changes go through the
   // channel tree. A different server is an explicit departure: the internal
@@ -1240,7 +1227,6 @@ const {
   initialized,
   siteName,
   appVersion,
-  openTargetPrefillBlocked,
   serverConfigLoading,
   publicConfigFailed,
   localizedWelcomeText,
@@ -1553,13 +1539,12 @@ watch([rememberIdentity, identityMaterial], ([remember, material]) => {
 watch(() => voiceState.connected, (connected) => {
   if (!connected) return;
   playNotification("connected");
-  recordCurrentServer();
   // A pending server switch is over (succeeded or superseded): drop the
   // banner and the safety timer, including any stale failure banner.
   settleFavoriteSwitch();
   // Store the working password (including a dialog-retried one) only now —
   // a wrong password submitted earlier must not survive as "remembered".
-  void syncFavoritePassword();
+  void syncFavoriteConnection();
 });
 watch(() => voiceState.connected || voiceState.reconnecting || voiceState.reconnectFailed, (roomVisible) => {
   if (roomVisible) resetIdentityOperations();

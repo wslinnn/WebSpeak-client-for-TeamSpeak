@@ -1080,7 +1080,6 @@
 }
 
 .favorite-server-chip {
-  position: relative;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -1098,14 +1097,6 @@
   transition: border-radius .18s ease, transform .18s ease, background .18s ease;
 }
 
-/* Favorites carry a corner star so chips read as more than a bare initial. */
-.favorite-server-chip-star {
-  position: absolute;
-  top: -4px;
-  right: -3px;
-  color: #d9a13c;
-  filter: drop-shadow(0 1px 1px rgba(255, 255, 255, .85));
-}
 
 /* Desktop: the server rail is the leftmost shell column (left of the member
  * sidebar); the header/content column keeps its full width. The horizontal
@@ -1118,11 +1109,12 @@
   .favorite-server-rail {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    align-items: center;
+    gap: 10px;
     grid-column: 1;
     grid-row: 2;
     min-height: 0;
-    padding: 10px 8px;
+    padding: 12px 0;
     overflow-y: auto;
     scrollbar-width: thin;
     border-right: 1px solid #eef2f0;
@@ -1133,64 +1125,78 @@
   }
 }
 
+/* Icon rail: one 48px rounded tile per server (initials on a name-hashed
+ * color), name on hover via title, current server marked by the left pill. */
 .favorite-server-rail-row {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-width: 0;
-  min-height: 34px;
+  position: relative;
   flex: 0 0 auto;
-  padding: 0 9px;
-  color: #52635d;
-  background: transparent;
-  border-radius: 8px;
-  text-align: left;
-  font-size: 12px;
-  font-weight: 700;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  opacity: .55;
   cursor: pointer;
 }
 
 .favorite-server-rail-row:hover,
 .favorite-server-rail-row.active {
-  color: #006a64;
-  background: #e5f3f0;
+  opacity: 1;
+}
+
+.favorite-server-rail-row::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  width: 4px;
+  height: 0;
+  border-radius: 0 4px 4px 0;
+  background: #006a64;
+  transition: height .18s ease;
+}
+
+.favorite-server-rail-row.active::before {
+  height: 22px;
 }
 
 .favorite-server-rail-row:disabled {
-  opacity: .55;
+  opacity: .3;
   cursor: default;
 }
 
-.favorite-server-rail-label {
-  min-width: 0;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.favorite-server-rail-star {
-  flex: 0 0 auto;
-  color: #d9a13c;
+.favorite-server-rail-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .favorite-server-rail-lock {
-  flex: 0 0 auto;
-  color: #94a29d;
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  color: #52635d;
+  background: #fff;
+  border: 1px solid #e3ebe8;
+  border-radius: 50%;
 }
 
 .favorite-server-rail-add {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 34px;
-  margin-top: 6px;
-  padding: 0 9px;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
   color: #7a8a84;
   background: transparent;
   border: 1px dashed #cfe0da;
-  border-radius: 8px;
-  font-size: 11px;
+  border-radius: 14px;
   cursor: pointer;
 }
 

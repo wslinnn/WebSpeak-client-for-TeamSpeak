@@ -1,20 +1,15 @@
 import { computed, ref, type Ref } from "vue";
 import {
   listFavorites,
-  listRecentServers,
-  recordRecentServer,
   removeFavorite,
-  removeRecentServer,
   saveFavorite,
   type FavoriteServer,
-  type RecentServer,
 } from "../services/local-persistence.js";
 import { combineTeamSpeakTarget, splitTeamSpeakTarget } from "../services/teamspeak-target.js";
-import { mergeQuickServers, type QuickServer } from "../services/quick-servers.js";
 
 type Translator = (key: string, variables?: Record<string, string | number>) => string;
 
-/** What a server tab (favorite or recent) restores into the join form. */
+/** What a server tab restores into the join form. */
 export interface SelectableServer {
   address: string;
   nickname?: string;
@@ -46,31 +41,11 @@ export function useWebClientServerHistory({
   showToast,
 }: UseWebClientServerHistoryOptions) {
   const favoriteServers = ref<FavoriteServer[]>([]);
-  const recentServers = ref<RecentServer[]>([]);
   const currentTarget = computed(() => combineTeamSpeakTarget(serverHost.value, serverPort.value));
   const isFavorite = computed(() => favoriteServers.value.some((favorite) => favorite.id === serverKey(currentTarget.value)));
-  // One merged picker row per server: favorites lead, a matching recent only
-  // enriches connection details instead of rendering a duplicate row.
-  const quickServers = computed(() => mergeQuickServers(favoriteServers.value, recentServers.value));
 
   async function loadSavedServers(): Promise<void> {
-    const [favorites, recent] = await Promise.all([listFavorites(), listRecentServers()]);
-    favoriteServers.value = favorites;
-    recentServers.value = recent;
-  }
-
-  function recordCurrentServer(): void {
-    const address = currentTarget.value;
-    if (!address) return;
-    const recent: RecentServer = {
-      id: serverKey(address),
-      address,
-      ...(nickname.value.trim() ? { nickname: nickname.value.trim() } : {}),
-      ...(rememberIdentity.value && identityMaterial.value ? { identityId: "current" } : {}),
-      lastConnectedAt: Date.now(),
-      ...(channel.value.trim() ? { lastChannelHint: { name: channel.value.trim() } } : {}),
-    };
-    void recordRecentServer(recent).then(() => listRecentServers().then((items) => { recentServers.value = items; }));
+    favoriteServers.value = await listFavorites();
   }
 
   function selectLocalServer(entry: SelectableServer): void {
@@ -84,52 +59,44 @@ export function useWebClientServerHistory({
     serverPassword.value = entry.password ?? "";
   }
 
+  /** Upserts the connection context (typed password, nickname, last channel)
+   *  into the favorite for the current target. Connecting IS favoriting: the
+   *  rail is exactly the set of servers visited, curated by removing entries.
+   *  A wrong password stored by an earlier attempt is corrected here. */
+  async function syncFavoriteConnection(): Promise<void> {
+    const address = currentTarget.value;
+    if (!address) return;
+    const id = serverKey(address);
+    const existing = favoriteServers.value.find((favorite) => favorite.id === id);
+    const favorite: FavoriteServer = {
+      id,
+      label: existing?.label ?? address,
+      address,
+      ...(nickname.value.trim() || existing?.nickname ? { nickname: nickname.value.trim() || existing?.nickname } : {}),
+      ...(rememberIdentity.value && identityMaterial.value ? { identityId: "current" } : existing?.identityId ? { identityId: existing.identityId } : {}),
+      ...(channel.value.trim() || existing?.lastChannelHint ? { lastChannelHint: { name: channel.value.trim() || (existing?.lastChannelHint?.name ?? "") } } : {}),
+      ...(serverPassword.value || existing?.password ? { password: serverPassword.value || existing?.password } : {}),
+    };
+    await saveFavorite(favorite);
+    favoriteServers.value = existing
+      ? favoriteServers.value.map((item) => (item.id === id ? favorite : item))
+      : [...favoriteServers.value, favorite].sort((left, right) => left.label.localeCompare(right.label));
+  }
+
   async function toggleFavorite(): Promise<void> {
     const address = currentTarget.value;
     if (!address) return;
     const id = serverKey(address);
     const existing = favoriteServers.value.find((favorite) => favorite.id === id);
-    if (existing) {
-      await removeFavorite(id);
-      favoriteServers.value = favoriteServers.value.filter((favorite) => favorite.id !== id);
-      showToast(t("removedFavoriteToast"));
-      return;
-    }
-    const favorite: FavoriteServer = {
-      id,
-      label: address,
-      address,
-      ...(nickname.value.trim() ? { nickname: nickname.value.trim() } : {}),
-      ...(rememberIdentity.value && identityMaterial.value ? { identityId: "current" } : {}),
-      ...(channel.value.trim() ? { lastChannelHint: { name: channel.value.trim() } } : {}),
-    };
-    await saveFavorite(favorite);
-    favoriteServers.value = [...favoriteServers.value, favorite].sort((left, right) => left.label.localeCompare(right.label));
-    showToast(t("savedFavoriteToast"));
+    if (!existing) return;
+    await removeFavoriteRow(existing);
   }
 
-  /** Connection established: write the (possibly retried) password into the
-   *  favorite — remembering is always on, and a wrong password stored by an
-   *  earlier attempt is corrected here, not at submit time. */
-  async function syncFavoritePassword(): Promise<void> {
-    if (!serverPassword.value) return;
-    const address = currentTarget.value;
-    if (!address) return;
-    const id = serverKey(address);
-    const existing = favoriteServers.value.find((favorite) => favorite.id === id);
-    const favorite: FavoriteServer = existing
-      ? { ...existing, password: serverPassword.value }
-      : {
-        id,
-        label: address,
-        address,
-        password: serverPassword.value,
-        ...(nickname.value.trim() ? { nickname: nickname.value.trim() } : {}),
-      };
-    await saveFavorite(favorite);
-    favoriteServers.value = existing
-      ? favoriteServers.value.map((item) => (item.id === id ? favorite : item))
-      : [...favoriteServers.value, favorite].sort((left, right) => left.label.localeCompare(right.label));
+  /** Row star / context menu: drop one favorite from the list entirely. */
+  async function removeFavoriteRow(server: Pick<FavoriteServer, "id">): Promise<void> {
+    await removeFavorite(server.id);
+    favoriteServers.value = favoriteServers.value.filter((favorite) => favorite.id !== server.id);
+    showToast(t("removedFavoriteToast"));
   }
 
   /** Dialog save: create or update a favorite by normalized address. An empty
@@ -155,59 +122,19 @@ export function useWebClientServerHistory({
     showToast(t("savedFavoriteToast"));
   }
 
-  /** Star button on a picker row: favorites are unstarred, a recent is
-   *  promoted with the connection details it already carries (no password —
-   *  that only ever arrives through the opt-in or the dialog). */
-  async function toggleQuickServerFavorite(server: Pick<QuickServer, "address" | "nickname" | "identityId" | "lastChannelHint">): Promise<void> {
-    const id = serverKey(server.address);
-    const existing = favoriteServers.value.find((favorite) => favorite.id === id);
-    if (existing) {
-      await removeFavorite(id);
-      favoriteServers.value = favoriteServers.value.filter((favorite) => favorite.id !== id);
-      showToast(t("removedFavoriteToast"));
-      return;
-    }
-    const favorite: FavoriteServer = {
-      id,
-      label: server.address.trim(),
-      address: server.address.trim(),
-      ...(server.nickname ? { nickname: server.nickname } : {}),
-      ...(server.identityId ? { identityId: server.identityId } : {}),
-      ...(server.lastChannelHint ? { lastChannelHint: server.lastChannelHint } : {}),
-    };
-    await saveFavorite(favorite);
-    favoriteServers.value = [...favoriteServers.value, favorite].sort((left, right) => left.label.localeCompare(right.label));
-    showToast(t("savedFavoriteToast"));
-  }
-
   function clearServerHistory(): void {
     favoriteServers.value = [];
-    recentServers.value = [];
-  }
-
-  /** Context-menu deletion: drop one recent entry. Favorites leave the list
-   *  through removeFavorite (unstar) instead — deleting a recent never
-   *  touches a saved favorite. */
-  async function removeRecentServerEntry(server: Pick<QuickServer, "address">): Promise<void> {
-    const id = serverKey(server.address);
-    await removeRecentServer(id);
-    recentServers.value = recentServers.value.filter((entry) => entry.id !== id);
-    showToast(t("removedRecentToast"));
   }
 
   return {
     favoriteServers,
-    recentServers,
-    quickServers,
     isFavorite,
     currentTarget,
-    removeRecentServerEntry,
     loadSavedServers,
-    recordCurrentServer,
     selectLocalServer,
-    syncFavoritePassword,
+    syncFavoriteConnection,
     toggleFavorite,
-    toggleQuickServerFavorite,
+    removeFavoriteRow,
     upsertFavoriteServer,
     clearServerHistory,
   };

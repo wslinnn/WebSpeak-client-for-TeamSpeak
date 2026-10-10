@@ -31,18 +31,10 @@ export interface FavoriteServer {
   nickname?: string;
   identityId?: string;
   lastChannelHint?: { id?: string; name?: string };
-  /** Opt-in only (per-server checkbox, default off): stored in the same
-   *  IndexedDB trust boundary as identity material, never synced anywhere. */
+  /** Stored in the same IndexedDB trust boundary as identity material,
+   *  never synced anywhere. Written automatically on a successful connect
+   *  (remembering is always on) or through the favorite dialog. */
   password?: string;
-}
-
-export interface RecentServer {
-  id: string;
-  address: string;
-  nickname?: string;
-  identityId?: string;
-  lastConnectedAt: number;
-  lastChannelHint?: { id?: string; name?: string };
 }
 
 export interface LocalPreferences {
@@ -274,38 +266,6 @@ export async function removeFavorite(id: string): Promise<void> {
   }
 }
 
-export async function listRecentServers(): Promise<RecentServer[]> {
-  try {
-    const recent = await request<RecentServer[]>("recent", "readonly", (store, resolve, reject) => {
-      const get = store.getAll();
-      get.onsuccess = () => resolve(get.result as RecentServer[]);
-      get.onerror = () => reject(get.error);
-    });
-    return recent.sort((a, b) => b.lastConnectedAt - a.lastConnectedAt).slice(0, 10);
-  } catch {
-    return [];
-  }
-}
-
-export async function recordRecentServer(server: RecentServer): Promise<void> {
-  try {
-    await request("recent", "readwrite", (store, resolve, reject) => {
-      const put = store.put(server);
-      put.onsuccess = () => resolve(undefined);
-      put.onerror = () => reject(put.error);
-    });
-    const all = await request<RecentServer[]>("recent", "readonly", (store, resolve, reject) => {
-      const get = store.getAll();
-      get.onsuccess = () => resolve(get.result as RecentServer[]);
-      get.onerror = () => reject(get.error);
-    });
-    all.sort((a, b) => b.lastConnectedAt - a.lastConnectedAt);
-    for (const old of all.slice(10)) await removeRecentServer(old.id);
-  } catch {
-    // Recent servers are an optional convenience.
-  }
-}
-
 export function normalizeChatHistoryServerKey(target: string): string {
   return target.trim().toLowerCase() || "__default__";
 }
@@ -364,14 +324,6 @@ export async function saveChatHistoryMessage(serverKey: string, message: ChatMes
   } catch {
     // Local chat history is best effort and must never interrupt a voice session.
   }
-}
-
-export async function removeRecentServer(id: string): Promise<void> {
-  await request("recent", "readwrite", (store, resolve, reject) => {
-    const remove = store.delete(id);
-    remove.onsuccess = () => resolve(undefined);
-    remove.onerror = () => reject(remove.error);
-  });
 }
 
 export async function clearLocalData(): Promise<void> {
