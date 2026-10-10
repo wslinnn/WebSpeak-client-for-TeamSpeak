@@ -102,6 +102,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
   const adminSessions = new AdminSessionStore();
   const joinRateLimiter = new JoinRateLimiter();
   const skinDownloadLimiter = new SkinDownloadRateLimiter();
+  const skinPreviewLimiter = new SkinDownloadRateLimiter();
   const startedAt = Date.now();
   // Limiter key for a request: the client IP when trust proxy is configured,
   // otherwise the socket address, aggregated to a /64 for IPv6.
@@ -179,6 +180,13 @@ export function createWebServer(options: WebServerOptions): WebServer {
 
   app.get("/api/skins/:id/preview", async (request, response) => {
     const id = typeof request.params.id === "string" ? request.params.id : "";
+    // Previews are unauthenticated images up to the per-file skin asset cap;
+    // bound them like packages so a looping client cannot monopolize the
+    // 3 Mbit/s uplink either.
+    if (!skinPreviewLimiter.allow(peerKey(request))) {
+      response.status(429).json({ ok: false, code: "RATE_LIMITED" });
+      return;
+    }
     const preview = await options.skinRegistry?.readPreview(id);
     if (!preview) {
       response.status(404).end();
