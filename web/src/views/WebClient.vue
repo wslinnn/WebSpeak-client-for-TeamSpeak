@@ -230,34 +230,6 @@
         @file="readIdentityFile"
       />
 
-      <!-- Skin failures fall back silently inside the composable; this bar is
-           the only surface that tells the user their appearance is missing. -->
-      <div
-        v-if="skinRecoveryNotice"
-        class="skin-recovery-notice"
-        data-ws-part="app.skin-recovery-notice"
-        role="alert"
-      >
-        <span>{{ t("skinRecoveryNotice") }}</span>
-        <button
-          type="button"
-          :aria-label="t('close')"
-          @click="skinRecoveryNotice = false"
-        ><Icon
-            name="close"
-            :size="14"
-        /></button>
-      </div>
-
-      <FavoriteServerDialog
-        v-if="favoriteServerDialogOpen"
-        :initial="favoriteServerDialogInitial"
-        :known-favorite-addresses="favoriteServers.map(favorite => favorite.address)"
-        :t="t"
-        @close="closeFavoriteServerDialog"
-        @save="saveFavoriteServerDraft"
-      />
-
       <footer
         class="join-footer"
         data-ws-part="home.footer"
@@ -837,6 +809,34 @@
       :localized-microphone-error="localizedMicrophoneError"
       :range-style="rangeStyle"
       @close="settingsOpen = false"
+    />
+
+    <!-- Root-level overlays: both connection and voice pages trigger them, so
+         they must live outside the v-if/v-else page branches. -->
+    <div
+      v-if="skinRecoveryNotice"
+      class="skin-recovery-notice"
+      data-ws-part="app.skin-recovery-notice"
+      role="alert"
+    >
+      <span>{{ t("skinRecoveryNotice") }}</span>
+      <button
+        type="button"
+        :aria-label="t('close')"
+        @click="skinRecoveryNotice = false"
+      ><Icon
+          name="close"
+          :size="14"
+      /></button>
+    </div>
+
+    <FavoriteServerDialog
+      v-if="favoriteServerDialogOpen"
+      :initial="favoriteServerDialogInitial"
+      :known-favorite-addresses="favoriteServers.map(favorite => favorite.address)"
+      :t="t"
+      @close="closeFavoriteServerDialog"
+      @save="saveFavoriteServerDraft"
     />
 
     <div
