@@ -303,9 +303,12 @@ export class AdminService {
     if (!/^[A-Za-z0-9_-]{32,128}$/.test(token)) return null;
     const record = this.database.consumeManagedInvite(hashInviteToken(token));
     if (!record) return null;
+    // Invites carry the admin's CURRENT TeamSpeak password, not a snapshot
+    // taken at creation: rotating the settings password must not strand
+    // outstanding invites with a stale credential.
     let serverPassword = "";
     try {
-      serverPassword = decryptSecret(record.serverPasswordEncrypted, this.masterSecret);
+      serverPassword = decryptSecret(this.database.getSettings().tsPasswordEncrypted, this.masterSecret);
     } catch (error: unknown) {
       this.logger.error({ err: error instanceof Error ? error.message : String(error), inviteId: record.id }, "Managed invite password could not be decrypted");
     }

@@ -96,6 +96,17 @@ test("settings, tests, invites, and join tickets resolve nicknames through the g
   assert.equal(invited.payload?.serverPassword, "stored-password");
   assert.equal(service.getConnectionPolicy().defaultTarget, "different guild:9987");
 
+  // Invites consume the admin's CURRENT password: rotating the settings
+  // password must not strand outstanding invites with a stale snapshot.
+  service.updateSettings({ ...settings("different guild:9987"), serverPassword: "rotated-password" });
+  const rotated = await join({ invite: invite.token });
+  assert.equal(rotated.payload?.serverPassword, "rotated-password");
+  // A dialog retry carries the user's just-typed password and overrides the
+  // stored one for this attempt — otherwise the same failed credential would
+  // be resent forever and the password modal would never close.
+  const retriedPassword = await join({ invite: invite.token, serverPassword: "typed-by-user" });
+  assert.equal(retriedPassword.payload?.serverPassword, "typed-by-user");
+
   service.updateSettings(settings("retry guild", "fixed"));
   const retryInvite = service.createManagedInvite({ channel: "Lobby", expiresInHours: 1, maxUses: 1 });
   lookupBody = "";

@@ -275,10 +275,12 @@ export function createWebServer(options: WebServerOptions): WebServer {
     let targetText = managedInvite?.target ?? policy.defaultTarget;
     let target: TeamSpeakTarget;
     let serverPassword = policy.serverPassword;
-    // Whether this request brought its own password (open-mode custom target
-    // or a fixed-mode retry). Only those attempts can probe for a server's
-    // password, so only those are subject to the shared wrong-password guard.
-    let usesUserPassword = false;
+    const requestedServerPassword = typeof body.serverPassword === "string" ? body.serverPassword : "";
+    // Whether this request brought its own password (open-mode custom target,
+    // a fixed-mode retry, or an invite-join dialog retry). Only those attempts
+    // can probe for a server's password, so only those are subject to the
+    // shared wrong-password guard.
+    let usesUserPassword = Boolean(inviteToken && requestedServerPassword.trim());
     const channel = requestedChannel || managedInvite?.channel || "";
     try {
       if (!managedInvite) {
@@ -319,7 +321,10 @@ export function createWebServer(options: WebServerOptions): WebServer {
         response.status(400).json({ ok: false, code: "INVITE_INVALID" });
         return;
       }
-      serverPassword = consumedInvite.serverPassword;
+      // A dialog retry must win over the invite's stored password: the user
+      // typed the CURRENT server password after the stored one failed, and
+      // resending the failed credential is an endless modal loop.
+      serverPassword = usesUserPassword ? requestedServerPassword.slice(0, 512) : consumedInvite.serverPassword;
     }
 
     const ticket = options.voiceBridgeOptions.joinTickets.create({
