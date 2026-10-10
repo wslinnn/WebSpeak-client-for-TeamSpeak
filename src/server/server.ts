@@ -42,7 +42,11 @@ export interface WebServer {
 }
 
 export function createWebServer(options: WebServerOptions): WebServer {
+  // Bare-metal installs may skip NODE_ENV; default it so Express error pages
+  // never include stack traces. Docker images already set it explicitly.
+  if (!process.env.NODE_ENV) process.env.NODE_ENV = "production";
   const app = express();
+  app.disable("x-powered-by");
   const logger = options.logger.child({ component: "web" });
   const trustProxy = options.trustProxy === true;
   if (trustProxy) app.set("trust proxy", true);
