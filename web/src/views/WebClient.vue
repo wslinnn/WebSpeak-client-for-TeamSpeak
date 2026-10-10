@@ -183,7 +183,6 @@
             v-model:nickname="nickname"
             v-model:channel="channel"
             v-model:remember-identity="rememberIdentity"
-            v-model:remember-server-password="rememberServerPassword"
             :access-mode="accessMode"
             :open-target-prefill-blocked="openTargetPrefillBlocked"
             :quick-servers="quickServers"
@@ -337,55 +336,55 @@
               :size="15" /></button
         ></div>
       </div>
+      <!-- Desktop server rail: the leftmost column of the shell (left of the
+           member sidebar, like upstream). Mobile keeps the horizontal chip
+           strip inside the workspace instead. -->
+      <div
+        v-if="accessMode === 'open'"
+        class="favorite-server-rail"
+        data-ws-part="voice.favorite-server-rail"
+        role="toolbar"
+        :aria-label="t('favoriteServers')"
+      >
+        <button
+          v-for="server in quickServers"
+          :key="server.id"
+          type="button"
+          class="favorite-server-rail-row"
+          :class="{ active: server.address === currentTarget }"
+          :aria-pressed="server.address === currentTarget"
+          :disabled="Boolean(favoriteSwitchPending) || voiceState.connecting"
+          :title="server.label"
+          :aria-label="t('switchToServer', { name: server.label })"
+          @click="switchToQuickServer(server)"
+          @contextmenu.prevent="openServerMenu(server, $event)"
+        ><Icon
+            v-if="server.password"
+            class="favorite-server-rail-lock"
+            name="lock"
+            :size="12"
+          /><span class="favorite-server-rail-label">{{ server.label }}</span><Icon
+            v-if="server.isFavorite"
+            class="favorite-server-rail-star"
+            name="star"
+            :size="11"
+        /></button>
+        <button
+          type="button"
+          class="favorite-server-rail-add"
+          data-ws-part="voice.favorite-server-rail.add"
+          :aria-label="t('addFavoriteServer')"
+          :title="t('addFavoriteServer')"
+          @click="openFavoriteServerDialog()"
+        ><Icon
+            name="plus"
+            :size="14"
+        /><span>{{ t("addFavoriteServer") }}</span></button>
+      </div>
       <main
         class="workspace"
         data-ws-part="voice.workspace"
       >
-        <!-- Desktop server rail: a vertical column left of the header/content
-             (grid placement comes from the ≥741 stylesheet block). Mobile
-             keeps the horizontal chip strip below instead. -->
-        <div
-          v-if="accessMode === 'open'"
-          class="favorite-server-rail"
-          data-ws-part="voice.favorite-server-rail"
-          role="toolbar"
-          :aria-label="t('favoriteServers')"
-        >
-          <button
-            v-for="server in quickServers"
-            :key="server.id"
-            type="button"
-            class="favorite-server-rail-row"
-            :class="{ active: server.address === currentTarget }"
-            :aria-pressed="server.address === currentTarget"
-            :disabled="Boolean(favoriteSwitchPending) || voiceState.connecting"
-            :title="server.label"
-            :aria-label="t('switchToServer', { name: server.label })"
-            @click="switchToQuickServer(server)"
-            @contextmenu.prevent="openServerMenu(server, $event)"
-          ><Icon
-              v-if="server.password"
-              class="favorite-server-rail-lock"
-              name="lock"
-              :size="12"
-            /><span class="favorite-server-rail-label">{{ server.label }}</span><Icon
-              v-if="server.isFavorite"
-              class="favorite-server-rail-star"
-              name="star"
-              :size="11"
-          /></button>
-          <button
-            type="button"
-            class="favorite-server-rail-add"
-            data-ws-part="voice.favorite-server-rail.add"
-            :aria-label="t('addFavoriteServer')"
-            :title="t('addFavoriteServer')"
-            @click="openFavoriteServerDialog()"
-          ><Icon
-              name="plus"
-              :size="14"
-          /><span>{{ t("addFavoriteServer") }}</span></button>
-        </div>
         <div
           v-if="accessMode === 'open' && quickServers.length"
           class="favorite-server-strip"
@@ -1139,7 +1138,6 @@ const {
   quickServers,
   isFavorite,
   currentTarget,
-  rememberServerPassword,
   loadSavedServers,
   recordCurrentServer,
   selectLocalServer,
@@ -1219,7 +1217,6 @@ function switchToQuickServer(server: QuickServer): void {
   if (server.nickname) nickname.value = server.nickname;
   channel.value = server.lastChannelHint?.name ?? "";
   serverPassword.value = server.password ?? "";
-  rememberServerPassword.value = Boolean(server.password);
   // doConnect silently no-ops on an invalid form (e.g. no nickname): fail the
   // banner now instead of hanging until the safety timeout.
   if (!canJoin.value) {
@@ -1495,13 +1492,10 @@ function connectFromServerTab(entry: { address: string; nickname?: string; chann
 // Fixed mode has no server tabs: once the admin target and the favorites are
 // loaded, auto-fill the remembered password so joining stays one click.
 watch([currentTarget, favoriteServers], () => {
-  if (accessMode.value !== "fixed" || rememberServerPassword.value || serverPassword.value) return;
+  if (accessMode.value !== "fixed" || serverPassword.value) return;
   const id = currentTarget.value.trim().toLocaleLowerCase();
   const favorite = favoriteServers.value.find((item) => item.id === id);
-  if (favorite?.password) {
-    serverPassword.value = favorite.password;
-    rememberServerPassword.value = true;
-  }
+  if (favorite?.password) serverPassword.value = favorite.password;
 }, { immediate: true });
 const visiblePokes = computed(() => pokeNotifications.slice(-3));
 const pokeAutoDismissTimers = new Map<string, number>();

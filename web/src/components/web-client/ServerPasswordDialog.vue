@@ -1,7 +1,6 @@
 <template>
   <div
     class="modal-backdrop channel-password-backdrop"
-    @click.self="emit('cancel')"
   >
     <section
       class="channel-password-modal server-password-modal"

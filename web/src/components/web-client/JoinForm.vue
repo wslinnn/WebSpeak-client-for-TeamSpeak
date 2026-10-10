@@ -144,16 +144,6 @@
         autocomplete="new-password"
         :placeholder="t('optionalPassword')"
     /></div>
-    <label
-      class="remember-identity remember-server-password"
-      data-ws-part="home.remember-password"
-      ><input
-        v-model="rememberServerPassword"
-        type="checkbox"
-      /><span
-        ><strong>{{ t("rememberServerPassword") }}</strong
-        ><small>{{ t("rememberServerPasswordHint") }}</small></span
-      ></label>
 
     <div
       class="device-setup"
@@ -298,7 +288,6 @@ const serverPassword = defineModel<string>("serverPassword", { required: true })
 const nickname = defineModel<string>("nickname", { required: true });
 const channel = defineModel<string>("channel", { required: true });
 const rememberIdentity = defineModel<boolean>("rememberIdentity", { required: true });
-const rememberServerPassword = defineModel<boolean>("rememberServerPassword", { required: true });
 
 defineProps<{
   autofocusNickname?: boolean;

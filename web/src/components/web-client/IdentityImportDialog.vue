@@ -1,7 +1,6 @@
 <template>
   <div
     class="modal-backdrop identity-import-backdrop"
-    @click.self="emit('close')"
     tabindex="-1"
   >
     <section

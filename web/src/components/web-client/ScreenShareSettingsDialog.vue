@@ -1,7 +1,6 @@
 <template>
   <div
     class="modal-backdrop screen-share-settings-backdrop"
-    @click.self="emit('close')"
   >
     <section
       ref="dialog"

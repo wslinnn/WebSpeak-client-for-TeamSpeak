@@ -1,7 +1,6 @@
 <template>
   <div
     class="modal-backdrop"
-    @click.self="emit('close')"
   >
     <section
       class="settings-modal"
