@@ -16,7 +16,7 @@
       <Icon name="chevron-down" :size="13" />
     </button>
 
-    <div v-if="open" :id="menuId" class="language-dropdown" data-ws-part="language.menu" role="listbox" :aria-label="menuLabel" @click.stop>
+    <div v-if="open" ref="dropdown" :id="menuId" class="language-dropdown" data-ws-part="language.menu" role="listbox" :aria-label="menuLabel" @click.stop>
       <button
         v-for="option in options"
         :key="option.value"
@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref } from "vue";
 import Icon from "./Icon.vue";
 
 type Language = "zh" | "en" | "de" | "ru" | "ja";
@@ -69,12 +69,57 @@ const options: Array<{ value: Language; code: string; label: string; flag: strin
 ];
 
 const root = ref<HTMLElement | null>(null);
+const dropdown = ref<HTMLElement | null>(null);
 const open = ref(false);
 const menuId = `language-menu-${Math.random().toString(36).slice(2, 9)}`;
 const currentLanguage = computed(() => options.find((option) => option.value === props.modelValue) ?? options[0]);
 
-function toggle() {
+const VIEWPORT_MARGIN = 8;
+
+/**
+ * The dropdown is absolutely positioned relative to the trigger and anchored
+ * to its right edge, so a trigger near the left screen edge (phone headers,
+ * admin cards, narrow windows) pushed the 360px menu off screen. After the
+ * menu renders, clamp it into the viewport — horizontally against both edges
+ * and vertically flipping above the trigger when the bottom would clip. The
+ * CSS default placement stays untouched whenever it already fits.
+ */
+function placeDropdown(): void {
+  const rootEl = root.value;
+  const dropdownEl = dropdown.value;
+  if (!rootEl || !dropdownEl) return;
+  dropdownEl.style.left = "";
+  dropdownEl.style.top = "";
+  dropdownEl.style.right = "";
+  const rootRect = rootEl.getBoundingClientRect();
+  // offset sizes ignore the entry animation's transform, which would skew a
+  // getBoundingClientRect measurement taken the frame the menu opens.
+  const width = dropdownEl.offsetWidth;
+  const height = dropdownEl.offsetHeight;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const overflowLeft = rootRect.right - width < VIEWPORT_MARGIN;
+  const overflowRight = rootRect.left + width > viewportWidth - VIEWPORT_MARGIN;
+  const overflowBottom = rootRect.bottom + 8 + height > viewportHeight - VIEWPORT_MARGIN;
+  if (!overflowLeft && !overflowRight && !overflowBottom) return;
+  const viewportLeft = Math.min(
+    Math.max(rootRect.right - width, VIEWPORT_MARGIN),
+    viewportWidth - VIEWPORT_MARGIN - width,
+  );
+  const viewportTop = overflowBottom
+    ? Math.max(VIEWPORT_MARGIN, rootRect.top - 8 - height)
+    : rootRect.bottom + 8;
+  dropdownEl.style.left = `${Math.round(viewportLeft - rootRect.left)}px`;
+  dropdownEl.style.top = `${Math.round(viewportTop - rootRect.top)}px`;
+  dropdownEl.style.right = "auto";
+}
+
+async function toggle() {
   open.value = !open.value;
+  if (open.value) {
+    await nextTick();
+    placeDropdown();
+  }
 }
 
 function close() {
@@ -91,8 +136,21 @@ function onDocumentPointerDown(event: PointerEvent) {
   if (root.value && !root.value.contains(event.target as Node)) close();
 }
 
-onMounted(() => document.addEventListener("pointerdown", onDocumentPointerDown));
-onUnmounted(() => document.removeEventListener("pointerdown", onDocumentPointerDown));
+// Viewport changes invalidate the clamped placement; close instead of drifting.
+function onViewportChange(): void {
+  if (open.value) close();
+}
+
+onMounted(() => {
+  document.addEventListener("pointerdown", onDocumentPointerDown);
+  window.addEventListener("resize", onViewportChange);
+  window.addEventListener("scroll", onViewportChange, true);
+});
+onUnmounted(() => {
+  document.removeEventListener("pointerdown", onDocumentPointerDown);
+  window.removeEventListener("resize", onViewportChange);
+  window.removeEventListener("scroll", onViewportChange, true);
+});
 </script>
 
 <style scoped>
