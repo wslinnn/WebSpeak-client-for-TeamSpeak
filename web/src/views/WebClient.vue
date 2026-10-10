@@ -8,15 +8,11 @@
     ]"
     :style="{ '--ws-viewport-height': `${mobileViewport.height}px`, '--ws-viewport-top': `${mobileViewport.top}px` }"
     data-ws-part="app"
-    :data-ws-page="
-      voiceState.connected || voiceState.reconnecting || voiceState.reconnectFailed
-        ? 'voice'
-        : 'home'
-    "
+    :data-ws-page="voiceShellVisible ? 'voice' : 'home'"
   >
     <!-- Connection / welcome screen -->
     <section
-      v-if="!voiceState.connected && !voiceState.reconnecting && !voiceState.reconnectFailed"
+      v-if="!voiceShellVisible"
       class="join-page"
       data-ws-part="home"
     >
@@ -269,6 +265,59 @@
         class="workspace"
         data-ws-part="voice.workspace"
       >
+        <div
+          v-if="accessMode === 'open' && quickServers.length"
+          class="favorite-server-strip"
+          data-ws-part="voice.favorite-server-strip"
+          role="toolbar"
+          :aria-label="t('favoriteServers')"
+        >
+          <button
+            v-for="server in quickServers"
+            :key="server.id"
+            type="button"
+            class="favorite-server-chip"
+            data-ws-part="voice.favorite-server-chip"
+            :class="{ active: server.address === currentTarget }"
+            :aria-pressed="server.address === currentTarget"
+            :disabled="Boolean(favoriteSwitchPending) || voiceState.connecting"
+            :title="server.label"
+            :aria-label="t('switchToServer', { name: server.label })"
+            @click="switchToQuickServer(server)"
+          >{{ avatarInitial(server.label) }}</button>
+          <button
+            type="button"
+            class="favorite-server-add"
+            data-ws-part="voice.favorite-server-add"
+            :aria-label="t('addFavoriteServer')"
+            :title="t('addFavoriteServer')"
+            @click="openFavoriteServerDialog()"
+          ><Icon
+              name="plus"
+              :size="14"
+          /></button>
+        </div>
+        <div
+          v-if="favoriteSwitchPending || favoriteSwitchFailed"
+          class="favorite-switch-banner"
+          data-ws-part="voice.favorite-switch-banner"
+          role="status"
+          aria-live="polite"
+        >
+          <div
+            class="reconnect-copy"
+          ><strong>{{ favoriteSwitchFailed
+            ? t("switchToServerFailed", { name: favoriteSwitchFailed })
+            : t("switchingToServer", { name: favoriteSwitchPending ?? "" }) }}</strong></div>
+          <div
+            class="reconnect-actions"
+          ><button
+            v-if="favoriteSwitchFailed"
+            type="button"
+            class="secondary-button"
+            @click="leaveVoiceWorkspace"
+          >{{ t("back") }}</button></div>
+        </div>
         <header
           class="workspace-header"
           data-ws-part="voice.header"
@@ -287,6 +336,19 @@
             class="workspace-actions"
             data-ws-part="voice.header-actions"
           >
+            <button
+              v-if="accessMode === 'open'"
+              type="button"
+              class="header-action favorite-current-toggle"
+              data-ws-part="voice.favorite-current-toggle"
+              :aria-pressed="isFavorite"
+              :title="isFavorite ? t('removeFavorite') : t('saveFavorite')"
+              :aria-label="isFavorite ? t('removeFavorite') : t('saveFavorite')"
+              @click="toggleFavorite"
+            ><Icon
+                name="star"
+                :size="17"
+            /></button>
             <VoicePerformancePanel
               :model="performance"
               :screen-share-web-rtc-stats="screenShareWebRtcStats"
@@ -330,7 +392,7 @@
             <button
               class="disconnect-button"
               :aria-label="t('exit')"
-              @click="doDisconnect"
+              @click="leaveVoiceWorkspace"
               ><Icon
                 name="door"
                 :size="17"
@@ -371,7 +433,7 @@
             ><button
               type="button"
               class="text-button"
-              @click="doDisconnect"
+              @click="leaveVoiceWorkspace"
               >{{ t("back") }}</button
             ></div
           >
@@ -516,7 +578,7 @@
                   @click="toggleOutputMute"
                   ><Icon :name="outputMuted ? 'volume-off' : 'volume'" :size="18" /><span>{{ t("speaker") }}</span></button
                 >
-                <button type="button" class="mobile-voice-leave" :aria-label="t('exit')" :title="t('exit')" @click="doDisconnect"><Icon name="door" :size="17" /></button
+                <button type="button" class="mobile-voice-leave" :aria-label="t('exit')" :title="t('exit')" @click="leaveVoiceWorkspace"><Icon name="door" :size="17" /></button
                 >
               </div>
             </section>
@@ -554,7 +616,7 @@
         <div v-if="isMobileViewport" class="mobile-member-controls" role="toolbar" :aria-label="t('desktopAudioControls')">
           <button type="button" class="mobile-voice-toggle" :class="{ muted: microphoneMuted }" :aria-label="t('microphone')" :title="microphoneMuted ? t('microphoneMuted') : t('microphoneActive')" :aria-pressed="!microphoneMuted" @click="toggleMicrophone"><Icon :name="microphoneMuted ? 'mic-off' : 'mic'" :size="20" /><span>{{ t('microphone') }}</span></button>
           <button type="button" class="mobile-voice-toggle" :class="{ muted: outputMuted }" :aria-label="t('speaker')" :title="outputMuted ? t('outputMuted') : t('speaker')" :aria-pressed="!outputMuted" @click="toggleOutputMute"><Icon :name="outputMuted ? 'volume-off' : 'volume'" :size="20" /><span>{{ t('speaker') }}</span></button>
-          <button type="button" class="mobile-member-leave" :aria-label="t('exit')" :title="t('exit')" @click="doDisconnect"><Icon name="door" :size="18" /></button>
+          <button type="button" class="mobile-member-leave" :aria-label="t('exit')" :title="t('exit')" @click="leaveVoiceWorkspace"><Icon name="door" :size="18" /></button>
         </div>
         <AudioDock
           v-if="!isMobileViewport"
@@ -612,7 +674,7 @@
         <button
           type="button"
           class="danger"
-          @click="doDisconnect"
+          @click="leaveVoiceWorkspace"
           ><Icon
             name="door"
             :size="18"
@@ -754,6 +816,7 @@ import ChatPanel from "../components/web-client/ChatPanel.vue";
 import WebClientHeader from "../components/web-client/WebClientHeader.vue";
 import IdentityImportDialog from "../components/web-client/IdentityImportDialog.vue";
 import FavoriteServerDialog, { type FavoriteServerDraft } from "../components/web-client/FavoriteServerDialog.vue";
+import type { QuickServer } from "../services/quick-servers.js";
 import { usePublicSkin } from "../composables/usePublicSkin.js";
 import { useWebClientIdentity } from "../composables/useWebClientIdentity.js";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
@@ -970,6 +1033,44 @@ function closeFavoriteServerDialog(): void {
 }
 function saveFavoriteServerDraft(draft: FavoriteServerDraft): void {
   void upsertFavoriteServer(draft);
+}
+// In-voice server switching: the voice shell stays mounted while the switch is
+// in flight, so the user watches a status banner instead of a join-form flash.
+const favoriteSwitchPending = ref<string | null>(null);
+const favoriteSwitchFailed = ref<string | null>(null);
+let favoriteSwitchTimer: number | undefined;
+const voiceShellVisible = computed(() => voiceState.connected || voiceState.reconnecting || voiceState.reconnectFailed || Boolean(favoriteSwitchPending.value) || Boolean(favoriteSwitchFailed.value));
+function switchToQuickServer(server: QuickServer): void {
+  if (favoriteSwitchPending.value || voiceState.connecting) return;
+  // Same-target row clicks are not switches; channel changes go through the
+  // channel tree. A different server is an explicit departure: the internal
+  // disconnect closes with code 1000, so the gateway tears the old TeamSpeak
+  // session down instead of parking it in the detach pool.
+  if (server.address === currentTarget.value) return;
+  window.clearTimeout(favoriteSwitchTimer);
+  favoriteSwitchFailed.value = null;
+  favoriteSwitchPending.value = server.label || server.address;
+  const target = splitTeamSpeakTarget(server.address);
+  serverHost.value = target.address;
+  serverPort.value = target.port;
+  if (server.nickname) nickname.value = server.nickname;
+  channel.value = server.lastChannelHint?.name ?? "";
+  serverPassword.value = server.password ?? "";
+  rememberServerPassword.value = Boolean(server.password);
+  doConnect();
+  // Safety net: a gateway that never answers must not hold the shell hostage.
+  favoriteSwitchTimer = window.setTimeout(() => {
+    if (favoriteSwitchPending.value) {
+      favoriteSwitchFailed.value = favoriteSwitchPending.value;
+      favoriteSwitchPending.value = null;
+    }
+  }, 20_000);
+}
+function leaveVoiceWorkspace(): void {
+  window.clearTimeout(favoriteSwitchTimer);
+  favoriteSwitchPending.value = null;
+  favoriteSwitchFailed.value = null;
+  doDisconnect();
 }
 const {
   accessMode,
@@ -1288,9 +1389,22 @@ watch(() => voiceState.connected, (connected) => {
   if (!connected) return;
   playNotification("connected");
   recordCurrentServer();
+  // A pending server switch succeeded: drop the banner and the safety timer.
+  if (favoriteSwitchPending.value) {
+    window.clearTimeout(favoriteSwitchTimer);
+    favoriteSwitchPending.value = null;
+  }
   // Store the working password (including a dialog-retried one) only now —
   // a wrong password submitted earlier must not survive as "remembered".
   void syncFavoritePassword();
+});
+watch(() => voiceState.errorCode, (code) => {
+  // A failed join during a switch flips the banner to its failure state; the
+  // user either retries from the join form or backs out of the shell.
+  if (!code || !favoriteSwitchPending.value) return;
+  window.clearTimeout(favoriteSwitchTimer);
+  favoriteSwitchFailed.value = favoriteSwitchPending.value;
+  favoriteSwitchPending.value = null;
 });
 watch(() => voiceState.connected || voiceState.reconnecting || voiceState.reconnectFailed, (roomVisible) => {
   if (roomVisible) resetIdentityOperations();

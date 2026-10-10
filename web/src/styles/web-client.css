@@ -1062,6 +1062,95 @@
   background: #fff;
 }
 
+/* In-voice quick server switcher: a slim scrollable chip row above the header,
+ * plus a status banner that keeps the shell mounted while a switch is running. */
+.favorite-server-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 6px 29px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid #eef2f0;
+}
+
+.favorite-server-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.favorite-server-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  color: #52615d;
+  background: #f1f4f3;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-radius .18s ease, transform .18s ease, background .18s ease;
+}
+
+.favorite-server-chip:hover {
+  border-radius: 7px;
+  transform: scale(1.05);
+  background: #e3ebe8;
+}
+
+.favorite-server-chip.active {
+  color: #ffffff;
+  background: #277970;
+  box-shadow: inset 3px 0 0 #1d5b54;
+}
+
+.favorite-server-chip:disabled {
+  opacity: .55;
+  cursor: default;
+}
+
+.favorite-server-add {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  color: #87958f;
+  background: transparent;
+  border: 1px dashed #cfe0da;
+  cursor: pointer;
+}
+
+.favorite-server-add:hover {
+  color: #277970;
+  background: #eef8f5;
+}
+
+.favorite-switch-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 29px;
+  color: #277970;
+  background: #eef8f5;
+  border-bottom: 1px solid #d7ebe6;
+  font-size: 12px;
+}
+
+.favorite-switch-banner .reconnect-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .workspace-header {
   display: flex;
   align-items: center;
@@ -2692,6 +2781,12 @@
   .workspace-header {
     min-height: 61px;
     padding: 0 15px;
+  }
+  .favorite-server-strip {
+    padding: 5px 12px;
+  }
+  .favorite-switch-banner {
+    padding: 8px 14px;
   }
   .crumb-muted,
   .breadcrumbs > .ui-icon,
