@@ -775,6 +775,7 @@ import { BUILTIN_DARK_SKIN, BUILTIN_LIGHT_SKIN } from "../services/skin-runtime.
 import { applyTheme, getStoredTheme, type ThemeMode } from "../services/theme.js";
 import { createScreenWakeLockController, getScreenWakeLockApi, type ScreenWakeLockController, type ScreenWakeLockSnapshot } from "../services/screen-wake-lock.js";
 import { desktopNotificationPermission, readDesktopNotificationSetting, requestDesktopNotificationPermission, showBackgroundTabNotification, writeDesktopNotificationSetting } from "../services/desktop-notifications.js";
+import { clearVoiceSessionIntent } from "../voice/session-intent.js";
 import { createMobileAwayController, type MobileAwayController } from "../services/mobile-away.js";
 import { combineTeamSpeakTarget, DEFAULT_TEAM_SPEAK_PORT, splitTeamSpeakTarget } from "../services/teamspeak-target.js";
 
@@ -1320,9 +1321,14 @@ onMounted(() => {
   applyTheme(themeMode.value);
   browserError.value = checkSupport() ?? "";
   browserWarning.value = checkBrowserWarning() ?? "";
+  // Explicit join navigation (invite link, shared server link, one-click
+  // token) outranks a stale resume intent: skip the auto-resume and drop the
+  // old intent so it cannot shadow this destination later either.
+  const joinIntentParams = new URLSearchParams(location.search);
+  if (["invite", "token", "server", "tsHost", "target"].some((key) => joinIntentParams.has(key))) clearVoiceSessionIntent();
   // A reload in a tab that still holds a reconnect token rebuilds the voice
   // session instead of dropping the user back onto the join form.
-  tryResumeVoiceSession();
+  else tryResumeVoiceSession();
   void watchMicrophonePermission();
   void loadPublicConfig();
   void initializeSkin();
