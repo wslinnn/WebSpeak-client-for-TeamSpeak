@@ -390,7 +390,8 @@
             class="reconnect-copy"
           ><strong>{{ favoriteSwitchFailed
             ? t("switchToServerFailed", { name: favoriteSwitchFailed })
-            : t("switchingToServer", { name: favoriteSwitchPending ?? "" }) }}</strong></div>
+            : t("switchingToServer", { name: favoriteSwitchPending ?? "" }) }}</strong
+            ><span v-if="favoriteSwitchFailed && favoriteSwitchError">{{ favoriteSwitchError }}</span></div>
           <div
             class="reconnect-actions"
           ><button
@@ -1050,6 +1051,12 @@ const {
   settle: settleFavoriteSwitch,
 } = useVoiceServerSwitch(() => voiceState.errorCode);
 const voiceShellVisible = computed(() => voiceState.connected || voiceState.reconnecting || voiceState.reconnectFailed || favoriteSwitchActive.value);
+// The banner's small line explains WHY a switch failed; safety-timeout and
+// cancel failures carry no gateway error and simply leave it empty.
+const favoriteSwitchError = ref("");
+watch(favoriteSwitchFailed, (failed) => {
+  favoriteSwitchError.value = failed ? localizedMessage(voiceState.error) : "";
+});
 function switchToQuickServer(server: QuickServer): void {
   if (favoriteSwitchPending.value || voiceState.connecting) return;
   // Same-target row clicks are not switches; channel changes go through the
@@ -1065,6 +1072,12 @@ function switchToQuickServer(server: QuickServer): void {
   channel.value = server.lastChannelHint?.name ?? "";
   serverPassword.value = server.password ?? "";
   rememberServerPassword.value = Boolean(server.password);
+  // doConnect silently no-ops on an invalid form (e.g. no nickname): fail the
+  // banner now instead of hanging until the safety timeout.
+  if (!canJoin.value) {
+    failFavoriteSwitch();
+    return;
+  }
   doConnect();
 }
 function leaveVoiceWorkspace(): void {
