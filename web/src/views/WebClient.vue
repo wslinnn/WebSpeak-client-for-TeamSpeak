@@ -407,7 +407,7 @@
             name="bell"
             :size="17" /><span
             ><strong>{{ poke.invokerName }}</strong> {{ t("pokedYou")
-            }}<small v-if="poke.message">：{{ poke.message }}</small></span
+            }}<small v-if="poke.message">{{ t("pokeMessageSuffix", { message: poke.message }) }}</small></span
           ><button
             type="button"
             @click="dismissPoke(poke.id)"
@@ -1172,13 +1172,26 @@ const {
   t,
 });
 const visiblePokes = computed(() => pokeNotifications.slice(-3));
+const pokeAutoDismissTimers = new Map<string, number>();
 
 watch(() => pokeNotifications.length, (length, previousLength) => {
   const latest = pokeNotifications[length - 1];
   if (!latest || length <= previousLength) return;
-  showToast(`${latest.invokerName} ${t("pokedYou")}${latest.message ? `：${latest.message}` : ""}`);
+  showToast(`${latest.invokerName} ${t("pokedYou")}${latest.message ? t("pokeMessageSuffix", { message: latest.message }) : ""}`);
   playNotification("poke");
-  if (typeof Notification !== "undefined" && Notification.permission === "granted") new Notification(t("poke"), { body: `${latest.invokerName}: ${latest.message || t("pokedYou")}` });
+  if (typeof Notification !== "undefined" && Notification.permission === "granted") new Notification(t("poke"), { body: `${latest.invokerName} ${t("pokedYou")}${latest.message ? t("pokeMessageSuffix", { message: latest.message }) : ""}` });
+  // Banners used to pile up indefinitely; each one now leaves on its own
+  // unless dismissed manually first.
+  if (!pokeAutoDismissTimers.has(latest.id)) {
+    pokeAutoDismissTimers.set(latest.id, window.setTimeout(() => {
+      pokeAutoDismissTimers.delete(latest.id);
+      dismissPoke(latest.id);
+    }, 9_000));
+  }
+});
+onUnmounted(() => {
+  for (const timer of pokeAutoDismissTimers.values()) window.clearTimeout(timer);
+  pokeAutoDismissTimers.clear();
 });
 watch(rememberIdentity, (remember) => {
   localStorage.setItem("webspeak:remember-identity", remember ? "1" : "0");
@@ -1308,6 +1321,11 @@ async function clearBrowserData(): Promise<void> {
 }
 
 function dismissPoke(id: string): void {
+  const timer = pokeAutoDismissTimers.get(id);
+  if (timer !== undefined) {
+    window.clearTimeout(timer);
+    pokeAutoDismissTimers.delete(id);
+  }
   const index = pokeNotifications.findIndex((poke) => poke.id === id);
   if (index >= 0) pokeNotifications.splice(index, 1);
 }

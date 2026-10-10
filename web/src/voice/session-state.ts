@@ -216,6 +216,8 @@ export function createVoiceSessionState(options: SessionStateOptions) {
         pokeNotifications.push({ id: nextId("poke"), invokerId: message.invokerId || 0,
           invokerUid: message.invokerUid || "", invokerName: message.invokerName || "Unknown",
           message: message.message, timestamp: message.timestamp ?? Date.now() });
+        // Keep the in-session history bounded; the banner list renders the tail.
+        if (pokeNotifications.length > 20) pokeNotifications.splice(0, pokeNotifications.length - 20);
         break;
       default: return false;
     }
