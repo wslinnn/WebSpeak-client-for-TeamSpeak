@@ -1080,6 +1080,7 @@
 }
 
 .favorite-server-chip {
+  position: relative;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -1095,6 +1096,15 @@
   font-weight: 700;
   cursor: pointer;
   transition: border-radius .18s ease, transform .18s ease, background .18s ease;
+}
+
+/* Favorites carry a corner star so chips read as more than a bare initial. */
+.favorite-server-chip-star {
+  position: absolute;
+  top: -4px;
+  right: -3px;
+  color: #d9a13c;
+  filter: drop-shadow(0 1px 1px rgba(255, 255, 255, .85));
 }
 
 /* Desktop shows the initial only; the full label takes over on touch sizes. */

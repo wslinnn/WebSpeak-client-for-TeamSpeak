@@ -87,8 +87,8 @@
           class="local-server-favorite"
           data-ws-part="home.server-history.favorite-toggle"
           :aria-pressed="server.isFavorite"
-          :aria-label="server.isFavorite ? t('removeFavorite') : t('saveFavorite')"
-          :title="server.isFavorite ? t('removeFavorite') : t('saveFavorite')"
+          :aria-label="server.isFavorite ? t('removeFavoriteNamed', { name: server.label }) : t('saveFavoriteNamed', { name: server.label })"
+          :title="server.isFavorite ? t('removeFavoriteNamed', { name: server.label }) : t('saveFavoriteNamed', { name: server.label })"
           @click="emit('toggleQuickFavorite', server)"
         ><Icon
             name="star"

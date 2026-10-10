@@ -392,7 +392,12 @@
               aria-hidden="true"
             >{{ avatarInitial(server.label) }}</span><span
               class="favorite-server-chip-label"
-            >{{ server.label }}</span></button>
+            >{{ server.label }}</span><Icon
+              v-if="server.isFavorite"
+              class="favorite-server-chip-star"
+              name="star"
+              :size="11"
+            /></button>
           <button
             type="button"
             class="favorite-server-add"
