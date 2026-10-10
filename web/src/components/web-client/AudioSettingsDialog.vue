@@ -146,6 +146,7 @@
                 :src="testAudioUrl"
                 controls
                 :aria-label="t('microphoneTest')"
+                @error="onTestAudioError"
               ></audio></div
           ></section>
           <div class="settings-separator"></div
@@ -221,7 +222,7 @@
             ><p
               v-if="microphoneError"
               class="settings-error"
-              >{{ localizedMessage(microphoneError) }}</p
+              >{{ localizedMicrophoneError(microphoneErrorCode, microphoneError) }}</p
             ><div class="mode-note"
               ><Icon
                 name="shield"
@@ -285,9 +286,11 @@ const props = defineProps<{
   model: AudioSettingsState;
   controls: AudioSettingsControls;
   microphoneError: string;
+  microphoneErrorCode: string;
   isMobileViewport: boolean;
   t: (key: string, variables?: Record<string, string | number>) => string;
   localizedMessage: (message: string) => string;
+  localizedMicrophoneError: (code: string, message: string) => string;
   rangeStyle: (value: number, max: number) => CSSProperties;
 }>();
 const emit = defineEmits<{ close: [] }>();
@@ -345,4 +348,11 @@ watch([testAudioUrl, testAudioElement, outputSelectValue], async ([url, element]
     await element.setSinkId(deviceId);
   } catch { /* fall back to the default output for the preview clip */ }
 }, { flush: "post" });
+
+// Media element failures (CSP blocks, decode errors) are otherwise silent:
+// surface the MediaError code so the user knows the clip did not play.
+function onTestAudioError(): void {
+  const mediaError = testAudioElement.value?.error;
+  audioSettingsError.value = props.t("testPlaybackFailed", { code: mediaError?.code ?? 0 });
+}
 </script>

@@ -49,6 +49,12 @@
             :aria-label="t('inputVolume')"
             @input="onInputVolume"
           />
+          <div class="audio-level-row"
+            ><span>{{ t("micLevel") }}</span
+            ><strong>{{ Math.round(displayMicLevel * 100) }}%</strong></div
+          >
+          <div class="audio-level-track dock-level-track"
+            ><i :style="{ width: `${Math.round(displayMicLevel * 100)}%` }"></i></div>
           <div class="dock-panel-divider"></div>
           <label class="dock-switch-row"
             ><span
@@ -127,17 +133,22 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from "vue";
 import Icon from "../Icon.vue";
 import type { useVoiceWebSocket } from "../../composables/useVoiceWebSocket.js";
 import type { useWebClientAudioControls } from "../../composables/useWebClientAudioControls.js";
 
 const props = defineProps<{
-  model: Pick<ReturnType<typeof useVoiceWebSocket>, "microphoneMuted" | "inputVolume" | "outputVolume" | "outputMuted" | "noiseSuppressionEnabled" | "accompanimentActive">;
+  model: Pick<ReturnType<typeof useVoiceWebSocket>, "microphoneMuted" | "inputVolume" | "outputVolume" | "outputMuted" | "noiseSuppressionEnabled" | "accompanimentActive" | "micLevel">;
   controls: Pick<ReturnType<typeof useWebClientAudioControls>, "toggleMicrophone" | "onInputVolume" | "onOutputVolume" | "onNoiseSuppressionToggle" | "toggleAccompaniment">;
   t: (key: string) => string;
   rangeStyle: (value: number, max: number) => Record<string, string>;
 }>();
-const { microphoneMuted, inputVolume, outputVolume, outputMuted, noiseSuppressionEnabled, accompanimentActive } = props.model;
+const { microphoneMuted, inputVolume, outputVolume, outputMuted, noiseSuppressionEnabled, accompanimentActive, micLevel } = props.model;
 const { toggleMicrophone, onInputVolume, onOutputVolume, onNoiseSuppressionToggle, toggleAccompaniment } = props.controls;
 const emit = defineEmits<{ settings: []; outputMute: [] }>();
+// The dock is the "am I being heard" surface: while muted, pin the meter to
+// zero so a moving bar can never suggest the room can hear the user. The raw
+// capture level stays available in the settings dialog for diagnostics.
+const displayMicLevel = computed(() => microphoneMuted.value ? 0 : micLevel.value);
 </script>

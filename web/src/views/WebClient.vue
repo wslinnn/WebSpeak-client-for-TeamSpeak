@@ -133,6 +133,14 @@
             ><span>{{ localizedMessage(browserError) }}</span></div
           >
           <div
+            v-if="browserWarning"
+            class="notice warning-notice"
+            data-ws-part="home.notice"
+            data-ws-state="warning"
+            ><span class="notice-symbol">i</span
+            ><span>{{ localizedMessage(browserWarning) }}</span></div
+          >
+          <div
             v-if="!serverConfigLoading && !initialized"
             class="notice warning-notice"
             data-ws-part="home.notice"
@@ -169,7 +177,7 @@
             :has-identity="Boolean(identityMaterial)"
             :connecting="voiceState.connecting"
             :join-disabled="
-              !canJoin || serverConfigLoading || !identityReady || voiceState.connecting || retryWaiting
+              !canJoin || serverConfigLoading || !identityReady || voiceState.connecting || retryWaiting || Boolean(browserError)
             "
             :join-retry-seconds="retrySecondsShown"
             :t="t"
@@ -359,6 +367,23 @@
             ><span>{{
               localizedAudioNotice(voiceState.audioNoticeCode, voiceState.audioNotice)
             }}</span></div
+          ></div
+        >
+        <div
+          v-if="voiceState.microphoneError"
+          class="reconnect-banner degraded"
+          data-ws-part="voice.microphone-status"
+          role="status"
+          ><div class="reconnect-copy"
+            ><strong>{{ t("microphone") }}</strong
+            ><span>{{
+              localizedMicrophoneError(voiceState.microphoneErrorCode, voiceState.microphoneError)
+            }}</span></div
+          ><button
+            type="button"
+            class="text-button"
+            @click="clearMicrophoneError"
+            >{{ t("close") }}</button
           ></div
         >
         <div
@@ -663,9 +688,11 @@
       :model="audioSettingsState"
       :controls="audioControls"
       :microphone-error="voiceState.microphoneError"
+      :microphone-error-code="voiceState.microphoneErrorCode"
       :is-mobile-viewport="isMobileViewport"
       :t="t"
       :localized-message="localizedMessage"
+      :localized-microphone-error="localizedMicrophoneError"
       :range-style="rangeStyle"
       @close="settingsOpen = false"
     />
@@ -804,6 +831,9 @@ const {
   joinScreenShare,
   leaveScreenShare,
   checkSupport,
+  checkBrowserWarning,
+  clearMicrophoneError,
+  watchMicrophonePermission,
   clearError,
   measureVoiceAudioStatus,
 } = useVoiceWebSocket();
@@ -821,6 +851,9 @@ const serverPort = ref(initialTarget.port);
 const serverPassword = ref("");
 const rememberIdentity = ref(localStorage.getItem("webspeak:remember-identity") !== "0");
 const browserError = ref("");
+// Degraded-but-usable environment findings (e.g. no AudioDecoder): shown as a
+// warning while WebRTC voice stays available, unlike the join-blocking error.
+const browserWarning = ref("");
 const memberQuery = ref("");
 const selectedChannelId = ref("");
 const settingsOpen = ref(false);
@@ -863,7 +896,7 @@ let toastTimer: ReturnType<typeof setTimeout> | undefined;
 const language = ref<Language>(getInitialLanguage());
 const activeSkin = shallowRef<InstalledSkin | null>(null);
 const skinMessageOverrides = computed(() => resolveSkinMessages(activeSkin.value, language.value));
-const { t: translate, localizedMessage, localizedAudioNotice, visibleErrorCode } = useWebClientI18n(language);
+const { t: translate, localizedMessage, localizedAudioNotice, localizedMicrophoneError, visibleErrorCode } = useWebClientI18n(language);
 function t(key: string, variables: Record<string, string | number> = {}) {
   const template = skinMessageOverrides.value[key];
   // WebSpeak's own locale dictionaries are the complete baseline; a skin only
@@ -971,7 +1004,7 @@ function reconnectMobile(): void {
   reconnectNow();
 }
 const { toggleMicrophone, stopWhisperTalk } = audioControls;
-const audioDockState = { microphoneMuted, inputVolume, outputVolume, outputMuted, noiseSuppressionEnabled, accompanimentActive };
+const audioDockState = { microphoneMuted, inputVolume, outputVolume, outputMuted, noiseSuppressionEnabled, accompanimentActive, micLevel };
 const audioSettingsState = {
   inputDevices,
   outputDevices,
@@ -1190,6 +1223,8 @@ onMounted(() => {
   // The selected skin is applied to this public root, never to the admin DOM.
   applyTheme(themeMode.value);
   browserError.value = checkSupport() ?? "";
+  browserWarning.value = checkBrowserWarning() ?? "";
+  void watchMicrophonePermission();
   void loadPublicConfig();
   void initializeSkin();
   void loadLocalPreferences().then((preferences) => {

@@ -26,6 +26,10 @@ function localizedMessage(message: string) {
     "麦克风设备已断开或权限被回收，采集已停止：请在音频设置中重新选择设备或重新授权": "Микрофон отключён или доступ был отозван, захват остановлен. Выберите устройство заново или снова выдайте разрешение в настройках звука",
     "麦克风被系统或浏览器静音，其他成员暂时听不到你": "Микрофон отключён системой или браузером — другие участники сейчас вас не слышат",
     "输出设备将在语音通道建立后生效，当前连接尚未建立音频输出": "Устройство вывода заработает после установления голосового канала; для текущего подключения вывод звука ещё не создан",
+    "语音功能需要 HTTPS 安全连接：浏览器仅在 https:// 或 localhost 页面开放麦克风，请改用安全地址访问": "Голосовым функциям нужен безопасный контекст: браузер предоставляет микрофон только на страницах https:// или localhost. Откройте сайт по безопасному адресу",
+    "当前浏览器不支持麦克风访问，请更换最新版 Chrome 或 Edge": "Этот браузер не поддерживает доступ к микрофону. Используйте актуальный Chrome или Edge",
+    "当前浏览器不支持 Web Audio 音频处理，请更换最新版 Chrome 或 Edge": "Этот браузер не поддерживает обработку Web Audio. Используйте актуальный Chrome или Edge",
+    "当前浏览器不支持音频解码，兼容传输模式下可能听不到声音，请使用最新版 Chrome 或 Edge": "Этот браузер не поддерживает декодирование звука; в совместимом транспорте звука может не быть. Используйте актуальный Chrome или Edge",
   } : {
     "该服务器需要密码，请输入密码后重试": "このサーバーにはパスワードが必要です。入力して再試行してください",
     "服务器密码错误，请重新输入": "サーバーパスワードが正しくありません。もう一度入力してください",
@@ -39,6 +43,10 @@ function localizedMessage(message: string) {
     "麦克风设备已断开或权限被回收，采集已停止：请在音频设置中重新选择设备或重新授权": "マイクが切断されたか権限が取り消され、収音を停止しました。オーディオ設定でデバイスを選び直すか、権限を再度許可してください",
     "麦克风被系统或浏览器静音，其他成员暂时听不到你": "マイクがシステムまたはブラウザーでミュートされています。他のメンバーには現在あなたの声が聞こえていません",
     "输出设备将在语音通道建立后生效，当前连接尚未建立音频输出": "出力デバイスは音声チャンネル確立後に有効になります。現在の接続ではまだ音声出力が確立されていません",
+    "语音功能需要 HTTPS 安全连接：浏览器仅在 https:// 或 localhost 页面开放麦克风，请改用安全地址访问": "音声機能には安全なコンテキストが必要です。ブラウザーは https:// または localhost のページでのみマイクを提供します。安全なアドレスでアクセスしてください",
+    "当前浏览器不支持麦克风访问，请更换最新版 Chrome 或 Edge": "このブラウザーはマイクへのアクセスに対応していません。最新の Chrome または Edge を使用してください",
+    "当前浏览器不支持 Web Audio 音频处理，请更换最新版 Chrome 或 Edge": "このブラウザーは Web Audio 処理に対応していません。最新の Chrome または Edge を使用してください",
+    "当前浏览器不支持音频解码，兼容传输模式下可能听不到声音，请使用最新版 Chrome 或 Edge": "このブラウザーは音声デコードに対応しておらず、互換トランスポートでは音が聞こえない場合があります。最新の Chrome または Edge を使用してください",
   };
   if ((language.value === "ru" || language.value === "ja") && localizedExact[message]) return localizedExact[message];
   const errorCodeMatch = message.match(/错误代码：([A-Z0-9_-]{1,64})）(?:：([^，。]+))?/);
@@ -52,10 +60,10 @@ function localizedMessage(message: string) {
     return `${operation ? "Operation" : "TeamSpeak connection"} failed (error code: ${code})${detail}. Check your input, network, and server status`;
   }
   const exact: Record<string, string> = {
-    "语音功能需要 HTTPS 安全连接": "Voice requires a secure HTTPS connection",
-    "当前浏览器不支持麦克风访问": "This browser does not support microphone access",
-    "当前浏览器不支持 Web Audio 音频处理": "This browser does not support Web Audio processing",
-    "当前浏览器不支持音频解码，请使用最新版 Chrome 或 Edge": "Audio decoding is unavailable. Use the latest Chrome or Edge",
+    "语音功能需要 HTTPS 安全连接：浏览器仅在 https:// 或 localhost 页面开放麦克风，请改用安全地址访问": "Voice features require a secure context: browsers only expose the microphone on https:// or localhost pages. Reopen the site via a secure address",
+    "当前浏览器不支持麦克风访问，请更换最新版 Chrome 或 Edge": "This browser does not support microphone access. Switch to an up-to-date Chrome or Edge",
+    "当前浏览器不支持 Web Audio 音频处理，请更换最新版 Chrome 或 Edge": "This browser does not support Web Audio processing. Switch to an up-to-date Chrome or Edge",
+    "当前浏览器不支持音频解码，兼容传输模式下可能听不到声音，请使用最新版 Chrome 或 Edge": "This browser does not support audio decoding; the compatibility transport may be silent. Use the latest Chrome or Edge",
     "当前浏览器不支持扬声器设备选择，将使用默认输出设备": "Output device selection is not supported by this browser. Using the default output device",
     "所选扬声器当前不可用": "The selected speaker is not available",
     "麦克风设备已断开或权限被回收，采集已停止：请在音频设置中重新选择设备或重新授权": "The microphone was disconnected or permission was revoked and capture has stopped. Re-pick a device or re-grant permission in audio settings",
@@ -148,9 +156,10 @@ function localizedMessage(message: string) {
   }
   if (language.value === "de") {
     const german: Record<string, string> = {
-      "语音功能需要 HTTPS 安全连接": "Für Sprachfunktionen ist eine sichere HTTPS-Verbindung erforderlich",
-      "当前浏览器不支持麦克风访问": "Dieser Browser unterstützt keinen Mikrofonzugriff",
-      "当前浏览器不支持 Web Audio 音频处理": "Dieser Browser unterstützt keine Web-Audio-Verarbeitung",
+      "语音功能需要 HTTPS 安全连接：浏览器仅在 https:// 或 localhost 页面开放麦克风，请改用安全地址访问": "Sprachfunktionen benötigen einen sicheren Kontext: Der Browser stellt das Mikrofon nur auf https://- oder localhost-Seiten bereit. Öffne die Seite über eine sichere Adresse",
+      "当前浏览器不支持麦克风访问，请更换最新版 Chrome 或 Edge": "Dieser Browser unterstützt keinen Mikrofonzugriff. Wechsle zu einem aktuellen Chrome oder Edge",
+      "当前浏览器不支持 Web Audio 音频处理，请更换最新版 Chrome 或 Edge": "Dieser Browser unterstützt keine Web-Audio-Verarbeitung. Wechsle zu einem aktuellen Chrome oder Edge",
+      "当前浏览器不支持音频解码，兼容传输模式下可能听不到声音，请使用最新版 Chrome 或 Edge": "Dieser Browser unterstützt keine Audiodekodierung; im Kompatibilitätstransport ist möglicherweise kein Ton hörbar. Verwende das aktuelle Chrome oder Edge",
       "麦克风设备已断开或权限被回收，采集已停止：请在音频设置中重新选择设备或重新授权": "Das Mikrofon wurde getrennt oder die Berechtigung entzogen; die Aufnahme wurde gestoppt. Wähle in den Audioeinstellungen ein Gerät neu oder erteile die Berechtigung erneut",
       "麦克风被系统或浏览器静音，其他成员暂时听不到你": "Das Mikrofon ist vom System oder Browser stummgeschaltet – andere Mitglieder hören dich gerade nicht",
       "输出设备将在语音通道建立后生效，当前连接尚未建立音频输出": "Das Ausgabegerät wird erst wirksam, wenn der Sprachkanal aufgebaut ist; für die aktuelle Verbindung gibt es noch keine Audioausgabe",
@@ -296,6 +305,75 @@ function localizedAudioNotice(code: string, message: string) {
   return messages[code]?.[locale] ?? localizedMessage(message);
 }
 
+/**
+ * Microphone failures arrive as a stable `MIC_*` code plus a zh source
+ * message. The code keys the translation (mirroring localizedAudioNotice) so
+ * each failure reason gets actionable guidance in every UI language; unknown
+ * codes fall back to the message's localized "麦克风访问失败：" prefix.
+ */
+function localizedMicrophoneError(code: string, message: string) {
+  if (language.value === "zh") return message;
+  const micPermission = {
+    en: "The browser has not granted microphone access. Click the icon at the left of the address bar, set the microphone permission to Allow, and try again",
+    de: "Der Browser hat den Mikrofonzugriff nicht gewährt. Klicke auf das Symbol links in der Adressleiste, stelle die Mikrofonberechtigung auf „Zulassen“ und versuche es erneut",
+    ru: "Браузер не выдал доступ к микрофону. Нажмите на значок слева в адресной строке, установите разрешение «Разрешить» и повторите попытку",
+    ja: "ブラウザーがマイクへのアクセスを許可していません。アドレスバー左のアイコンをクリックしてマイクの権限を「許可」に変更し、再試行してください",
+  };
+  const micNotFound = {
+    en: "No usable microphone was found. Check the device connection and make sure microphone access is allowed in the system privacy settings",
+    de: "Kein benutzbares Mikrofon gefunden. Prüfe den Geräteanschluss und ob der Mikrofonzugriff in den Privatsphäre-Einstellungen des Systems erlaubt ist",
+    ru: "Используемый микрофон не найден. Проверьте подключение устройства и убедитесь, что доступ к микрофону разрешён в настройках конфиденциальности системы",
+    ja: "使用可能なマイクが見つかりません。デバイスの接続を確認し、システムのプライバシー設定でマイクへのアクセスが許可されているか確認してください",
+  };
+  const micOccupied = {
+    en: "The microphone could not be started. It may be held by another app (TeamSpeak client, WeChat, Zoom…) or blocked by an exclusive-mode option in the system sound settings",
+    de: "Das Mikrofon konnte nicht gestartet werden. Es wird möglicherweise von einem anderen Programm verwendet (TeamSpeak-Client, WeChat, Zoom…) oder durch eine Exklusivmodus-Option in den Systemklangeinstellungen blockiert",
+    ru: "Не удалось запустить микрофон. Возможно, он занят другой программой (клиент TeamSpeak, WeChat, Zoom…) или заблокирован монопольным режимом в системных настройках звука",
+    ja: "マイクを開始できませんでした。他のアプリ（TeamSpeak クライアント、WeChat、Zoom など）が使用中か、システムのサウンド設定の排他モードが原因の可能性があります。終了してから再試行してください",
+  };
+  const micInterrupted = {
+    en: "Starting the microphone was interrupted. Try again",
+    de: "Der Mikrofonstart wurde unterbrochen. Versuche es erneut",
+    ru: "Запуск микрофона был прерван. Повторите попытку",
+    ja: "マイクの開始が中断されました。再試行してください",
+  };
+  const messages: Record<string, { en: string; de: string; ru: string; ja: string }> = {
+    MIC_NOTALLOWEDERROR: micPermission,
+    MIC_PERMISSIONDENIEDERROR: micPermission,
+    MIC_PERMISSION_DISMISSED: micPermission,
+    MIC_SECURITYERROR: {
+      en: "The browser blocked microphone access in an insecure context. Open this page via https:// or localhost",
+      de: "Der Browser hat den Mikrofonzugriff in einem unsicheren Kontext blockiert. Öffne diese Seite über https:// oder localhost",
+      ru: "Браузер заблокировал доступ к микрофону в небезопасном контексте. Откройте эту страницу по https:// или через localhost",
+      ja: "ブラウザーが安全でないコンテキストでのマイクへのアクセスをブロックしました。https:// または localhost でこのページを開いてください",
+    },
+    MIC_NOTFOUNDERROR: micNotFound,
+    MIC_DEVICESNOTFOUNDERROR: micNotFound,
+    MIC_OVERCONSTRAINEDERROR: {
+      en: "The selected microphone is unavailable. Pick another input device in the audio settings",
+      de: "Das ausgewählte Mikrofon ist nicht verfügbar. Wähle in den Audioeinstellungen ein anderes Eingabegerät",
+      ru: "Выбранный микрофон недоступен. Выберите другое устройство ввода в настройках звука",
+      ja: "選択したマイクは現在利用できません。オーディオ設定で別の入力デバイスを選んでください",
+    },
+    MIC_NOTREADABLEERROR: micOccupied,
+    MIC_TRACKSTARTERROR: micOccupied,
+    MIC_ABORTERROR: micInterrupted,
+    MIC_INVALIDSTATEERROR: micInterrupted,
+    MIC_TYPEERROR: {
+      en: "This page's environment does not allow microphone access. Make sure the site is opened via https:// or localhost",
+      de: "Die Umgebung dieser Seite erlaubt keinen Mikrofonzugriff. Stelle sicher, dass die Seite über https:// oder localhost geöffnet ist",
+      ru: "Окружение этой страницы не разрешает доступ к микрофону. Убедитесь, что сайт открыт по https:// или через localhost",
+      ja: "このページの環境ではマイクへのアクセスが許可されていません。サイトが https:// または localhost で開かれていることを確認してください",
+    },
+  };
+  const entry = messages[code];
+  if (entry) return entry[language.value === "de" ? "de" : language.value === "ru" ? "ru" : language.value === "ja" ? "ja" : "en"];
+  const detail = message.startsWith("麦克风访问失败：") ? message.slice(8) : message;
+  if (language.value === "ru") return `Не удалось получить доступ к микрофону: ${detail}`;
+  if (language.value === "ja") return `マイクへのアクセスに失敗しました: ${detail}`;
+  return language.value === "de" ? `Mikrofonzugriff fehlgeschlagen: ${detail}` : `Microphone access failed: ${detail}`;
+}
+
 function visibleErrorCode(code: string): string {
   const normalized = String(code || "CONNECTION_FAILED")
     .trim()
@@ -305,6 +383,6 @@ function visibleErrorCode(code: string): string {
   return (normalized || "CONNECTION_FAILED").slice(0, 64);
 }
 
-  return { t, localizedMessage, localizedAudioNotice, visibleErrorCode };
+  return { t, localizedMessage, localizedAudioNotice, localizedMicrophoneError, visibleErrorCode };
 
 }

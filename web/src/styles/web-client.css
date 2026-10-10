@@ -2823,6 +2823,23 @@
   gap: 6px;
 }
 
+/* The device-setup entry sits between full-height form fields, so it rides on
+ * the field geometry (42px, 13px) instead of the compact identity-action
+ * buttons it would otherwise inherit; without this it renders as an 80px pill
+ * wedged between two large inputs. Scoped to the part hook so the shared
+ * .identity-action-button sizing keeps serving the identity row. */
+:deep([data-ws-part="home.device-setup.open"]) {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 14px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+
 :deep(.device-setup-hint) {
   margin: 0;
   color: #677872;
@@ -6107,6 +6124,12 @@
   height: 1px;
   margin: 12px 0;
   background: var(--border);
+}
+
+/* Reuses .audio-level-row/.audio-level-track; trim the dialog-sized bottom
+ * margin so the meter sits tight above the panel divider. */
+:deep(.dock-microphone-panel .audio-level-track) {
+  margin-bottom: 0;
 }
 
 :deep(.dock-switch-row),
