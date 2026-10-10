@@ -822,7 +822,7 @@ var ye = class {
 				n && t.channelID === 0n && n.channelID !== 0n && (t = {
 					...t,
 					channelID: n.channelID
-				}, this.#c.set(t.id, t)), t.id !== 0 && re(this.nickname, t.nickname) && (this.clid = t.id, this.handler.setClientID(t.id), this.#o.signalWelcomeComplete()), this.#z("clientEnter", t), this.#U();
+				}, this.#c.set(t.id, t)), t.id !== 0 && t.id === this.clid ? (this.nickname = t.nickname, this.#o.signalWelcomeComplete()) : t.id !== 0 && this.clid === 0 && re(this.nickname, t.nickname) && (this.clid = t.id, this.handler.setClientID(t.id), this.nickname = t.nickname, this.#o.signalWelcomeComplete()), this.#z("clientEnter", t), this.#U();
 				break;
 			}
 			case "clientLeave":
