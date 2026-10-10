@@ -63,15 +63,21 @@ export function createWebServer(options: WebServerOptions): WebServer {
   // CSS as a style element and Vue writes style attributes; the frontend has
   // no HTML sink, so the style channel is not an injection path. HSTS is only
   // meaningful on secure responses — including proxy-terminated TLS once
-  // trust proxy is enabled.
+  // trust proxy is enabled. img-src/font-src allow blob: because compiled skin
+  // packs reference their bundled assets as blob: URLs (created client-side
+  // from whitelisted in-package files, so they are same-origin by
+  // construction); media-src blob: serves the microphone-test playback
+  // element, and script-src 'wasm-unsafe-eval' is required by the optional
+  // RNNoise denoiser WASM module.
   app.use((request, response, next) => {
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     response.setHeader("X-Frame-Options", "DENY");
     response.setHeader(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
-        + "img-src 'self' data:; font-src 'self' data:; connect-src 'self' ws: wss:; "
+      "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; "
+        + "img-src 'self' data: blob:; font-src 'self' data: blob:; media-src 'self' blob:; "
+        + "connect-src 'self' ws: wss:; "
         + "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
     );
     if (request.secure) response.setHeader("Strict-Transport-Security", "max-age=31536000");
