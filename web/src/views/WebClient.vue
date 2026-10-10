@@ -691,8 +691,9 @@
         class="mobile-more-panel"
         data-ws-part="voice.mobile-more"
       >
-        <span class="section-kicker">{{ t("mobileMore") }}</span>
+        <span class="section-kicker">{{ t("voiceActivity") }}</span>
         <h2>{{ t("mobileMore") }}</h2>
+        <p class="more-group-label">{{ t("audioGroup") }}</p>
         <button
           type="button"
           :class="{ muted: microphoneMuted }"
@@ -712,6 +713,7 @@
           />
           {{ t("audioSettings") }}</button
         >
+        <p class="more-group-label">{{ t("appearanceGroup") }}</p>
         <SkinSwitcher
           v-model="activeSkinId"
           class="mobile-skin-switcher"
