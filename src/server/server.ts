@@ -19,6 +19,7 @@ import { JoinRateLimiter } from "./join-rate-limit.js";
 import { SkinDownloadRateLimiter } from "./skin-download-rate-limit.js";
 import { rateLimitPeerKey, resolveClientAddress } from "./client-ip.js";
 import type { ServerPasswordGuard } from "./server-password-guard.js";
+import type { AndroidReleaseInfo } from "./downloads.js";
 import { teamSpeakTargetKey } from "../domain/teamspeak-target.js";
 import type { SkinRegistry } from "../admin/skin-registry.js";
 
@@ -34,6 +35,9 @@ export interface WebServerOptions {
   logger: Logger;
   trustProxy?: boolean;
   serverPasswordGuard: ServerPasswordGuard;
+  /** Latest Android-client release metadata for the download page; absent on
+   *  deployments that do not ship the lookup. */
+  androidReleaseLookup?: () => Promise<AndroidReleaseInfo | null>;
 }
 
 export interface WebServer {
@@ -148,6 +152,16 @@ export function createWebServer(options: WebServerOptions): WebServer {
       defaultSkinId: await options.skinRegistry?.getDefaultSkinId() ?? "builtin.light",
     });
   });
+
+  // Cached release metadata for the download page. The lookup itself throttles
+  // GitHub to one call per TTL, so visitors never share one API rate budget.
+  if (options.androidReleaseLookup) {
+    app.get("/api/downloads/android", async (_request, response) => {
+      response.setHeader("Cache-Control", "public, max-age=120");
+      const release = await options.androidReleaseLookup!();
+      response.json({ ok: true, release });
+    });
+  }
 
   app.get("/api/skins/:id/package", async (request, response) => {
     const id = typeof request.params.id === "string" ? request.params.id : "";

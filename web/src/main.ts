@@ -27,6 +27,7 @@ const WebClient = () => import("./views/WebClient.vue");
 const routes = [
   { path: "/", name: "webclient", component: WebClient },
   { path: "/join", name: "join", component: WebClient },
+  { path: "/download", name: "download", component: () => import("./views/DownloadView.vue") },
   { path: "/admin/:pathMatch(.*)*", name: "admin", component: () => import("./views/AdminView.vue") },
 ];
 
@@ -37,7 +38,7 @@ const router = createRouter({
 // Route chunks keep their CSS after navigation. Gate document-level layout so
 // visiting the admin console cannot constrain scrolling on the public pages.
 router.afterEach(to => {
-  document.documentElement.dataset.wsRoute = to.name === "admin" ? "admin" : "webclient";
+  document.documentElement.dataset.wsRoute = to.name === "admin" ? "admin" : to.name === "download" ? "download" : "webclient";
 });
 
 mountApp();

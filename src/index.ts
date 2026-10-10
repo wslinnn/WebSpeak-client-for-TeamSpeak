@@ -17,7 +17,7 @@ const APP_VERSION = readPackageVersion();
 const SCREEN_SHARE_ICE_SERVERS = readScreenShareIceServers(process.env.WEBSPEAK_SCREEN_SHARE_ICE_SERVERS);
 
 async function main() {
-  const [{ createLogger }, { createWebServer }, { APP_PORT }, { WebSpeakDatabase }, { loadOrCreateMasterSecret }, { AdminService }, { JoinTicketStore }, { ReconnectTicketStore }, { ServerPasswordGuard }] = await Promise.all([
+  const [{ createLogger }, { createWebServer }, { APP_PORT }, { WebSpeakDatabase }, { loadOrCreateMasterSecret }, { AdminService }, { JoinTicketStore }, { ReconnectTicketStore }, { ServerPasswordGuard }, { createAndroidReleaseLookup }] = await Promise.all([
     import("./logger.js"),
     import("./server/server.js"),
     import("./constants.js"),
@@ -27,6 +27,7 @@ async function main() {
     import("./server/join-ticket.js"),
     import("./server/reconnect-ticket.js"),
     import("./server/server-password-guard.js"),
+    import("./server/downloads.js"),
   ]);
   // WEBSPEAK_LOG_LEVEL=debug restores verbose file logging (SDK protocol
   // chatter included); the default keeps the rotating file at info.
@@ -54,6 +55,9 @@ async function main() {
   // One guard instance serves both sides: the web endpoint consults it before
   // issuing tickets, the voice bridge records wrong-password failures into it.
   const serverPasswordGuard = new ServerPasswordGuard();
+  // WEBSPEAK_ANDROID_REPO=owner/name points the download page's Android card
+  // at another releases repository; the default is the companion app's.
+  const androidReleaseLookup = createAndroidReleaseLookup({ repo: process.env.WEBSPEAK_ANDROID_REPO?.trim() || undefined });
 
   logger.info({ dataDir: DATA_DIR }, "Starting WebSpeak server");
 
@@ -78,6 +82,7 @@ async function main() {
     logger,
     trustProxy,
     serverPasswordGuard,
+    androidReleaseLookup,
   });
 
   await webServer.start();

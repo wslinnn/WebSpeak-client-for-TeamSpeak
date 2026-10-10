@@ -34,6 +34,18 @@
       >
       <a
         class="guide-button"
+        href="/download"
+        data-ws-part="home.download-button"
+        :title="t('downloadPage')"
+        :aria-label="t('downloadPage')"
+      >
+        <Icon
+          name="download"
+          :size="15"
+        /><span>{{ t("downloadPage") }}</span>
+      </a>
+      <a
+        class="guide-button"
         href="/admin"
         :title="t('adminConsole')"
         :aria-label="t('adminConsole')"
