@@ -356,6 +356,10 @@ export function createWebServer(options: WebServerOptions): WebServer {
         // index.html and plain public/ files — must revalidate.
         if (/-[A-Za-z0-9_-]{8}\.[A-Za-z0-9]+$/.test(path.basename(filePath))) {
           res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        } else if (path.basename(filePath).endsWith(".wskin") && Boolean(res.req?.query?.v)) {
+          // A versioned skin package is immutable: the version query string is
+          // part of the cache key and changes with every package bump.
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
         } else {
           res.setHeader("Cache-Control", "no-cache");
         }

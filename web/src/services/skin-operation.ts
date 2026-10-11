@@ -1,4 +1,5 @@
 export const SKIN_LOAD_TIMEOUT_MS = 8_000;
+export const SKIN_DOWNLOAD_TIMEOUT_MS = 45_000;
 
 export interface SkinLoadOptions {
   signal?: AbortSignal;
@@ -38,4 +39,23 @@ export function createSkinOperation({ signal: parent, timeoutMs = SKIN_LOAD_TIME
     });
   }
   return { signal, check, wait, cancel, finish };
+}
+
+/** The activation deadline covers local work (parsing, storage, rendering);
+ *  a package download scales with bandwidth instead, so it gets its own much
+ *  wider budget. The child signal still retires the moment the parent
+ *  operation aborts (user switched again / page closed). */
+export function createDownloadSignal(parent: AbortSignal, timeoutMs = SKIN_DOWNLOAD_TIMEOUT_MS): { signal: AbortSignal; dispose(): void } {
+  const controller = new AbortController();
+  const abortFromParent = () => controller.abort(parent.reason);
+  const timer = setTimeout(() => controller.abort(new DOMException("Skin download timed out", "TimeoutError")), timeoutMs);
+  if (parent.aborted) abortFromParent();
+  else parent.addEventListener("abort", abortFromParent, { once: true });
+  return {
+    signal: controller.signal,
+    dispose() {
+      clearTimeout(timer);
+      parent.removeEventListener("abort", abortFromParent);
+    },
+  };
 }

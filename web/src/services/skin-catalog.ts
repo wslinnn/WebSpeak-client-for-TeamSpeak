@@ -32,7 +32,7 @@ export const BUILTIN_SKIN_CATALOG: SkinCatalogEntry[] = [
   {
     id: BUILTIN_ILLUSIA_SKIN_ID,
     name: "ILLUSIA风",
-    version: "1.0.27",
+    version: "1.0.28",
     author: "WebSpeak Project",
     license: "All rights reserved",
     description: "A bright original-character art skin for the home and voice room.",

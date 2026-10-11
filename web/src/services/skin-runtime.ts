@@ -3,7 +3,7 @@ import type { InstalledSkin } from "./skin-pack.js";
 import { applyTheme, getBuiltinSkinCss, getStoredTheme, isDarkTheme } from "./theme.js";
 import { scopeBuiltinThemeForCustomSkin } from "./skin-cascade.js";
 import { getBundledSkinPackageUrl, isPublicSkinEnabled } from "./skin-catalog.js";
-import { createSkinOperation, type SkinLoadOptions } from "./skin-operation.js";
+import { createSkinOperation, createDownloadSignal, type SkinLoadOptions } from "./skin-operation.js";
 
 export const ACTIVE_SKIN_KEY = "webspeak:active-skin";
 export const BUILTIN_LIGHT_SKIN = "builtin.light";
@@ -66,9 +66,21 @@ async function prepareAndActivate(id: string, expectedVersion: string | undefine
   if (!skin || (expectedVersion && skin.version !== expectedVersion)) {
     try {
       const packageUrl = getBundledSkinPackageUrl(id) ?? `/api/skins/${encodeURIComponent(id)}/package`;
-      const response = await operation.wait(fetch(packageUrl, { cache: "no-cache", signal: operation.signal }));
-      if (!response.ok) throw new Error("Skin package is no longer available.");
-      const archive = await operation.wait(response.blob());
+      // A versioned URL makes the package immutable to caches: the catalog
+      // already knows the expected version, so a bumped package never collides
+      // with a cached older one.
+      const fetchUrl = expectedVersion ? `${packageUrl}?v=${encodeURIComponent(expectedVersion)}` : packageUrl;
+      const download = createDownloadSignal(operation.signal);
+      let archive: Blob;
+      try {
+        // The body streams in during blob(), not during fetch(): the whole
+        // transfer must sit inside the download budget.
+        const response = await operation.wait(fetch(fetchUrl, { cache: "no-cache", signal: download.signal }));
+        if (!response.ok) throw new Error("Skin package is no longer available.");
+        archive = await operation.wait(response.blob());
+      } finally {
+        download.dispose();
+      }
       const file = new File([archive], `${id}.wskin`, { type: "application/octet-stream" });
       const { importSkinPack } = await operation.wait(import("./skin-pack.js"));
       const downloaded = await operation.wait(importSkinPack(file));

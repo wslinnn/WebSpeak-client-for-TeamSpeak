@@ -42,6 +42,11 @@ export function usePublicSkin(options: PublicSkinOptions = {}) {
     const entry = catalogSkins.value.find(skin => skin.id === id);
     const skin = await operation.wait(activateSkin(id, entry?.version, options.appVersion?.(), { signal: operation.signal }));
     if (!owns(operation)) return;
+    // activateSkin resolves null when it fell back to a builtin skin. Asking
+    // for a builtin and getting null is normal; asking for a catalog skin and
+    // getting null means the package failed to load — say so instead of
+    // silently showing the wrong appearance.
+    if (!skin && !builtin(id)) recoveryNotice.value = true;
     activeSkin.value = skin;
     activeSkinId.value = skin?.id ?? (builtin(id) ? id : fallbackId());
     const mode = activeSkinId.value === BUILTIN_LIGHT_SKIN ? "light"
