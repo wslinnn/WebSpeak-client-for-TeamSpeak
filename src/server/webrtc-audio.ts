@@ -102,9 +102,10 @@ export class WebRtcAudioSession {
   private accompanimentActive: boolean;
   // Egress frame diagnostics: with WEBSPEAK_RTP_DEBUG=1 the first frames per
   // session log their TOC/parsed duration/sequence/timeline so a silent
-  // decode on the browser side can be attributed to payload vs RTP timeline.
+  // decode on the browser side can be attributed to payload vs RTP timeline,
+  // then a low-rate sample keeps the channel observable without flooding.
   private readonly debugEnabled = process.env.WEBSPEAK_RTP_DEBUG === "1";
-  private readonly debugFrames: Array<{ toc: number; length: number; durationMs: number; sequenceNumber: number; timestamp: number; clientId: number }> = [];
+  private debugFrameCounter = 0;
   private closed = false;
   private closePromise: Promise<void> | null = null;
   private readonly stats: WebRtcAudioStats = {
@@ -248,10 +249,7 @@ export class WebRtcAudioSession {
     const durationMs = opusFrameDurationMs(payload);
     if (durationMs === null || payload.length === 0) {
       this.stats.webrtcDownlinkDroppedFrames++;
-      if (this.debugEnabled) {
-        this.debugFrames.push({ toc: payload[0] ?? -1, length: payload.length, durationMs: -1, sequenceNumber: 0, timestamp: 0, clientId: data.clientId });
-        this.flushDebugFrames();
-      }
+      this.logDebugFrame(payload[0] ?? -1, payload.length, -1, 0, 0, data.clientId);
       return;
     }
     const slot = this.slotFor(data.clientId);
@@ -272,10 +270,7 @@ export class WebRtcAudioSession {
     }), payload);
     slot.sequenceNumber = (slot.sequenceNumber + 1) & 0xffff;
     slot.timestamp = (slot.timestamp + Math.round(durationMs * RTP_SAMPLES_PER_MS)) >>> 0;
-    if (this.debugEnabled) {
-      this.debugFrames.push({ toc: payload[0] ?? -1, length: payload.length, durationMs, sequenceNumber: packet.header.sequenceNumber, timestamp: packet.header.timestamp, clientId: data.clientId });
-      this.flushDebugFrames();
-    }
+    this.logDebugFrame(payload[0] ?? -1, payload.length, durationMs, packet.header.sequenceNumber, packet.header.timestamp, data.clientId);
     const sentAt = performance.now();
     try {
       slot.track.writeRtp(packet);
@@ -290,11 +285,13 @@ export class WebRtcAudioSession {
     }
   }
 
-  private flushDebugFrames(): void {
-    if (this.debugFrames.length < 12) return;
-    for (const frame of this.debugFrames.splice(0, this.debugFrames.length)) {
-      this.logger.info({ toc: `0x${frame.toc.toString(16)}`, bytes: frame.length, durationMs: frame.durationMs, seq: frame.sequenceNumber, timestamp: frame.timestamp, clientId: frame.clientId }, "RTP egress frame");
-    }
+  /** First 40 frames log in full, then a 1-in-500 sample keeps the channel
+   *  observable without flooding production logs. */
+  private logDebugFrame(toc: number, length: number, durationMs: number, sequenceNumber: number, timestamp: number, clientId: number): void {
+    if (!this.debugEnabled) return;
+    this.debugFrameCounter++;
+    if (this.debugFrameCounter > 40 && this.debugFrameCounter % 500 !== 0) return;
+    this.logger.info({ toc: `0x${toc.toString(16)}`, bytes: length, durationMs, seq: sequenceNumber, timestamp, clientId, frame: this.debugFrameCounter }, "RTP egress frame");
   }
 
   close(): Promise<void> {
