@@ -124,11 +124,18 @@ function deferred() {
 
 class TestPeer extends EventTarget {
   static instances = [];
+  static senderParameters = [];
   iceGatheringState = "complete";
   connectionState = "new";
   localDescription = null;
   remoteDescription = null;
-  sender = { track: null, replaceTrack: async track => { this.sender.track = track; } };
+  senderEncodings = [];
+  sender = {
+    track: null,
+    replaceTrack: async track => { this.sender.track = track; },
+    getParameters: () => ({ encodings: this.senderEncodings }),
+    setParameters: async parameters => { TestPeer.senderParameters.push(parameters); },
+  };
   constructor(config) { super(); this.config = config; TestPeer.instances.push(this); }
   addTrack(track) { this.sender.track = track; }
   getSenders() { return [this.sender]; }
@@ -183,6 +190,7 @@ before(async () => {
 beforeEach(() => {
   TestSocket.instances.length = 0;
   TestPeer.instances.length = 0;
+  TestPeer.senderParameters.length = 0;
   AudioContextStub.processors.length = 0;
   AudioContextStub.instances.length = 0;
   AudioContextStub.sources.length = 0;
@@ -1831,6 +1839,25 @@ test("a current answer completes negotiation and removes its timeout", async () 
   assert.equal(peer.remoteDescription.sdp, "current-answer");
   assert.equal(browserTimers.size, 0);
   assert.equal(socket.messages.some(message => message.type === "webrtcStop"), false);
+});
+
+test("a completed answer pins the audio sender's encoder target to the uplink budget", async () => {
+  const { socket } = await connectWebRtc();
+  socket.receive({ type: "webrtcAnswer", payload: { sdp: { type: "answer", sdp: "current-answer" } } });
+  await nextTurn();
+  assert.equal(TestPeer.senderParameters.length, 1);
+  const encodings = TestPeer.senderParameters[0].encodings;
+  assert.equal(encodings.length, 1, "an empty encodings list must be seeded before setting maxBitrate");
+  assert.equal(encodings[0].maxBitrate, 60_000);
+});
+
+test("a rejected sender parameter update does not fail the negotiated transport", async () => {
+  const { socket, peer } = await connectWebRtc();
+  peer.sender.setParameters = async () => { throw new Error("setParameters rejected"); };
+  socket.receive({ type: "webrtcAnswer", payload: { sdp: { type: "answer", sdp: "current-answer" } } });
+  await nextTurn();
+  assert.equal(socket.messages.some(message => message.type === "webrtcStop"), false);
+  assert.equal(voice.state.audioNoticeCode, "", "a codec-quality-only failure must keep the WebRTC transport up");
 });
 
 test("disconnect cancels an ICE gathering wait without sending an offer", async t => {

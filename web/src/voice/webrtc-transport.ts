@@ -1,4 +1,4 @@
-import { isSessionDescription, type WebRtcClientMessage } from "../../../src/shared/webrtc.js";
+import { isSessionDescription, WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS, type WebRtcClientMessage } from "../../../src/shared/webrtc.js";
 import { createWebRtcInput, type WebRtcInput } from "./webrtc-input.js";
 import { createMicrophoneMeter, type MicrophoneMeter } from "./microphone-meter.js";
 import { createWebRtcPlayback, type WebRtcPlaybackOptions } from "./webrtc-playback.js";
@@ -186,6 +186,19 @@ export function createWebRtcTransport(options: TransportOptions) {
     try {
       await peer.setRemoteDescription(description);
       if (!isCurrent(record)) return;
+      // The gateway's answer fmtp only raises the negotiated ceiling; without
+      // a matching encoder target Chrome keeps its ~32 kbps default. A
+      // rejection here merely leaves the default quality — the transport is
+      // up, so it must not fail the attempt.
+      try {
+        const sender = peer.getSenders().find(candidate => candidate.track?.kind === "audio");
+        const parameters = sender?.getParameters();
+        if (sender && parameters) {
+          parameters.encodings = parameters.encodings?.length ? parameters.encodings : [{}];
+          parameters.encodings[0]!.maxBitrate = WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS;
+          await sender.setParameters(parameters);
+        }
+      } catch { /* default encoder settings remain active */ }
       if (record.answerTimer !== null) window.clearTimeout(record.answerTimer);
       record.answerTimer = null;
       record.active = true;

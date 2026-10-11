@@ -10,7 +10,7 @@ import type { Logger as LoggerType } from "../logger.js";
 import type { TSVoiceData } from "./ts-client.js";
 import { WEBRTC_UDP_PORT_RANGE } from "./webrtc-config.js";
 import { createVoiceEncoder, OpusEncoder } from "./opus-codec.js";
-import type { WebRtcSessionDescription } from "../shared/webrtc.js";
+import { WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS, type WebRtcSessionDescription } from "../shared/webrtc.js";
 export type { WebRtcSessionDescription } from "../shared/webrtc.js";
 
 export { DEFAULT_WEBRTC_UDP_PORT_RANGE, WEBRTC_UDP_PORT_RANGE } from "./webrtc-config.js";
@@ -84,6 +84,45 @@ export interface WebRtcAudioStats {
 interface PendingAudioFrame {
   pcm: Buffer;
   receivedAt: number;
+}
+
+// werift echoes the browser offer's Opus fmtp verbatim into the answer, so the
+// browser uplink encoder would keep its self-chosen settings. Rewriting the
+// answer is the only server-side lever on uplink quality: maxaveragebitrate
+// raises the negotiated ceiling to the TeamSpeak quality-10 budget (the shared
+// constant documents why 60 kbps, not 64), and usedtx=0 keeps discontinuous
+// transmission off so the forwarded RTP timeline stays continuous — the
+// gateway relays payloads untouched and cannot paper over DTX gaps.
+// stereo is deliberately NOT set: the uplink is mono (microphone, with
+// accompaniment mixed into the same track) and a stereo declaration would
+// split the same bits across channels; per-track fmtp belongs to the
+// multi-track passthrough design instead.
+export function patchAnswerOpusFmtp(sdp: string, payloadTypes: number[]): string {
+  const eol = sdp.includes("\r\n") ? "\r\n" : "\n";
+  const lines = sdp.split(eol);
+  const pinned = `maxaveragebitrate=${WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS};usedtx=0`;
+  let changed = false;
+  for (const payloadType of payloadTypes) {
+    // Browsers emit a lowercase rtpmap; werift echoes its own "audio/OPUS"
+    // mimeType in uppercase. Match either.
+    const rtpmap = `a=rtpmap:${payloadType} opus/48000/2`;
+    const rtpmapIndex = lines.findIndex(line => line.toLowerCase() === rtpmap);
+    if (rtpmapIndex < 0) continue;
+    const prefix = `a=fmtp:${payloadType} `;
+    const fmtpIndex = lines.findIndex(line => line.startsWith(prefix));
+    if (fmtpIndex >= 0) {
+      const kept = lines[fmtpIndex]!.slice(prefix.length)
+        .split(";")
+        .map(part => part.trim())
+        .filter(part => part && !/^(maxaveragebitrate|usedtx)=/i.test(part));
+      kept.push(pinned);
+      lines[fmtpIndex] = prefix + kept.join(";");
+    } else {
+      lines.splice(rtpmapIndex + 1, 0, prefix + pinned);
+    }
+    changed = true;
+  }
+  return changed ? lines.join(eol) : sdp;
 }
 
 /**
@@ -237,7 +276,10 @@ export class WebRtcAudioSession {
     this.outgoingPayloadType = opus[0]!.payloadType;
     await transceiver.sender.replaceTrack(this.outgoingTrack);
     const answer = await this.peer.createAnswer();
-    await this.peer.setLocalDescription(answer);
+    // werift's RTCSessionDescription freezes its sdp field, so the patched
+    // SDP travels as a plain description object into setLocalDescription.
+    const patched = { type: "answer" as const, sdp: patchAnswerOpusFmtp(answer.sdp, [...this.opusPayloadTypes]) };
+    await this.peer.setLocalDescription(patched);
     const description = this.peer.localDescription;
     if (!description) throw new Error("WebRTC answer was not created");
     if (description.type !== "answer" && description.type !== "offer") throw new Error("Unexpected WebRTC answer type");

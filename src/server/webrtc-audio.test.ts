@@ -4,7 +4,7 @@ import { createSocket } from "node:dgram";
 import pino from "pino";
 import { RTCPeerConnection, useOPUS, usePCMU, type RtpPacket } from "werift";
 import { OpusEncoder } from "./opus-codec.js";
-import { WebRtcAudioSession } from "./webrtc-audio.js";
+import { patchAnswerOpusFmtp, WebRtcAudioSession } from "./webrtc-audio.js";
 
 test("configured STUN is actually queried and contributes srflx candidates", async t => {
   const stun = createSocket("udp4");
@@ -61,11 +61,39 @@ for (const scenario of ["PCMU only", "Opus only", "PCMU before Opus"] as const) 
     const answer = await session.createAnswer({ type: "offer", sdp: offer.sdp });
     assert.equal(answer.type, "answer");
     assert.match(answer.sdp, /a=rtpmap:109 opus\/48000\/2/i);
+    // werift echoes no fmtp for a bare useOPUS() offer, so the answer gets the
+    // uplink pins inserted next to the rtpmap line.
+    assert.match(answer.sdp, /a=fmtp:109 maxaveragebitrate=60000;usedtx=0/i);
     assert.doesNotMatch(answer.sdp, /PCMU/i);
     const audio = session.peer.getTransceivers().find(transceiver => transceiver.kind === "audio")!;
     assert.deepEqual(audio.codecs.map(codec => codec.payloadType), [109]);
   });
 }
+
+test("answer fmtp patching merges browser parameters and overrides conflicting pins", () => {
+  const offer = [
+    "v=0", "o=- 1 1 IN IP4 127.0.0.1", "s=-", "t=0 0",
+    "m=audio 9 UDP/TLS/RTP/SAVPF 111", "c=IN IP4 0.0.0.0",
+    "a=rtpmap:111 opus/48000/2",
+    "a=fmtp:111 minptime=10;useinbandfec=1;maxaveragebitrate=32000;usedtx=1",
+  ].join("\r\n");
+  const patched = patchAnswerOpusFmtp(offer, [111]);
+  assert.match(patched, /a=fmtp:111 minptime=10;useinbandfec=1;maxaveragebitrate=60000;usedtx=0/);
+  assert.equal(patched.split("\r\n").length, offer.split("\r\n").length, "merging must not add lines");
+  // Unrelated payload types and CRLF-free SDP stay untouched.
+  assert.equal(patchAnswerOpusFmtp(offer, [96]), offer);
+  assert.equal(patchAnswerOpusFmtp("v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n", [111]), "v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n");
+});
+
+test("answer fmtp patching inserts pins when the offer has no Opus fmtp", () => {
+  const offer = [
+    "v=0", "o=- 1 1 IN IP4 127.0.0.1", "s=-", "t=0 0",
+    "m=audio 9 UDP/TLS/RTP/SAVPF 111", "c=IN IP4 0.0.0.0",
+    "a=rtpmap:111 opus/48000/2",
+  ].join("\n");
+  const patched = patchAnswerOpusFmtp(offer, [111]);
+  assert.ok(patched.includes("\na=fmtp:111 maxaveragebitrate=60000;usedtx=0"), patched);
+});
 
 function rms(pcm: Buffer): number {
   let energy = 0;
