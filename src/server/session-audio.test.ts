@@ -69,6 +69,31 @@ test("invalid PCM replies are rate limited and a sustained streak closes the soc
   assert.equal(f.notices.length, 1);
 });
 
+test("the ingress token bucket drops burst overflow and closes sustained floods", () => {
+  const f = fixture();
+  // The fixture clock advances on every encode; pin it so the bucket is only
+  // refilled by explicit time jumps. The stand-in still records frames.
+  f.encoder.encode = (frame) => { f.encoded.push(frame); return Buffer.from([9]); };
+  // The full burst budget passes at once; real-time audio (50 Hz) refills
+  // behind its consumption forever.
+  for (let i = 0; i < 100; i++) f.transport.receivePcm(Buffer.alloc(1_920));
+  assert.equal(f.encoded.length, 100);
+  // Same-instant overflow only drops: TCP catch-up bursts must not close a
+  // session that was merely slow for a moment.
+  for (let i = 0; i < 60; i++) f.transport.receivePcm(Buffer.alloc(1_920));
+  assert.equal(f.encoded.length, 100);
+  assert.equal(f.audio.ingressDroppedFrames, 60);
+  assert.equal(f.closes.length, 0);
+  // Time passes, the bucket refills to full again.
+  f.state.now = 5_000;
+  for (let i = 0; i < 100; i++) f.transport.receivePcm(Buffer.alloc(1_920));
+  assert.equal(f.encoded.length, 200);
+  // A window of sustained flooding (200 drops, FRAME_FLOOD_CLOSE_DROPS)
+  // closes the session like malformed audio.
+  for (let i = 0; i < 200; i++) f.transport.receivePcm(Buffer.alloc(1_920));
+  assert.deepEqual(f.closes, [{ code: 1008, reason: "AUDIO_FRAME_RATE_LIMITED" }]);
+});
+
 test("WebRTC ingress excludes queued PCM and fallback re-enables PCM", () => {
   const f = fixture();
   f.state.peer = { pushTeamSpeakVoice() {} };

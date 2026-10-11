@@ -12,6 +12,13 @@ const MAX_BUFFERED_BYTES = 4_096;
 // second and drop the connection after a full second of consecutive garbage.
 const INVALID_FRAME_REPORT_INTERVAL_MS = 1_000;
 const INVALID_FRAME_CLOSE_THRESHOLD = 20;
+// Binary frames bypass the command rate limiter by design, so ingress needs
+// its own budget: a 100-frame burst (2x the 50 Hz design rate) that refills
+// at the design rate. A window with FRAME_FLOOD_CLOSE_DROPS drops is sustained
+// flooding — a client bug or an attack either way — and closes the session
+// instead of paying Opus encoding for garbage.
+const FRAME_RATE_LIMIT_PER_SECOND = 100;
+const FRAME_FLOOD_CLOSE_DROPS = 200;
 
 export interface VoiceEncoder {
   encode(frame: Buffer): Buffer;
@@ -37,13 +44,41 @@ export class SessionAudioTransport {
   private warnedAt: number | null = null;
   private invalidFrameStreak = 0;
   private lastInvalidFrameReportAt = Number.NEGATIVE_INFINITY;
+  private frameTokens = FRAME_RATE_LIMIT_PER_SECOND;
+  private frameTokensAt: number;
+  private floodWindowStart: number | null = null;
+  private floodWindowDrops = 0;
 
   constructor(private readonly options: SessionAudioOptions, encoder: VoiceEncoder, private readonly clock: () => number = Date.now) {
     this.encoder = encoder;
+    this.frameTokensAt = this.clock();
   }
 
   private isCurrent(): boolean {
     return !this.closed && this.options.isCurrent() && this.options.socket.readyState === WebSocket.OPEN;
+  }
+
+  /** Binary ingress has no command-limiter coverage; without a budget a
+   *  single session converts socket speed into Opus work and upstream
+   *  TeamSpeak traffic at line rate. */
+  private consumeFrameBudget(): boolean {
+    const now = this.clock();
+    this.frameTokens = Math.min(FRAME_RATE_LIMIT_PER_SECOND, this.frameTokens + ((now - this.frameTokensAt) / 1_000) * FRAME_RATE_LIMIT_PER_SECOND);
+    this.frameTokensAt = now;
+    if (this.frameTokens >= 1) {
+      this.frameTokens -= 1;
+      this.floodWindowStart = null;
+      this.floodWindowDrops = 0;
+      return true;
+    }
+    if (this.floodWindowStart === null || now - this.floodWindowStart > 1_000) {
+      this.floodWindowStart = now;
+      this.floodWindowDrops = 1;
+    } else if (++this.floodWindowDrops >= FRAME_FLOOD_CLOSE_DROPS) {
+      try { this.options.socket.close(1008, "AUDIO_FRAME_RATE_LIMITED"); } catch { /* the socket may already be closing */ }
+    }
+    this.options.audio.ingressDroppedFrames++;
+    return false;
   }
 
   private recordIngress(): void {
@@ -82,6 +117,7 @@ export class SessionAudioTransport {
 
   receivePcm(frame: Buffer): void {
     if (!this.isCurrent()) return;
+    if (!this.consumeFrameBudget()) return;
     const stats = this.options.audio;
     if (frame.length !== AUDIO_FRAME_BYTES) {
       stats.ingressDroppedFrames++;
