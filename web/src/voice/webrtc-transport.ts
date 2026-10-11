@@ -25,6 +25,10 @@ interface TransportOptions {
   onLevel(rms: number | null, track: MediaStreamTrack): void;
   onReady(): void;
   onFallback(reason: string, isCurrent: () => boolean): Promise<void>;
+  /** Fired after every transition of the live attempt's transport state, as a
+   *  full snapshot: plain getters cannot drive reactive consumers, so UI that
+   *  mirrors the transport must subscribe here instead of polling. */
+  onTransportChange?(state: { active: boolean; hasPeer: boolean }): void;
   playback: WebRtcPlaybackOptions;
 }
 
@@ -47,6 +51,9 @@ export function createWebRtcTransport(options: TransportOptions) {
   const playback = createWebRtcPlayback(options.playback);
   const isCurrent = (record: Attempt): boolean => current === record && !record.closed && record.connection.isCurrent();
   const clean = (operation: () => void): void => { try { operation(); } catch { /* release remaining resources */ } };
+  const notifyTransport = (): void => {
+    options.onTransportChange?.({ active: current?.active ?? false, hasPeer: (current?.peer ?? null) !== null });
+  };
 
   function releaseInput(record = current): void {
     clean(options.releaseAccompaniment);
@@ -81,6 +88,7 @@ export function createWebRtcTransport(options: TransportOptions) {
       clean(() => { peer.onconnectionstatechange = null; });
       clean(() => peer.close());
     }
+    notifyTransport();
   }
 
   async function fail(record: Attempt, reason: string): Promise<void> {
@@ -118,6 +126,7 @@ export function createWebRtcTransport(options: TransportOptions) {
     const record: Attempt = { connection, peer: null, input: null, meter: null,
       active: false, closed: false, answerTimer: null, cancelIce: null };
     current = record;
+    notifyTransport();
     let microphone: Microphone | null;
     try { microphone = await options.prepareMicrophone(); }
     catch (error) { if (isCurrent(record)) throw error; return; }
@@ -131,6 +140,7 @@ export function createWebRtcTransport(options: TransportOptions) {
       const stunServer = options.stunServer?.();
       const peer = new RTCPeerConnection({ iceServers: stunServer ? [{ urls: stunServer }] : [] });
       record.peer = peer;
+      notifyTransport();
       track.enabled = !options.muted();
       const input = createWebRtcInput(context, processedStream, options.muted() ? 0 : options.inputVolume());
       record.input = input;
@@ -146,6 +156,7 @@ export function createWebRtcTransport(options: TransportOptions) {
       };
 
       record.active = true;
+      notifyTransport();
       const offer = await peer.createOffer();
       if (!isCurrent(record)) return;
       await peer.setLocalDescription(offer);
@@ -178,6 +189,7 @@ export function createWebRtcTransport(options: TransportOptions) {
       if (record.answerTimer !== null) window.clearTimeout(record.answerTimer);
       record.answerTimer = null;
       record.active = true;
+      notifyTransport();
       options.onReady();
     } catch { await fail(record, "WEBRTC_ANSWER_REJECTED"); }
   }

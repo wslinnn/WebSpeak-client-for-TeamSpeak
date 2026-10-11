@@ -343,8 +343,16 @@ export function useVoiceWebSocket() {
     onDrop: () => audioDiagnostics.count("framesDropped"),
   });
   let webRtcStunServer = "";
+  // Mirror of the WebRTC transport's live state, pushed via onTransportChange.
+  // The transport object itself exposes plain getters, which a computed cannot
+  // track — without this snapshot the header transport badge would freeze on
+  // whatever the state was when it first rendered.
+  const webrtcTransportSnapshot = ref({ active: false, hasPeer: false });
   const webrtc = createWebRtcTransport({
     stunServer: () => webRtcStunServer,
+    onTransportChange(snapshot) {
+      webrtcTransportSnapshot.value = snapshot;
+    },
     prepareMicrophone: async () => {
       await ensureMicrophone();
       return micStream ? { context: getAudioCtx(), stream: micStream,
@@ -1645,11 +1653,12 @@ export function useVoiceWebSocket() {
   }
 
   // Live transport for header chrome (the collapsed voice-status trigger):
-  // derived straight from the connection objects so it stays visible without
-  // the panel-owned probe loop running.
+  // derived from the transport change feed so it updates without the
+  // panel-owned probe loop running.
   const voiceTransport = computed<"webrtc" | "websocket" | "negotiating" | "disconnected">(() => {
     if (!state.connected) return "disconnected";
-    return webrtc.active ? "webrtc" : webrtc.peer ? "negotiating" : "websocket";
+    const snapshot = webrtcTransportSnapshot.value;
+    return snapshot.active ? "webrtc" : snapshot.hasPeer ? "negotiating" : "websocket";
   });
 
   return {
