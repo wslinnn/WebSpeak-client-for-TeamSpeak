@@ -135,13 +135,17 @@ export function useWebClientChannels({
     .map((id) => members.find((member) => member.id === id))
     .filter((member): member is ChannelMember => Boolean(member)));
 
+  // Structural directory changes are all this initializer needs; the computed
+  // re-evaluates whenever member arrays move, so a deep watcher would only add
+  // a full-tree traversal on every memberUpdated (nickname/away flags and the
+  // like) without any effect on the outcome.
   watch(channelTree, (list) => {
     if (!selectedChannelId.value && list[0]) {
       selectedChannelId.value = list.find((item) => item.name === channelName.value)?.id
         ?? list.find((item) => item.members.some((member) => member.id === clientId.value))?.id
         ?? "";
     }
-  }, { deep: true });
+  });
 
   return {
     channelTree,
