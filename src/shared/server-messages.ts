@@ -125,7 +125,7 @@ const valid: Record<ServerMessage["type"], (message: RecordValue) => boolean> = 
     && optional(m.away, boolean) && optional(m.awayMessage, text) && optional(m.inputMuted, boolean)
     && optional(m.outputMuted, boolean) && optional(m.channelCommander, boolean),
   memberMoved: m => clientId(m.id) && optional(m.channelId, channelId),
-  memberAvatar: m => optional(m.id, clientId) && identifier(m.uid) && optional(m.avatar, text),
+  memberAvatar: m => optional(m.id, clientId) && identifier(m.uid) && optional(m.avatar, v => text(v) && v.length <= 524_288),
   channelList: m => arrayOf(m.channels, channel),
   channelCreated: m => channel(m.channel),
   channelUpdated: m => channelId(m.id) && text(m.name) && optional(m.description, text),

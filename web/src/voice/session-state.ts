@@ -30,11 +30,26 @@ export function createVoiceSessionState(options: SessionStateOptions) {
   const unknownSenders = new Map<number, string>();
   // Avatars arrive once per uid (memberAvatar) and never ride the directory.
   // Keyed by uid so reconnects and later joins restore images without a new
-  // download; survives session resets on purpose.
+  // download; survives session resets on purpose. A long-lived page must not
+  // accumulate every uid it ever saw, so the cache is a bounded LRU.
   const avatars = new Map<string, string>();
+  const AVATAR_CACHE_LIMIT = 200;
+  const getAvatar = (uid: string): string | undefined => {
+    const cached = avatars.get(uid);
+    if (cached !== undefined) {
+      avatars.delete(uid);
+      avatars.set(uid, cached);
+    }
+    return cached;
+  };
+  const storeAvatar = (uid: string, avatar: string): void => {
+    avatars.delete(uid);
+    while (avatars.size >= AVATAR_CACHE_LIMIT) avatars.delete(avatars.keys().next().value!);
+    avatars.set(uid, avatar);
+  };
   const nextId = (kind: string) => `${kind}-${epoch.value}-${sequence++}`;
   const normalize = (member: ChannelMember): ChannelMember => {
-    const cached = !member.avatar && member.uid ? avatars.get(member.uid) : undefined;
+    const cached = !member.avatar && member.uid ? getAvatar(member.uid) : undefined;
     return { ...member, ...(cached ? { avatar: cached } : {}), isSelf: member.id === options.selfId() };
   };
   function conversationKey(id: number, uid?: string): string {
@@ -202,7 +217,7 @@ export function createVoiceSessionState(options: SessionStateOptions) {
       case "memberAvatar": {
         const uid = message.uid;
         if (!uid || !message.avatar) break;
-        avatars.set(uid, message.avatar);
+        storeAvatar(uid, message.avatar);
         for (const member of members) {
           if (member.uid === uid) member.avatar = message.avatar;
         }
