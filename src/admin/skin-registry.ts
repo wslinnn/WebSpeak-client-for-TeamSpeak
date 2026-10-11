@@ -56,10 +56,21 @@ export function isBuiltinSkinId(id: string): boolean {
   return BUILTIN_SKIN_ID_SET.has(id);
 }
 
-export class SkinRegistry {
-  constructor(private readonly directory: string) {}
+const LIST_CACHE_TTL_MS = 3_000;
 
+export class SkinRegistry {
+  private readonly directory: string;
+  private catalogCache: { entries: SkinCatalogEntry[]; at: number } | null = null;
+
+  constructor(directory: string) {
+    this.directory = directory;
+  }
+
+  /** The catalog backs every page load and every package/preview request; a
+   *  short cache keeps those hot paths off per-request directory scans. Every
+   *  mutator flushes it, so admin changes stay immediately visible. */
   async list(): Promise<SkinCatalogEntry[]> {
+    if (this.catalogCache && Date.now() - this.catalogCache.at < LIST_CACHE_TTL_MS) return this.catalogCache.entries;
     await mkdir(this.directory, { recursive: true });
     const names = await readdir(this.directory);
     const entries: SkinCatalogEntry[] = [];
@@ -74,7 +85,13 @@ export class SkinRegistry {
         // Ignore incomplete or stale metadata. The archive itself remains untouched.
       }
     }
-    return entries.sort((left, right) => left.name.localeCompare(right.name));
+    const sorted = entries.sort((left, right) => left.name.localeCompare(right.name));
+    this.catalogCache = { entries: sorted, at: Date.now() };
+    return sorted;
+  }
+
+  private flushCatalogCache(): void {
+    this.catalogCache = null;
   }
 
   async save(bytes: Buffer, expectedId: string): Promise<SkinCatalogEntry> {
@@ -110,6 +127,7 @@ export class SkinRegistry {
       const previewPath = path.join(this.directory, `${expectedId}.preview`);
       if (parsed.previewBytes) await rename(previewTemp, previewPath);
       else await unlink(previewPath).catch(() => undefined);
+      this.flushCatalogCache();
     } catch (error) {
       await Promise.all([archiveTemp, catalogTemp, previewTemp].map((file) => unlink(file).catch(() => undefined)));
       throw error;
@@ -148,6 +166,7 @@ export class SkinRegistry {
       if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
     })));
     if (wasDefault) await this.setDefaultSkin("builtin.light");
+    this.flushCatalogCache();
     return true;
   }
 
@@ -158,6 +177,7 @@ export class SkinRegistry {
     const wasDefault = await this.getDefaultSkinId() === id;
     const updated = { ...entry, enabled };
     await writeAtomicJson(path.join(this.directory, `${id}.json`), updated);
+    this.flushCatalogCache();
     if (!enabled && wasDefault) await this.setDefaultSkin("builtin.light");
     return updated;
   }
