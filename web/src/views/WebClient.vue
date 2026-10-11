@@ -869,6 +869,22 @@
           :size="14"
       /></button>
     </div>
+    <div
+      v-if="skinCatalogNotice && !skinRecoveryNotice"
+      class="skin-recovery-notice"
+      data-ws-part="app.skin-catalog-notice"
+      role="alert"
+    >
+      <span>{{ t("skinCatalogUnavailable") }}</span>
+      <button
+        type="button"
+        :aria-label="t('close')"
+        @click="skinCatalogNotice = false"
+      ><Icon
+          name="close"
+          :size="14"
+      /></button>
+    </div>
 
     <FavoriteServerDialog
       v-if="favoriteServerDialogOpen"
@@ -1244,7 +1260,7 @@ const {
 const themeMode = ref<ThemeMode>(getStoredTheme());
 applyTheme(themeMode.value);
 const publicSkin = usePublicSkin({ activeSkin, themeMode, appVersion: () => appVersion.value });
-const { activeSkinId, skinReady, installedSkins, catalogSkins, recoveryNotice: skinRecoveryNotice, select: onSkinChange, initialize: initializeSkin } = publicSkin;
+const { activeSkinId, skinReady, installedSkins, catalogSkins, recoveryNotice: skinRecoveryNotice, catalogUnavailableNotice: skinCatalogNotice, select: onSkinChange, initialize: initializeSkin } = publicSkin;
 const skinOptions = computed<SkinOption[]>(() => [
   ...catalogSkins.value.map((skin) => ({
     value: skin.id,

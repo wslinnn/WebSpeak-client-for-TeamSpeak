@@ -1,6 +1,6 @@
 import { onScopeDispose, ref, shallowRef, type Ref } from "vue";
 import { listInstalledSkins, loadLocalPreferences, saveLocalPreferences } from "../services/local-persistence.js";
-import { BUILTIN_SKIN_CATALOG, getPublicDefaultSkinId, isPublicSkinEnabled, listPublicSkins, type SkinCatalogEntry } from "../services/skin-catalog.js";
+import { BUILTIN_SKIN_CATALOG, getPublicDefaultSkinId, isPublicSkinEnabled, listPublicSkins, onSkinDirectoryError, type SkinCatalogEntry } from "../services/skin-catalog.js";
 import { activateSkin, BUILTIN_DARK_SKIN, BUILTIN_LIGHT_SKIN, clearCustomSkinStyle, getStoredSkinId } from "../services/skin-runtime.js";
 import { createSkinOperation } from "../services/skin-operation.js";
 import { getStoredTheme, isDarkTheme, saveTheme, type ThemeMode } from "../services/theme.js";
@@ -29,13 +29,17 @@ export function usePublicSkin(options: PublicSkinOptions = {}) {
   // Set when a load failure forced the builtin fallback, so the page can say
   // why the requested appearance is missing instead of failing silently.
   const recoveryNotice = ref(false);
+  // Set when the server-side skin directory could not be refreshed: the user
+  // sees only the built-in skins and should be told that is temporary.
+  const catalogUnavailableNotice = ref(false);
+  const offDirectoryError = onSkinDirectoryError(() => { catalogUnavailableNotice.value = true; });
   const owns = (operation: ReturnType<typeof createSkinOperation>) => !disposed && current === operation;
   function cancel() { current?.cancel(); current = undefined; }
   function begin() {
     cancel();
     return current = createSkinOperation({ timeoutMs: options.timeoutMs });
   }
-  onScopeDispose(() => { disposed = true; cancel(); });
+  onScopeDispose(() => { disposed = true; cancel(); offDirectoryError(); });
 
   async function apply(id: string, operation: ReturnType<typeof createSkinOperation>, persist = true, updateTheme = false) {
     operation.check();
@@ -85,6 +89,7 @@ export function usePublicSkin(options: PublicSkinOptions = {}) {
       ]));
       installedSkins.value = installed;
       catalogSkins.value = available;
+      catalogUnavailableNotice.value = false;
       if (options.themeMode && !localStorage.getItem("webspeak:theme")) {
         if (preferences.theme) options.themeMode.value = preferences.theme;
         saveTheme(options.themeMode.value);
@@ -122,9 +127,9 @@ export function usePublicSkin(options: PublicSkinOptions = {}) {
     const builtInMode = isDarkTheme(mode) ? "dark" : "light";
     activeSkinId.value = builtInMode === "dark" ? BUILTIN_DARK_SKIN : BUILTIN_LIGHT_SKIN;
     skinReady.value = true;
-    try { catalogSkins.value = await operation.wait(listPublicSkins({ signal: operation.signal })); }
+    try { catalogSkins.value = await operation.wait(listPublicSkins({ signal: operation.signal })); catalogUnavailableNotice.value = false; }
     catch { /* Reset remains usable even if refreshing the optional catalog fails. */ }
     finally { operation.finish(); }
   }
-  return { activeSkin, activeSkinId, skinReady, installedSkins, catalogSkins, recoveryNotice, initialize, select, cancel, reset };
+  return { activeSkin, activeSkinId, skinReady, installedSkins, catalogSkins, recoveryNotice, catalogUnavailableNotice, initialize, select, cancel, reset };
 }

@@ -49,6 +49,14 @@ let publicDirectoryLoaded = false;
 let publicEnabledSkinIds = new Set<string>(BUILTIN_SKIN_CATALOG.map((skin) => skin.id));
 let publicDefaultSkinId = "builtin.light";
 let pendingDirectory: ReturnType<typeof createSkinOperation> | null = null;
+// The service stays framework-free: UI subscribes here to learn that the
+// directory refresh fell back to the built-in catalog.
+const directoryErrorListeners = new Set<() => void>();
+
+export function onSkinDirectoryError(listener: () => void): () => void {
+  directoryErrorListeners.add(listener);
+  return () => directoryErrorListeners.delete(listener);
+}
 
 export function getPublicDefaultSkinId(): string {
   return isPublicSkinEnabled(publicDefaultSkinId) ? publicDefaultSkinId : "builtin.light";
@@ -105,6 +113,7 @@ export async function listPublicSkins(options: SkinLoadOptions = {}): Promise<Sk
     publicDirectoryLoaded = false;
     publicEnabledSkinIds = new Set(BUILTIN_SKIN_CATALOG.map((skin) => skin.id));
     publicDefaultSkinId = "builtin.light";
+    for (const listener of directoryErrorListeners) listener();
     return BUILTIN_SKIN_CATALOG;
   } finally {
     operation.finish();
