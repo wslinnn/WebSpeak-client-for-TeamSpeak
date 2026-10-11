@@ -49,6 +49,11 @@ export interface VoiceState {
    *  selection from it. Not cleared on read: identical consecutive values are
    *  already reflected in the selection, so a suppressed duplicate is fine. */
   selfMovedChannelId: string;
+  /** Mirror of errorCode fed only by connection-origin paths (ticket refusal,
+   *  close frames, reconnect failure). Generic per-command error frames must
+   *  not land here: the server-switch banner treats this field as "the join
+   *  failed", and an unrelated audio/chat error would falsely fail it. */
+  connectionFailureCode: string;
 }
 
 export interface AudioInputDevice {
@@ -165,7 +170,7 @@ class CancelledMediaOperation extends Error {
 
 export function useVoiceWebSocket() {
   const ws = shallowRef<WebSocket | null>(null);
-  const state = reactive<VoiceState>({ connected: false, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false, tsClientId: 0, error: "", errorCode: "", retryNotUntil: 0, microphoneError: "", microphoneErrorCode: "", audioNotice: "", audioNoticeCode: "", channelSwitchedChannelId: "", selfMovedChannelId: "" });
+  const state = reactive<VoiceState>({ connected: false, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false, tsClientId: 0, error: "", errorCode: "", retryNotUntil: 0, microphoneError: "", microphoneErrorCode: "", audioNotice: "", audioNoticeCode: "", channelSwitchedChannelId: "", selfMovedChannelId: "", connectionFailureCode: "" });
   const sessionState = createVoiceSessionState({
     selfId: () => state.tsClientId,
     onMemberRemoved(id) {
@@ -195,6 +200,7 @@ export function useVoiceWebSocket() {
       if (!state.reconnectFailed) sessionState.reset();
       if (event.code !== 1000 && !state.reconnectFailed && !state.errorCode) {
         state.errorCode = closeErrorCode(event.code, event.reason);
+        state.connectionFailureCode = state.errorCode;
         state.error = closeReason(event.code, event.reason);
       }
       clearMicrophoneError();
@@ -216,6 +222,7 @@ export function useVoiceWebSocket() {
     onFailure({ code, detail, cause, retryAfterMs }) {
       state.connecting = false;
       state.errorCode = normalizedClientErrorCode(code, "REQUEST_FAILED");
+      state.connectionFailureCode = state.errorCode;
       state.error = cause instanceof Error ? cause.message : joinTicketReason(state.errorCode, detail);
       if (state.errorCode === "PASSWORD_RETRY_LATER") {
         state.retryNotUntil = Date.now() + (typeof retryAfterMs === "number" && retryAfterMs > 0 ? retryAfterMs : 60_000);
@@ -1118,6 +1125,7 @@ export function useVoiceWebSocket() {
     state.reconnectFailed = false;
     state.tsClientId = 0;
     state.errorCode = "";
+    state.connectionFailureCode = "";
     state.channelSwitchedChannelId = "";
     if (!keepRememberedIdentity) identityMaterial.value = "";
     sessionState.reset();
@@ -1190,6 +1198,7 @@ export function useVoiceWebSocket() {
     }
     state.reconnectFailed = true;
     state.errorCode = "GATEWAY_NETWORK_LOST";
+    state.connectionFailureCode = state.errorCode;
     state.error = connectionFailureMessage("GATEWAY_NETWORK_LOST");
     playNotification("reconnectFailed");
   }
@@ -1266,6 +1275,7 @@ export function useVoiceWebSocket() {
         state.reconnectFailed = false;
         state.error = "";
         state.errorCode = "";
+        state.connectionFailureCode = "";
         state.channelSwitchedChannelId = "";
         state.tsClientId = Number(msg.tsClientId) || 0;
         browserReconnectActive = false;
@@ -1341,6 +1351,7 @@ export function useVoiceWebSocket() {
         state.reconnecting = false;
         state.reconnectFailed = true;
         state.errorCode = normalizedClientErrorCode(msg.code);
+        state.connectionFailureCode = state.errorCode;
         state.error = connectionFailureMessage(state.errorCode, msg.detail);
         releaseSessionResources();
         // Deterministic refusals (ban, changed password, identity conflict)
@@ -1356,6 +1367,7 @@ export function useVoiceWebSocket() {
         // the user on the welcome form instead of showing an empty voice room.
         state.reconnectFailed = false;
         state.errorCode = normalizedClientErrorCode(msg.code);
+        state.connectionFailureCode = state.errorCode;
         state.error = connectionFailureMessage(state.errorCode, msg.detail);
         releaseSessionResources();
         break;

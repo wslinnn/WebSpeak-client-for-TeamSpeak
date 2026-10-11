@@ -1187,7 +1187,7 @@ const {
   begin: beginFavoriteSwitch,
   fail: failFavoriteSwitch,
   settle: settleFavoriteSwitch,
-} = useVoiceServerSwitch(() => voiceState.errorCode);
+} = useVoiceServerSwitch(() => voiceState.connectionFailureCode);
 const voiceShellVisible = computed(() => voiceState.connected || voiceState.reconnecting || voiceState.reconnectFailed || favoriteSwitchActive.value);
 // The banner's small line explains WHY a switch failed; safety-timeout and
 // cancel failures carry no gateway error and simply leave it empty.
@@ -1203,6 +1203,9 @@ function switchServer(server: FavoriteServer): void {
   // session down instead of parking it in the detach pool.
   if (server.address === currentTarget.value) return;
   beginFavoriteSwitch(server.label || server.address);
+  // Reset the failure mirror first: a second attempt failing with the same
+  // code must still re-trigger the banner watch.
+  voiceState.connectionFailureCode = "";
   const target = splitTeamSpeakTarget(server.address);
   serverHost.value = target.address;
   serverPort.value = target.port;

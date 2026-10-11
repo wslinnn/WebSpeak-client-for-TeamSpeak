@@ -9,7 +9,7 @@ const SWITCH_SAFETY_TIMEOUT_MS = 20_000;
 // stays pending while the dialog is up and resolves through connect or cancel.
 const PASSWORD_DIALOG_CODES = new Set(["SERVER_PASSWORD_REQUIRED", "INVALID_SERVER_PASSWORD"]);
 
-export function useVoiceServerSwitch(errorCode: () => string) {
+export function useVoiceServerSwitch(connectionFailureCode: () => string) {
   const pending = ref<string | null>(null);
   const failed = ref<string | null>(null);
   const active = computed(() => Boolean(pending.value || failed.value));
@@ -40,7 +40,7 @@ export function useVoiceServerSwitch(errorCode: () => string) {
     pending.value = null;
     failed.value = null;
   }
-  watch(errorCode, (code) => {
+  watch(connectionFailureCode, (code) => {
     if (!code || PASSWORD_DIALOG_CODES.has(code)) return;
     fail();
   });
