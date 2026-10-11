@@ -6,7 +6,6 @@ import { createAudioFlowStats, snapshotAudioStats, type AudioFlowStats } from ".
 export type { AudioFlowStats } from "./audio-stats.js";
 import type { ServerMessage } from "../shared/server-messages.js";
 import { parseWebRtcClientMessage } from "../shared/webrtc.js";
-import { resolveVoiceMediaAddresses } from "./webrtc-config.js";
 import { WebSocketServer, WebSocket } from "ws";
 import type { IncomingMessage, Server } from "node:http";
 import { identityFromString } from "@echosixhiya/teamspeak-client";
@@ -28,6 +27,7 @@ import { CommandRateLimiter, shouldReportRateLimit } from "./command-rate-limit.
 import { resolveClientAddress } from "./client-ip.js";
 import type { ServerPasswordGuard } from "./server-password-guard.js";
 import { DetachedSessionPool } from "./voice-bridge/detached-pool.js";
+import { createVoiceRtc, type VoiceRtc } from "./voice-bridge/voice-rtc.js";
 import type { ServerEvent, WebClientEntry } from "./voice-bridge/types.js";
 
 // Detached sessions hold a live TeamSpeak connection, so the window must
@@ -93,6 +93,7 @@ export class VoiceBridge {
   private logger: LoggerType;
   private readonly resumeGraceMs: number;
   private readonly detachedPool: DetachedSessionPool;
+  private readonly voiceRtc: VoiceRtc;
 
   constructor(
     private options: VoiceBridgeOptions,
@@ -113,6 +114,12 @@ export class VoiceBridge {
       teardown: (entryId, reason) => this.teardown(entryId, reason),
       stopWebRtc: entry => this.stopWebRtc(entry),
       removeScreenPeer: entryId => this.screenShares.removePeer(entryId),
+    });
+    this.voiceRtc = createVoiceRtc({
+      entries: this.entries,
+      logger: this.logger,
+      getWebRtcOptions: () => this.getWebRtcOptions(),
+      createWebRtcSession: this.createWebRtcSession,
     });
   }
 
@@ -783,89 +790,18 @@ export class VoiceBridge {
     return normalizeScreenShareIceServers(servers);
   }
 
-  private async stopWebRtc(entry: WebClientEntry): Promise<void> {
-    const generation = ++entry.webrtcGeneration;
-    const peer = entry.webrtc;
-    entry.webrtc = null;
-    // Enqueue the reset even while an offer is still preparing its first peer.
-    // A later offer's input changes are then ordered after this restoration.
-    const restoreInput = this.entries.get(entry.id) === entry && entry.tsClient.isConnected()
-      ? entry.tsClient.setAccompanimentActive(false).catch(() => undefined)
-      : Promise.resolve();
-    if (!peer) { await restoreInput; return; }
-    try { await peer.close(); } catch { /* peer teardown is idempotent */ }
-    await restoreInput;
-    if (entry.webrtcGeneration === generation) {
-      try { Object.assign(entry.audio, peer.getStats()); } catch { /* diagnostics must not abort cleanup */ }
-    }
+  // Thin delegates keep the bridge-internal call sites (and the test fixture's
+  // narrow view of the bridge) pointed at the extracted orchestration.
+  private stopWebRtc(entry: WebClientEntry): Promise<void> {
+    return this.voiceRtc.stopWebRtc(entry);
   }
 
-  private async handleWebRtcOffer(
+  private handleWebRtcOffer(
     entry: WebClientEntry,
     offer: WebRtcSessionDescription,
     sendJson: (message: ServerMessage) => void,
   ): Promise<void> {
-    const closing = this.stopWebRtc(entry);
-    const generation = entry.webrtcGeneration;
-    const isCurrent = (): boolean => entry.webrtcGeneration === generation
-      && this.entries.get(entry.id) === entry && entry.session.state === "connected"
-      && entry.ws.readyState === WebSocket.OPEN;
-    await closing;
-    if (!isCurrent()) return;
-    const config = this.getWebRtcOptions();
-    if (!config?.enabled) return;
-    const muted = offer.muted === true;
-    try {
-      // The offer carries the browser's initial mute state. WebRTC can silence
-      // the browser track locally, but TeamSpeak clients only see the state
-      // after the gateway updates its own TS client as well.
-      await entry.tsClient.setInputMuted(muted);
-      if (isCurrent()) await entry.tsClient.setAccompanimentActive(offer.accompanimentActive === true);
-    } catch (error: unknown) {
-      if (isCurrent()) this.logger.warn({ entryId: entry.id, muted, err: error instanceof Error ? error.message : String(error) }, "Could not synchronize initial microphone mute state");
-    }
-    if (!isCurrent()) return;
-    let peer: WebRtcAudioSession | null = null;
-    const isCurrentPeer = (): boolean => isCurrent() && peer !== null && entry.webrtc === peer;
-    try {
-      const publicAddresses = await resolveVoiceMediaAddresses(config.publicHost || entry.webrtcPublicHost, config.ipv6Enabled === true);
-      if (!isCurrent()) return;
-      peer = this.createWebRtcSession({
-        connectionId: entry.id,
-        publicAddresses,
-        ...(config.publicHost || entry.webrtcPublicHost ? { publicHost: config.publicHost || entry.webrtcPublicHost } : {}),
-        ipv6Enabled: config.ipv6Enabled,
-        stunServer: config.stunServer,
-        udpPortRange: config.udpPortRange,
-        logger: this.logger,
-        microphoneMuted: muted,
-        accompanimentActive: offer.accompanimentActive === true,
-        onVoiceFrame: (data, codec) => {
-          if (isCurrentPeer()) entry.audioTransport?.receiveWebRtc(data, codec);
-        },
-        onVoiceActivity: (clientIds) => {
-          if (isCurrentPeer()) sendJson({ type: "voiceActivity", clientIds });
-        },
-      });
-      entry.webrtc = peer;
-      const answer = await peer.createAnswer({ type: offer.type, sdp: offer.sdp });
-      if (!isCurrentPeer()) {
-        try { await peer.close(); } catch { /* a replaced peer may already be closed */ }
-        return;
-      }
-      sendJson({ type: "webrtcAnswer", payload: { sdp: answer } });
-      entry.webrtcEverUsed = true;
-      this.logger.info({ entryId: entry.id }, "WebRTC audio negotiation completed");
-    } catch (error: unknown) {
-      if (entry.webrtc === peer) entry.webrtc = null;
-      try { await peer?.close(); } catch { /* best effort */ }
-      if (isCurrent()) {
-        try { await entry.tsClient.setAccompanimentActive(false); } catch { /* best effort */ }
-        if (!isCurrent()) return;
-        this.logger.warn({ entryId: entry.id, err: error instanceof Error ? error.message : String(error) }, "WebRTC audio negotiation failed");
-        sendJson({ type: "webrtcError", code: "WEBRTC_NEGOTIATION_FAILED" });
-      }
-    }
+    return this.voiceRtc.handleWebRtcOffer(entry, offer, sendJson);
   }
 }
 
