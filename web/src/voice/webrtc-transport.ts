@@ -49,32 +49,16 @@ interface Attempt {
   cancelIce: (() => void) | null;
 }
 
-// Decode-side tap for WEBSPEAK_RTP_DEBUG-equivalent diagnostics: logs the
+// Decode-side tap for RTP egress/ingress reconciliation diagnostics: logs the
 // first frames and periodic samples of what Chrome actually receives per
 // slot (TOC byte, length), enabling gateway-egress vs browser-ingress
-// reconciliation without webrtc-internals. Kept out of production paths by
-// the webspeak:rtp-debug storage flag.
-const tapWorkerCode = `
-let tapped = 0;
-self.onrtctransform = (event) => {
-  const { readable, writable } = event.transformer;
-  readable.pipeThrough(new TransformStream({
-    transform(frame, controller) {
-      const data = new Uint8Array(frame.data);
-      tapped++;
-      if (tapped <= 5 || tapped % 250 === 0) {
-        const hex = Array.from(data.subarray(0, 8)).map(b => b.toString(16).padStart(2, "0")).join(" ");
-        self.postMessage({ len: data.length, hex, tapped });
-      }
-      controller.enqueue(frame);
-    },
-  })).pipeTo(writable).catch((e) => self.postMessage({ error: e.message }));
-};
-`;
-
+// reconciliation without webrtc-internals. The worker is a same-origin
+// static file (web/public/rtp-debug-worker.js) because blob workers violate
+// the site's Content-Security-Policy; everything stays inert unless the
+// webspeak:rtp-debug storage flag is set before joining.
 function attachDecodeTap(transceiver: RTCRtpTransceiver, label: string): void {
   try {
-    const worker = new Worker(URL.createObjectURL(new Blob([tapWorkerCode], { type: "text/javascript" })));
+    const worker = new Worker("/rtp-debug-worker.js");
     worker.onmessage = (event: MessageEvent<{ len: number; hex: string; tapped: number; error?: string }>) => {
       if (event.data.error) {
         console.warn(`[rtp-debug] ${label} transform error:`, event.data.error);
