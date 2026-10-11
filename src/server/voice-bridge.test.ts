@@ -135,10 +135,10 @@ test("a replaced peer cannot forward late audio or activity into the current ses
   const old = f.peers[0]!;
   await f.offer("new");
   old.options.onVoiceFrame(Buffer.from([1, 2, 3]), 4);
-  old.options.onVoiceActivity([7]);
+  old.options.onVoiceRoutes([7, 0]);
   assert.equal(f.forwarded(), 0);
   assert.equal(f.entry.audio.ingressFrames, 0);
-  assert.equal(f.messages.some(message => message.type === "voiceActivity"), false);
+  assert.equal(f.messages.some(message => message.type === "voiceRoute"), false);
   f.peers[1]!.options.onVoiceFrame(Buffer.from([4, 5, 6]), 4);
   assert.equal(f.forwarded(), 1);
 });

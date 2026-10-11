@@ -34,7 +34,7 @@ export type ServerMessage =
   | Message<"connectionFailed" | "reconnectFailed" | "webrtcError" | "audioError", Failure>
   | Message<"whisperTargets", { targetIds: number[]; active: boolean }>
   | Message<"webrtcAnswer", { payload: { sdp: SessionDescription } }>
-  | Message<"voiceActivity", { clientIds: number[] }>
+  | Message<"voiceRoute", { slots: number[] }>
   | Message<"commandCompleted" | "screenShareCompleted", { requestId: string }>
   | Message<"error", Request & { error?: { code?: string; message?: string; recoverable?: boolean }; message?: string }>
   | Message<"screenShareList", { streams: ScreenShareStreamDescription[] }>
@@ -83,9 +83,8 @@ export function parseVoiceAudioBridgeStats(value: unknown): VoiceAudioBridgeStat
     egressFrames: count("egressFrames"), egressDroppedFrames: count("egressDroppedFrames"), egressMaxGapMs: count("egressMaxGapMs"),
     webrtcIngressRtpFrames: count("webrtcIngressRtpFrames"), webrtcIngressRtpMaxGapMs: count("webrtcIngressRtpMaxGapMs"),
     webrtcEgressRtpFrames: count("webrtcEgressRtpFrames"), webrtcEgressRtpMaxGapMs: count("webrtcEgressRtpMaxGapMs"),
-    webrtcQueueDroppedFrames: count("webrtcQueueDroppedFrames"), webrtcQueueUnderrunTicks: count("webrtcQueueUnderrunTicks"),
-    webrtcPacerLateTicks: count("webrtcPacerLateTicks"), webrtcIngressDecodeErrors: count("webrtcIngressDecodeErrors"),
-    webrtcDownlinkDecodeErrors: count("webrtcDownlinkDecodeErrors"),
+    webrtcDownlinkForwardedFrames: count("webrtcDownlinkForwardedFrames"), webrtcDownlinkDroppedFrames: count("webrtcDownlinkDroppedFrames"),
+    webrtcActiveSpeakerSlots: count("webrtcActiveSpeakerSlots"),
   };
 }
 
@@ -147,7 +146,7 @@ const valid: Record<ServerMessage["type"], (message: RecordValue) => boolean> = 
   audioError: m => optional(m.code, text) && optional(m.detail, text),
   whisperTargets: m => arrayOf(m.targetIds, clientId) && boolean(m.active),
   webrtcAnswer: m => isRecord(m.payload) && isSessionDescription(m.payload.sdp, "answer"),
-  voiceActivity: m => arrayOf(m.clientIds, clientId),
+  voiceRoute: m => Array.isArray(m.slots) && m.slots.length <= 16 && arrayOf(m.slots, v => finite(v) && Number.isInteger(v) && v >= 0 && v <= 65535),
   commandCompleted: m => text(m.requestId),
   screenShareCompleted: m => text(m.requestId),
   error: m => optional(m.message, text) && optional(m.error, v => isRecord(v) && optional(v.code, text) && optional(v.message, text) && optional(v.recoverable, boolean)),

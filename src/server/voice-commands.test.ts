@@ -113,7 +113,7 @@ test("mute state reaches the mixer only after TeamSpeak accepts the change", asy
   f.context.webrtc = {
     getStats: createAudioFlowStats,
     setMicrophoneMuted: value => { f.calls.push(["mixer-mute", value]); },
-    setAccompanimentActive() {}, setMemberVolume() {},
+    setAccompanimentActive() {},
   };
   await f.run({ type: "setMicrophoneMuted", payload: { muted: true }, requestId: "mute" });
   assert.deepEqual(f.calls, [["mute", true], ["mixer-mute", true]]);
@@ -139,7 +139,7 @@ test("accompaniment changes reach the mixer only after TeamSpeak accepts them", 
   const f = fixture();
   let active = false;
   f.context.webrtc = {
-    getStats: createAudioFlowStats, setMicrophoneMuted() {}, setMemberVolume() {},
+    getStats: createAudioFlowStats, setMicrophoneMuted() {},
     setAccompanimentActive: value => { active = value; },
   };
   f.context.tsClient.setAccompanimentActive = async () => { throw Object.assign(new Error("denied"), { id: 2568 }); };

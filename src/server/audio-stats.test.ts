@@ -19,9 +19,7 @@ test("public audio status includes live WebRTC counters without losing gateway c
   const rtc: WebRtcAudioStats = {
     webrtcIngressRtpFrames: 7, webrtcIngressRtpFirstAt: 100, webrtcIngressRtpLastAt: 220, webrtcIngressRtpMaxGapMs: 20,
     webrtcEgressRtpFrames: 3, webrtcEgressRtpFirstAt: 100, webrtcEgressRtpLastAt: 140, webrtcEgressRtpMaxGapMs: 20,
-    webrtcQueuePeakFrames: 2, webrtcQueueDroppedFrames: 1, webrtcQueueUnderrunTicks: 0, webrtcPacerLateTicks: 0,
-    webrtcQueueCurrentFrames: 1, webrtcIngressQuietFrames: 0, webrtcIngressDecodeErrors: 0,
-    webrtcDownlinkDecodedFrames: 3, webrtcDownlinkDecodeErrors: 0, webrtcDownlinkShortFrames: 0,
+    webrtcDownlinkForwardedFrames: 3, webrtcDownlinkDroppedFrames: 1, webrtcActiveSpeakerSlots: 2,
   };
   const source = { audio, webrtc: { getStats: () => rtc } };
   const status = snapshotAudioStatus(source);

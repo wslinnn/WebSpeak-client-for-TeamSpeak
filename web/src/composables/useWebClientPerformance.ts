@@ -82,9 +82,7 @@ export function useWebClientPerformance(
       ? (counterDelta(bridge.tsSendErrors, previousBridge.tsSendErrors) ?? 0)
         + (counterDelta(bridge.ingressDroppedFrames, previousBridge.ingressDroppedFrames) ?? 0)
         + (counterDelta(bridge.egressDroppedFrames, previousBridge.egressDroppedFrames) ?? 0)
-        + (counterDelta(bridge.webrtcIngressDecodeErrors, previousBridge.webrtcIngressDecodeErrors) ?? 0)
-        + (counterDelta(bridge.webrtcDownlinkDecodeErrors, previousBridge.webrtcDownlinkDecodeErrors) ?? 0)
-        + (counterDelta(bridge.webrtcQueueDroppedFrames, previousBridge.webrtcQueueDroppedFrames) ?? 0)
+        + (counterDelta(bridge.webrtcDownlinkDroppedFrames, previousBridge.webrtcDownlinkDroppedFrames) ?? 0)
         + (counterDelta(current?.fallbackPlayback.decodeErrors ?? 0, previous?.fallbackPlayback.decodeErrors ?? 0) ?? 0)
       : 0;
     const uplinkBitrateKbps = browser ? bitrateKbps(browser.outboundBytes, previousBrowser?.outboundBytes, elapsedMs) : null;
@@ -125,10 +123,9 @@ export function useWebClientPerformance(
       droppedFrames: bridge && previousBridge
         ? (counterDelta(bridge.ingressDroppedFrames, previousBridge.ingressDroppedFrames) ?? 0)
           + (counterDelta(bridge.egressDroppedFrames, previousBridge.egressDroppedFrames) ?? 0)
-          + (counterDelta(bridge.webrtcQueueDroppedFrames, previousBridge.webrtcQueueDroppedFrames) ?? 0)
+          + (counterDelta(bridge.webrtcDownlinkDroppedFrames, previousBridge.webrtcDownlinkDroppedFrames) ?? 0)
           + (counterDelta(current?.fallbackPlayback.framesDropped ?? 0, previous?.fallbackPlayback.framesDropped ?? 0) ?? 0)
         : null,
-      queueUnderruns: bridge && previousBridge ? counterDelta(bridge.webrtcQueueUnderrunTicks, previousBridge.webrtcQueueUnderrunTicks) : null,
       ingressMaxGapMs: bridge?.ingressMaxGapMs ?? null,
       egressMaxGapMs: bridge?.egressMaxGapMs ?? null,
     };

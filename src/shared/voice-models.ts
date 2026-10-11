@@ -64,10 +64,8 @@ export interface VoiceAudioBridgeStats {
   webrtcIngressRtpMaxGapMs: number;
   webrtcEgressRtpFrames: number;
   webrtcEgressRtpMaxGapMs: number;
-  webrtcQueueDroppedFrames: number;
-  webrtcQueueUnderrunTicks: number;
-  webrtcPacerLateTicks: number;
-  webrtcIngressDecodeErrors: number;
-  webrtcDownlinkDecodeErrors: number;
+  webrtcDownlinkForwardedFrames: number;
+  webrtcDownlinkDroppedFrames: number;
+  webrtcActiveSpeakerSlots: number;
 }
 

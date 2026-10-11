@@ -70,16 +70,9 @@ export function createAudioFlowStats(): AudioFlowStats {
     webrtcEgressRtpFirstAt: null,
     webrtcEgressRtpLastAt: null,
     webrtcEgressRtpMaxGapMs: 0,
-    webrtcQueuePeakFrames: 0,
-    webrtcQueueDroppedFrames: 0,
-    webrtcQueueUnderrunTicks: 0,
-    webrtcPacerLateTicks: 0,
-    webrtcQueueCurrentFrames: 0,
-    webrtcIngressQuietFrames: 0,
-    webrtcIngressDecodeErrors: 0,
-    webrtcDownlinkDecodedFrames: 0,
-    webrtcDownlinkDecodeErrors: 0,
-    webrtcDownlinkShortFrames: 0,
+    webrtcDownlinkForwardedFrames: 0,
+    webrtcDownlinkDroppedFrames: 0,
+    webrtcActiveSpeakerSlots: 0,
   };
 }
 
@@ -109,11 +102,9 @@ export function snapshotAudioStatus(entry: AudioStatsSource): VoiceAudioBridgeSt
     webrtcIngressRtpMaxGapMs: stats.webrtcIngressRtpMaxGapMs,
     webrtcEgressRtpFrames: stats.webrtcEgressRtpFrames,
     webrtcEgressRtpMaxGapMs: stats.webrtcEgressRtpMaxGapMs,
-    webrtcQueueDroppedFrames: stats.webrtcQueueDroppedFrames,
-    webrtcQueueUnderrunTicks: stats.webrtcQueueUnderrunTicks,
-    webrtcPacerLateTicks: stats.webrtcPacerLateTicks,
-    webrtcIngressDecodeErrors: stats.webrtcIngressDecodeErrors,
-    webrtcDownlinkDecodeErrors: stats.webrtcDownlinkDecodeErrors,
+    webrtcDownlinkForwardedFrames: stats.webrtcDownlinkForwardedFrames,
+    webrtcDownlinkDroppedFrames: stats.webrtcDownlinkDroppedFrames,
+    webrtcActiveSpeakerSlots: stats.webrtcActiveSpeakerSlots,
   };
 }
 

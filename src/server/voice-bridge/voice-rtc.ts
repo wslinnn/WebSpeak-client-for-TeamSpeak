@@ -76,8 +76,8 @@ export function createVoiceRtc(deps: VoiceRtcDeps) {
         onVoiceFrame: (data, codec) => {
           if (isCurrentPeer()) entry.audioTransport?.receiveWebRtc(data, codec);
         },
-        onVoiceActivity: (clientIds) => {
-          if (isCurrentPeer()) sendJson({ type: "voiceActivity", clientIds });
+        onVoiceRoutes: (slots) => {
+          if (isCurrentPeer()) sendJson({ type: "voiceRoute", slots: [...slots] });
         },
       });
       entry.webrtc = peer;

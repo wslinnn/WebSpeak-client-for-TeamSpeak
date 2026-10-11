@@ -338,7 +338,6 @@ export const de: Record<string, string> = {
     voicePlaybackUnavailable: "Wiedergabepfad nicht eingerichtet",
     voiceSendErrors: "Sendefehler",
     voiceDroppedFrames: "Kürzlich verworfene Frames",
-    voiceQueueUnderruns: "Kürzliche Wiedergabe-Unterläufe",
     voiceStatusSampling: "Aktuelle Audiowerte werden erfasst…",
     voiceStatusLiveHint: "Tatsächliche Audioframes und Browser-Medienwerte alle 2 Sekunden",
     voiceStatusWaiting: "Messwerte werden nach dem Verbinden angezeigt",

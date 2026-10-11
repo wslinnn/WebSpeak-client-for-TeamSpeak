@@ -270,6 +270,10 @@ export function useVoiceWebSocket() {
   // track — without this snapshot the header transport badge would freeze on
   // whatever the state was when it first rendered.
   const webrtcTransportSnapshot = ref({ active: false, hasPeer: false });
+  // Slot index → TeamSpeak client id (0 = free slot), pushed by the gateway
+  // whenever a downstream slot assignment changes. The multi-track playback
+  // binds its per-slot streams through this table.
+  const webRtcVoiceRoutes = ref<number[]>([]);
   const webrtc = createWebRtcTransport({
     stunServer: () => webRtcStunServer,
     onTransportChange(snapshot) {
@@ -290,9 +294,14 @@ export function useVoiceWebSocket() {
       if (rms !== null && !microphoneMuted.value && track.enabled && rms >= voxThreshold.value) markSpeaking(state.tsClientId);
       else if (state.tsClientId) clearSpeaking(state.tsClientId);
     },
-    onReady: syncWebRtcMemberVolumes,
+    onReady() {
+      // A renegotiated peer starts with unbound slots; replay the last known
+      // slot assignment so its streams are immediately correctly bound.
+      webrtc.setSlotClients(webRtcVoiceRoutes.value);
+    },
     async onFallback(reason, isCurrent) {
       if (!isCurrent()) return;
+      webRtcVoiceRoutes.value = [];
       setAudioNotice("WEBRTC_FALLBACK", `实时语音（WebRTC）不可用（错误代码：${safeClientErrorCode(reason) || "WEBRTC_UNAVAILABLE"}），已切换为兼容传输：延迟与音质可能下降`);
       try { await startMicrophone(); }
       catch (error) { if (isCurrent()) setMicrophoneError(error); }
@@ -300,6 +309,7 @@ export function useVoiceWebSocket() {
     playback: {
       context: () => audioCtx,
       volume: effectiveOutputVolume,
+      speakerVolume: clientId => volumes[clientId] ?? 1,
       onEndpoint(output) {
         clearAudioNotice("OUTPUT_DEVICE_PENDING_WEBRTC");
         if (!selectedOutputDeviceId.value || !output.setSinkId) return;
@@ -313,6 +323,13 @@ export function useVoiceWebSocket() {
         else clearAudioNotice("PLAYBACK_BLOCKED");
       },
       onPlaying: syncAudioContextNotice,
+      onSlotActivity(clientId, active) {
+        // Downstream speaking detection is local now: the gateway forwards
+        // payloads untouched and has no decoded signal to analyze.
+        if (clientId <= 0) return;
+        if (active) markSpeaking(clientId);
+        else clearSpeaking(clientId);
+      },
     },
   });
   const audioDiagnostics = createAudioDiagnostics({
@@ -1210,12 +1227,9 @@ export function useVoiceWebSocket() {
         setAudioNotice(audioCode, audioNoticeMessage(audioCode, msg.detail));
         break;
       }
-      case "voiceActivity":
-        if (Array.isArray(msg.clientIds)) {
-          for (const clientId of msg.clientIds) {
-            if (typeof clientId === "number" && Number.isInteger(clientId) && clientId > 0) markSpeaking(clientId);
-          }
-        }
+      case "voiceRoute":
+        webRtcVoiceRoutes.value = [...msg.slots];
+        webrtc.setSlotClients(msg.slots);
         break;
       case "commandCompleted": {
         const requestId = typeof msg.requestId === "string" ? msg.requestId : "";
@@ -1434,25 +1448,17 @@ export function useVoiceWebSocket() {
     volumes[clientId] = normalized;
     const member = members.find((candidate) => candidate.id === clientId);
     if (member?.uid) storedVolumesByUid[member.uid] = normalized;
-    // Local gain follows the thumb immediately; persistence and the gateway
-    // command are trailing — one drag used to emit dozens of WS commands.
+    // Per-speaker volume is applied locally on the playback graph (both the
+    // compatibility decoder and the WebRTC multi-track streams), so only
+    // persistence trails the thumb — one drag used to emit dozens of commands.
     remotePlayback.updateVolume(clientId);
+    webrtc.refreshSpeakerVolume(clientId);
     const pending = volumeSyncTimers.get(clientId);
     if (pending !== undefined) clearTimeout(pending);
     volumeSyncTimers.set(clientId, setTimeout(() => {
       volumeSyncTimers.delete(clientId);
       void saveAudioPreferences();
-      if (webrtc.peer || webrtc.active) sendCmd("setMemberVolume", { clientId, volume: normalized });
     }, VOLUME_SYNC_DELAY_MS));
-  }
-
-  function syncWebRtcMemberVolumes(): void {
-    if (!webrtc.active || ws.value?.readyState !== WebSocket.OPEN) return;
-    for (const [rawClientId, volume] of Object.entries(volumes)) {
-      const clientId = Number(rawClientId);
-      if (!Number.isInteger(clientId) || clientId <= 0) continue;
-      sendCmd("setMemberVolume", { clientId, volume });
-    }
   }
 
   function setInputVolume(volume: number): void {

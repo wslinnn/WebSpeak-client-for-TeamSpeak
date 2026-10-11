@@ -99,7 +99,12 @@ class AudioContextStub extends EventTarget {
     return node;
   }
   createGain() { const node = new AudioNodeStub(); AudioContextStub.gains.push(node); return node; }
-  createAnalyser() { throw new Error("Analyser unavailable"); }
+  createAnalyser() {
+    // Silent by default: the multi-track playback polls each slot analyser
+    // for speaking detection, and empty samples keep every slot quiet.
+    const samples = new Float32Array(1024);
+    return Object.assign(new AudioNodeStub(), { fftSize: 2048, getFloatTimeDomainData(target) { target.fill(0); void samples; } });
+  }
   createBuffer(channels, frames, sampleRate) { return { duration: frames / sampleRate, copyToChannel() {} }; }
   createBufferSource() { const node = new AudioSourceStub(); AudioContextStub.sources.push(node); return node; }
   createScriptProcessor() { const node = new AudioNodeStub(); AudioContextStub.processors.push(node); return node; }
@@ -130,6 +135,7 @@ class TestPeer extends EventTarget {
   localDescription = null;
   remoteDescription = null;
   senderEncodings = [];
+  transceivers = [];
   sender = {
     track: null,
     replaceTrack: async track => { this.sender.track = track; },
@@ -137,7 +143,18 @@ class TestPeer extends EventTarget {
     setParameters: async parameters => { TestPeer.senderParameters.push(parameters); },
   };
   constructor(config) { super(); this.config = config; TestPeer.instances.push(this); }
-  addTrack(track) { this.sender.track = track; }
+  addTrack(track) {
+    this.sender.track = track;
+    const transceiver = { kind: "audio", direction: "sendrecv", receiver: { track } };
+    this.transceivers.push(transceiver);
+    return transceiver;
+  }
+  addTransceiver(kind, init = {}) {
+    const transceiver = { kind, direction: init.direction ?? "sendrecv", receiver: { track: null } };
+    this.transceivers.push(transceiver);
+    return transceiver;
+  }
+  getTransceivers() { return this.transceivers; }
   getSenders() { return [this.sender]; }
   async createOffer() { return { type: "offer", sdp: "test-offer" }; }
   async setLocalDescription(description) { this.localDescription = description; }
@@ -211,6 +228,8 @@ beforeEach(() => {
       return timer;
     },
     clearTimeout(timer) { clearTimeout(timer); browserTimers.delete(timer); },
+    setInterval(callback, ms) { const timer = setInterval(callback, ms); browserTimers.add(timer); return timer; },
+    clearInterval(timer) { clearInterval(timer); browserTimers.delete(timer); },
   }));
   replaceGlobal("document", Object.assign(new EventTarget(), {
     createElement: () => new TestAudioElement(),
@@ -1335,8 +1354,12 @@ test("audio setup failure shows a distinct accompaniment message in every langua
 test("accompaniment keeps display processing off and preserves microphone mute and gain", async () => {
   const { peer, socket } = await connectWebRtc();
   const originalTrack = peer.sender.track;
-  const micGain = AudioContextStub.gains.at(-1);
   voice.setInputVolume(0.4);
+  // The uplink gain is identified by behavior (the one the slider drives),
+  // not by creation order: capture, silence and playback nodes all live in
+  // the same context and their order is an implementation detail.
+  const micGain = AudioContextStub.gains.find(gain => gain.gain.value === 0.4);
+  assert.ok(micGain, "setting the input volume must land on exactly one uplink gain");
   const audio = microphoneStream();
   const video = displayStream();
   audio.track.contentHint = "";
@@ -1404,7 +1427,8 @@ test("a failed source selection preserves active accompaniment and disconnect cl
   assert.equal(voice.accompanimentErrorCode.value, "");
 });
 
-test("an unavailable microphone analyser releases its partial source without failing voice", async () => {
+test("an unavailable microphone analyser releases its partial source without failing voice", async t => {
+  t.mock.method(AudioContextStub.prototype, "createAnalyser", () => { throw new Error("Analyser unavailable"); });
   const { peer } = await connectWebRtc();
   assert.equal(AudioContextStub.mediaSources[2].disconnects, 1);
   assert.notEqual(peer.connectionState, "closed");
@@ -1507,10 +1531,11 @@ test("a successful old WebRTC answer cannot activate WebRTC for a compatibility 
 });
 
 test("a queued track event from a closed peer cannot replace current playback", async () => {
+
   const first = await connectWebRtc();
   const oldOnTrack = first.peer.ontrack;
   const current = await connectWebRtc();
-  current.peer.ontrack({ streams: [microphoneStream()] });
+  current.peer.ontrack({ streams: [microphoneStream()], transceiver: current.peer.transceivers[1] });
   const output = [...audioElements][0];
   oldOnTrack({ streams: [microphoneStream()] });
   assert.deepEqual([...audioElements], [output]);
@@ -1522,7 +1547,7 @@ test("a late playback rejection does not restore notices or retry listeners afte
   const output = new TestAudioElement();
   output.play = () => playback.promise;
   document.createElement = () => output;
-  peer.ontrack({ streams: [microphoneStream()] });
+  peer.ontrack({ streams: [microphoneStream()], transceiver: peer.transceivers[1] });
   voice.disconnect();
   playback.reject(new Error("autoplay blocked"));
   await nextTurn();
@@ -1534,7 +1559,7 @@ test("a playback pause failure cannot prevent peer and microphone cleanup", asyn
   const microphone = microphoneStream();
   navigator.mediaDevices.getUserMedia = async () => microphone;
   const { peer } = await connectWebRtc();
-  peer.ontrack({ streams: [microphoneStream()] });
+  peer.ontrack({ streams: [microphoneStream()], transceiver: peer.transceivers[1] });
   const output = [...audioElements][0];
   t.mock.method(output, "pause", () => { throw new Error("Playback unavailable"); }, { times: 1 });
   assert.doesNotThrow(() => voice.disconnect());
@@ -1564,7 +1589,7 @@ test("a playback setup failure releases its element and restores compatibility a
   output.remove = () => { removed = true; audioElements.delete(output); };
   Object.defineProperty(output, "srcObject", { set(value) { if (value) throw new Error("Playback source unavailable"); } });
   document.createElement = () => output;
-  assert.doesNotThrow(() => peer.ontrack({ streams: [microphoneStream()] }));
+  assert.doesNotThrow(() => peer.ontrack({ streams: [microphoneStream()], transceiver: peer.transceivers[1] }));
   await nextTurn();
   assert.equal(removed, true);
   assert.equal(peer.connectionState, "closed");
@@ -1584,7 +1609,7 @@ test("a queued old playback retry cannot play a replacement session", async t =>
   const blocked = new TestAudioElement();
   blocked.play = async () => { throw new Error("Gesture required"); };
   document.createElement = () => blocked;
-  first.peer.ontrack({ streams: [microphoneStream()] });
+  first.peer.ontrack({ streams: [microphoneStream()], transceiver: first.peer.transceivers[1] });
   await nextTurn();
   const oldRetry = retry;
   assert.equal(typeof oldRetry, "function");
@@ -1593,7 +1618,7 @@ test("a queued old playback retry cannot play a replacement session", async t =>
   let plays = 0;
   output.play = async () => { plays++; };
   document.createElement = () => output;
-  next.peer.ontrack({ streams: [microphoneStream()] });
+  next.peer.ontrack({ streams: [microphoneStream()], transceiver: next.peer.transceivers[1] });
   await nextTurn();
   assert.equal(plays, 1);
   oldRetry();
@@ -1609,7 +1634,7 @@ test("overlapping playback retry gestures share one in-flight play attempt", asy
   let plays = 0;
   output.play = () => ++plays === 1 ? Promise.reject(new Error("Gesture required")) : playback.promise;
   document.createElement = () => output;
-  peer.ontrack({ streams: [microphoneStream()] });
+  peer.ontrack({ streams: [microphoneStream()], transceiver: peer.transceivers[1] });
   await nextTurn();
   window.dispatchEvent(new Event("pointerdown"));
   window.dispatchEvent(new Event("keydown"));
@@ -1858,6 +1883,18 @@ test("a rejected sender parameter update does not fail the negotiated transport"
   await nextTurn();
   assert.equal(socket.messages.some(message => message.type === "webrtcStop"), false);
   assert.equal(voice.state.audioNoticeCode, "", "a codec-quality-only failure must keep the WebRTC transport up");
+});
+
+test("a voiceRoute announcement binds the downstream slot to the member's volume", async () => {
+  const { socket, peer } = await connectWebRtc();
+  peer.ontrack({ streams: [microphoneStream()], transceiver: peer.transceivers[1] });
+  socket.receive({ type: "voiceRoute", slots: [7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] });
+  await nextTurn();
+  assert.ok(AudioContextStub.gains.some(gain => gain.gain.value === 1), "the bound slot starts at the neutral volume");
+  voice.setVolume(7, 2);
+  assert.ok(AudioContextStub.gains.some(gain => gain.gain.value === 2), "the bound slot follows the member volume slider");
+  voice.setVolume(9, 3);
+  assert.equal(AudioContextStub.gains.some(gain => gain.gain.value === 3), false, "volumes for unbound speakers apply nowhere");
 });
 
 test("disconnect cancels an ICE gathering wait without sending an offer", async t => {
@@ -2280,7 +2317,7 @@ test("disconnect skips queued output changes and keeps only the last committed d
 test("failure on the WebRTC output restores the previously committed context sink", async t => {
   navigator.mediaDevices.enumerateDevices = async () => availableDevices;
   const { peer } = await connectWebRtc();
-  peer.ontrack({ streams: [microphoneStream()] });
+  peer.ontrack({ streams: [microphoneStream()], transceiver: peer.transceivers[1] });
   const output = [...audioElements][0];
   output.setSinkId = async id => { if (id === "speaker-a") throw new Error("Output denied"); output.sinkId = id; };
   const ctx = AudioContextStub.instances.at(-1);

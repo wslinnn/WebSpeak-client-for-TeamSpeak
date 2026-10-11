@@ -11,7 +11,6 @@ export interface ClientCommandPayloads {
   setWhisperActive: { active: boolean };
   setMicrophoneMuted: { muted: boolean };
   setAccompanimentActive: { active: boolean };
-  setMemberVolume: { clientId: number; volume: number };
   latencyProbe: { sequence: string };
   audioStatsProbe: { sequence: string };
 }
@@ -36,7 +35,7 @@ export function parseClientCommand(raw: string): ClientCommandResult {
   if (value.requestId !== undefined && (typeof value.requestId !== "string" || value.requestId.length > 64)) {
     return { error: { code: "INVALID_REQUEST_ID", message: "请求标识无效" } };
   }
-  const supportedTypes = new Set(["switchChannel", "moveClient", "sendTextMessage", "sendServerMessage", "sendPrivateMessage", "poke", "setAway", "setWhisperTargets", "setWhisperActive", "setMicrophoneMuted", "setAccompanimentActive", "setMemberVolume", "latencyProbe", "audioStatsProbe"]);
+  const supportedTypes = new Set(["switchChannel", "moveClient", "sendTextMessage", "sendServerMessage", "sendPrivateMessage", "poke", "setAway", "setWhisperTargets", "setWhisperActive", "setMicrophoneMuted", "setAccompanimentActive", "latencyProbe", "audioStatsProbe"]);
   if (!supportedTypes.has(value.type)) {
     return { error: { code: "UNKNOWN_MESSAGE_TYPE", message: "不支持的消息类型" } };
   }
@@ -93,9 +92,6 @@ export function parseClientCommand(raw: string): ClientCommandResult {
   }
   if (value.type === "setAccompanimentActive" && typeof value.payload.active !== "boolean") {
     return { error: { code: "INVALID_ACCOMPANIMENT_STATE", message: "伴奏状态无效" } };
-  }
-  if (value.type === "setMemberVolume" && (typeof value.payload.clientId !== "number" || !Number.isInteger(value.payload.clientId) || value.payload.clientId <= 0 || value.payload.clientId > 65535 || typeof value.payload.volume !== "number" || !Number.isFinite(value.payload.volume) || value.payload.volume < 0 || value.payload.volume > 4)) {
-    return { error: { code: "INVALID_MEMBER_VOLUME", message: "成员音量无效" } };
   }
   if (value.type === "audioStatsProbe" && (typeof value.payload.sequence !== "string" || value.payload.sequence.length > 64)) {
     return { error: { code: "INVALID_AUDIO_STATS_PROBE", message: "音频状态采样标识无效" } };

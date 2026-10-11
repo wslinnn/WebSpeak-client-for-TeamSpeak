@@ -339,7 +339,6 @@ export const en: Record<string, string> = {
     voicePlaybackUnavailable: "Playback path not established",
     voiceSendErrors: "Send errors",
     voiceDroppedFrames: "Recently dropped frames",
-    voiceQueueUnderruns: "Recent playback underruns",
     voiceStatusSampling: "Sampling current audio metrics…",
     voiceStatusLiveHint: "Actual audio frames and browser media stats sampled every 2 seconds",
     voiceStatusWaiting: "Actual media statistics appear after connecting",

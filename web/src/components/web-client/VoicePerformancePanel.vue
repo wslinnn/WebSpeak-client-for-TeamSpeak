@@ -127,11 +127,6 @@
           {{ performanceStats.sendErrors == null ? "—" : performanceStats.sendErrors }} ·
           {{ t("voiceDroppedFrames") }}
           {{ performanceStats.droppedFrames == null ? "—" : performanceStats.droppedFrames }}</span
-        ><span v-if="performanceStats.transport === 'webrtc'"
-          >{{ t("voiceQueueUnderruns") }}
-          {{
-            performanceStats.queueUnderruns == null ? "—" : performanceStats.queueUnderruns
-          }}</span
         ></div
       >
       <p

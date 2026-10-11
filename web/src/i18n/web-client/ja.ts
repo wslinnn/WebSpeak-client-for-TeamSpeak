@@ -176,7 +176,6 @@ export const ja: Record<string, string> = {
   voicePlaybackUnavailable: "再生経路は未確立",
   voiceSendErrors: "送信エラー",
   voiceDroppedFrames: "直近の破棄フレーム",
-  voiceQueueUnderruns: "直近の再生アンダーラン",
   voiceStatusSampling: "現在の音声指標を取得中…",
   voiceStatusLiveHint: "実音声フレームとブラウザーのメディア統計を2秒ごとに計測",
   voiceStatusWaiting: "接続後に実際のメディア状態を表示します",

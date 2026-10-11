@@ -176,7 +176,6 @@ export const ru: Record<string, string> = {
   voicePlaybackUnavailable: "Канал воспроизведения не создан",
   voiceSendErrors: "Ошибки отправки",
   voiceDroppedFrames: "Недавно отброшенные кадры",
-  voiceQueueUnderruns: "Недавние сбои очереди воспроизведения",
   voiceStatusSampling: "Сбор текущих аудиопоказателей…",
   voiceStatusLiveHint: "Реальные аудиокадры и статистика браузера обновляются каждые 2 секунды",
   voiceStatusWaiting: "Реальные медиаданные появятся после подключения",

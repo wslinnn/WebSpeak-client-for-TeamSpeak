@@ -16,7 +16,7 @@ export interface VoiceCommandContext extends AudioStatsSource {
   whisperActive: boolean;
   lastLatencyProbeAt: number;
   lastAudioStatsProbeAt: number;
-  webrtc: Pick<WebRtcAudioSession, "getStats" | "setMicrophoneMuted" | "setAccompanimentActive" | "setMemberVolume"> | null;
+  webrtc: Pick<WebRtcAudioSession, "getStats" | "setMicrophoneMuted" | "setAccompanimentActive"> | null;
 }
 
 export async function handleCommand(
@@ -158,9 +158,6 @@ export async function handleCommand(
         await entry.tsClient.setAccompanimentActive(command.payload.active);
         if (entry.webrtc === peer) peer.setAccompanimentActive(command.payload.active);
       }
-    } else if (command.type === "setMemberVolume") {
-      const clientId = command.payload.clientId;
-      entry.webrtc?.setMemberVolume(clientId, command.payload.volume);
     }
     if (command.requestId) sendJson({ type: "commandCompleted", requestId: command.requestId });
   } catch (error: unknown) {

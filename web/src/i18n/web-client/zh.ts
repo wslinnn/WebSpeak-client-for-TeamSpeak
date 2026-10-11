@@ -339,7 +339,6 @@ export const zh: Record<string, string> = {
     voicePlaybackUnavailable: "尚未建立播放通道",
     voiceSendErrors: "发送错误",
     voiceDroppedFrames: "近期丢弃帧",
-    voiceQueueUnderruns: "近期播放欠载",
     voiceStatusSampling: "正在采集当前音频指标…",
     voiceStatusLiveHint: "每 2 秒采样实际音频帧和浏览器媒体统计",
     voiceStatusWaiting: "连接后开始读取实际媒体状态",

@@ -11,7 +11,7 @@ test("all command payloads preserve request IDs through the shared parser", () =
     poke: { clientId: 2, message: "hello" }, setAway: { away: true, message: "away" },
     setWhisperTargets: { targetIds: [2, 3] }, setWhisperActive: { active: true },
     setMicrophoneMuted: { muted: false }, setAccompanimentActive: { active: true },
-    setMemberVolume: { clientId: 2, volume: 0 }, latencyProbe: { sequence: "old" }, audioStatsProbe: { sequence: "new" },
+ latencyProbe: { sequence: "old" }, audioStatsProbe: { sequence: "new" },
   };
   for (const [type, payload] of Object.entries(payloads)) {
     const command = { type, payload, requestId: "request-1" };
@@ -37,7 +37,6 @@ test("malformed commands keep existing public error codes", () => {
     [{ type: "switchChannel", payload: { channelId: "1", password: "x".repeat(513) } }, "INVALID_CHANNEL_PASSWORD"],
     [{ type: "sendPrivateMessage", payload: { clientId: 1, message: "x".repeat(501) } }, "INVALID_TEXT_MESSAGE"],
     [{ type: "setWhisperTargets", payload: { targetIds: [2, 2] } }, "INVALID_WHISPER_TARGETS"],
-    [{ type: "setMemberVolume", payload: { clientId: 1, volume: 4.1 } }, "INVALID_MEMBER_VOLUME"],
     [{ type: "setMicrophoneMuted", payload: { muted: "false" } }, "INVALID_MICROPHONE_STATE"],
     [{ type: "setAway", payload: { away: 1 } }, "INVALID_AWAY_STATUS"],
     [{ type: "future", payload: {} }, "UNKNOWN_MESSAGE_TYPE"],

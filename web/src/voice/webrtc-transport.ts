@@ -3,6 +3,12 @@ import { createWebRtcInput, type WebRtcInput } from "./webrtc-input.js";
 import { createMicrophoneMeter, type MicrophoneMeter } from "./microphone-meter.js";
 import { createWebRtcPlayback, type WebRtcPlaybackOptions } from "./webrtc-playback.js";
 
+// Downstream speaking slots pre-negotiated in every offer. The gateway
+// assigns TeamSpeak speakers to them LRU-style and announces assignments via
+// voiceRoute messages; with the pool in place a new speaker never triggers a
+// renegotiation. Must mirror MAX_DOWNSTREAM_SLOTS in src/server/webrtc-audio.ts.
+const DOWNSTREAM_SLOTS = 12;
+
 interface Microphone {
   context: AudioContext;
   stream: MediaStream;
@@ -145,9 +151,18 @@ export function createWebRtcTransport(options: TransportOptions) {
       const input = createWebRtcInput(context, processedStream, options.muted() ? 0 : options.inputVolume());
       record.input = input;
       peer.addTrack(input.stream.getAudioTracks()[0]!, input.stream);
+      // The downstream slot pool rides in the same offer: one recvonly
+      // transceiver per slot, after the uplink m-line the addTrack created.
+      for (let slot = 0; slot < DOWNSTREAM_SLOTS; slot++) {
+        peer.addTransceiver("audio", { direction: "recvonly" });
+      }
+      // The first transceiver carries the uplink; slot i lives in
+      // transceiver i + 1 (see the gateway's createAnswer).
       peer.ontrack = event => {
         if (!isCurrent(record)) return;
-        try { playback.attach(event.streams[0] ?? new MediaStream([event.track])); }
+        const slotIndex = peer.getTransceivers().indexOf(event.transceiver) - 1;
+        if (slotIndex < 0 || slotIndex >= DOWNSTREAM_SLOTS) return;
+        try { playback.attach(event.streams[0] ?? new MediaStream([event.track]), slotIndex); }
         catch { void fail(record, "WEBRTC_PLAYBACK_FAILED"); }
       };
       record.meter = createMicrophoneMeter(context, stream, rms => options.onLevel(rms, track));
@@ -217,5 +232,10 @@ export function createWebRtcTransport(options: TransportOptions) {
     get active(): boolean { return current?.active ?? false; },
     get output() { return playback.output; },
     setOutputVolume: playback.setVolume,
+    /** Binds TeamSpeak client ids to the downstream slots (0 = free); each
+     *  bound slot re-reads its per-speaker gain. */
+    setSlotClients: (slots: readonly number[]): void => playback.setSlotClients(slots),
+    /** Re-reads the stored volume on every slot bound to this speaker. */
+    refreshSpeakerVolume: (clientId: number): void => playback.refreshSpeakerVolume(clientId),
   };
 }

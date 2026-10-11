@@ -474,7 +474,6 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       sendJson, addEvent: addServerEvent, onDirectoryReady: sendInitialState,
       onClientLeave: id => {
         deps.screenShares.onClientLeave(entry!, id);
-        entry!.webrtc?.setMemberVolume(id, 1);
       },
       onClientMove: (id, channelId) => deps.screenShares.onClientMove(entry!, id, channelId),
       onNotification: notification => deps.screenShares.handleNotification(entry!, notification),
