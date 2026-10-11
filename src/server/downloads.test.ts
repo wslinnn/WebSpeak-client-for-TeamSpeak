@@ -32,12 +32,15 @@ test("parseRelease tolerates a missing digest and rejects unusable payloads", ()
   assert.equal(parseRelease({ tag_name: "v1", assets: [{ name: "evil.apk", browser_download_url: "http://insecure/evil.apk" }] }), null);
 });
 
-test("the lookup caches successes and retries failures sooner", async () => {
+test("the lookup caches successes and retries failures sooner", async t => {
+  // The TTL window is exercised through mocked time: a 2 ms real-clock TTL
+  // intermittently expired under loaded CI runners before the second call.
+  t.mock.timers.enable({ apis: ["Date"] });
   let calls = 0;
   const responses: unknown[] = [releasePayload, new Error("rate limited")];
   const lookup = createAndroidReleaseLookup({
-    cacheTtlMs: 2,
-    failureTtlMs: 2,
+    cacheTtlMs: 1_000,
+    failureTtlMs: 1_000,
     fetchJson: async () => {
       const current = responses[Math.min(calls, responses.length - 1)];
       calls += 1;
@@ -48,11 +51,11 @@ test("the lookup caches successes and retries failures sooner", async () => {
   assert.equal((await lookup())?.version, "v1.4.2");
   assert.equal((await lookup())?.version, "v1.4.2", "second call inside the TTL serves the cache");
   assert.equal(calls, 1);
-  await new Promise((resolve) => setTimeout(resolve, 5));
+  t.mock.timers.tick(1_001);
   assert.equal(await lookup(), null, "a failed lookup reports unavailable");
   assert.equal(await lookup(), null, "the failure is cached for its short TTL too");
   assert.equal(calls, 2);
-  await new Promise((resolve) => setTimeout(resolve, 5));
+  t.mock.timers.tick(1_001);
   assert.equal(await lookup(), null, "once the failure TTL passes the fetch runs again (and still fails)");
   assert.equal(calls, 3);
 });
