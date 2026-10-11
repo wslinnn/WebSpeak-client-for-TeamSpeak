@@ -6,7 +6,7 @@
   "type": "module",
   "description": "Server-side browser gateway for TeamSpeak — deploy on your server, users join from any browser",
   "engines": {
-    "node": ">=22.5.0"
+    "node": ">=22.22.2"
   },
   "scripts": {
     "dev": "tsx src/index.ts",
