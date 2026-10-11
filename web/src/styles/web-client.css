@@ -1076,7 +1076,8 @@
   padding: 6px 29px;
   overflow-x: auto;
   scrollbar-width: none;
-  border-bottom: 1px solid #eef2f0;
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+  border-bottom: 1px solid var(--border);
 }
 
 .favorite-server-strip::-webkit-scrollbar {
@@ -1103,25 +1104,35 @@
 
 
 /* Desktop: the server rail is the leftmost shell column (left of the member
- * sidebar); the header/content column keeps its full width. The horizontal
- * strip only serves ≤740 touch layouts, where there is no side column. */
+ * sidebar), styled after upstream — accent-tinted surface, token borders so
+ * skins retint the whole column, 48px tiles wrapping 40px name-hashed
+ * avatars, hover ring, and the active server marked by the left-edge pill.
+ * The horizontal strip only serves ≤740 touch layouts, where there is no side
+ * column. The rail keeps 10px left padding so the active pill (-9px from the
+ * tile) stays inside the clip boundary of the scrolling column. */
 .favorite-server-rail {
   display: none;
 }
 
 @media (min-width: 741px) {
   .favorite-server-rail {
+    position: relative;
+    z-index: 12;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     grid-column: 1;
     grid-row: 2;
     min-height: 0;
-    padding: 12px 0;
+    padding: 14px 8px 16px 10px;
     overflow-y: auto;
-    scrollbar-width: thin;
-    border-right: 1px solid #eef2f0;
+    scrollbar-width: none;
+    background: color-mix(in srgb, var(--surface-1) 96%, var(--accent));
+    border-right: 1px solid var(--border);
+  }
+  .favorite-server-rail::-webkit-scrollbar {
+    display: none;
   }
   /* Touch layout keeps the chip strip; ≥741 the rail replaces it. */
   .favorite-server-strip {
@@ -1129,84 +1140,83 @@
   }
 }
 
-/* Icon rail: one 48px rounded tile per server (initials on a name-hashed
- * color), name on hover via title, current server marked by the left pill. */
-.favorite-server-rail-row {
+/* Server tile: 48px grid button wrapping the avatar; hover/focus and the
+ * active state trade the corner radius for an accent ring. */
+.favorite-server-button,
+.favorite-server-add {
   position: relative;
-  flex: 0 0 auto;
   display: grid;
-  place-items: center;
   width: 48px;
   height: 48px;
-  border-radius: 14px;
-  opacity: .55;
+  flex: 0 0 48px;
+  place-items: center;
+  padding: 3px;
+  color: var(--text-primary);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
   cursor: pointer;
+  transition: border-radius .16s ease, transform .16s ease, box-shadow .16s ease;
 }
 
-.favorite-server-rail-row:hover,
-.favorite-server-rail-row.active {
-  opacity: 1;
+.favorite-server-button:hover,
+.favorite-server-button:focus-visible,
+.favorite-server-button.active,
+.favorite-server-add:hover,
+.favorite-server-add:focus-visible {
+  border-radius: 15px;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
-.favorite-server-rail-row::before {
-  content: "";
+.favorite-server-button.active::before {
   position: absolute;
-  left: -12px;
+  left: -9px;
   width: 4px;
-  height: 0;
+  height: 24px;
+  content: "";
+  background: var(--accent);
   border-radius: 0 4px 4px 0;
-  background: #006a64;
-  transition: height .18s ease;
 }
 
-.favorite-server-rail-row.active::before {
-  height: 22px;
+.favorite-server-button:disabled {
+  cursor: wait;
+  opacity: .65;
 }
 
-.favorite-server-rail-row:disabled {
-  opacity: .3;
-  cursor: default;
-}
-
-.favorite-server-rail-icon {
+.favorite-server-avatar {
   display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
   place-items: center;
-  width: 48px;
-  height: 48px;
-  color: #fff;
-  font-size: 16px;
-  font-weight: 700;
+  overflow: hidden;
+  color: #19342f;
+  border-radius: 13px;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
+/* Password badge: ours alone — upstream's rail carries no password model. */
 .favorite-server-rail-lock {
   position: absolute;
-  right: -2px;
-  bottom: -2px;
+  right: -3px;
+  bottom: -3px;
   display: grid;
   place-items: center;
-  width: 16px;
-  height: 16px;
-  color: #52635d;
-  background: #fff;
-  border: 1px solid #e3ebe8;
+  width: 15px;
+  height: 15px;
+  color: var(--text-muted);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
   border-radius: 50%;
 }
 
-.favorite-server-rail-add {
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  color: #7a8a84;
-  background: transparent;
-  border: 1px dashed #cfe0da;
-  border-radius: 14px;
-  cursor: pointer;
-}
-
-.favorite-server-rail-add:hover {
-  color: #006a64;
-  border-color: #7fbcb2;
+/* Pin the add tile to the bottom of the rail while the tiles scroll. */
+.favorite-server-rail > .favorite-server-add {
+  margin-top: auto;
 }
 
 /* Desktop shows the initial only; the full label takes over on touch sizes. */
@@ -4242,7 +4252,7 @@
 }
 
 .app-shell {
-  grid-template-columns: 72px 318px minmax(0, 1fr);
+  grid-template-columns: 68px 318px minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   height: 100dvh;
   min-height: 0;
@@ -4299,7 +4309,7 @@
 
 @media (max-width: 980px) {
   .app-shell {
-    grid-template-columns: 72px minmax(0, 1fr);
+    grid-template-columns: 68px minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr) minmax(210px, 35dvh);
   }
   .workspace {

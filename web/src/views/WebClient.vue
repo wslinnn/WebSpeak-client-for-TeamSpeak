@@ -398,8 +398,9 @@
       </div>
       <!-- Desktop server rail: the leftmost column of the shell (left of the
            member sidebar, like upstream). Hidden on touch sizes where the
-           strip above replaces it. -->
-      <div
+           strip above replaces it. The title carries name + address because a
+           styled tooltip inside the scrolling column would be clipped. -->
+      <aside
         v-if="accessMode === 'open'"
         class="favorite-server-rail"
         data-ws-part="voice.favorite-server-rail"
@@ -410,16 +411,17 @@
           v-for="server in favoriteServers"
           :key="server.id"
           type="button"
-          class="favorite-server-rail-row"
+          class="favorite-server-button"
           :class="{ active: server.address === currentTarget }"
+          :data-ws-state="server.address === currentTarget ? 'current' : 'idle'"
           :aria-pressed="server.address === currentTarget"
           :disabled="Boolean(favoriteSwitchPending) || voiceState.connecting"
-          :title="server.label"
+          :title="`${server.label}\n${server.address}`"
           :aria-label="t('switchToServer', { name: server.label })"
           @click="switchServer(server)"
           @contextmenu.prevent="openServerMenu(server, $event)"
         ><span
-            class="favorite-server-rail-icon"
+            class="favorite-server-avatar"
             :style="avatarStyle(server.label, false, '')"
           >{{ avatarInitial(server.label) }}</span><span
             v-if="server.password"
@@ -430,7 +432,7 @@
           /></span></button>
         <button
           type="button"
-          class="favorite-server-rail-add"
+          class="favorite-server-add"
           data-ws-part="voice.favorite-server-rail.add"
           :aria-label="t('addFavoriteServer')"
           :title="t('addFavoriteServer')"
@@ -439,7 +441,7 @@
             name="plus"
             :size="17"
         /></button>
-      </div>
+      </aside>
       <main
         class="workspace"
         data-ws-part="voice.workspace"
