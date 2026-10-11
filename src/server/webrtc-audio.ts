@@ -92,6 +92,7 @@ export class WebRtcAudioSession {
   private readonly logger: LoggerType;
   private readonly onVoiceFrame: (data: Buffer, codec: 4 | 5) => void;
   private readonly onVoiceRoutes: (slots: readonly number[]) => void;
+  private readonly uplink: ReturnType<RTCPeerConnection["addTransceiver"]>;
   private readonly slots: DownstreamSlot[] = [];
   private readonly opusPayloadTypes = new Set<number>();
   private outgoingPayloadType = DEFAULT_WEBRTC_OPUS_PAYLOAD_TYPE;
@@ -138,36 +139,14 @@ export class WebRtcAudioSession {
     this.peer.onconnectionstatechange = () => {
       this.logger.info({ state: this.peer.connectionState }, "WebRTC connection state changed");
     };
-  }
 
-  getStats(): WebRtcAudioStats {
-    return {
-      ...this.stats,
-      webrtcActiveSpeakerSlots: this.slots.reduce((count, slot) => count + (slot.clientId !== 0 ? 1 : 0), 0),
-    };
-  }
-
-  async createAnswer(offer: WebRtcSessionDescription): Promise<WebRtcSessionDescription> {
-    if (this.closed) throw new Error("WebRTC session is closed");
-    await this.peer.setRemoteDescription(offer);
-    // werift echoes the offer's direction onto each passive transceiver, so
-    // the m-line roles must be assigned explicitly: the first audio m-line is
-    // the browser microphone uplink (we receive only), the next ones form the
-    // downstream slot pool (we send only).
-    const audioTransceivers = this.peer.getTransceivers().filter(transceiver => transceiver.kind === "audio");
-    const uplink = audioTransceivers[0];
-    if (!uplink) throw new Error("WebRTC offer did not negotiate Opus audio");
-    const uplinkOpus = uplink.codecs.filter(codec => codec.mimeType.toLowerCase() === "audio/opus" && codec.clockRate === AUDIO_SAMPLE_RATE);
-    if (!uplinkOpus.length) throw new Error("WebRTC offer did not negotiate Opus audio");
-    this.opusPayloadTypes.clear();
-    uplink.direction = "recvonly";
-    for (const codec of uplinkOpus) {
-      codec.parameters = pinOpusCodecParameters(codec.parameters);
-      this.opusPayloadTypes.add(codec.payloadType);
-    }
-    this.outgoingPayloadType = uplinkOpus[0]!.payloadType;
-
-    uplink.onTrack.subscribe((track) => {
+    // The uplink transceiver is created eagerly so the RTP subscription is in
+    // place before any offer arrives: werift fires onTrack synchronously while
+    // setRemoteDescription registers the browser's SSRC, so a subscription
+    // made later (during createAnswer) would miss the event entirely and the
+    // microphone RTP would arrive with no consumer.
+    this.uplink = this.peer.addTransceiver("audio", { direction: "sendrecv" });
+    this.uplink.onTrack.subscribe((track) => {
       track.onReceiveRtp.subscribe((rtp) => {
         if (this.closed) return;
         const receivedAt = performance.now();
@@ -188,6 +167,34 @@ export class WebRtcAudioSession {
         this.onVoiceFrame(payload, this.accompanimentActive ? 5 : 4);
       });
     });
+  }
+
+  getStats(): WebRtcAudioStats {
+    return {
+      ...this.stats,
+      webrtcActiveSpeakerSlots: this.slots.reduce((count, slot) => count + (slot.clientId !== 0 ? 1 : 0), 0),
+    };
+  }
+
+  async createAnswer(offer: WebRtcSessionDescription): Promise<WebRtcSessionDescription> {
+    if (this.closed) throw new Error("WebRTC session is closed");
+    await this.peer.setRemoteDescription(offer);
+    // The uplink m-line binds to the eagerly created transceiver; the
+    // remaining audio m-lines from the offer form the downstream slot pool.
+    // werift echoes the offer's direction onto each passive transceiver, so
+    // the roles must still be assigned explicitly: we receive the uplink and
+    // send the slots.
+    const audioTransceivers = this.peer.getTransceivers().filter(transceiver => transceiver.kind === "audio");
+    const uplink = this.uplink;
+    const uplinkOpus = uplink.codecs.filter(codec => codec.mimeType.toLowerCase() === "audio/opus" && codec.clockRate === AUDIO_SAMPLE_RATE);
+    if (!uplinkOpus.length) throw new Error("WebRTC offer did not negotiate Opus audio");
+    this.opusPayloadTypes.clear();
+    uplink.direction = "recvonly";
+    for (const codec of uplinkOpus) {
+      codec.parameters = pinOpusCodecParameters(codec.parameters);
+      this.opusPayloadTypes.add(codec.payloadType);
+    }
+    this.outgoingPayloadType = uplinkOpus[0]!.payloadType;
 
     for (const transceiver of audioTransceivers.slice(1, 1 + MAX_DOWNSTREAM_SLOTS)) {
       transceiver.direction = "sendonly";
