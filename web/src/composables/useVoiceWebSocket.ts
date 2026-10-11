@@ -1,4 +1,5 @@
 import { createRemotePlayback } from "../voice/remote-playback.js";
+import { createSpeakingState } from "../voice/speaking-state.js";
 import { createMicrophoneTest } from "../voice/microphone-test.js";
 import { normalizeMicrophoneFailure } from "../voice/microphone-failure.js";
 import { createMicrophoneCaptureFactory, type MicrophoneCapture, type MicrophoneProcessingSettings } from "../voice/microphone-capture.js";
@@ -250,11 +251,9 @@ export function useVoiceWebSocket() {
   let accumLen = 0;
 
   const volumes = reactive<Record<number, number>>({});
-  const speakingIds = reactive(new Set<number>());
+  const { speakingIds, markSpeaking, clearSpeaking, clearSpeakingState } = createSpeakingState();
   const whisperTargetIds = reactive(new Set<number>());
   const whisperActive = ref(false);
-  const speakingTimers = new Map<number, ReturnType<typeof setTimeout>>();
-  const SPEAKING_HOLD_MS = 360;
   const AUDIO_FRAME_SAMPLES = 960;
   const AUDIO_FRAME_BYTES = AUDIO_FRAME_SAMPLES * 2;
   const MAX_AUDIO_BUFFERED_FRAMES = 10;
@@ -382,31 +381,6 @@ export function useVoiceWebSocket() {
     Object.assign(storedVolumesByUid, preferences.volumesByUid ?? {});
     syncKnownMemberVolumes();
   });
-
-  function markSpeaking(clientId: number): void {
-    if (!clientId) return;
-    speakingIds.add(clientId);
-    const previous = speakingTimers.get(clientId);
-    if (previous) clearTimeout(previous);
-    const timer = setTimeout(() => {
-      speakingIds.delete(clientId);
-      speakingTimers.delete(clientId);
-    }, SPEAKING_HOLD_MS);
-    speakingTimers.set(clientId, timer);
-  }
-
-  function clearSpeaking(clientId: number): void {
-    const timer = speakingTimers.get(clientId);
-    if (timer) clearTimeout(timer);
-    speakingTimers.delete(clientId);
-    speakingIds.delete(clientId);
-  }
-
-  function clearSpeakingState(): void {
-    for (const timer of speakingTimers.values()) clearTimeout(timer);
-    speakingTimers.clear();
-    speakingIds.clear();
-  }
 
   function effectiveOutputVolume(): number {
     return outputMuted.value ? 0 : outputVolume.value;
