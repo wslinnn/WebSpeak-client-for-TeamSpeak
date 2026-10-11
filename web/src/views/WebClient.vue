@@ -294,6 +294,15 @@
             ><span>{{
               localizedAudioNotice(voiceState.audioNoticeCode, voiceState.audioNotice)
             }}</span></div
+          ><button
+            type="button"
+            class="text-button"
+            data-ws-part="voice.audio-status-dismiss"
+            :aria-label="t('close')"
+            @click="clearAudioNotice()"
+            ><Icon
+              name="close"
+              :size="15" /></button
           ></div
         >
         <div
@@ -1055,6 +1064,7 @@ const {
   checkSupport,
   checkBrowserWarning,
   clearMicrophoneError,
+  clearAudioNotice,
   watchMicrophonePermission,
   clearError,
   measureVoiceAudioStatus,

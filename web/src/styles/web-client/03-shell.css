@@ -1,4 +1,5 @@
 .app-shell {
+  position: relative;
   display: grid;
   grid-template-columns: 76px 292px minmax(0, 1fr) 246px;
   overflow: hidden;

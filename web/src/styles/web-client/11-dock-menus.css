@@ -80,16 +80,24 @@
   max-height: 100dvh;
 }
 
-/* Shell-level banner layer (reconnect, degradations, pokes): row 1 spans the
- * shell in flow, so the bar pushes panes down instead of overlaying them and
- * survives the mobile tab switches that hide .workspace entirely. */
+/* Shell-level banner layer (reconnect, degradations, pokes): floats above
+ * the shell instead of occupying a grid row, so banners never push the
+ * workspace header or panes down; pointer-events pass through the gaps. */
 .voice-banners {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  left: 0;
+  right: 0;
+  z-index: var(--ws-z-dropdown);
   display: flex;
   flex-direction: column;
   align-items: center;
-  grid-column: 1 / -1;
-  grid-row: 1;
-  flex: 0 0 auto;
+  gap: 8px;
+  pointer-events: none;
+}
+.voice-banners > * {
+  pointer-events: auto;
+  margin: 0;
 }
 
 .workspace {

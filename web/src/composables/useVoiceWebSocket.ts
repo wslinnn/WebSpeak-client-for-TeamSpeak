@@ -1543,6 +1543,7 @@ export function useVoiceWebSocket() {
     microphoneTestActive,
     testAudioUrl,
     speakingIds,
+    clearAudioNotice,
     whisperTargetIds,
     whisperActive,
     volumes,
