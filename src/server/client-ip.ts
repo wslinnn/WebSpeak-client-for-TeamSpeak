@@ -19,9 +19,12 @@ export function rateLimitPeerKey(ip: string): string {
  *
  * Forwarded headers are only consulted when the operator has declared a
  * trusted proxy (`WEBSPEAK_TRUST_PROXY`); otherwise they are attacker-
- * controlled and would poison both the logs and the rate-limit keys. The
- * first entry of `X-Forwarded-For` is what our own proxy appended for the
- * real client in the supported single-proxy deployment.
+ * controlled and would poison both the logs and the rate-limit keys.
+ * `X-Forwarded-For` is append-only: every entry left of the last one was
+ * supplied by the client itself. In the supported single-proxy deployment
+ * (nginx `proxy_add_x_forwarded_for`) the real client address is the entry
+ * our own proxy appended, i.e. the last one — so only that entry is trusted,
+ * and a missing or malformed one falls back to the socket address.
  */
 export function resolveClientAddress(
   remoteAddress: string | undefined,
@@ -29,9 +32,9 @@ export function resolveClientAddress(
   trustProxy: boolean,
 ): string {
   if (trustProxy) {
-    const header = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
-    const first = header?.split(",", 1)[0]?.trim();
-    if (first && isIP(first)) return first;
+    const header = Array.isArray(forwardedFor) ? forwardedFor.join(",") : forwardedFor;
+    const last = header?.slice(header.lastIndexOf(",") + 1).trim();
+    if (last && isIP(last)) return last;
   }
   return normalizeSocketAddress(remoteAddress) ?? "unknown";
 }

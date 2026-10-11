@@ -77,10 +77,9 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
     // limiters.
     const trustProxy = options.trustProxy === true;
     const peerFor = (request: Request): string => {
-      const header = request.headers["x-forwarded-for"];
       return rateLimitPeerKey(resolveClientAddress(
         request.socket.remoteAddress,
-        Array.isArray(header) ? header[0] : header,
+        request.headers["x-forwarded-for"],
         trustProxy,
       ));
     };

@@ -7,9 +7,17 @@ test("direct connections ignore forwarded headers entirely", () => {
   assert.equal(resolveClientAddress("203.0.113.7", "198.51.100.9, 10.0.0.1", false), "203.0.113.7");
 });
 
-test("trust proxy takes the first forwarded address and validates it", () => {
-  assert.equal(resolveClientAddress("127.0.0.1", "198.51.100.9, 10.0.0.1", true), "198.51.100.9");
-  // A garbage or absent header falls back to the socket address.
+test("trust proxy takes the last forwarded address — the entry our proxy appended", () => {
+  // X-Forwarded-For is append-only: entries left of the last one are
+  // client-supplied and must never feed rate limits or logs.
+  assert.equal(resolveClientAddress("127.0.0.1", "198.51.100.9, 10.0.0.1", true), "10.0.0.1");
+  assert.equal(resolveClientAddress("127.0.0.1", "6.6.6.6, 8.8.8.8, 198.51.100.9", true), "198.51.100.9");
+  assert.equal(resolveClientAddress("127.0.0.1", ["6.6.6.6", "198.51.100.9"], true), "198.51.100.9");
+  // A single-entry header is the unspoofed case (client sent nothing).
+  assert.equal(resolveClientAddress("127.0.0.1", "198.51.100.9", true), "198.51.100.9");
+  // A garbage or absent header falls back to the socket address — a client
+  // cannot get its forged entry trusted by hiding it before real data.
+  assert.equal(resolveClientAddress("203.0.113.7", "198.51.100.9, not-an-ip", true), "203.0.113.7");
   assert.equal(resolveClientAddress("203.0.113.7", "not-an-ip", true), "203.0.113.7");
   assert.equal(resolveClientAddress("203.0.113.7", undefined, true), "203.0.113.7");
 });

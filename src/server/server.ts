@@ -123,10 +123,9 @@ export function createWebServer(options: WebServerOptions): WebServer {
   // Limiter key for a request: the client IP when trust proxy is configured,
   // otherwise the socket address, aggregated to a /64 for IPv6.
   const peerKey = (request: express.Request): string => {
-    const header = request.headers["x-forwarded-for"];
     return rateLimitPeerKey(resolveClientAddress(
       request.socket.remoteAddress,
-      Array.isArray(header) ? header[0] : header,
+      request.headers["x-forwarded-for"],
       trustProxy,
     ));
   };
