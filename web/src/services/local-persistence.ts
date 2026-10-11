@@ -222,14 +222,6 @@ export async function saveInstalledSkin(skin: InstalledSkin, signal?: AbortSigna
   }, signal);
 }
 
-export async function removeInstalledSkin(id: string): Promise<void> {
-  await request("skins", "readwrite", (store, resolve, reject) => {
-    const remove = store.delete(id);
-    remove.onsuccess = () => resolve(undefined);
-    remove.onerror = () => reject(remove.error);
-  });
-}
-
 export async function listFavorites(): Promise<FavoriteServer[]> {
   try {
     return await request<FavoriteServer[]>("favorites", "readonly", (store, resolve, reject) => {

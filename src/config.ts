@@ -1,5 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { readFileSync } from "node:fs";
 import {
   DEFAULT_TEAM_SPEAK_PORT,
   parseTeamSpeakTargetParts,
@@ -69,16 +68,6 @@ export function loadConfig(path: string): AppConfig {
     return migrateConfig(JSON.parse(readFileSync(path, "utf-8")) as unknown);
   } catch {
     return getDefaultConfig();
-  }
-}
-
-/** Write only the normalized legacy shape; this is the one-time legacy cleanup. */
-export function saveConfig(path: string, config: AppConfig): void {
-  try {
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, JSON.stringify(migrateConfig(config), null, 2), "utf-8");
-  } catch {
-    // config.json may be read-only (e.g. running under systemd as non-root)
   }
 }
 

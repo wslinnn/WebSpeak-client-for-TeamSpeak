@@ -25,14 +25,6 @@ export function storeSkinId(id: string): void {
   catch { /* Storage is optional; the current page can still use the skin. */ }
 }
 
-export async function activateStoredSkin(): Promise<InstalledSkin | null> {
-  const storedId = getStoredSkinId();
-  const legacyTheme = getStoredTheme();
-  const selectedId = storedId || (isDarkTheme(legacyTheme) ? BUILTIN_DARK_SKIN : BUILTIN_LIGHT_SKIN);
-  storeSkinId(selectedId);
-  return activateSkin(selectedId);
-}
-
 export async function activateSkin(id: string, expectedVersion?: string, appVersion = "0.2.6", options: SkinLoadOptions = {}): Promise<InstalledSkin | null> {
   // An already retired page must not cancel a newer page's activation.
   options.signal?.throwIfAborted();

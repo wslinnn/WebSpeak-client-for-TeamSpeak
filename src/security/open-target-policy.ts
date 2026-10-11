@@ -10,10 +10,6 @@ export class UnsafeTeamSpeakTargetError extends Error {
 }
 
 /** Resolve and reject addresses that could turn a public gateway into an internal network probe. */
-export async function assertSafeOpenTarget(target: TeamSpeakTarget): Promise<void> {
-  await resolveSafeOpenTarget(target);
-}
-
 export async function resolveSafeOpenTarget(target: TeamSpeakTarget): Promise<TeamSpeakTarget> {
   const literalVersion = isIP(target.host);
   const addresses = literalVersion
