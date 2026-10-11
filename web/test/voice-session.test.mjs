@@ -336,6 +336,21 @@ test("member deltas patch fields in place and move members between channels", as
   assert.deepEqual(voice.channels[1].members.map(member => member.id), [7]);
 });
 
+test("a TS-side force move of our own client surfaces as selfMovedChannelId", async () => {
+  const socket = await connect();
+  socket.receive({ type: "connected", tsClientId: 1 });
+  socket.receive({ type: "channelList", channels: [
+    { id: "1", parentID: "0", name: "Lobby", members: [{ id: 1, nickname: "Self" }] },
+    { id: "2", parentID: "0", name: "Room", members: [] },
+  ] });
+  socket.receive({ type: "memberMoved", id: 7, channelId: "2" });
+  assert.equal(voice.state.selfMovedChannelId, "", "another client's move must not set the flag");
+  socket.receive({ type: "memberMoved", id: 1, channelId: "2" });
+  assert.equal(voice.state.selfMovedChannelId, "2");
+  socket.receive({ type: "memberMoved", id: 1 });
+  assert.equal(voice.state.selfMovedChannelId, "2", "a move without a target channel must not update the flag");
+});
+
 test("channel deltas create, rename and remove channels without touching members", async () => {
   const socket = await connect();
   socket.receive({ type: "connected", tsClientId: 1 });

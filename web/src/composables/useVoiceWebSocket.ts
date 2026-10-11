@@ -45,6 +45,10 @@ export interface VoiceState {
   audioNotice: string;
   audioNoticeCode: string;
   channelSwitchedChannelId: string;
+  /** Set when the TS server moves our own client; the UI syncs its channel
+   *  selection from it. Not cleared on read: identical consecutive values are
+   *  already reflected in the selection, so a suppressed duplicate is fine. */
+  selfMovedChannelId: string;
 }
 
 export interface AudioInputDevice {
@@ -161,7 +165,7 @@ class CancelledMediaOperation extends Error {
 
 export function useVoiceWebSocket() {
   const ws = shallowRef<WebSocket | null>(null);
-  const state = reactive<VoiceState>({ connected: false, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false, tsClientId: 0, error: "", errorCode: "", retryNotUntil: 0, microphoneError: "", microphoneErrorCode: "", audioNotice: "", audioNoticeCode: "", channelSwitchedChannelId: "" });
+  const state = reactive<VoiceState>({ connected: false, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false, tsClientId: 0, error: "", errorCode: "", retryNotUntil: 0, microphoneError: "", microphoneErrorCode: "", audioNotice: "", audioNoticeCode: "", channelSwitchedChannelId: "", selfMovedChannelId: "" });
   const sessionState = createVoiceSessionState({
     selfId: () => state.tsClientId,
     onMemberRemoved(id) {
@@ -172,6 +176,9 @@ export function useVoiceWebSocket() {
       if (!whisperTargetIds.size) whisperActive.value = false;
     },
     onMembersChanged: syncKnownMemberVolumes,
+    onSelfMoved(channelId) {
+      state.selfMovedChannelId = channelId;
+    },
   });
   const { members, channels, chatMessages, serverEvents, pokeNotifications } = sessionState;
   let chatGeneration = 0;

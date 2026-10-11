@@ -24,6 +24,7 @@ interface UseWebClientConnectionOptions {
   errorCode: Readonly<Ref<string>>;
   errorMessage: Readonly<Ref<string>>;
   channelSwitchedChannelId: Readonly<Ref<string>>;
+  selfMovedChannelId: Readonly<Ref<string>>;
   nickname: Ref<string>;
   channelName: Ref<string>;
   serverHost: Ref<string>;
@@ -55,6 +56,7 @@ export function useWebClientConnection({
   errorCode,
   errorMessage,
   channelSwitchedChannelId,
+  selfMovedChannelId,
   nickname,
   channelName,
   serverHost,
@@ -215,6 +217,16 @@ export function useWebClientConnection({
     channelPasswordDialog.password = "";
     channelPasswordDialog.error = "";
     channelPasswordDialog.submitting = false;
+  });
+  // A TS-side force move arrives as memberMoved for our own clientId; without
+  // this sync the roster moves but the selected channel — and with it the
+  // voice card and the channel chat scope — stays on the old channel.
+  watch(selfMovedChannelId, (channelId) => {
+    if (!channelId) return;
+    const movedChannel = channels.value.find((item) => item.id === channelId);
+    if (!movedChannel) return;
+    selectedChannelId.value = movedChannel.id;
+    channelName.value = movedChannel.name;
   });
 
   return {

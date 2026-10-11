@@ -1442,6 +1442,7 @@ const {
   errorCode: computed(() => voiceState.errorCode),
   errorMessage: computed(() => localizedMessage(voiceState.error)),
   channelSwitchedChannelId: computed(() => voiceState.channelSwitchedChannelId),
+  selfMovedChannelId: computed(() => voiceState.selfMovedChannelId),
   nickname,
   channelName: channel,
   serverHost,

@@ -6,6 +6,9 @@ interface SessionStateOptions {
   selfId(): number;
   onMemberRemoved(id: number): void;
   onMembersChanged(): void;
+  /** The TS server itself moved our client (admin action, channel deletion);
+   *  the roster delta alone leaves the UI's channel selection stale. */
+  onSelfMoved?(channelId: string): void;
 }
 
 // A hours-long session must not grow the chat array without bound; the visible
@@ -165,6 +168,7 @@ export function createVoiceSessionState(options: SessionStateOptions) {
       case "memberMoved": {
         unplaceMember(message.id);
         if (message.channelId !== undefined) placeMember(message.id, String(message.channelId));
+        if (message.id === options.selfId() && message.channelId !== undefined) options.onSelfMoved?.(String(message.channelId));
         break;
       }
       case "channelList": applyChannels(message.channels); break;
