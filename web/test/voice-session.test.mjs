@@ -2524,3 +2524,54 @@ test("voice STUN configuration reaches the browser peer and resets on a legacy c
   await nextTurn();
   assert.deepEqual(TestPeer.instances.at(-1).config.iceServers, []);
 });
+
+test("a single failed input switch rolls back to the committed device and storage", async () => {
+  navigator.mediaDevices.enumerateDevices = async () => availableDevices;
+  await voice.ensureMicrophone();
+  navigator.mediaDevices.getUserMedia = async () => { throw new Error("New device unavailable"); };
+  await assert.rejects(voice.setInputDevice("mic-b"), /New device unavailable/);
+  assert.equal(voice.selectedInputDeviceId.value, "");
+  assert.equal(localStorage.getItem("webspeak:input-device"), "");
+  assert.equal(voice.noiseSuppressionEnabled.value, voice.committedNoiseSuppressionEnabled ?? true);
+});
+
+test("a single failed output switch rolls back selection, sink routing and notice", async t => {
+  navigator.mediaDevices.enumerateDevices = async () => availableDevices;
+  await voice.ensureMicrophone();
+  const ctx = AudioContextStub.instances.at(-1);
+  const sinkCalls = [];
+  t.mock.method(ctx, "setSinkId", async id => { sinkCalls.push(id); throw new Error("Sink rejected"); });
+  await assert.rejects(voice.setOutputDevice("speaker-b"), /Sink rejected/);
+  assert.equal(voice.selectedOutputDeviceId.value, "");
+  assert.equal(localStorage.getItem("webspeak:output-device"), "");
+  assert.equal(voice.state.audioNoticeCode, "OUTPUT_DEVICE_UNAVAILABLE");
+  assert.deepEqual(sinkCalls, ["speaker-b", "default"], "the failed endpoint must be routed back to the previous device");
+});
+
+test("browser reconnect budget exhaustion raises the failure banner and drops the resume intent", async t => {
+  const sessionStore = new Map();
+  replaceGlobal("sessionStorage", {
+    getItem: key => sessionStore.get(key) ?? null,
+    setItem: (key, value) => sessionStore.set(key, String(value)),
+    removeItem: key => sessionStore.delete(key),
+  });
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const socket = await connect();
+  socket.receive({ type: "connected", tsClientId: 1, reconnectTicket: "ticket-1" });
+  assert.ok(sessionStore.get("webspeak:voice-session"), "a connected session stores its resume intent");
+  socket.close(1006);
+  assert.equal(voice.state.reconnecting, true);
+  // Five budgeted attempts (1s..15s), each dying again, exhaust the schedule;
+  // the sixth schedule call abandons instead of arming another timer.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    t.mock.timers.tick(20_000);
+    await nextTurn();
+    const next = TestSocket.instances.at(-1);
+    assert.ok(next, `reconnect attempt ${attempt + 1} should open a socket`);
+    next.close(1006);
+  }
+  assert.equal(voice.state.reconnectFailed, true);
+  assert.equal(voice.state.errorCode, "GATEWAY_NETWORK_LOST");
+  assert.equal(voice.state.connectionFailureCode, "GATEWAY_NETWORK_LOST");
+  assert.equal(sessionStore.has("webspeak:voice-session"), false, "an abandoned resume must not linger for the next page load");
+});
