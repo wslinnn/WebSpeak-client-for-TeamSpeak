@@ -1,13 +1,35 @@
 import type { WebSocket } from "ws";
 import type { AudioFlowStats } from "../audio-stats.js";
-import type { SessionAudioTransport } from "../session-audio.js";
+import type { SessionAudioTransport, VoiceEncoder } from "../session-audio.js";
 import type { SessionDirectoryState, SessionEventCoordinator } from "../session-events.js";
 import type { ManagedSession } from "../session-manager.js";
-import type { TSClient } from "../ts-client.js";
+import type { TSClient, TSClientOptions } from "../ts-client.js";
+import type { Logger as LoggerType } from "../../logger.js";
 import type { CommandRateLimiter } from "../command-rate-limit.js";
-import type { WebRtcAudioSession } from "../webrtc-audio.js";
+import type { WebRtcAudioOptions, WebRtcAudioSession } from "../webrtc-audio.js";
+import type { ScreenShareIceServer } from "../screen-share.js";
+import type { ServerPasswordGuard } from "../server-password-guard.js";
+import type { JoinTicketStore } from "../join-ticket.js";
+import type { ReconnectTicketStore } from "../reconnect-ticket.js";
 import type { TeamSpeakTarget } from "../../domain/teamspeak-target.js";
 import type { ServerEvent as SharedServerEvent } from "../../shared/voice-models.js";
+
+export interface VoiceBridgeOptions {
+  joinTickets: JoinTicketStore;
+  reconnectTickets?: ReconnectTicketStore;
+  /** How long a detached (browser-gone, TeamSpeak-kept) session waits for its
+   *  resume before the kept TeamSpeak connection is released. */
+  resumeGraceMs?: number;
+  webRtc?: WebRtcAudioOptions | (() => WebRtcAudioOptions);
+  screenShareIceServers?: ScreenShareIceServer[] | (() => ScreenShareIceServer[]);
+  trustProxy?: boolean;
+  serverPasswordGuard?: ServerPasswordGuard;
+}
+
+export interface VoiceBridgeDependencies {
+  createTeamSpeakClient?(options: TSClientOptions, logger: LoggerType): TSClient;
+  createEncoder?(): VoiceEncoder;
+}
 
 export type ServerEvent = SharedServerEvent & { kind: "joined" | "left" | "moved" | "poke" | "connection" };
 
