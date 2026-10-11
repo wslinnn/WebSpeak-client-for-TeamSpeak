@@ -184,6 +184,15 @@ export function parseServerMessage(value: unknown): ServerMessage | null {
     result = { ...value, viewers: parseScreenShareViewers(value.viewers) };
   } else if (value.type === "screenShareSignal") {
     result = { ...value, signal: parseScreenShareSignal(value.signal) };
+  } else if (value.type === "chatMessage" || value.type === "pokeReceived") {
+    // Inbound text is persisted into local history: clamp it so a malicious
+    // upstream cannot bloat browser storage with oversized strings. Outbound
+    // text is already capped at 500 by the composer.
+    result = {
+      ...value,
+      message: String(value.message).slice(0, 2_000),
+      ...(value.invokerName === undefined ? {} : { invokerName: String(value.invokerName).slice(0, 128) }),
+    };
   }
   // Every discriminant above has a validator; normalized nested objects are
   // checked at the boundary before the single conversion to the public union.
