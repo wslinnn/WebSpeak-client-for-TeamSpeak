@@ -14,6 +14,12 @@ export class AdminSessionStore {
   private readonly sessions = new Map<string, AdminSession>();
 
   create(response: Response, secure: boolean, now = Date.now()): { csrfToken: string; expiresAt: number } {
+    // Sessions only ever get looked up by their own token, so expired entries
+    // that are never revisited would otherwise live forever; sweep on create
+    // the same way JoinTicketStore prunes.
+    for (const [key, session] of this.sessions) {
+      if (session.expiresAt <= now) this.sessions.delete(key);
+    }
     const token = randomBytes(32).toString("base64url");
     const csrfToken = randomBytes(24).toString("base64url");
     const expiresAt = now + SESSION_TTL_MS;
