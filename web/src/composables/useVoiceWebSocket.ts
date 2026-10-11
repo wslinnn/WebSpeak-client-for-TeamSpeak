@@ -21,7 +21,7 @@ import type { ChatMessage } from "../../../src/shared/voice-models.js";
 import type { ClientCommandPayloads, ClientCommandType } from "../../../src/shared/client-commands.js";
 export type { ScreenShareStreamDescription as ScreenShareStream, ScreenShareViewerDescription as ScreenShareViewer, ScreenSharePeerSignal as ScreenShareSignal } from "../../../src/shared/screen-share.js";
 export type { ChannelMember, ChannelInfo, ChatMessage, ServerEvent, VoiceAudioBridgeStats } from "../../../src/shared/voice-models.js";
-import { onUnmounted, reactive, ref, shallowRef } from "vue";
+import { computed, onUnmounted, reactive, ref, shallowRef } from "vue";
 import { loadLocalPreferences, saveLocalPreferences } from "../services/local-persistence.js";
 
 export interface VoiceState {
@@ -1644,10 +1644,19 @@ export function useVoiceWebSocket() {
     void saveAudioPreferences();
   }
 
+  // Live transport for header chrome (the collapsed voice-status trigger):
+  // derived straight from the connection objects so it stays visible without
+  // the panel-owned probe loop running.
+  const voiceTransport = computed<"webrtc" | "websocket" | "negotiating" | "disconnected">(() => {
+    if (!state.connected) return "disconnected";
+    return webrtc.active ? "webrtc" : webrtc.peer ? "negotiating" : "websocket";
+  });
+
   return {
     ...screenShare.api,
     ws,
     state,
+    voiceTransport,
     sessionEpoch: sessionState.epoch,
     memberConversationKey: sessionState.memberConversationKey,
     members,

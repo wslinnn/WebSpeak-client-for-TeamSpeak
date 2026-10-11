@@ -1,5 +1,6 @@
 <template>
   <div
+    ref="root"
     class="network-performance"
     data-ws-part="voice.performance"
   >
@@ -13,7 +14,7 @@
       ><Icon
         name="activity"
         :size="16" /><span class="performance-trigger-label">{{ t("voiceStatus") }}</span
-      ><small v-if="performanceStats.ready">{{ voiceTransportLabel }}</small
+      ><small v-if="transport !== 'disconnected'">{{ transportLabel }}</small
       ><Icon
         name="chevron-down"
         :size="13"
@@ -214,15 +215,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import Icon from "../Icon.vue";
 import type { useWebClientPerformance } from "../../composables/useWebClientPerformance.js";
 import type { ScreenShareWebRtcStats } from "../../composables/useVoiceWebSocket.js";
-const props = defineProps<{ model: ReturnType<typeof useWebClientPerformance>; screenShareWebRtcStats: ScreenShareWebRtcStats; t: (key: string) => string }>();
+const props = defineProps<{ model: ReturnType<typeof useWebClientPerformance>; transport: "webrtc" | "websocket" | "negotiating" | "disconnected"; screenShareWebRtcStats: ScreenShareWebRtcStats; t: (key: string) => string }>();
 const { panelOpen: performancePanelOpen, running: performanceRunning, stats: performanceStats, togglePanel: togglePerformancePanel, refresh: refreshPerformanceProbe } = props.model;
 const t = props.t;
-const voiceHealthLabel = computed(() => t(({ disconnected: "voiceHealthDisconnected", sampling: "voiceHealthSampling", connecting: "voiceHealthConnecting", warning: "voiceHealthWarning", active: "voiceHealthActive", quiet: "voiceHealthQuiet" } as const)[performanceStats.value.health]));
+const root = ref<HTMLElement | null>(null);
+
+// The collapsed trigger mirrors the live transport straight from the voice
+// connection — independent of the probe loop, which only runs while the
+// panel is open.
+const transportLabel = computed(() => t(({ webrtc: "voiceTransportWebRTC", websocket: "voiceTransportWebSocket", negotiating: "voiceTransportNegotiating", disconnected: "voiceTransportDisconnected" } as const)[props.transport]));
 const voiceTransportLabel = computed(() => t(({ webrtc: "voiceTransportWebRTC", websocket: "voiceTransportWebSocket", negotiating: "voiceTransportNegotiating", disconnected: "voiceTransportDisconnected" } as const)[performanceStats.value.transport]));
+const voiceHealthLabel = computed(() => t(({ disconnected: "voiceHealthDisconnected", sampling: "voiceHealthSampling", connecting: "voiceHealthConnecting", warning: "voiceHealthWarning", active: "voiceHealthActive", quiet: "voiceHealthQuiet" } as const)[performanceStats.value.health]));
 const voicePlaybackLabel = computed(() => t(({ playing: "voicePlaybackReady", paused: "voicePlaybackPaused", unavailable: "voicePlaybackUnavailable" } as const)[performanceStats.value.playbackState ?? "unavailable"]));
 const voiceMicrophoneLabel = computed(() => performanceStats.value.microphoneMuted
   ? t("voiceMicMuted")
@@ -232,4 +239,13 @@ const voiceMicrophoneLabel = computed(() => performanceStats.value.microphoneMut
       ? t("voiceMicUnavailable")
       : t("voiceMicWaiting"));
 
+// Clicking anywhere outside the trigger/panel closes it (same interaction
+// contract as the skin and language dropdowns).
+function onDocumentPointerDown(event: PointerEvent): void {
+  if (performancePanelOpen.value && root.value && !root.value.contains(event.target as Node)) {
+    performancePanelOpen.value = false;
+  }
+}
+onMounted(() => document.addEventListener("pointerdown", onDocumentPointerDown));
+onUnmounted(() => document.removeEventListener("pointerdown", onDocumentPointerDown));
 </script>

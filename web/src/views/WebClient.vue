@@ -464,21 +464,9 @@
             class="workspace-actions"
             data-ws-part="voice.header-actions"
           >
-            <button
-              v-if="accessMode === 'open'"
-              type="button"
-              class="header-action favorite-current-toggle"
-              data-ws-part="voice.favorite-current-toggle"
-              :aria-pressed="isFavorite"
-              :title="isFavorite ? t('removeFavorite') : t('saveFavorite')"
-              :aria-label="isFavorite ? t('removeFavorite') : t('saveFavorite')"
-              @click="toggleFavorite"
-            ><Icon
-                name="star"
-                :size="17"
-            /></button>
             <VoicePerformancePanel
               :model="performance"
+              :transport="voiceTransport"
               :screen-share-web-rtc-stats="screenShareWebRtcStats"
               :t="t"
             />
@@ -1043,6 +1031,7 @@ const {
   watchMicrophonePermission,
   clearError,
   measureVoiceAudioStatus,
+  voiceTransport,
 } = useVoiceWebSocket();
 const performance = useWebClientPerformance(computed(() => voiceState.connected), measureVoiceAudioStatus);
 const { panelOpen: performancePanelOpen } = performance;
