@@ -79,6 +79,10 @@ interface SettingsRow extends Record<string, unknown> {
   updated_at: string;
 }
 
+// Audit rows are operational history, not an archive: cap them at boot so a
+// long-lived instance cannot grow the database without bound.
+const AUDIT_EVENT_RETENTION = 5_000;
+
 export class WebSpeakDatabase {
   private readonly database: DatabaseSync;
 
@@ -88,6 +92,7 @@ export class WebSpeakDatabase {
     this.database = new DatabaseSync(path);
     this.database.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;");
     this.migrate(existed);
+    this.pruneAuditEvents();
   }
 
   close(): void {
@@ -483,6 +488,14 @@ export class WebSpeakDatabase {
     this.database.prepare(
       "INSERT INTO audit_events (event, details_json, created_at) VALUES (?, ?, ?)",
     ).run(event, JSON.stringify(details), now);
+  }
+
+  /** Keeps only the newest AUDIT_EVENT_RETENTION audit rows; runs once per
+   *  boot — audit writes are low-frequency admin events, so that is enough. */
+  private pruneAuditEvents(): void {
+    this.database.prepare(
+      "DELETE FROM audit_events WHERE id NOT IN (SELECT id FROM audit_events ORDER BY id DESC LIMIT ?)",
+    ).run(AUDIT_EVENT_RETENTION);
   }
 
   private transaction(action: () => void): void {
