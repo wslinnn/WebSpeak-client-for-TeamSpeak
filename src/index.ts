@@ -33,6 +33,13 @@ async function main() {
   // chatter included); the default keeps the rotating file at info.
   const fileLevel = process.env.WEBSPEAK_LOG_LEVEL?.trim().toLowerCase() === "debug" ? "debug" as const : "info" as const;
   const logger = createLogger(LOG_DIR, { fileLevel });
+  // A stray rejection on one async path (a WS connection handler, an admin
+  // request) must not take every live voice session down with it: Node's
+  // default turns an unhandled rejection into a process crash. Log loudly
+  // and keep serving; uncaughtException keeps the default crash semantics.
+  process.on("unhandledRejection", (reason) => {
+    logger.error({ reason: reason instanceof Error ? { message: reason.message, stack: reason.stack } : String(reason) }, "Unhandled promise rejection");
+  });
   const database = new WebSpeakDatabase(path.join(DATA_DIR, "webspeak.db"));
   const masterSecret = loadOrCreateMasterSecret(path.join(DATA_DIR, "master.key"));
   const adminService = new AdminService(
