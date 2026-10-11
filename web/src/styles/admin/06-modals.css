@@ -1,0 +1,96 @@
+.modal-backdrop {
+  position: fixed;
+  z-index: var(--ws-z-modal-mask);
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(5,41,38,.38);
+  backdrop-filter: blur(3px);
+}
+
+.modal-card {
+  width: min(410px,100%);
+  padding: 26px;
+  background: #fff;
+  border: 1px solid #d9e9e4;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(14,62,55,.2);
+}
+
+.modal-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  color: #087d74;
+  background: #e3f5f0;
+  border-radius: 11px;
+}
+
+.modal-card h2 {
+  margin: 16px 0 8px;
+  font-size: 20px;
+}
+
+.modal-card p {
+  margin: 0 0 20px;
+  color: #71817c;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .webrtc-port-fields) {
+  background: #202f2c;
+  border-color: #30413d;
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .port-fields-heading small) {
+  color: #9bb0aa;
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .port-inputs input:disabled) {
+  color: #9bb0aa;
+  background: #263a35;
+  border-color: #3a514b;
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .welcome-editor) {
+  background: #202f2c;
+  border-color: #30413d;
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .welcome-editor select),
+:global(html[data-ws-route="admin"][data-theme="dark"] .welcome-editor textarea) {
+  color: #e8f3f0;
+  background: #172321;
+  border-color: #30413d;
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .welcome-editor-heading>small) {
+  color: #9bb0aa;
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .modal-card) {
+  color: #e8f3f0;
+  background: #172321;
+  border-color: #30413d;
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .modal-card p) {
+  color: #9bb0aa;
+}
+
+@media (max-width:520px) {
+  :deep(.advanced-card) {
+    grid-column: auto;
+  }
+  :deep(.port-inputs) {
+    grid-template-columns: 1fr;
+  }
+  :deep(.welcome-editor-heading) {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+

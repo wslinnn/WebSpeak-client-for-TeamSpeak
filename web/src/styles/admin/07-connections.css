@@ -1,0 +1,223 @@
+/* Server settings keep their natural height; the main content area owns scrolling. */
+
+:deep(.server-page .settings-grid) {
+  min-height: auto;
+  align-items: start;
+  grid-auto-rows: auto;
+}
+
+:deep(.server-page .settings-card) {
+  padding: 16px;
+  gap: 12px;
+}
+
+:deep(.server-page .settings-card input) {
+  height: 40px;
+}
+
+:deep(.server-page .settings-card .choice) {
+  padding: 10px;
+  gap: 8px;
+}
+
+:deep(.server-page .settings-card .choice small) {
+  margin-top: 3px;
+}
+
+:deep(.server-page .webrtc-port-fields) {
+  padding: 12px;
+  gap: 8px;
+}
+
+:deep(.connection-list) {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+:deep(.connection-history-heading) {
+  display: grid;
+  gap: 3px;
+  padding: 0 0 6px;
+  border-bottom: 1px solid #edf1ef;
+}
+
+:deep(.connection-history-heading strong) {
+  font-size: 10px;
+}
+
+:deep(.connection-history-heading small) {
+  color: #899792;
+  font-size: 8px;
+}
+
+:deep(.connection-row) {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px;
+  background: #f6f9f8;
+  border-radius: 7px;
+}
+
+:deep(.connection-person),
+:deep(.connection-detail) {
+  min-width: 0;
+}
+
+:deep(.connection-person) {
+  flex: 1 1 auto;
+}
+
+:deep(.connection-person strong),
+:deep(.connection-person small),
+:deep(.connection-detail small) {
+  display: block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+:deep(.connection-person strong) {
+  font-size: 10px;
+}
+
+:deep(.connection-person small) {
+  margin-top: 3px;
+  color: #899792;
+  font-size: 8px;
+}
+
+:deep(.connection-person .connection-route) {
+  color: #5f9189;
+  font-weight: 600;
+}
+
+:deep(.connection-detail) {
+  display: grid;
+  flex: 0 1 58%;
+  justify-items: end;
+  gap: 2px;
+  text-align: right;
+}
+
+:deep(.connection-detail small) {
+  color: #899792;
+  font-size: 8px;
+}
+
+:deep(.connection-status) {
+  display: inline-flex;
+  padding: 3px 6px;
+  border-radius: 999px;
+  color: #236c63;
+  background: #e3f3ef;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+:deep(.connection-status.disconnected) {
+  color: #687a74;
+  background: #e9efed;
+}
+
+:deep(.connection-status.failed) {
+  color: #a34f48;
+  background: #fff0ee;
+}
+
+:deep(.connection-status.connecting) {
+  color: #8b6a3e;
+  background: #fbf1dc;
+}
+
+@media (max-width:520px) {
+  :deep(.connection-row) {
+    display: grid;
+    gap: 7px;
+  }
+  :deep(.connection-detail) {
+    justify-items: start;
+    text-align: left;
+  }
+}
+
+.login-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.login-actions .language-link {
+  margin-top: 0;
+}
+
+.home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  color: #08766e;
+  background: #e4f3ef;
+  border: 1px solid #cae7e0;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.home-link:hover {
+  background: #d8eee9;
+}
+
+.language-link {
+  margin-top: 20px!important;
+  padding: 0!important;
+  background: transparent!important;
+  border: 0!important;
+  border-radius: 0!important;
+}
+
+.login-actions .language-link {
+  margin-top: 0!important;
+}
+
+/* Flexible fields must be allowed to shrink within responsive columns. */
+
+:deep(.settings-card),
+:deep(.password-row),
+:deep(.password-row>label) {
+  min-width: 0;
+}
+
+:deep(.password-actions) {
+  flex: 0 0 auto;
+}
+
+/* The application is zoomed up on large displays so the 1920×1080 layout
+   stays readable. Compensate viewport heights for that zoom; otherwise a
+   2K viewport becomes a 1920px-tall admin shell and clips its lower cards. */
+
+@media (min-width:851px) {
+  :global(html[data-ws-route="admin"]),
+  :global(html[data-ws-route="admin"] body) {
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+  :global(html[data-ws-route="admin"] #app),
+  .admin-root,
+  :deep(.admin-shell),
+  .admin-sidebar {
+    height: calc(100dvh / var(--ui-scale));
+    min-height: calc(100dvh / var(--ui-scale));
+    max-height: calc(100dvh / var(--ui-scale));
+  }
+  :deep(.admin-main) {
+    height: 100%;
+    min-height: 0;
+  }
+}
+

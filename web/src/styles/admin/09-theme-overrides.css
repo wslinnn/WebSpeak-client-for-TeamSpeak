@@ -1,0 +1,222 @@
+/* One palette is shared by explicit dark mode and system dark mode. */
+
+.admin-root {
+  --admin-page: #f4f8f6;
+  --admin-surface: #fff;
+  --admin-raised: #f6f9f8;
+  --admin-field: #fff;
+  --admin-text: #20302c;
+  --admin-muted: #657873;
+  --admin-border: #dfe8e5;
+  --admin-accent: #087d74;
+  --admin-accent-soft: #e4f3ef;
+  color: var(--admin-text);
+  background: var(--admin-page);
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .admin-root) {
+  --admin-page: #101918;
+  --admin-surface: #172321;
+  --admin-raised: #202f2c;
+  --admin-field: #111d1b;
+  --admin-text: #e8f3f0;
+  --admin-muted: #b6c8c2;
+  --admin-border: #3a514b;
+  --admin-accent: #79ddd1;
+  --admin-accent-soft: #1b3935;
+}
+
+@media (prefers-color-scheme:dark) {
+  :global(html[data-ws-route="admin"][data-theme="system"] .admin-root) {
+    --admin-page: #101918;
+    --admin-surface: #172321;
+    --admin-raised: #202f2c;
+    --admin-field: #111d1b;
+    --admin-text: #e8f3f0;
+    --admin-muted: #b6c8c2;
+    --admin-border: #3a514b;
+    --admin-accent: #79ddd1;
+    --admin-accent-soft: #1b3935;
+  }
+}
+
+.admin-root :deep(.admin-main) {
+  color: var(--admin-text);
+  background: var(--admin-page);
+}
+
+.admin-root .admin-topbar,
+.admin-root :deep(.settings-card),
+.admin-root :deep(.readonly-card),
+.admin-root :deep(.overview-card),
+.admin-root :deep(.operation-card),
+.admin-root :deep(.metric-grid article),
+.admin-root .setup-card,
+.admin-root .login-card {
+  color: var(--admin-text);
+  background: var(--admin-surface);
+  border-color: var(--admin-border);
+}
+
+.admin-root :deep(.settings-card h3),
+.admin-root :deep(.settings-card h4),
+.admin-root :deep(.readonly-card h3),
+.admin-root :deep(.overview-card h3),
+.admin-root :deep(.operation-card h3),
+.admin-root :deep(.page-heading h2),
+.admin-root .admin-topbar h1,
+.admin-root :deep(.settings-card label>span),
+.admin-root :deep(.settings-card legend),
+.admin-root :deep(.settings-card .choice strong) {
+  color: var(--admin-text);
+}
+
+.admin-root :deep(.page-heading p),
+.admin-root .admin-topbar small,
+.admin-root :deep(.settings-card .card-help),
+.admin-root :deep(.settings-card .field-help),
+.admin-root :deep(.settings-card .choice small),
+.admin-root :deep(.settings-card .welcome-editor-heading>small),
+.admin-root :deep(.settings-card .port-fields-heading small),
+.admin-root :deep(.readonly-card dt),
+.admin-root :deep(.overview-card dt),
+.admin-root :deep(.metric-grid small),
+.admin-root :deep(.metric-grid em),
+.admin-root :deep(.overview-card header p),
+.admin-root :deep(.operation-card header p) {
+  color: var(--admin-muted);
+}
+
+.admin-root :deep(input:not([type="checkbox"]):not([type="radio"])),
+.admin-root :deep(textarea),
+.admin-root :deep(select) {
+  color: var(--admin-text);
+  background: var(--admin-field);
+  border-color: var(--admin-border);
+}
+
+.admin-root :deep(input::placeholder),
+.admin-root :deep(textarea::placeholder) {
+  color: var(--admin-muted);
+  opacity: 1;
+}
+
+.admin-root :deep(input:disabled),
+.admin-root :deep(textarea:disabled),
+.admin-root :deep(select:disabled) {
+  color: var(--admin-muted);
+  background: var(--admin-raised);
+  border-color: var(--admin-border);
+  opacity: 1;
+}
+
+.admin-root :deep(input[type="checkbox"]),
+.admin-root :deep(input[type="radio"]) {
+  accent-color: var(--admin-accent);
+}
+
+.admin-root :deep(.settings-card .choice) {
+  color: var(--admin-text);
+  background: var(--admin-raised);
+  border-color: var(--admin-border);
+}
+
+.admin-root :deep(.settings-card .choice.selected) {
+  background: color-mix(in srgb,var(--admin-accent) 10%,var(--admin-surface));
+  border-color: color-mix(in srgb,var(--admin-accent) 48%,var(--admin-border));
+}
+
+.admin-root :deep(.welcome-editor),
+.admin-root :deep(.webrtc-port-fields),
+.admin-root :deep(.readonly-card dl div),
+.admin-root :deep(.overview-card dl div),
+.admin-root :deep(.event-list li),
+.admin-root :deep(.connection-row),
+.admin-root :deep(.connection-history-heading),
+.admin-root :deep(.diagnostic-list div),
+.admin-root :deep(.log-row),
+.admin-root :deep(.invite-row) {
+  color: var(--admin-text);
+  background: var(--admin-raised);
+  border-color: var(--admin-border);
+}
+
+.admin-root :deep(.welcome-editor select),
+.admin-root :deep(.welcome-editor textarea) {
+  color: var(--admin-text);
+  background: var(--admin-field);
+  border-color: var(--admin-border);
+}
+
+.admin-root :deep(.welcome-editor-heading>small),
+.admin-root :deep(.port-fields-heading small),
+.admin-root :deep(.field-help),
+.admin-root :deep(.target-runtime-facts dt),
+.admin-root :deep(.connection-person small),
+.admin-root :deep(.connection-detail small),
+.admin-root :deep(.connection-history-heading small),
+.admin-root :deep(.diagnostic-list dt),
+.admin-root :deep(.log-row small),
+.admin-root :deep(.invite-row small) {
+  color: var(--admin-muted);
+}
+
+.admin-root :deep(.settings-subsection) {
+  color: var(--admin-text);
+  background: var(--admin-raised);
+  border-color: var(--admin-border);
+}
+
+.admin-root :deep(.target-runtime-facts>div),
+.admin-root :deep(.settings-subsection .choice) {
+  background: var(--admin-surface);
+  border-color: var(--admin-border);
+}
+
+.admin-root :deep(.password-actions button) {
+  color: var(--admin-accent);
+  background: var(--admin-accent-soft);
+}
+
+.admin-root :deep(.password-actions button.active),
+.admin-root :deep(.primary-button) {
+  color: #fff;
+  background: #087d74;
+}
+
+.admin-root :deep(.password-actions button.danger),
+.admin-root :deep(.danger-button),
+.admin-root :deep(.text-danger) {
+  color: #d66d65;
+  background: color-mix(in srgb,#d66d65 12%,var(--admin-surface));
+  border-color: color-mix(in srgb,#d66d65 30%,var(--admin-border));
+}
+
+.admin-root :deep(.secondary-button),
+.admin-root .admin-topbar button,
+.admin-root .admin-topbar .language-select,
+.admin-root .home-link {
+  color: var(--admin-accent);
+  background: var(--admin-accent-soft);
+  border-color: var(--admin-border);
+}
+
+.admin-root :deep(.settings-accordion-header>.ui-icon) {
+  color: var(--admin-muted);
+}
+
+.admin-root :deep(.settings-summary-chip) {
+  color: var(--admin-muted);
+  background: var(--admin-raised);
+  border-color: var(--admin-border);
+}
+
+.admin-root .admin-sidebar nav a {
+  color: #c2d8d3;
+}
+
+.admin-root .admin-sidebar nav a.active {
+  color: #eafffb;
+  background: #0d615a;
+}
+
