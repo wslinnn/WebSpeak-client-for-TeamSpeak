@@ -41,7 +41,7 @@ test("settings, tests, and join tickets resolve nicknames through the gateway", 
   const port = await availablePort();
   const origin = `http://127.0.0.1:${port}`;
   const joinTickets = new JoinTicketStore();
-  const server = createWebServer({ port, adminService: service, voiceBridgeOptions: { joinTickets }, logger, serverPasswordGuard: new ServerPasswordGuard() });
+  const server = createWebServer({ port, adminService: service, voiceBridgeOptions: { joinTickets }, logger, serverPasswordGuard: new ServerPasswordGuard(), prefillResolveTtlMs: 0 });
   context.after(async () => {
     await server.stop();
     database.close();

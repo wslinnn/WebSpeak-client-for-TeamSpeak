@@ -39,6 +39,9 @@ export interface WebServerOptions {
   /** Latest Android-client release metadata for the download page; absent on
    *  deployments that do not ship the lookup. */
   androidReleaseLookup?: () => Promise<AndroidReleaseInfo | null>;
+  /** Prefill-resolution cache lifetime on /api/public-config; 0 disables the
+   *  cache. Defaults to 30s. */
+  prefillResolveTtlMs?: number;
 }
 
 export interface WebServer {
@@ -136,16 +139,28 @@ export function createWebServer(options: WebServerOptions): WebServer {
   app.get("/health", healthHandler);
   app.get("/api/health", healthHandler);
 
+  // The prefill check hits upstream DNS and the nickname lookup service on
+  // every request of an unauthenticated endpoint; a short positive/negative
+  // cache bounds that amplification. The authoritative safety check still
+  // runs on the join path, so staleness here only affects form prefill.
+  const prefillResolveTtlMs = options.prefillResolveTtlMs ?? 30_000;
+  let prefillResolution: { key: string; blocked: boolean; at: number } | null = null;
   app.get("/api/public-config", async (request, response) => {
     response.setHeader("Cache-Control", "no-store");
     const publicConfig = options.adminService.getPublicConfig();
     let target = typeof publicConfig.target === "string" ? publicConfig.target : "";
     let targetPrefillBlocked = false;
     if (publicConfig.accessMode === "open" && target.trim()) {
-      try {
-        targetPrefillBlocked = !await isSafeOpenTargetForPrefill(await resolveTeamSpeakTarget(target));
-      } catch {
-        targetPrefillBlocked = true;
+      const now = Date.now();
+      if (!prefillResolution || prefillResolution.key !== target || now - prefillResolution.at > prefillResolveTtlMs) {
+        try {
+          targetPrefillBlocked = !await isSafeOpenTargetForPrefill(await resolveTeamSpeakTarget(target));
+        } catch {
+          targetPrefillBlocked = true;
+        }
+        prefillResolution = { key: target, blocked: targetPrefillBlocked, at: now };
+      } else {
+        targetPrefillBlocked = prefillResolution.blocked;
       }
       if (targetPrefillBlocked) target = "";
     }
