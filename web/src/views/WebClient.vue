@@ -198,6 +198,7 @@
             @select-server="selectLocalServer"
             @connect-server="connectFromServerTab"
             @toggle-favorite="toggleFavorite"
+            @remove-favorite="removeFavoriteRow"
             @open-favorite-dialog="openFavoriteServerDialog()"
             @edit-favorite="editFavoriteServer"
             @import-identity="openIdentityImport"
