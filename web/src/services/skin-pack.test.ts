@@ -16,6 +16,18 @@ const manifest = {
   entry: "skin.css",
 };
 
+// web-client.css is a pure ordered @import manifest (byte-invariant split, report
+// 14 §3); rules live in the shards, so tests assert against the inlined cascade.
+async function readWebClientCss(): Promise<string> {
+  const entry = await readFile(new URL("../styles/web-client.css", import.meta.url), "utf8");
+  const imports = [...entry.matchAll(/^@import "\.\/web-client\/([^"]+)";$/gm)].map(match => match[1]);
+  if (imports.length === 0) return entry;
+  const shards = await Promise.all(
+    imports.map(name => readFile(new URL(`../styles/web-client/${name}`, import.meta.url), "utf8")),
+  );
+  return shards.join("");
+}
+
 test("skin CSS is scoped, local artwork and fonts work, and global names are isolated", async () => {
   const skin = await importSkinPack(makeSkin(`
     @font-face { font-family: "Wave Font"; src: url("assets/wave.woff2") format("woff2"); }
@@ -183,7 +195,7 @@ test("the ILLUSIA visual-only example imports without replacing WebSpeak's base 
 });
 
 test("the activity artwork layer floats above room content without intercepting controls", async () => {
-  const css = await readFile(new URL("../styles/web-client.css", import.meta.url), "utf8");
+  const css = await readWebClientCss();
   assert.match(css, /\.app-shell \.workspace-content\s*\{\s*position: relative;\s*isolation: isolate;/);
   assert.match(css, /\.voice-activity-artwork\s*\{\s*position: absolute;\s*z-index: 2;\s*inset: -26px 0 -48px;[^}]*pointer-events: none;/);
   assert.match(css, /\.voice-activity-artwork\s*\{[^}]*transform: perspective\(1100px\) rotateY\(-2\.5deg\) translateZ\(22px\)/);
@@ -212,7 +224,7 @@ test("channel empty state removes its bubble ornament and keeps the text-channel
 });
 
 test("homepage motion and room content spacing preserve the ILLUSIA layout", async () => {
-  const css = await readFile(new URL("../styles/web-client.css", import.meta.url), "utf8");
+  const css = await readWebClientCss();
   // One reduced-motion kill switch covers the whole client (join page, voice
   // room and dialogs alike) — no per-section carve-outs anymore.
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.web-client \*,\s*\.web-client \*::before,\s*\.web-client \*::after\s*\{\s*animation: none !important;\s*transition-duration: \.01ms !important;/);

@@ -1,0 +1,439 @@
+/* Latin-script translations need a little more room than Chinese copy. Keep
+   the Chinese layout unchanged and use a compact type scale for English and
+   German so headings, labels, and actions do not force awkward wrapping. */
+
+.web-client.language-en .join-page :deep(.brand-lockup strong),
+.web-client.language-de .join-page :deep(.brand-lockup strong) {
+  font-size: 19.8px;
+}
+
+.web-client.language-en .join-page :deep(.brand-lockup small),
+.web-client.language-en .join-page :deep(.header-note),
+.web-client.language-de .join-page :deep(.brand-lockup small),
+.web-client.language-de .join-page :deep(.header-note) {
+  font-size: 11px;
+}
+
+.web-client.language-en .join-page :deep(.guide-button),
+.web-client.language-de .join-page :deep(.guide-button) {
+  font-size: 9.7px;
+}
+
+.web-client.language-en .join-page .eyebrow,
+.web-client.language-de .join-page .eyebrow {
+  font-size: 12px;
+}
+
+.web-client.language-en .join-page .join-copy h1,
+.web-client.language-de .join-page .join-copy h1 {
+  font-size: clamp(46px, 5.8vw, 79px);
+}
+
+.web-client.language-en .join-page .join-description,
+.web-client.language-de .join-page .join-description {
+  font-size: 18px;
+}
+
+.web-client.language-en .join-page .promise-item b,
+.web-client.language-de .join-page .promise-item b {
+  font-size: 13.2px;
+}
+
+.web-client.language-en .join-page .promise-item small,
+.web-client.language-de .join-page .promise-item small {
+  font-size: 11px;
+}
+
+.web-client.language-en :deep(.join-page .card-kicker),
+.web-client.language-de :deep(.join-page .card-kicker) {
+  font-size: 11px;
+}
+
+.web-client.language-en .join-page .join-card h2,
+.web-client.language-de .join-page .join-card h2 {
+  font-size: 29.7px;
+}
+
+.web-client.language-en .join-page .card-lead,
+.web-client.language-de .join-page .card-lead {
+  font-size: 14.3px;
+}
+
+.web-client.language-en :deep(.join-page .notice),
+.web-client.language-de :deep(.join-page .notice) {
+  font-size: 13.2px;
+}
+
+.web-client.language-en :deep(.join-page .field-label),
+.web-client.language-de :deep(.join-page .field-label) {
+  font-size: 12px;
+}
+
+.web-client.language-en :deep(.join-page .field-wrap input),
+.web-client.language-de :deep(.join-page .field-wrap input) {
+  font-size: 14.3px;
+}
+
+.web-client.language-en :deep(.join-page .primary-button),
+.web-client.language-de :deep(.join-page .primary-button),
+.web-client.language-en .join-page :deep(.identity-import-submit),
+.web-client.language-de .join-page :deep(.identity-import-submit) {
+  font-size: 13.2px;
+}
+
+.web-client.language-en :deep(.join-page .connect-button),
+.web-client.language-de :deep(.join-page .connect-button) {
+  font-size: 14.3px;
+}
+
+.web-client.language-en .join-page .join-meta,
+.web-client.language-en .join-page .join-footer,
+.web-client.language-de .join-page .join-meta,
+.web-client.language-de .join-page .join-footer {
+  font-size: 11px;
+}
+
+@media (max-width: 740px) {
+  .web-client.language-en .join-page .join-copy h1,
+  .web-client.language-de .join-page .join-copy h1 {
+    font-size: clamp(35px, 10.6vw, 51px);
+  }
+  .web-client.language-en .join-page .join-description,
+  .web-client.language-de .join-page .join-description {
+    font-size: 13.2px;
+  }
+  .web-client.language-en .join-page .join-card h2,
+  .web-client.language-de .join-page .join-card h2 {
+    font-size: 22px;
+  }
+  .web-client.language-en .join-page .card-lead,
+  .web-client.language-de .join-page .card-lead {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 420px) {
+  .web-client.language-en .join-page :deep(.brand-lockup strong),
+  .web-client.language-de .join-page :deep(.brand-lockup strong) {
+    font-size: 13.2px;
+  }
+}
+
+@media (max-width: 740px) {
+  :deep(.performance-trigger) {
+    width: 36px;
+    height: 36px;
+    min-height: 36px;
+    justify-content: center;
+    padding: 0;
+  }
+  :deep(.performance-trigger-label),
+  :deep(.performance-trigger small),
+  :deep(.performance-trigger > .ui-icon:last-child) {
+    display: none;
+  }
+  :deep(.performance-panel) {
+    position: fixed;
+    top: calc(60px + env(safe-area-inset-top, 0px));
+    right: 10px;
+    width: min(340px, calc(100vw - 20px));
+  }
+}
+
+@media (max-width: 390px) {
+  :deep(.performance-trigger) {
+    width: 32px;
+    height: 32px;
+    flex-basis: 32px;
+  }
+  :deep(.performance-panel) {
+    right: 8px;
+    width: min(330px, calc(100vw - 16px));
+    padding: 13px;
+  }
+}
+
+/* Desktop audio popovers: keep the rail compact and reveal each control's
+   adjustment surface only while the pointer or keyboard focus is on it. */
+
+@media (min-width: 741px) {
+  /* 桌面端悬浮（仅 ≥741px 生效，≤740px 移动端布局不受影响）：
+     1) 桌面控制坞 .desktop-audio-dock 脱离文档流悬浮于成员面板底部，
+        仍浮在原布局位置（距面板底 18px），宽度跟随面板内容宽度
+        （left/right 各留 18px，与 member-panel 水平内边距一致，
+        随列宽自适应伸缩）；高度仍由内容撑起。member-panel 作为
+        absolute 包含块并加 padding-bottom 补偿原占位，避免成员列表
+        被遮挡。
+     2) 消息输入框 .message-composer 脱离文档流悬浮于聊天面板底部，
+        宽度跟随聊天面板内容宽度（chat-panel 水平内边距为 0，
+        left/right:0 即与内容宽度完全一致）；chat-panel 作为包含块
+        并加 padding-bottom 补偿原占位，避免消息列表被遮挡。 */
+  :deep(.app-shell .member-panel) {
+    position: relative;
+    overflow: visible;
+    padding-bottom: calc(18px + 12px + 52px);
+  }
+  :deep(.desktop-audio-dock) {
+    position: absolute;
+    z-index: var(--ws-z-raised);
+    left: 18px;
+    right: 18px;
+    bottom: 18px;
+    margin-top: 0;
+  }
+  .app-shell .chat-panel {
+    position: relative;
+    padding-bottom: calc(16px + 48px);
+  }
+  :deep(.app-shell .message-composer) {
+    position: absolute;
+    z-index: 3;
+    left: 0;
+    right: 0;
+    bottom: 16px;
+    margin-bottom: 0;
+  }
+}
+
+:deep(.dock-hover-control) {
+  position: relative;
+  flex: 0 0 34px;
+}
+
+:deep(.dock-hover-panel) {
+  position: absolute;
+  z-index: var(--ws-z-dropdown);
+  right: 50%;
+  bottom: calc(100% + 10px);
+  width: min(224px, calc(100vw - 32px));
+  padding: 13px 14px;
+  color: var(--text-primary);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 15px 34px color-mix(in srgb, var(--text-primary) 18%, transparent);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate(50%, 6px);
+  transition: opacity .16s ease, transform .16s ease, visibility .16s ease;
+}
+
+:deep(.dock-hover-panel::after) {
+  content: "";
+  position: absolute;
+  right: auto;
+  bottom: -6px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: var(--surface-1);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+:deep(.dock-hover-control:hover .dock-hover-panel),
+:deep(.dock-hover-control:focus-within .dock-hover-panel) {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate(50%, 0);
+}
+
+:deep(.dock-microphone-panel) {
+  width: min(246px, calc(100vw - 32px));
+}
+
+:deep(.dock-slider-heading) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+:deep(.dock-slider-heading span) {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.dock-slider-heading strong) {
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-size: 11px;
+}
+
+:deep(.dock-slider) {
+  width: 100%;
+  height: 5px;
+  margin: 11px 0 1px;
+  appearance: none;
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+:deep(.dock-slider::-webkit-slider-thumb) {
+  width: 14px;
+  height: 14px;
+  appearance: none;
+  border: 2px solid #81d8d0;
+  border-radius: 50%;
+  background: var(--surface-1);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--text-primary) 14%, transparent);
+  cursor: pointer;
+}
+
+:deep(.dock-slider::-moz-range-thumb) {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #81d8d0;
+  border-radius: 50%;
+  background: var(--surface-1);
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--text-primary) 14%, transparent);
+  cursor: pointer;
+}
+
+:deep(.dock-panel-divider) {
+  height: 1px;
+  margin: 12px 0;
+  background: var(--border);
+}
+
+/* Reuses .audio-level-row/.audio-level-track; trim the dialog-sized bottom
+ * margin so the meter sits tight above the panel divider. */
+:deep(.dock-microphone-panel .audio-level-track) {
+  margin-bottom: 0;
+}
+
+:deep(.dock-switch-row),
+:deep(.mobile-noise-toggle),
+:deep(.desktop-notification-toggle) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+}
+
+:deep(.dock-switch-row > span),
+:deep(.mobile-noise-toggle > span),
+:deep(.desktop-notification-toggle > span) {
+  min-width: 0;
+}
+
+:deep(.dock-switch-row strong),
+:deep(.mobile-noise-toggle strong),
+:deep(.desktop-notification-toggle strong) {
+  display: block;
+  color: var(--text-primary);
+  font-size: 11px;
+}
+
+:deep(.mobile-noise-toggle),
+:deep(.desktop-notification-toggle) {
+  margin-bottom: 18px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+}
+
+:deep(.mobile-noise-toggle small),
+:deep(.desktop-notification-toggle small) {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+:deep(.dock-switch-row input),
+:deep(.mobile-noise-toggle input),
+:deep(.desktop-notification-toggle input) {
+  position: relative;
+  width: 34px;
+  height: 20px;
+  flex: 0 0 34px;
+  margin: 0;
+  padding: 0;
+  appearance: none;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  outline: none;
+  background: var(--surface-2);
+  cursor: pointer;
+  transition: background .16s ease, border-color .16s ease;
+}
+
+:deep(.dock-switch-row input::before),
+:deep(.mobile-noise-toggle input::before),
+:deep(.desktop-notification-toggle input::before) {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: transform .16s ease, background .16s ease;
+}
+
+:deep(.dock-switch-row input:checked),
+:deep(.mobile-noise-toggle input:checked),
+:deep(.desktop-notification-toggle input:checked) {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 72%, var(--surface-2));
+}
+
+:deep(.dock-switch-row input:checked::before),
+:deep(.mobile-noise-toggle input:checked::before),
+:deep(.desktop-notification-toggle input:checked::before) {
+  background: var(--surface-1);
+  transform: translateX(14px);
+}
+
+:deep(.dock-switch-row input:focus-visible),
+:deep(.mobile-noise-toggle input:focus-visible),
+:deep(.desktop-notification-toggle input:focus-visible) {
+  outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 2px;
+}
+
+:deep(.member-row) {
+  /* pan-y keeps vertical list scrolling working on touch; only horizontal
+     drags start a member move (the desktop HTML5 drag path sets the same). */
+  touch-action: pan-y;
+}
+
+:deep(.member-row[draggable="true"]) {
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+:deep(.member-row[draggable="true"]:active) {
+  cursor: grabbing;
+}
+
+:deep(.member-row.dragging) {
+  opacity: .45;
+}
+
+:deep(.member-channel-group.drag-over) {
+  padding: 6px 6px 12px;
+  border: 1px dashed var(--accent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+:deep(.member-channel-group.drag-over .member-channel-heading) {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 13%, var(--surface-1));
+}
+
+

@@ -1,0 +1,626 @@
+.room-hero {
+  position: relative;
+  min-height: 190px;
+  overflow: hidden;
+  padding: 30px 34px;
+  border-radius: 16px;
+  background: linear-gradient(110deg, #e3f4f1, #f8fbfa 68%, #fff);
+}
+
+.room-hero h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 16px 0 7px;
+  color: #18302c;
+  font-size: 26px;
+  letter-spacing: -.05em;
+}
+
+.room-hero h1 .ui-icon {
+  color: #006a64;
+}
+
+.room-hero p {
+  max-width: 470px;
+  margin: 0;
+  color: #64817a;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.hero-decoration.one {
+  width: 250px;
+  height: 250px;
+  right: 48px;
+  top: -116px;
+}
+
+.hero-decoration.two {
+  width: 355px;
+  height: 355px;
+  right: -20px;
+  top: -168px;
+}
+
+:deep(.section-heading) {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.voice-section {
+  margin-top: 34px;
+}
+
+:deep(.section-heading h2) {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 6px 0 0;
+  color: #1d2926;
+  font-size: 20px;
+  letter-spacing: -.04em;
+}
+
+:deep(.section-counter) {
+  color: #87928e;
+  font-size: 10px;
+}
+
+:deep(.voice-grid) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(142px, 1fr));
+  gap: 12px;
+  margin-top: 17px;
+}
+
+:deep(.voice-card) {
+  position: relative;
+  min-height: 152px;
+  padding: 17px 11px 13px;
+  border: 1px solid #edf1ef;
+  border-radius: 13px;
+  background: #fff;
+  box-shadow: 0 7px 18px rgba(20,58,51,.04);
+  text-align: center;
+  transition: .18s;
+}
+
+:deep(.voice-card:hover) {
+  z-index: 3;
+  transform: translateY(-2px);
+  box-shadow: 0 11px 24px rgba(20,58,51,.08);
+}
+
+:deep(.voice-card.speaking) {
+  border-color: #90f691;
+  box-shadow: 0 0 14px rgba(144,246,145,.35);
+}
+
+:deep(.voice-avatar-wrap) {
+  position: relative;
+  z-index: 3;
+  width: 68px;
+  margin: 0 auto 11px;
+}
+
+:deep(.voice-avatar) {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.voice-status {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: #78908b;
+  background: #fff;
+  border: 1px solid #e0eae6;
+  border-radius: 50%;
+}
+
+.voice-status.speaking {
+  color: #278c3b;
+  border-color: #90f691;
+}
+
+:deep(.voice-card > strong),
+:deep(.voice-card > span) {
+  position: relative;
+  z-index: 3;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.voice-card > strong) {
+  color: #2c3935;
+  font-size: 12px;
+}
+
+:deep(.voice-card > span) {
+  margin-top: 5px;
+  color: #91a09a;
+  font-size: 10px;
+}
+
+:deep(.voice-card.speaking > span) {
+  color: #278c3b;
+}
+
+:deep(.voice-empty) {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-top: 17px;
+  padding: 18px;
+  color: #83908c;
+  border: 1px dashed #dce6e2;
+  border-radius: 12px;
+  font-size: 11px;
+}
+
+:deep(.voice-empty .empty-icon) {
+  margin: 0;
+  width: 34px;
+  height: 34px;
+}
+
+:deep(.voice-empty strong) {
+  color: #4c5e58;
+}
+
+:deep(.voice-empty span:last-child) {
+  margin-left: auto;
+}
+
+.chat-panel {
+  margin-top: 34px;
+  padding: 0 clamp(14px, 1.8vw, 24px) 20px;
+  border-top: 1px solid #eef2f0;
+}
+
+:deep(.chat-heading) {
+  padding-top: 25px;
+}
+
+:deep(.chat-heading h2 .ui-icon) {
+  color: #006a64;
+}
+
+:deep(.message-list) {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 170px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 22px 8px 10px 3px;
+}
+
+:deep(.chat-empty) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 145px;
+  color: #9aa6a2;
+  text-align: center;
+}
+
+:deep(.chat-empty-icon) {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 11px;
+  color: #6fa8a2;
+  background: #e5f3f1;
+  border-radius: 14px;
+}
+
+:deep(.chat-empty strong) {
+  color: #556761;
+  font-size: 12px;
+}
+
+:deep(.chat-empty span) {
+  margin-top: 5px;
+  font-size: 10px;
+}
+
+:deep(.message-row) {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  max-width: 78%;
+}
+
+/* Grouped rows tighten onto their predecessor; the avatar spacer keeps the
+ * bubble column aligned with the group head. */
+:deep(.message-row.grouped) {
+  margin-top: -11px;
+}
+
+:deep(.message-avatar-spacer) {
+  background: transparent;
+}
+
+:deep(.message-row.mine) {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+:deep(.message-avatar) {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+:deep(.message-body) {
+  min-width: 0;
+}
+
+:deep(.message-meta) {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 1px 0 6px;
+}
+
+:deep(.message-row.mine .message-meta) {
+  justify-content: flex-end;
+}
+
+:deep(.message-meta strong) {
+  color: #384843;
+  font-size: 11px;
+}
+
+:deep(.message-meta time) {
+  color: #a1ada9;
+  font-size: 9px;
+}
+
+:deep(.message-bubble) {
+  /* anywhere keeps long URLs/IDs from stretching the bubble past the chat
+   * column; pre-wrap preserves the newlines the sender typed. */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  padding: 10px 13px;
+  color: #43534e;
+  background: #f1f5f3;
+  border-radius: 4px 13px 13px 13px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+:deep(.message-row.mine .message-bubble) {
+  color: #fff;
+  background: #006a64;
+  border-radius: 13px 4px 13px 13px;
+}
+
+:deep(.message-composer) {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 48px;
+  padding: 6px 8px 6px 12px;
+  background: #f3f6f5;
+  border-radius: 11px;
+}
+
+:deep(.message-composer :is(input, textarea)) {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #3a4944;
+  font-size: 12px;
+}
+
+:deep(.message-composer textarea) {
+  resize: none;
+  overflow-y: auto;
+  font: inherit;
+  line-height: 1.45;
+}
+
+/* Remaining-characters hint, shown only near the cap. */
+:deep(.composer-count) {
+  flex: 0 0 auto;
+  color: #a1ada9;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+:deep(.message-composer :is(input, textarea)::placeholder) {
+  color: #9aa6a2;
+}
+
+:deep(.send-button) {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  color: #fff;
+  background: #006a64;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+:deep(.send-button:disabled) {
+  cursor: not-allowed;
+  opacity: .35;
+}
+
+.mic-mode-switch {
+  display: flex;
+  padding: 3px;
+  background: #eef3f1;
+  border-radius: 8px;
+}
+
+.mic-mode-switch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 9px;
+  color: #8b9894;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.mic-mode-switch button.active {
+  color: #006a64;
+  background: #fff;
+  box-shadow: 0 2px 5px rgba(21,54,48,.08);
+  font-weight: 700;
+}
+
+.ptt-indicator.active {
+  color: #278c3b;
+}
+
+.ptt-indicator.active span {
+  background: #65d879;
+  box-shadow: 0 0 0 4px rgba(101,216,121,.15);
+}
+
+.dock-actions {
+  min-width: 140px;
+  justify-content: flex-end;
+}
+
+:deep(.member-panel) {
+  min-width: 0;
+  padding: 26px 16px;
+  color: #2c3935;
+  background: #fbfcfc;
+  border-left: 1px solid #eef2f0;
+  /* A full roster scrolls instead of clipping: overflow hidden here once hid
+   * members beyond the fold with no way to reach them. */
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+/* Staggered entrance for member rows: cheap KOOK-style life without motion
+ * sickness — disabled under prefers-reduced-motion below. */
+:deep(.member-list) .member-row {
+  animation: member-row-in .32s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+:deep(.member-list) .member-row:nth-child(2) { animation-delay: .035s; }
+:deep(.member-list) .member-row:nth-child(3) { animation-delay: .07s; }
+:deep(.member-list) .member-row:nth-child(4) { animation-delay: .105s; }
+:deep(.member-list) .member-row:nth-child(5) { animation-delay: .14s; }
+:deep(.member-list) .member-row:nth-child(6) { animation-delay: .175s; }
+:deep(.member-list) .member-row:nth-child(7) { animation-delay: .21s; }
+:deep(.member-list) .member-row:nth-child(n + 8) { animation-delay: .245s; }
+
+/* blur() is the most expensive layer effect on low-end GPUs and reads badly
+ * at scale; rows past the first screen skip the entrance entirely. */
+:deep(.member-list) .member-row:nth-child(n + 9) {
+  animation: none;
+}
+
+@keyframes member-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .web-client *,
+  .web-client *::before,
+  .web-client *::after {
+    animation: none !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+:deep(.member-panel-heading) {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+:deep(.member-panel-heading h2) {
+  margin: 5px 0 0;
+  color: #25322e;
+  font-size: 19px;
+  letter-spacing: -.04em;
+}
+
+:deep(.member-search) {
+  margin-top: 18px;
+  padding: 0 10px;
+  min-height: 33px;
+}
+
+:deep(.member-list) {
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+  margin-top: 17px;
+}
+
+:deep(.member-row) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+:deep(.member-avatar) {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 33px;
+  height: 33px;
+  flex: 0 0 auto;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+:deep(.member-avatar.speaking) {
+  box-shadow: 0 0 0 2px #90f691, 0 0 10px rgba(144,246,145,.35);
+}
+
+:deep(.member-presence) {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid #fbfcfc;
+  border-radius: 50%;
+  background: #65d879;
+}
+
+:deep(.member-copy) {
+  min-width: 0;
+  flex: 1;
+}
+
+:deep(.member-copy strong),
+:deep(.member-copy span) {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.member-copy strong) {
+  color: #34423d;
+  font-size: 10px;
+}
+
+/* Keyboard users reach the member menu through the name (the row itself only
+ * answers pointer events); it mirrors the strong it replaces. */
+:deep(.member-name-button) {
+  display: block;
+  overflow: hidden;
+  padding: 0;
+  color: #34423d;
+  background: transparent;
+  border-radius: 4px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+:deep(.member-name-button:hover) {
+  color: #006a64;
+}
+
+:deep(.member-copy span) {
+  margin-top: 4px;
+  color: #96a29e;
+  font-size: 9px;
+}
+
+:deep(.member-volume) {
+  align-items: center;
+  gap: 5px;
+  color: #a1afaa;
+  width: 64px;
+}
+
+:deep(.member-volume input) {
+  width: 45px;
+  height: 4px;
+  appearance: none;
+  border-radius: 99px;
+  outline: none;
+  cursor: pointer;
+}
+
+:deep(.member-volume input::-webkit-slider-thumb),
+:deep(.settings-range::-webkit-slider-thumb) {
+  width: 14px;
+  height: 14px;
+  appearance: none;
+  border: 2px solid #81d8d0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,.12);
+  cursor: pointer;
+}
+
+:deep(.member-volume input::-moz-range-thumb),
+:deep(.settings-range::-moz-range-thumb) {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #81d8d0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,.12);
+  cursor: pointer;
+}
+
+:deep(.member-empty) {
+  margin-top: 22px;
+  color: #98a49f;
+  font-size: 10px;
+  text-align: center;
+}
+
+.member-panel-tip .ui-icon {
+  color: #5e9e96;
+}
+

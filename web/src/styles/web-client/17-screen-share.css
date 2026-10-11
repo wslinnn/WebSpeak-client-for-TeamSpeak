@@ -1,0 +1,620 @@
+.screen-share-inline-error {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  color: var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--border));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface-1));
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+:deep(.screen-share-avatar-wrap) {
+  position: relative;
+  overflow: visible;
+}
+
+:deep(.screen-share-live-indicator) {
+  position: absolute;
+  top: -16px;
+  right: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 17px;
+  padding: 3px 6px 3px 4px;
+  color: #087b6e;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  border-radius: 999px;
+  background: var(--surface-1);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--text-primary) 12%, transparent);
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  transform: translateX(50%);
+}
+
+:deep(.screen-share-live-indicator::before) {
+  content: "";
+  width: 5px;
+  height: 5px;
+  flex: 0 0 5px;
+  border-radius: 50%;
+  background: #55d783;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #55d783 18%, transparent);
+  animation: screen-share-live-dot 1.2s ease-in-out infinite;
+}
+
+:deep(.screen-share-wave) {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  height: 14px;
+  color: #55d3bd;
+}
+
+:deep(.screen-share-wave i) {
+  display: block;
+  width: 2px;
+  flex: 0 0 2px;
+  border-radius: 99px;
+  background: currentColor;
+  animation: screen-share-wave 1.1s ease-in-out infinite alternate;
+}
+
+:deep(.screen-share-wave i:nth-child(2n)) {
+  animation-delay: -.18s;
+}
+
+:deep(.screen-share-wave i:nth-child(3n)) {
+  animation-delay: -.42s;
+}
+
+:deep(.screen-share-wave i:nth-child(4n)) {
+  animation-delay: -.66s;
+}
+
+:deep(.screen-share-stop-button) {
+  position: absolute;
+  bottom: -4px;
+  left: -5px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--danger);
+  border: 2px solid var(--surface-1);
+  border-radius: 7px;
+  background: var(--surface-2);
+  box-shadow: 0 3px 9px color-mix(in srgb, var(--text-primary) 18%, transparent);
+  cursor: pointer;
+}
+
+:deep(.screen-share-stop-button:hover) {
+  color: #fff;
+  border-color: var(--danger);
+  background: var(--danger);
+}
+
+:deep(.screen-share-stop-button:focus-visible) {
+  outline: 3px solid color-mix(in srgb, var(--danger) 42%, transparent);
+  outline-offset: 2px;
+}
+
+:deep(.screen-share-card-actions) {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  min-width: 0;
+  margin-top: 9px;
+  flex-wrap: wrap;
+}
+
+:deep(.screen-share-start-actions) {
+  display: inline-flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+:deep(.screen-share-card-button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 25px;
+  max-width: 100%;
+  padding: 4px 7px;
+  overflow: hidden;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-1));
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+:deep(.screen-share-card-button:hover) {
+  background: color-mix(in srgb, var(--accent) 15%, var(--surface-1));
+}
+
+:deep(.screen-share-card-button.live) {
+  color: #0e8c76;
+  background: color-mix(in srgb, #b6f0d5 55%, var(--surface-1));
+}
+
+:deep(.screen-share-card-button.viewing) {
+  color: #fff;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+:deep(.screen-share-settings-button) {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  min-width: 25px;
+  min-height: 25px;
+  padding: 0;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-1);
+  cursor: pointer;
+}
+
+:deep(.screen-share-settings-button:hover),
+:deep(.screen-share-settings-button[aria-expanded="true"]) {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface-1));
+}
+
+:deep(.screen-share-settings-backdrop) {
+  z-index: var(--ws-z-modal-mask);
+  align-items: center;
+  padding: 16px;
+}
+
+:deep(.screen-share-settings-modal) {
+  position: relative;
+  width: min(360px, 100%);
+  padding: 22px;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-1);
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--text-primary) 20%, transparent);
+}
+
+:deep(.screen-share-settings-close) {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+:deep(.screen-share-settings-close:hover) {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+:deep(.screen-share-settings-heading) {
+  padding-right: 35px;
+}
+
+:deep(.screen-share-settings-heading h2) {
+  margin: 5px 0 4px;
+  color: var(--text-primary);
+  font-size: 20px;
+  letter-spacing: -.04em;
+}
+
+:deep(.screen-share-settings-heading p) {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+:deep(.screen-share-settings-fields) {
+  display: grid;
+  gap: 13px;
+  margin-top: 22px;
+}
+
+:deep(.screen-share-settings-fields label) {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+:deep(.screen-share-settings-fields label span) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.screen-share-settings-fields select) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 37px;
+  padding: 0 9px;
+  overflow: hidden;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  font: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+:deep(.screen-share-settings-fields select:focus-visible) {
+  outline: 2px solid color-mix(in srgb, var(--accent) 48%, transparent);
+  outline-offset: 1px;
+}
+
+:deep(.screen-share-settings-note) {
+  margin: 15px 0 0;
+  color: var(--text-muted);
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+:deep(.screen-share-settings-footer) {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border);
+}
+
+:deep(.screen-share-settings-start) {
+  min-height: 35px;
+  padding: 0 12px;
+  font-size: 10px;
+}
+
+:deep(.screen-share-player) {
+  position: relative;
+  margin-top: 17px;
+  overflow: hidden;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-1);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--text-primary) 18%, transparent);
+}
+
+:deep(.screen-share-player-stage) {
+  position: relative;
+  display: grid;
+  width: 100%;
+  min-height: 245px;
+  aspect-ratio: 16 / 9;
+  place-items: center;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--accent) 12%, var(--surface-1)), var(--surface-2) 74%);
+}
+
+:deep(.screen-share-player-video) {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--surface-2);
+}
+
+:deep(.screen-share-player-placeholder) {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 360px;
+  padding: 30px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+:deep(.screen-share-player-placeholder-icon) {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 36%, transparent);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+:deep(.screen-share-player-placeholder strong) {
+  color: var(--text-primary);
+  font-size: 15px;
+}
+
+:deep(.screen-share-player-placeholder > span:last-child) {
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+:deep(.screen-share-player-exit),
+:deep(.screen-share-player-controls button) {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  color: var(--text-primary);
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--text-primary) 14%, transparent);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+}
+
+:deep(.screen-share-player-exit) {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  z-index: 3;
+}
+
+:deep(.screen-share-player-exit:hover),
+:deep(.screen-share-player-controls button:hover) {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-1));
+}
+
+:deep(.screen-share-player-viewers) {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 5px 8px 5px 11px;
+  color: var(--text-primary);
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--text-primary) 14%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+:deep(.screen-share-player-viewer-label) {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+:deep(.screen-share-player-viewer-avatars) {
+  display: inline-flex;
+  align-items: center;
+  padding-left: 4px;
+}
+
+:deep(.screen-share-player-viewer-avatar) {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  margin-left: -4px;
+  color: #fff;
+  border: 2px solid var(--surface-1);
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 800;
+  box-shadow: 0 2px 7px color-mix(in srgb, var(--text-primary) 22%, transparent);
+}
+
+:deep(.screen-share-player-live) {
+  position: absolute;
+  top: 22px;
+  left: 64px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  color: var(--text-primary);
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--text-primary) 14%, transparent);
+  backdrop-filter: blur(8px);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+:deep(.screen-share-player-live i) {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #65e48b;
+  box-shadow: 0 0 0 4px rgba(101,228,139,.18);
+  animation: screen-share-live-dot 1.2s ease-in-out infinite;
+}
+
+:deep(.screen-share-player-source) {
+  position: absolute;
+  bottom: 18px;
+  left: 18px;
+  z-index: 3;
+  max-width: 45%;
+  overflow: hidden;
+  padding: 7px 10px;
+  color: var(--text-primary);
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--text-primary) 14%, transparent);
+  backdrop-filter: blur(8px);
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.screen-share-player-controls) {
+  position: absolute;
+  right: 15px;
+  bottom: 15px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+:deep(.screen-share-player-controls label) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 11px;
+  color: var(--text-primary);
+  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--text-primary) 14%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+:deep(.screen-share-player-controls input) {
+  width: 102px;
+  height: 4px;
+  accent-color: #69d2c7;
+  cursor: pointer;
+}
+
+:deep(.screen-share-player:fullscreen) {
+  width: 100vw;
+  height: 100vh;
+  border: 0;
+  border-radius: 0;
+  background: var(--surface-0);
+}
+
+:deep(.screen-share-player:fullscreen .screen-share-player-stage) {
+  height: 100%;
+  max-height: none;
+  aspect-ratio: auto;
+}
+
+:deep(.screen-share-player::backdrop) {
+  background: var(--surface-0);
+}
+
+@keyframes screen-share-wave {
+  0% {
+    transform: scaleY(.45);
+    opacity: .5;
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes screen-share-live-dot {
+  0%,
+  100% {
+    opacity: .55;
+    transform: scale(.86);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (max-width: 740px) {
+  :deep(.screen-share-live-indicator) {
+    top: -14px;
+    font-size: 7px;
+  }
+  :deep(.screen-share-card-button) {
+    font-size: 8px;
+  }
+  :deep(.screen-share-player) {
+    margin-top: 14px;
+    border-radius: 14px;
+  }
+  :deep(.screen-share-player-stage) {
+    min-height: 210px;
+  }
+  :deep(.screen-share-player-viewers) {
+    top: 10px;
+    right: 10px;
+  }
+  :deep(.screen-share-player-live) {
+    top: 19px;
+    left: 57px;
+  }
+  :deep(.screen-share-player-source) {
+    bottom: 12px;
+    left: 12px;
+    max-width: 40%;
+  }
+  :deep(.screen-share-player-controls) {
+    right: 10px;
+    bottom: 10px;
+    gap: 6px;
+  }
+  :deep(.screen-share-player-controls label) {
+    padding-inline: 9px;
+  }
+  :deep(.screen-share-player-controls input) {
+    width: 70px;
+  }
+  :deep(.screen-share-player-exit) {
+    top: 10px;
+    left: 10px;
+  }
+}
+

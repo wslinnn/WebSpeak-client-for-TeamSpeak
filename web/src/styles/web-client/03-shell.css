@@ -1,0 +1,451 @@
+.app-shell {
+  display: grid;
+  grid-template-columns: 76px 292px minmax(0, 1fr) 246px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.rail-button:hover,
+.rail-button.active {
+  color: #006a64;
+  background: #dcefeb;
+}
+
+.rail-button.active::before {
+  position: absolute;
+  left: -9px;
+  top: 11px;
+  width: 3px;
+  height: 27px;
+  border-radius: 0 3px 3px 0;
+  background: #006a64;
+  content: "";
+}
+
+.server-avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  color: #006a64;
+  background: #d8f0ed;
+  border-radius: 10px;
+}
+
+:deep(.round-icon) {
+  display: grid;
+  place-items: center;
+  width: 31px;
+  height: 31px;
+  flex: 0 0 auto;
+  color: #71817c;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: .18s;
+}
+
+:deep(.round-icon:hover) {
+  color: #006a64;
+  background: #e4efec;
+}
+
+.channel-search,
+:deep(.member-search) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #85928e;
+  background: #eef3f1;
+  border-radius: 8px;
+}
+
+.channel-search input,
+:deep(.member-search input) {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #40504b;
+  font-size: 11px;
+}
+
+.channel-search input::placeholder,
+:deep(.member-search input::placeholder) {
+  color: #9ba6a3;
+}
+
+.channel-entry.selected {
+  color: #006a64;
+  background: #dcefeb;
+}
+
+.channel-entry.selected .channel-entry-copy span {
+  color: #4c9690;
+}
+
+:deep(.empty-icon) {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin: 0 auto 9px;
+  color: #6aa9a3;
+  background: #e2f2ef;
+  border-radius: 10px;
+}
+
+.quick-action .ui-icon:last-child {
+  color: #a6b2ae;
+}
+
+.workspace {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+/* In-voice quick server switcher: a slim scrollable chip row above the header,
+ * plus a status banner that keeps the shell mounted while a switch is running. */
+/* Mobile server strip: shell-level chrome (sibling of the banners layer), so
+ * it survives the channels/more tab switches that hide the workspace. Hidden
+ * from 741px where the desktop rail takes over. */
+.favorite-server-strip {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 6px 29px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+  border-bottom: 1px solid var(--border);
+}
+
+.favorite-server-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.favorite-server-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  color: #52615d;
+  background: #f1f4f3;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-radius .18s ease, transform .18s ease, background .18s ease;
+  /* Long-press opens the context menu on touch; keep the hold from becoming
+   * a text-selection or callout gesture. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+
+/* Desktop: the server rail is the leftmost shell column (left of the member
+ * sidebar), styled after upstream — accent-tinted surface, token borders so
+ * skins retint the whole column, 48px tiles wrapping 40px name-hashed
+ * avatars, hover ring, and the active server marked by the left-edge pill.
+ * The horizontal strip only serves ≤740 touch layouts, where there is no side
+ * column. The rail keeps 10px left padding so the active pill (-9px from the
+ * tile) stays inside the clip boundary of the scrolling column. */
+.favorite-server-rail {
+  display: none;
+}
+
+@media (min-width: 741px) {
+  .favorite-server-rail {
+    position: relative;
+    z-index: 12;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    grid-column: 1;
+    grid-row: 2;
+    min-height: 0;
+    padding: 14px 8px 16px 10px;
+    overflow-y: auto;
+    scrollbar-width: none;
+    background: color-mix(in srgb, var(--surface-1) 96%, var(--accent));
+    border-right: 1px solid var(--border);
+  }
+  .favorite-server-rail::-webkit-scrollbar {
+    display: none;
+  }
+  /* Touch layout keeps the chip strip; ≥741 the rail replaces it. */
+  .favorite-server-strip {
+    display: none;
+  }
+}
+
+/* Server tile: 48px grid button wrapping the avatar; hover/focus and the
+ * active state trade the corner radius for an accent ring. */
+.favorite-server-button,
+.favorite-server-add {
+  position: relative;
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  place-items: center;
+  padding: 3px;
+  color: var(--text-primary);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: border-radius .16s ease, transform .16s ease, box-shadow .16s ease;
+  /* Same long-press contract as the strip chips. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.favorite-server-button:hover,
+.favorite-server-button:focus-visible,
+.favorite-server-button.active,
+.favorite-server-add:hover,
+.favorite-server-add:focus-visible {
+  border-radius: 15px;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.favorite-server-button.active::before {
+  position: absolute;
+  left: -9px;
+  width: 4px;
+  height: 24px;
+  content: "";
+  background: var(--accent);
+  border-radius: 0 4px 4px 0;
+}
+
+.favorite-server-button:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+.favorite-server-avatar {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  place-items: center;
+  overflow: hidden;
+  color: #19342f;
+  border-radius: 13px;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* Password badge: ours alone — upstream's rail carries no password model. */
+.favorite-server-rail-lock {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  color: var(--text-muted);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+}
+
+/* Pin the add tile to the bottom of the rail while the tiles scroll. */
+.favorite-server-rail > .favorite-server-add {
+  margin-top: auto;
+}
+
+/* Desktop shows the initial only; the full label takes over on touch sizes. */
+.favorite-server-chip-label {
+  display: none;
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favorite-server-chip:hover {
+  border-radius: 7px;
+  transform: scale(1.05);
+  background: #e3ebe8;
+}
+
+.favorite-server-chip.active {
+  color: #ffffff;
+  background: #277970;
+  box-shadow: inset 3px 0 0 #1d5b54;
+}
+
+.favorite-server-chip:disabled {
+  opacity: .55;
+  cursor: default;
+}
+
+.favorite-server-add {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  color: #87958f;
+  background: transparent;
+  border: 1px dashed #cfe0da;
+  cursor: pointer;
+}
+
+.favorite-server-add:hover {
+  color: #277970;
+  background: #eef8f5;
+}
+
+/* Lives in the shell banners layer (like the reconnect cards), so a mobile
+ * channels/more tab switch can never hide a pending or failed server switch. */
+.favorite-switch-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px auto 0;
+  width: min(950px, calc(100% - 64px));
+  padding: 12px 16px;
+  color: #277970;
+  border: 1px solid #d7ebe6;
+  border-radius: 10px;
+  background: #eef8f5;
+  font-size: 12px;
+}
+
+.favorite-switch-banner .reconnect-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.workspace-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 73px;
+  padding: 0 29px;
+  border-bottom: 1px solid #eef2f0;
+}
+
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  color: #52605b;
+  font-size: 12px;
+}
+
+.breadcrumbs strong {
+  overflow: hidden;
+  color: #26332f;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crumb-muted {
+  color: #98a39f;
+}
+
+.mobile-brand {
+  display: none;
+  color: #006a64;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -.06em;
+}
+
+.mobile-brand em {
+  color: #293632;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.workspace-actions,
+.dock-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-action,
+.dock-icon {
+  display: grid;
+  place-items: center;
+  color: #75847f;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: .16s;
+}
+
+.header-action {
+  width: 32px;
+  height: 32px;
+}
+
+.header-action:hover,
+.dock-icon:hover {
+  color: #006a64;
+  background: #edf5f2;
+}
+
+.workspace-language {
+  margin-left: 3px;
+}
+
+.disconnect-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 33px;
+  margin-left: 8px;
+  padding: 0 13px;
+  color: #a94d48;
+  background: #fff2f1;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.disconnect-button:hover {
+  color: #fff;
+  background: #c95a54;
+}
+
+.workspace-scroll {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.workspace-content {
+  width: min(950px, calc(100% - 64px));
+  margin: 0 auto;
+  padding: 31px 0 27px;
+}
+

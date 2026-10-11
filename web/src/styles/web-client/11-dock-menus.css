@@ -1,0 +1,674 @@
+@media (min-width: 741px) and (max-width: 980px) {
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  :deep(.member-panel) {
+    display: none;
+  }
+}
+
+@media (max-width: 980px) {
+  .app-shell {
+    display: grid;
+  }
+  .workspace {
+    min-height: 0;
+  }
+  :deep(.member-panel) {
+    border-left: 0;
+  }
+  :deep(.member-tree) {
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 740px) {
+  .app-shell {
+    display: grid;
+  }
+  .app-shell .room-hero h1 {
+    font-size: 27.5px;
+  }
+  .app-shell .room-hero p {
+    font-size: 13.75px;
+  }
+  :deep(.app-shell .section-heading h2) {
+    font-size: 21.25px;
+  }
+  :deep(.app-shell .message-bubble),
+  :deep(.app-shell .message-composer :is(input, textarea)) {
+    font-size: 13.75px;
+  }
+  .app-shell .mic-mode-switch button {
+    font-size: 11.25px;
+  }
+  :deep(.settings-modal .settings-content) {
+    padding: 24px 20px;
+  }
+  :deep(.settings-modal .settings-header h2) {
+    font-size: 23.75px;
+  }
+}
+
+/* Keep the connected workspace sized to the browser viewport and let the
+   workspace and member tree own their scroll areas when the window shrinks. */
+
+:global(html[data-ws-route="webclient"] body) {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.web-client {
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100dvh;
+}
+
+.web-client {
+  overflow: hidden;
+}
+
+.join-page {
+  overflow-y: auto;
+}
+
+.app-shell {
+  grid-template-columns: 68px 318px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100dvh;
+}
+
+/* Shell-level banner layer (reconnect, degradations, pokes): row 1 spans the
+ * shell in flow, so the bar pushes panes down instead of overlaying them and
+ * survives the mobile tab switches that hide .workspace entirely. */
+.voice-banners {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  grid-column: 1 / -1;
+  grid-row: 1;
+  flex: 0 0 auto;
+}
+
+.workspace {
+  grid-column: 3;
+  grid-row: 2;
+  min-height: 0;
+  height: 100%;
+}
+
+.workspace-scroll {
+  min-height: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+:deep(.member-panel) {
+  grid-column: 2;
+  grid-row: 2;
+  border-right: 1px solid #eef2f0;
+  border-left: 0;
+}
+
+:deep(.voice-avatar.speaking) {
+  box-shadow: 0 0 0 3px #90f691, 0 0 14px rgba(144,246,145,.48);
+}
+
+.chat-panel {
+  min-height: 0;
+}
+
+:deep(.message-list) {
+  min-height: clamp(150px, 20dvh, 220px);
+  max-height: min(360px, 42dvh);
+}
+
+.workspace-content {
+  padding-bottom: 64px;
+}
+
+@media (max-width: 980px) {
+  .app-shell {
+    grid-template-columns: 68px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) minmax(210px, 35dvh);
+  }
+  .workspace {
+    grid-column: 2;
+    grid-row: 2;
+    height: auto;
+  }
+  :deep(.member-panel) {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: flex;
+    border-top: 1px solid #eef2f0;
+    border-right: 0;
+    padding: 16px 18px;
+  }
+}
+
+@media (max-width: 740px) {
+  .join-header {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  :deep(.header-tools) {
+    min-width: 0;
+    flex: 0 1 auto;
+    flex-wrap: nowrap;
+  }
+  .app-shell {
+    grid-template-rows: minmax(0, 1fr) 220px;
+  }
+}
+
+/* Desktop audio controls live in the member rail so the workspace header
+   stays focused on navigation. Mobile keeps its existing controls below the
+   voice cards and in the More panel. */
+
+:deep(.header-tools) {
+  align-items: center;
+}
+
+.header-action,
+:deep(.round-icon) {
+  line-height: 0;
+}
+
+:deep(.guide-button) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 10px;
+  color: #006a64;
+  background: #edf7f4;
+  border: 1px solid #d7ebe6;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+:deep(.guide-button:hover) {
+  color: #fff;
+  background: #006a64;
+  border-color: #006a64;
+}
+
+.workspace-actions {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.workspace-actions .header-action {
+  flex: 0 0 34px;
+  padding: 0;
+  line-height: 0;
+}
+
+.workspace-actions .header-action .ui-icon {
+  margin: 0;
+}
+
+:deep(.desktop-audio-dock) {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 0 0 auto;
+  min-width: 0;
+  margin-top: 12px;
+  padding: 9px;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-1));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--text-primary) 10%, transparent);
+}
+
+:deep(.desktop-audio-dock-copy) {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+
+:deep(.desktop-audio-dock-copy strong) {
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.desktop-audio-dock-copy span) {
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.desktop-audio-dock-actions) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+:deep(.dock-audio-button) {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: color .16s, background .16s, border-color .16s, transform .16s;
+}
+
+:deep(.dock-audio-button:hover),
+:deep(.dock-audio-button:focus-visible) {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface-1));
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+  transform: translateY(-1px);
+}
+
+:deep(.dock-audio-button.microphone-header-toggle.muted) {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface-1));
+}
+
+:deep(.dock-audio-button.muted) {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface-1));
+}
+
+:deep(.dock-audio-button.accompaniment-toggle.active) {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-1));
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+:deep(.settings-hint) {
+  margin: -1px 0 19px;
+  color: #8b9994;
+  font-size: 11px;
+}
+
+@media (max-width: 740px) {
+  :deep(.header-tools) {
+    gap: 7px;
+  }
+  :deep(.header-note),
+  :deep( .guide-button span) {
+    display: none;
+  }
+  :deep(.guide-button) {
+    width: 32px;
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+:deep(.chat-tabs) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  margin-top: 18px;
+  overflow-x: auto;
+  padding-bottom: 3px;
+}
+
+:deep(.chat-tabs button) {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  color: #74837e;
+  background: #f3f7f5;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+:deep(.chat-tabs button:hover) {
+  color: #006a64;
+  background: #e8f4f1;
+}
+
+:deep(.chat-tabs button.active) {
+  color: #006a64;
+  background: #dff1ed;
+  border-color: #c9e5df;
+  font-weight: 700;
+}
+
+:deep(.event-row) {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 10px;
+  color: #65746e;
+  border-bottom: 1px solid #edf2f0;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+:deep(.event-row time) {
+  flex: 0 0 auto;
+  color: #99a6a1;
+  font-size: 10px;
+}
+
+:deep(.member-panel-heading) {
+  align-items: flex-end;
+}
+
+:deep(.status-button) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  color: #5f746c;
+  background: #f2f7f5;
+  border: 1px solid #e0ebe7;
+  border-radius: 7px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+:deep(.status-button:hover),
+:deep(.status-button.active) {
+  color: #8c653a;
+  background: #fcf3e7;
+  border-color: #f0dcc0;
+}
+
+:deep(.status-dot) {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #66d27a;
+}
+
+:deep(.status-button.active .status-dot) {
+  background: #e0a34d;
+}
+
+:deep(.member-row) {
+  position: relative;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border-radius: 9px;
+  transition: background .16s ease, box-shadow .16s ease;
+}
+
+:deep(.member-row:hover),
+:deep(.member-row:focus-within) {
+  background: #edf7f4;
+  box-shadow: 0 4px 12px rgba(20, 58, 51, .07);
+}
+
+:deep(.member-context-menu) {
+  position: fixed;
+  z-index: var(--ws-z-menu);
+  display: grid;
+  min-width: 188px;
+  gap: 3px;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #e0eae6;
+  border-radius: 10px;
+  box-shadow: 0 14px 35px rgba(20, 50, 44, .16);
+}
+
+:deep(.member-context-menu strong) {
+  padding: 4px 8px 7px;
+  color: #2a3934;
+  font-size: 12px;
+}
+
+:deep(.member-context-menu button) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  color: #52625c;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 11px;
+  text-align: left;
+  cursor: pointer;
+}
+
+:deep(.member-context-menu button:hover) {
+  color: #006a64;
+  background: #edf6f3;
+}
+
+:deep(.member-menu-submenu) {
+  position: relative;
+}
+
+:deep(.member-menu-submenu-trigger) {
+  width: 100%;
+}
+
+:deep(.member-menu-submenu-arrow) {
+  margin-left: auto;
+}
+
+:deep(.member-submenu-panel) {
+  position: absolute;
+  z-index: 1;
+  top: -8px;
+  left: calc(100% + 6px);
+  display: grid;
+  min-width: 220px;
+  max-height: min(420px, calc(100vh - 24px));
+  gap: 3px;
+  padding: 8px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e0eae6;
+  border-radius: 10px;
+  box-shadow: 0 14px 35px rgba(20, 50, 44, .16);
+}
+
+:deep(.member-submenu-panel button) {
+  width: 100%;
+  min-width: 0;
+}
+
+:deep(.member-submenu-panel button:disabled) {
+  opacity: .55;
+  cursor: default;
+}
+
+:deep(.member-submenu-panel button span) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.member-submenu-panel button small) {
+  margin-left: auto;
+  color: #83928c;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+:deep(.member-submenu-empty) {
+  display: block;
+  padding: 8px;
+  color: #83928c;
+  font-size: 11px;
+}
+
+:deep(.menu-volume) {
+  display: grid;
+  gap: 6px;
+  padding: 4px 8px 8px;
+  color: #71817c;
+  font-size: 10px;
+}
+
+:deep(.menu-volume input) {
+  width: 100%;
+  height: 5px;
+  appearance: none;
+  border-radius: 99px;
+  outline: none;
+  cursor: pointer;
+}
+
+:deep(.menu-volume input::-webkit-slider-thumb) {
+  width: 14px;
+  height: 14px;
+  appearance: none;
+  border: 2px solid #81d8d0;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+}
+
+:deep(.menu-volume input::-moz-range-thumb) {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #81d8d0;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* Server context menu styles live in ServerContextMenu.vue (scoped to the
+ * component itself): it renders from two hosts and teleports to the app root, so host
+ * :deep() rules can neither reach it nor survive decorated ancestors. */
+
+@media (max-width: 740px) {
+  /* Touch: a thicker track and a thumb near the 24px hit-target guidance. */
+  :deep(.menu-volume input) {
+    height: 8px;
+  }
+  :deep(.menu-volume input::-webkit-slider-thumb),
+  :deep(.menu-volume input::-moz-range-thumb) {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.poke-banner {
+  position: fixed;
+  z-index: var(--ws-z-toast);
+  top: 82px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: min(380px, calc(100% - 48px));
+  padding: 10px 11px;
+  color: #52645c;
+  background: #fffdf6;
+  border: 1px solid #f0dfbd;
+  border-radius: 9px;
+  box-shadow: 0 8px 22px rgba(88, 65, 28, .12);
+  font-size: 12px;
+}
+
+.poke-banner > .ui-icon {
+  color: #d2973d;
+}
+
+.poke-banner span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.poke-banner strong {
+  color: #8f6532;
+}
+
+.poke-banner small {
+  font-size: inherit;
+}
+
+.poke-banner button {
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  color: #9b8a6e;
+  background: transparent;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.poke-banner button:hover {
+  color: #735020;
+  background: #f9eed9;
+}
+
+:deep(.audio-diagnostic),
+:deep(.audio-level-row) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  color: #7b8a85;
+  font-size: 11px;
+}
+
+:deep(.audio-diagnostic strong),
+:deep(.audio-level-row strong) {
+  color: #3c625b;
+  font-size: 11px;
+}
+
+:deep(.permission-denied) {
+  color: #b3514b !important;
+}
+
+:deep(.permission-granted) {
+  color: #2d8547 !important;
+}
+
+:deep(.audio-level-track) {
+  height: 7px;
+  margin: 7px 0 17px;
+  overflow: hidden;
+  background: #e8efec;
+  border-radius: 999px;
+}
+
+:deep(.audio-level-track i) {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  background: linear-gradient(90deg, #69c8bb, #58d675);
+  border-radius: inherit;
+  transition: width .08s linear;
+}
+
+:deep(.test-audio) {
+  display: block;
+  width: 100%;
+  height: 34px;
+  margin-top: 11px;
+}
+
