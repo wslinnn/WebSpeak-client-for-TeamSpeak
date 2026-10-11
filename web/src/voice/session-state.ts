@@ -14,6 +14,9 @@ interface SessionStateOptions {
 // A hours-long session must not grow the chat array without bound; the visible
 // pane only ever renders the tail, so trimming from the head loses nothing.
 const CHAT_HISTORY_LIMIT = 500;
+// Same bound for the server event log: busy rooms emit ~1 join/leave/move per
+// second, and the events tab renders every entry it is handed.
+const SERVER_EVENTS_LIMIT = 500;
 
 export function createVoiceSessionState(options: SessionStateOptions) {
   const epoch = ref(0);
@@ -219,7 +222,11 @@ export function createVoiceSessionState(options: SessionStateOptions) {
         });
         break;
       }
-      case "serverEvent": serverEvents.push(message.event); break;
+      case "serverEvent": {
+        serverEvents.push(message.event);
+        if (serverEvents.length > SERVER_EVENTS_LIMIT) serverEvents.splice(0, serverEvents.length - SERVER_EVENTS_LIMIT);
+        break;
+      }
       case "pokeReceived":
         pokeNotifications.push({ id: nextId("poke"), invokerId: message.invokerId || 0,
           invokerUid: message.invokerUid || "", invokerName: message.invokerName || "Unknown",

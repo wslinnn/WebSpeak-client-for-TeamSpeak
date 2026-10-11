@@ -351,6 +351,17 @@ test("a TS-side force move of our own client surfaces as selfMovedChannelId", as
   assert.equal(voice.state.selfMovedChannelId, "2", "a move without a target channel must not update the flag");
 });
 
+test("the server event log keeps a bounded tail on busy rooms", async () => {
+  const socket = await connect();
+  socket.receive({ type: "connected", tsClientId: 1 });
+  for (let index = 0; index < 505; index++) {
+    socket.receive({ type: "serverEvent", event: { id: `e-${index}`, kind: "joined", message: `#${index}`, timestamp: index } });
+  }
+  assert.equal(voice.serverEvents.length, 500, "the log must not grow without bound");
+  assert.equal(voice.serverEvents[0].id, "e-5");
+  assert.equal(voice.serverEvents[499].id, "e-504");
+});
+
 test("channel deltas create, rename and remove channels without touching members", async () => {
   const socket = await connect();
   socket.receive({ type: "connected", tsClientId: 1 });
