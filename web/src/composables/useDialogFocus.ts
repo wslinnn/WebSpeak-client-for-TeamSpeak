@@ -1,16 +1,20 @@
-import { onMounted, onUnmounted, type Ref } from "vue";
+import { getCurrentInstance, onMounted, onUnmounted, type Ref } from "vue";
 
 export function useDialogFocus(dialog: Ref<HTMLElement | null>, close: () => void, fallbackFocus?: () => HTMLElement | null) {
   let previousFocus: HTMLElement | null = null;
-  onMounted(() => {
-    previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const autofocus = dialog.value?.querySelector<HTMLElement>("[autofocus]:not(:disabled)");
-    (autofocus ?? dialog.value)?.focus();
-  });
-  onUnmounted(() => {
-    const target = previousFocus?.isConnected && previousFocus !== document.body ? previousFocus : fallbackFocus?.();
-    target?.focus();
-  });
+  // Guarded registration: the composable is also exercised without a
+  // component instance (tests), where lifecycle hooks would only warn.
+  if (getCurrentInstance()) {
+    onMounted(() => {
+      previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const autofocus = dialog.value?.querySelector<HTMLElement>("[autofocus]:not(:disabled)");
+      (autofocus ?? dialog.value)?.focus();
+    });
+    onUnmounted(() => {
+      const target = previousFocus?.isConnected && previousFocus !== document.body ? previousFocus : fallbackFocus?.();
+      target?.focus();
+    });
+  }
 
   function onDialogKeydown(event: KeyboardEvent): void {
     if (event.key === "Escape") {

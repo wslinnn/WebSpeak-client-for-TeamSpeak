@@ -22,7 +22,7 @@ import type { ChatMessage } from "../../../src/shared/voice-models.js";
 import type { ClientCommandPayloads, ClientCommandType } from "../../../src/shared/client-commands.js";
 export type { ScreenShareStreamDescription as ScreenShareStream, ScreenShareViewerDescription as ScreenShareViewer, ScreenSharePeerSignal as ScreenShareSignal } from "../../../src/shared/screen-share.js";
 export type { ChannelMember, ChannelInfo, ChatMessage, ServerEvent, VoiceAudioBridgeStats } from "../../../src/shared/voice-models.js";
-import { computed, onUnmounted, reactive, ref, shallowRef } from "vue";
+import { computed, getCurrentInstance, onUnmounted, reactive, ref, shallowRef } from "vue";
 import { loadLocalPreferences, saveLocalPreferences } from "../services/local-persistence.js";
 import { closeErrorCode, closeReason, connectionFailureMessage, joinTicketReason, normalizedClientErrorCode, safeClientErrorCode, safeClientErrorDetail } from "../voice/error-messages.js";
 
@@ -151,7 +151,9 @@ export function useVoiceWebSocket() {
   });
   const commands = createVoiceCommands({ socket: () => ws.value, generation: () => voiceConnection.generation });
   // A pending browser-reconnect timer must not fire into a disposed page.
-  onUnmounted(() => cancelBrowserReconnect());
+  // The composable is also exercised outside a component (tests bind no
+  // instance); a bare lifecycle registration would only produce a warning.
+  if (getCurrentInstance()) onUnmounted(() => cancelBrowserReconnect());
   let lastConnection: { target: string; channel: string; nickname: string; serverPassword: string; identity?: string; rememberIdentity: boolean } | null = null;
   // Browser-level reconnect: when the gateway WebSocket itself drops (network
   // loss, proxy timeout, server restart) the reconnect ticket restores the

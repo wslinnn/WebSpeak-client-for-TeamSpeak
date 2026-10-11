@@ -1,4 +1,4 @@
-import { computed, onUnmounted, ref, watch, type Ref } from "vue";
+import { computed, getCurrentInstance, onUnmounted, ref, watch, type Ref } from "vue";
 import type { VoiceAudioStatusSample } from "../voice/audio-diagnostics.js";
 
 const SAMPLE_INTERVAL_MS = 2_000;
@@ -183,7 +183,9 @@ export function useWebClientPerformance(
     else stop();
   }, { immediate: true });
 
-  onUnmounted(() => { disposed = true; stop(); });
+  // Guarded for the same reason as useVoiceWebSocket: exercisable without a
+  // component instance, where lifecycle registration would only warn.
+  if (getCurrentInstance()) onUnmounted(() => { disposed = true; stop(); });
 
   return { panelOpen, running, stats, togglePanel, refresh };
 }
