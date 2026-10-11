@@ -100,6 +100,11 @@ export class WebRtcAudioSession {
   private lastEgressRtpAt: number | null = null;
   private microphoneMuted: boolean;
   private accompanimentActive: boolean;
+  // Egress frame diagnostics: with WEBSPEAK_RTP_DEBUG=1 the first frames per
+  // session log their TOC/parsed duration/sequence/timeline so a silent
+  // decode on the browser side can be attributed to payload vs RTP timeline.
+  private readonly debugEnabled = process.env.WEBSPEAK_RTP_DEBUG === "1";
+  private readonly debugFrames: Array<{ toc: number; length: number; durationMs: number; sequenceNumber: number; timestamp: number; clientId: number }> = [];
   private closed = false;
   private closePromise: Promise<void> | null = null;
   private readonly stats: WebRtcAudioStats = {
@@ -243,6 +248,10 @@ export class WebRtcAudioSession {
     const durationMs = opusFrameDurationMs(payload);
     if (durationMs === null || payload.length === 0) {
       this.stats.webrtcDownlinkDroppedFrames++;
+      if (this.debugEnabled) {
+        this.debugFrames.push({ toc: payload[0] ?? -1, length: payload.length, durationMs: -1, sequenceNumber: 0, timestamp: 0, clientId: data.clientId });
+        this.flushDebugFrames();
+      }
       return;
     }
     const slot = this.slotFor(data.clientId);
@@ -263,6 +272,10 @@ export class WebRtcAudioSession {
     }), payload);
     slot.sequenceNumber = (slot.sequenceNumber + 1) & 0xffff;
     slot.timestamp = (slot.timestamp + Math.round(durationMs * RTP_SAMPLES_PER_MS)) >>> 0;
+    if (this.debugEnabled) {
+      this.debugFrames.push({ toc: payload[0] ?? -1, length: payload.length, durationMs, sequenceNumber: packet.header.sequenceNumber, timestamp: packet.header.timestamp, clientId: data.clientId });
+      this.flushDebugFrames();
+    }
     const sentAt = performance.now();
     try {
       slot.track.writeRtp(packet);
@@ -274,6 +287,13 @@ export class WebRtcAudioSession {
       this.stats.webrtcDownlinkForwardedFrames++;
     } catch {
       this.stats.webrtcDownlinkDroppedFrames++;
+    }
+  }
+
+  private flushDebugFrames(): void {
+    if (this.debugFrames.length < 12) return;
+    for (const frame of this.debugFrames.splice(0, this.debugFrames.length)) {
+      this.logger.info({ toc: `0x${frame.toc.toString(16)}`, bytes: frame.length, durationMs: frame.durationMs, seq: frame.sequenceNumber, timestamp: frame.timestamp, clientId: frame.clientId }, "RTP egress frame");
     }
   }
 
