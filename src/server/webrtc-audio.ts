@@ -233,6 +233,14 @@ export class WebRtcAudioSession {
 
     const answer = await this.peer.createAnswer();
     await this.peer.setLocalDescription(answer);
+    if (this.debugEnabled) {
+      this.logger.info({
+        slots: this.slots.map((slot, index) => ({
+          slot: index,
+          ssrc: audioTransceivers[index + 1]?.sender.ssrc ?? 0,
+        })),
+      }, "downstream slot SSRC map (compare with browser inbound-rtp SSRCs)");
+    }
     const description = this.peer.localDescription;
     if (!description) throw new Error("WebRTC answer was not created");
     if (description.type !== "answer" && description.type !== "offer") throw new Error("Unexpected WebRTC answer type");

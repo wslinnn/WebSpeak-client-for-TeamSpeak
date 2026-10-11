@@ -49,6 +49,46 @@ interface Attempt {
   cancelIce: (() => void) | null;
 }
 
+// Decode-side tap for WEBSPEAK_RTP_DEBUG-equivalent diagnostics: logs the
+// first frames and periodic samples of what Chrome actually receives per
+// slot (TOC byte, length), enabling gateway-egress vs browser-ingress
+// reconciliation without webrtc-internals. Kept out of production paths by
+// the webspeak:rtp-debug storage flag.
+const tapWorkerCode = `
+let tapped = 0;
+self.onrtctransform = (event) => {
+  const { readable, writable } = event.transformer;
+  readable.pipeThrough(new TransformStream({
+    transform(frame, controller) {
+      const data = new Uint8Array(frame.data);
+      tapped++;
+      if (tapped <= 5 || tapped % 250 === 0) {
+        const hex = Array.from(data.subarray(0, 8)).map(b => b.toString(16).padStart(2, "0")).join(" ");
+        self.postMessage({ len: data.length, hex, tapped });
+      }
+      controller.enqueue(frame);
+    },
+  })).pipeTo(writable).catch((e) => self.postMessage({ error: e.message }));
+};
+`;
+
+function attachDecodeTap(transceiver: RTCRtpTransceiver, label: string): void {
+  try {
+    const worker = new Worker(URL.createObjectURL(new Blob([tapWorkerCode], { type: "text/javascript" })));
+    worker.onmessage = (event: MessageEvent<{ len: number; hex: string; tapped: number; error?: string }>) => {
+      if (event.data.error) {
+        console.warn(`[rtp-debug] ${label} transform error:`, event.data.error);
+        return;
+      }
+      console.info(`[rtp-debug] ${label} frame#${event.data.tapped}: bytes=${event.data.len} head=${event.data.hex}`);
+    };
+    transceiver.receiver.transform = new RTCRtpScriptTransform(worker, { label });
+    console.info(`[rtp-debug] ${label} tap attached`);
+  } catch (error) {
+    console.warn(`[rtp-debug] ${label} tap unavailable:`, error);
+  }
+}
+
 // One attempt owns peer negotiation, input, metering and remote playback. The
 // caller continues to own microphone acquisition, PCM and the control socket.
 export function createWebRtcTransport(options: TransportOptions) {
@@ -153,8 +193,12 @@ export function createWebRtcTransport(options: TransportOptions) {
       peer.addTrack(input.stream.getAudioTracks()[0]!, input.stream);
       // The downstream slot pool rides in the same offer: one recvonly
       // transceiver per slot, after the uplink m-line the addTrack created.
+      // The transform must attach before negotiation — after the answer the
+      // encoded streams are already consumed by the decoder ("too late").
+      const rtpDebug = localStorage.getItem("webspeak:rtp-debug") === "1";
       for (let slot = 0; slot < DOWNSTREAM_SLOTS; slot++) {
-        peer.addTransceiver("audio", { direction: "recvonly" });
+        const transceiver = peer.addTransceiver("audio", { direction: "recvonly" });
+        if (rtpDebug) attachDecodeTap(transceiver, `slot${slot}`);
       }
       // The first transceiver carries the uplink; slot i lives in
       // transceiver i + 1 (see the gateway's createAnswer).
