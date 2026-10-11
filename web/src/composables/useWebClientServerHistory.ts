@@ -42,7 +42,6 @@ export function useWebClientServerHistory({
 }: UseWebClientServerHistoryOptions) {
   const favoriteServers = ref<FavoriteServer[]>([]);
   const currentTarget = computed(() => combineTeamSpeakTarget(serverHost.value, serverPort.value));
-  const isFavorite = computed(() => favoriteServers.value.some((favorite) => favorite.id === serverKey(currentTarget.value)));
 
   async function loadSavedServers(): Promise<void> {
     favoriteServers.value = await listFavorites();
@@ -83,15 +82,6 @@ export function useWebClientServerHistory({
       : [...favoriteServers.value, favorite].sort((left, right) => left.label.localeCompare(right.label));
   }
 
-  async function toggleFavorite(): Promise<void> {
-    const address = currentTarget.value;
-    if (!address) return;
-    const id = serverKey(address);
-    const existing = favoriteServers.value.find((favorite) => favorite.id === id);
-    if (!existing) return;
-    await removeFavoriteRow(existing);
-  }
-
   /** Row star / context menu: drop one favorite from the list entirely. */
   async function removeFavoriteRow(server: Pick<FavoriteServer, "id">): Promise<void> {
     await removeFavorite(server.id);
@@ -128,13 +118,11 @@ export function useWebClientServerHistory({
 
   return {
     favoriteServers,
-    isFavorite,
     currentTarget,
     loadSavedServers,
     selectLocalServer,
-    syncFavoriteConnection,
-    toggleFavorite,
     removeFavoriteRow,
+    syncFavoriteConnection,
     upsertFavoriteServer,
     clearServerHistory,
   };

@@ -68,24 +68,17 @@
           :class="{ active: server.address === currentTarget }"
           :title="server.label"
           @click="rowConnect(server)"
-          @contextmenu.prevent="openRowMenu(server, $event)"
+          @pointerdown="rowGestures.pointerDown($event, server)"
+          @pointermove="rowGestures.pointerMove($event)"
+          @pointerup="rowGestures.pointerUp()"
+          @pointercancel="rowGestures.pointerCancel()"
+          @click.capture="rowGestures.clickCapture($event)"
+          @contextmenu="rowGestures.contextMenu($event, server)"
         ><Icon
             v-if="server.password"
             class="server-tab-lock"
             name="lock"
-            :size="12" />{{ server.label }}</button
-        ><button
-          type="button"
-          class="local-server-favorite"
-          data-ws-part="home.server-history.favorite-toggle"
-          :aria-pressed="true"
-          :aria-label="t('removeFavoriteNamed', { name: server.label })"
-          :title="t('removeFavoriteNamed', { name: server.label })"
-          @click="emit('removeFavorite', server)"
-        ><Icon
-            name="star"
-            :size="13"
-          /></button>
+            :size="12" />{{ server.label }}</button>
       </div>
       <button
         type="button"
@@ -108,14 +101,6 @@
       @remove-favorite="emit('removeFavorite', $event)"
       @close="rowMenuState = null"
     />
-    <button
-      v-if="accessMode === 'open' && serverHost.trim()"
-      type="button"
-      class="favorite-toggle"
-      data-ws-part="home.favorite-toggle"
-      @click="emit('toggleFavorite')"
-      >{{ isFavorite ? t("removeFavorite") : t("saveFavorite") }}</button
-    >
 
     <label
       class="field-label"
@@ -270,6 +255,7 @@
 import { computed, onMounted, onUnmounted, ref, shallowRef } from "vue";
 import Icon from "../Icon.vue";
 import ServerContextMenu from "./ServerContextMenu.vue";
+import { createLongPressContextMenu } from "../../composables/useLongPressContextMenu.js";
 import { combineTeamSpeakTarget } from "../../services/teamspeak-target.js";
 import type { FavoriteServer } from "../../services/local-persistence.js";
 
@@ -284,7 +270,6 @@ defineProps<{
   autofocusNickname?: boolean;
   accessMode: "fixed" | "open";
   favoriteServers: readonly FavoriteServer[];
-  isFavorite: boolean;
   identityExportBusy: boolean;
   hasIdentity: boolean;
   connecting: boolean;
@@ -302,9 +287,9 @@ function rowConnect(server: FavoriteServer): void {
 }
 
 const rowMenuState = shallowRef<{ server: FavoriteServer; x: number; y: number } | null>(null);
-function openRowMenu(server: FavoriteServer, event: MouseEvent): void {
-  rowMenuState.value = { server, x: event.clientX, y: event.clientY };
-}
+const rowGestures = createLongPressContextMenu<FavoriteServer>(({ x, y, context }) => {
+  if (context) rowMenuState.value = { server: context, x, y };
+});
 
 // iOS Safari has no output-device picker at all; say so before joining instead
 // of hiding it inside the room settings dialog.
@@ -327,6 +312,7 @@ onMounted(async () => {
 });
 onUnmounted(() => {
   if (micPermissionStatus) micPermissionStatus.onchange = null;
+  rowGestures.dispose();
 });
 
 const emit = defineEmits<{
@@ -334,7 +320,6 @@ const emit = defineEmits<{
   disconnect: [];
   importIdentity: [];
   exportIdentity: [];
-  toggleFavorite: [];
   openFavoriteDialog: [];
   removeFavorite: [server: FavoriteServer];
   editFavorite: [server: FavoriteServer];

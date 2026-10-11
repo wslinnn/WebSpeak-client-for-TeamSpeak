@@ -185,7 +185,6 @@
             v-model:remember-identity="rememberIdentity"
             :access-mode="accessMode"
             :favorite-servers="favoriteServers"
-            :is-favorite="isFavorite"
             :identity-export-busy="identityExportBusy"
             :has-identity="Boolean(identityMaterial)"
             :connecting="voiceState.connecting"
@@ -197,7 +196,6 @@
             @open-device-settings="settingsOpen = true"
             @select-server="selectLocalServer"
             @connect-server="connectFromServerTab"
-            @toggle-favorite="toggleFavorite"
             @remove-favorite="removeFavoriteRow"
             @open-favorite-dialog="openFavoriteServerDialog()"
             @edit-favorite="editFavoriteServer"
@@ -378,6 +376,12 @@
           :title="server.label"
           :aria-label="t('switchToServer', { name: server.label })"
           @click="switchServer(server)"
+          @pointerdown="serverGestures.pointerDown($event, server)"
+          @pointermove="serverGestures.pointerMove($event)"
+          @pointerup="serverGestures.pointerUp()"
+          @pointercancel="serverGestures.pointerCancel()"
+          @click.capture="serverGestures.clickCapture($event)"
+          @contextmenu="serverGestures.contextMenu($event, server)"
         ><span
             class="favorite-server-chip-initial"
             :style="avatarStyle(server.label, false, '')"
@@ -420,7 +424,12 @@
           :title="`${server.label}\n${server.address}`"
           :aria-label="t('switchToServer', { name: server.label })"
           @click="switchServer(server)"
-          @contextmenu.prevent="openServerMenu(server, $event)"
+          @pointerdown="serverGestures.pointerDown($event, server)"
+          @pointermove="serverGestures.pointerMove($event)"
+          @pointerup="serverGestures.pointerUp()"
+          @pointercancel="serverGestures.pointerCancel()"
+          @click.capture="serverGestures.clickCapture($event)"
+          @contextmenu="serverGestures.contextMenu($event, server)"
         ><span
             class="favorite-server-avatar"
             :style="avatarStyle(server.label, false, '')"
@@ -936,6 +945,7 @@ import { useWebClientPerformance } from "../composables/useWebClientPerformance.
 import { useWebClientI18n } from "../composables/useWebClientI18n.js";
 import { useWebClientPublicConfig } from "../composables/useWebClientPublicConfig.js";
 import { useWebClientServerHistory } from "../composables/useWebClientServerHistory.js";
+import { createLongPressContextMenu } from "../composables/useLongPressContextMenu.js";
 import { useVoiceServerSwitch } from "../composables/useVoiceServerSwitch.js";
 import { useChannelFold } from "../composables/useChannelFold.js";
 import { getInitialLanguage, type Language } from "../i18n/web-client.js";
@@ -1085,7 +1095,7 @@ watch(retryWaiting, (waiting) => {
     }
   }, 1000);
 });
-onUnmounted(() => { if (retryTicker !== undefined) window.clearInterval(retryTicker); });
+onUnmounted(() => { if (retryTicker !== undefined) window.clearInterval(retryTicker); serverGestures.dispose(); });
 const channelPasswordDialog = reactive({ open: false, channelId: "", password: "", error: "", submitting: false });
 const serverPasswordDialog = reactive({ open: false, password: "", errorCode: "" });
 const toast = ref("");
@@ -1121,22 +1131,21 @@ const {
 } = useWebClientIdentity({ identityMaterial, rememberIdentity, nickname, t, showToast });
 const {
   favoriteServers,
-  isFavorite,
   currentTarget,
   loadSavedServers,
   selectLocalServer,
-  toggleFavorite,
   removeFavoriteRow,
   syncFavoriteConnection,
   upsertFavoriteServer,
   clearServerHistory,
 } = useWebClientServerHistory({ serverHost, serverPort, serverPassword, nickname, channel, rememberIdentity, identityMaterial, t, showToast });
-// Right-click / long-press on a server row (rail or join form): the context
-// menu owns edit / favorite / delete instead of hidden single actions.
+// Right-click / long-press on a server row (rail, strip chips or join form):
+// the context menu owns edit / favorite / delete instead of hidden single
+// actions. Long-press covers touch screens, which never fire contextmenu.
 const serverMenuState = shallowRef<{ server: FavoriteServer; x: number; y: number } | null>(null);
-function openServerMenu(server: FavoriteServer, event: MouseEvent): void {
-  serverMenuState.value = { server, x: event.clientX, y: event.clientY };
-}
+const serverGestures = createLongPressContextMenu<FavoriteServer>(({ x, y, context }) => {
+  if (context) serverMenuState.value = { server: context, x, y };
+});
 const favoriteServerDialogOpen = ref(false);
 const favoriteServerDialogInitial = ref<Partial<FavoriteServerDraft> | null>(null);
 // Without an explicit draft the "add" entries prefill from the join form, so

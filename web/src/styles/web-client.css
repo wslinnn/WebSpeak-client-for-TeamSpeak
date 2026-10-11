@@ -1100,6 +1100,11 @@
   font-weight: 700;
   cursor: pointer;
   transition: border-radius .18s ease, transform .18s ease, background .18s ease;
+  /* Long-press opens the context menu on touch; keep the hold from becoming
+   * a text-selection or callout gesture. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 
@@ -1157,6 +1162,10 @@
   border-radius: 16px;
   cursor: pointer;
   transition: border-radius .16s ease, transform .16s ease, box-shadow .16s ease;
+  /* Same long-press contract as the strip chips. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .favorite-server-button:hover,
@@ -3129,9 +3138,6 @@
     padding: 9px 10px;
     font-size: 11px;
   }
-  :deep(.local-server-favorite) {
-    width: 38px;
-  }
   .crumb-muted,
   .breadcrumbs > .ui-icon {
     display: none;
@@ -3835,8 +3841,9 @@
   gap: 5px;
 }
 
-:deep(.local-server-select),
-:deep(.favorite-toggle) {
+:deep(.local-server-select) {
+  flex: 1 1 auto;
+  min-width: 0;
   padding: 5px 8px;
   color: #277970;
   background: #eef8f5;
@@ -3844,19 +3851,18 @@
   border-radius: 6px;
   font-size: 10px;
   cursor: pointer;
-}
-
-:deep(.local-server-select) {
-  flex: 1 1 auto;
-  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: left;
+  /* Long-press opens the context menu; the browser must not treat it as a
+   * text-selection or callout gesture. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
-:deep(.local-server-select:hover),
-:deep(.favorite-toggle:hover) {
+:deep(.local-server-select:hover) {
   background: #e0f3ee;
 }
 
@@ -3865,30 +3871,6 @@
   color: #ffffff;
   background: #277970;
   border-color: #277970;
-}
-
-:deep(.local-server-favorite) {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  color: #87958f;
-  background: #eef8f5;
-  border: 1px solid #d7ebe6;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-:deep(.local-server-favorite:hover) {
-  color: #277970;
-  background: #e0f3ee;
-}
-
-:deep(.local-server-favorite[aria-pressed="true"]) {
-  color: #f5a623;
-  border-color: #f0d9ae;
-  background: #fdf6e7;
 }
 
 :deep(.local-server-add) {
@@ -3913,11 +3895,6 @@
 :deep(.server-tab-lock) {
   flex: 0 0 auto;
   margin-right: 3px;
-}
-
-:deep(.favorite-toggle) {
-  justify-self: start;
-  margin: -1px 0 4px;
 }
 
 .clear-local-button {
