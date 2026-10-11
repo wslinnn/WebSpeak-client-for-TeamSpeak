@@ -1,5 +1,7 @@
 const DB_NAME = "webspeak-local";
-const DB_VERSION = 3;
+// v4 drops the "recent" store: the recent-servers feature was removed and the
+// store has had no readers or writers since.
+const DB_VERSION = 4;
 const CURRENT_IDENTITY_KEY = "current";
 const PREFERENCES_KEY = "singleton";
 
@@ -73,7 +75,7 @@ function openDatabase(): Promise<IDBDatabase> {
       if (!database.objectStoreNames.contains("identities")) database.createObjectStore("identities", { keyPath: "id" });
       if (!database.objectStoreNames.contains("preferences")) database.createObjectStore("preferences", { keyPath: "id" });
       if (!database.objectStoreNames.contains("favorites")) database.createObjectStore("favorites", { keyPath: "id" });
-      if (!database.objectStoreNames.contains("recent")) database.createObjectStore("recent", { keyPath: "id" });
+      if (database.objectStoreNames.contains("recent")) database.deleteObjectStore("recent");
       if (!database.objectStoreNames.contains("skins")) database.createObjectStore("skins", { keyPath: "id" });
       if (!database.objectStoreNames.contains("chatHistory")) {
         const store = database.createObjectStore("chatHistory", { keyPath: "id" });
@@ -321,7 +323,7 @@ export async function saveChatHistoryMessage(serverKey: string, message: ChatMes
 export async function clearLocalData(): Promise<void> {
   try {
     const database = await openDatabase();
-    await Promise.all(["identities", "preferences", "favorites", "recent", "skins", "chatHistory"].map((storeName) => new Promise<void>((resolve, reject) => {
+    await Promise.all(["identities", "preferences", "favorites", "skins", "chatHistory"].map((storeName) => new Promise<void>((resolve, reject) => {
       const transaction = database.transaction(storeName, "readwrite");
       transaction.objectStore(storeName).clear();
       transaction.oncomplete = () => resolve();
