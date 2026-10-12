@@ -555,24 +555,8 @@
   }
 }
 
-@keyframes join-dot-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(144, 246, 145, .28);
-  }
-  50% {
-    transform: scale(1.18);
-    box-shadow: 0 0 0 6px rgba(144, 246, 145, 0);
-  }
-}
-
 .join-page .join-header {
   animation: join-fade-up .55s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.join-page .join-copy .eyebrow {
-  animation: join-fade-up .55s .08s cubic-bezier(.22, 1, .36, 1) both;
 }
 
 .join-page .join-copy h1 {
@@ -586,22 +570,6 @@
 
 .join-page .join-description {
   animation: join-fade-up .58s .36s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.join-page .promise-list {
-  animation: join-fade-up .58s .48s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.join-page .promise-item:nth-child(2) {
-  animation: join-fade-up .58s .58s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.join-page .promise-item:nth-child(3) {
-  animation: join-fade-up .58s .68s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.join-page .eyebrow-dot {
-  animation: join-dot-pulse 2.8s .8s ease-in-out infinite;
 }
 
 .join-page .join-footer {

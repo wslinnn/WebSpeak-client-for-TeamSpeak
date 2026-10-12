@@ -99,21 +99,6 @@
   row-gap: 6px;
 }
 
-:deep(.version-badge) {
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 0 9px;
-  color: #006a64;
-  background: #e7f4f1;
-  border: 1px solid #cfe9e4;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: .02em;
-  white-space: nowrap;
-}
-
 :deep(.header-note) {
   display: flex;
   align-items: center;
@@ -176,25 +161,6 @@
   max-width: 630px;
 }
 
-.eyebrow,
-.room-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: #006a64;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .13em;
-  text-transform: uppercase;
-}
-
-.eyebrow-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #90f691;
-}
-
 .join-copy h1 {
   margin: 20px 0 18px;
   color: #192120;
@@ -214,56 +180,6 @@
   color: #65736f;
   font-size: 17px;
   line-height: 1.75;
-}
-
-.promise-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
-  margin-top: 42px;
-}
-
-.promise-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 160px;
-}
-
-.promise-icon {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  color: #006a64;
-  background: #d8f3ef;
-}
-
-.promise-icon.mint {
-  color: #258844;
-  background: #e0f6e1;
-}
-
-.promise-icon.sand {
-  color: #9c6739;
-  background: #f7ebdc;
-}
-
-.promise-item b,
-.promise-item small {
-  display: block;
-}
-
-.promise-item b {
-  color: #283431;
-  font-size: 12px;
-}
-
-.promise-item small {
-  margin-top: 3px;
-  color: #87938f;
-  font-size: 10px;
 }
 
 .join-card {

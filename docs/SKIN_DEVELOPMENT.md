@@ -67,15 +67,11 @@ assets/brand.woff2            # 可选：自带字体
   "locales": {
     "en": {
       "home": {
-        "eyebrow": "A room of your own",
         "title": "Talk",
         "titleAccent": "together",
         "description": "Join a voice room from your browser.",
         "welcomeTitle": "Join the room",
-        "welcomeDescription": "Choose a name and connect.",
-        "features": [
-          { "title": "Clear voice", "description": "Low-latency Opus audio." }
-        ]
+        "welcomeDescription": "Choose a name and connect."
       },
       "messages": {
         "home.connect": "Enter the room",
@@ -86,7 +82,7 @@ assets/brand.woff2            # 可选：自带字体
 }
 ```
 
-`home` 支持 `brandName`、`eyebrow`、`title`、`titleAccent`、`description`、`welcomeTitle`、`welcomeDescription` 和 `features`。普通文字最多 500 个字符；`features` 最多 8 项，每项的 `title` 最多 80 个字符、`description` 最多 240 个字符。功能卡片图标和状态由应用提供，皮肤不能通过 JSON 注入节点。
+`home` 支持 `brandName`、`title`、`titleAccent`、`description`、`welcomeTitle` 和 `welcomeDescription`。每项文字最多 500 个字符。皮肤不能通过 JSON 注入节点。
 
 `messages` 的键是公开页面中翻译调用使用的键；键可在 `web/src/i18n/web-client.ts` 查找。每个 locale 最多覆盖 200 条，每条文案最多 500 个字符。键只能由小写字母开头，并包含字母、数字或点。语言回退顺序为默认 locale、当前语言和更具体的 locale；之后回退到 WebSpeak 原文。
 
@@ -123,7 +119,7 @@ assets/brand.woff2            # 可选：自带字体
 | 页面区域 | `data-ws-part` |
 | --- | --- |
 | 通用 | `app`、`app.toast`、`app.skin-recovery-notice`、`app.skin-catalog-notice`、`control`、`skin.trigger`、`skin.menu`、`skin.option`、`language.trigger`、`language.menu`、`language.option` |
-| 首页 | `home`、`home.header`、`home.brand`、`home.header-tools`、`home.gateway-status`、`home.download-button`、`home.mobile-gate`、`home.content`、`home.hero`、`home.hero.eyebrow`、`home.hero.title`、`home.hero.description`、`home.features`、`home.feature`、`home.join-card`、`home.join-card.waveform`、`home.join-card.sonar`、`home.join-title`、`home.join-description`、`home.notice`、`home.form`、`home.server-target`、`home.field-label`、`home.field`、`home.server-history`、`home.server-history.item`、`home.server-history.add`、
+| 首页 | `home`、`home.header`、`home.brand`、`home.header-tools`、`home.gateway-status`、`home.download-button`、`home.mobile-gate`、`home.content`、`home.hero`、`home.hero.title`、`home.hero.description`、`home.join-card`、`home.join-card.waveform`、`home.join-card.sonar`、`home.join-title`、`home.join-description`、`home.notice`、`home.form`、`home.server-target`、`home.field-label`、`home.field`、`home.server-history`、`home.server-history.item`、`home.server-history.add`、
 `home.server-context-menu`、`home.server-context-menu-backdrop`、`home.device-setup`、`home.device-setup.open`、`home.identity`、`home.identity-actions`、`home.identity-import.open`、`home.identity-export.button`、`home.identity-import-dialog`、`home.identity-import.header`、`home.identity-import.close`、`home.identity-import.textarea`、`home.identity-import.drop-zone`、`home.identity-import.file-button`、`home.identity-import.error`、`home.identity-import.security`、`home.identity-import.footer`、`home.identity-import.cancel`、`home.identity-import.submit`、`home.connect`、`home.security-note`、`home.footer` |
 | 下载页 | `download.header`、`download.brand`、`download.hero`、`download.card`、`download.card.head`、`download.card.meta` |
 | 收藏对话框 | `favorite-server.dialog`、`favorite-server.header`、`favorite-server.close`、`favorite-server.field-label`、`favorite-server.field`、`favorite-server.actions`、`favorite-server.cancel`、`favorite-server.submit` |
@@ -211,10 +207,7 @@ assets/brand.woff2            # 可选：自带字体
 必要操作控件（加入/退出、麦克风、设置、菜单、屏幕共享退出、音量、全屏等）及其布局容器不能被隐藏或整体重置。只有下列明确标记为可选的装饰部件，才允许通过不改变排版盒子的透明度效果淡出：
 
 ```css
-[data-ws-part="home.hero.eyebrow"]
 [data-ws-part="home.gateway-status"]
-[data-ws-part="home.features"]
-[data-ws-part="home.feature"]
 [data-ws-part="voice.activity-heading"]
 [data-ws-part="voice.member.avatar"]
 [data-ws-part="voice.member.live-indicator"]

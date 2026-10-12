@@ -53,22 +53,8 @@
     gap: 35px;
     padding: 36px 0 48px;
   }
-  .join-copy h1 {
-    margin-top: 15px;
-    font-size: 45px;
-  }
-  .join-description {
-    font-size: 14px;
-  }
-  .promise-list {
-    gap: 13px;
-    margin-top: 27px;
-  }
-  .promise-item {
-    min-width: 0;
-    flex: 1 1 30%;
-  }
-  .promise-item small {
+  /* Decorative hero copy is desktop-only; phones get straight to the join card. */
+  .join-copy {
     display: none;
   }
   .join-card {
@@ -247,16 +233,6 @@
 }
 
 @media (max-width: 420px) {
-  .join-copy h1 {
-    font-size: 38px;
-  }
-  .promise-list {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-  .promise-item small {
-    display: block;
-  }
   .join-card {
     border-radius: 15px;
   }

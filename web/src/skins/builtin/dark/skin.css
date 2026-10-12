@@ -178,17 +178,14 @@
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .brand-lockup small,
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .header-note,
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .join-description,
-.ws-skin-root[data-ws-skin="builtin.dark"] .join-page .promise-item small,
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .card-lead,
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .field-hint,
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .join-meta,
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .join-footer { color: var(--text-muted); }
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .join-copy h1,
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .join-card h2,
-.ws-skin-root[data-ws-skin="builtin.dark"] .join-page .promise-item b,
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .field-label { color: var(--text-primary); }
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .join-copy h1 em,
-.ws-skin-root[data-ws-skin="builtin.dark"] .join-page .eyebrow,
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .card-kicker,
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .field-label span,
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .join-footer a { color: var(--accent); }
@@ -214,12 +211,6 @@
   color: #c4d9d3;
   text-shadow: 0 0 8px rgba(196, 217, 211, .12);
 }
-.ws-skin-root[data-ws-skin="builtin.dark"] .join-page .promise-item b {
-  color: #f0fff9;
-  text-shadow: 0 0 7px rgba(240, 255, 249, .14);
-}
-.ws-skin-root[data-ws-skin="builtin.dark"] .join-page .promise-item small { color: #a9c6be; }
-.ws-skin-root[data-ws-skin="builtin.dark"] .join-page .promise-icon { box-shadow: 0 0 12px rgba(105, 210, 199, .14); }
 
 .ws-skin-root[data-ws-skin="builtin.dark"],
 .ws-skin-root[data-ws-skin="builtin.dark"] * {

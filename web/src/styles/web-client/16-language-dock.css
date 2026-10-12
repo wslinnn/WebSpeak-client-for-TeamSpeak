@@ -19,11 +19,6 @@
   font-size: 9.7px;
 }
 
-.web-client.language-en .join-page .eyebrow,
-.web-client.language-de .join-page .eyebrow {
-  font-size: 12px;
-}
-
 .web-client.language-en .join-page .join-copy h1,
 .web-client.language-de .join-page .join-copy h1 {
   font-size: clamp(46px, 5.8vw, 79px);
@@ -32,16 +27,6 @@
 .web-client.language-en .join-page .join-description,
 .web-client.language-de .join-page .join-description {
   font-size: 18px;
-}
-
-.web-client.language-en .join-page .promise-item b,
-.web-client.language-de .join-page .promise-item b {
-  font-size: 13.2px;
-}
-
-.web-client.language-en .join-page .promise-item small,
-.web-client.language-de .join-page .promise-item small {
-  font-size: 11px;
 }
 
 .web-client.language-en :deep(.join-page .card-kicker),
@@ -94,14 +79,6 @@
 }
 
 @media (max-width: 740px) {
-  .web-client.language-en .join-page .join-copy h1,
-  .web-client.language-de .join-page .join-copy h1 {
-    font-size: clamp(35px, 10.6vw, 51px);
-  }
-  .web-client.language-en .join-page .join-description,
-  .web-client.language-de .join-page .join-description {
-    font-size: 13.2px;
-  }
   .web-client.language-en .join-page .join-card h2,
   .web-client.language-de .join-page .join-card h2 {
     font-size: 22px;

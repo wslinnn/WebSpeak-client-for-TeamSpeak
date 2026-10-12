@@ -529,17 +529,6 @@
     padding: 24px 0 28px;
     overflow-y: auto;
   }
-  .join-copy h1 {
-    margin: 14px 0 14px;
-    font-size: clamp(40px, 12vw, 58px);
-  }
-  .join-description {
-    font-size: 15px;
-    line-height: 1.65;
-  }
-  .promise-list {
-    margin-top: 23px;
-  }
   .join-card {
     padding: 22px 18px;
     border-radius: 18px;
@@ -564,11 +553,6 @@
     min-width: 32px;
     min-height: 32px;
     height: 32px;
-  }
-  .join-page :deep(.version-badge) {
-    min-height: 32px;
-    padding-inline: 6px;
-    font-size: 10px;
   }
   .join-page :deep(.language-switcher) {
     min-width: 62px;
@@ -643,12 +627,6 @@
   }
   .join-page :deep(.guide-button) {
     justify-content: center;
-  }
-  .join-page :deep(.version-badge) {
-    min-width: 28px;
-    min-height: 28px;
-    padding-inline: 4px;
-    font-size: 9px;
   }
   .join-page :deep(.language-switcher) {
     min-width: 58px;

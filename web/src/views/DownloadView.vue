@@ -89,7 +89,7 @@
         </template>
         <template v-else-if="release">
           <dl class="download-release-meta" data-ws-part="download.card.meta">
-            <div><dt>{{ t("downloadVersion") }}</dt><dd>v{{ release.version }}</dd></div>
+            <div><dt>{{ t("downloadVersion") }}</dt><dd>{{ release.version }}</dd></div>
             <div v-if="release.apkSizeBytes > 0"><dt>{{ t("downloadSize") }}</dt><dd>{{ formattedSize }}</dd></div>
             <div
               v-if="release.apkSha256"

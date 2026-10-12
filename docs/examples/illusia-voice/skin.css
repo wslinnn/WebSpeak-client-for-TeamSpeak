@@ -181,30 +181,6 @@
   text-shadow: 0 8px 28px rgba(47, 192, 202, .2);
 }
 
-[data-ws-part="home.hero.eyebrow"] {
-  color: #087a76;
-}
-
-[data-ws-part="home.feature"] {
-  border-color: rgba(255, 255, 255, .94);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, .79);
-  box-shadow: 0 14px 28px rgba(68, 158, 173, .12), inset 0 0 0 1px rgba(255, 255, 255, .42);
-  backdrop-filter: blur(12px) saturate(1.08);
-}
-
-[data-ws-part="home.feature"] > span:first-child {
-  box-shadow: 0 5px 14px rgba(43, 157, 167, .12), inset 0 0 0 1px rgba(255, 255, 255, .56);
-}
-
-[data-ws-part="home.feature"] b {
-  color: var(--skin-illusia-ink);
-}
-
-[data-ws-part="home.feature"] small {
-  color: var(--skin-illusia-muted);
-}
-
 [data-ws-part="home.join-card"] {
   color: var(--skin-illusia-ink);
   border-color: rgba(255, 255, 255, .9);

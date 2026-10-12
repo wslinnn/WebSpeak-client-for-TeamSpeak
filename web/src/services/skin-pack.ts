@@ -31,10 +31,7 @@ const LAYOUT_AFFECTING_PROPERTIES = new Set([
   "position-anchor", "position-area", "position-try-fallbacks", "position-try-order", "anchor-name", "anchor-scope",
 ]);
 const OPTIONAL_VISUAL_PARTS = new Set([
-  "home.hero.eyebrow",
   "home.gateway-status",
-  "home.features",
-  "home.feature",
   "home.join-card.waveform",
   "home.join-card.sonar",
   "home.download-button",
@@ -62,20 +59,13 @@ export interface SkinManifest {
   preview?: string;
 }
 
-export interface SkinFeatureCopy {
-  title: string;
-  description: string;
-}
-
 export interface SkinHomeCopy {
   brandName?: string;
-  eyebrow?: string;
   title?: string;
   titleAccent?: string;
   description?: string;
   welcomeTitle?: string;
   welcomeDescription?: string;
-  features?: SkinFeatureCopy[];
 }
 
 export interface SkinContent {
@@ -227,7 +217,7 @@ function parseContent(bytes: Uint8Array): SkinContent {
   if (typeof root.defaultLocale !== "string" || !/^[a-z]{2,3}(?:-[A-Z]{2})?$/.test(root.defaultLocale) || !root.locales || typeof root.locales !== "object" || Array.isArray(root.locales)) throw new SkinPackError("content.json needs a valid defaultLocale and locales.", "SKIN_CONTENT_INVALID");
   const localeEntries = Object.entries(root.locales as Record<string, unknown>);
   if (!localeEntries.length || localeEntries.length > 20) throw new SkinPackError("content.json must contain between 1 and 20 locales.", "SKIN_CONTENT_INVALID");
-  const allowed = new Set<keyof SkinHomeCopy>(["brandName", "eyebrow", "title", "titleAccent", "description", "welcomeTitle", "welcomeDescription", "features"]);
+  const allowed = new Set<keyof SkinHomeCopy>(["brandName", "title", "titleAccent", "description", "welcomeTitle", "welcomeDescription"]);
   const locales: SkinContent["locales"] = {};
   for (const [locale, entry] of localeEntries) {
     if (!/^[a-z]{2,3}(?:-[A-Z]{2})?$/.test(locale) || !entry || typeof entry !== "object" || Array.isArray(entry)) throw new SkinPackError("content.json contains an invalid locale entry.", "SKIN_CONTENT_INVALID");
@@ -238,16 +228,8 @@ function parseContent(bytes: Uint8Array): SkinContent {
       const homeCopy: SkinHomeCopy = {};
       for (const [key, field] of Object.entries(localeValue.home as Record<string, unknown>)) {
         if (!allowed.has(key as keyof SkinHomeCopy)) throw new SkinPackError(`Unknown homepage content field: ${key}`, "SKIN_CONTENT_INVALID");
-        if (key === "features") {
-          if (!Array.isArray(field) || field.length > 8) throw new SkinPackError("Each locale may define up to 8 homepage features.", "SKIN_CONTENT_INVALID");
-          homeCopy.features = field.map((item) => {
-            if (!item || typeof item !== "object" || Array.isArray(item)) throw new SkinPackError("A homepage feature must be an object.", "SKIN_CONTENT_INVALID");
-            const feature = item as Record<string, unknown>;
-            if (typeof feature.title !== "string" || typeof feature.description !== "string" || feature.title.length > 80 || feature.description.length > 240) throw new SkinPackError("Homepage feature text is too long or invalid.", "SKIN_CONTENT_INVALID");
-            return { title: feature.title, description: feature.description };
-          });
-        } else if (typeof field === "string" && field.length <= 500) {
-          homeCopy[key as Exclude<keyof SkinHomeCopy, "features">] = field;
+        if (typeof field === "string" && field.length <= 500) {
+          homeCopy[key as keyof SkinHomeCopy] = field;
         } else {
           throw new SkinPackError(`Invalid or oversized homepage content field: ${key}`, "SKIN_CONTENT_INVALID");
         }

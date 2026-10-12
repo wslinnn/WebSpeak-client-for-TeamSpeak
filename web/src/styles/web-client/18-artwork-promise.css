@@ -188,68 +188,12 @@
   }
 }
 
-/* Homepage feature tiles use a shared grid and consistent internal spacing. */
-
-.promise-list {
-  display: grid;
-  width: 100%;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.promise-item {
-  min-width: 0;
-  min-height: 58px;
-  gap: 9px;
-  padding: 9px 11px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--surface-1) 78%, transparent);
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--text-primary) 7%, transparent);
-  backdrop-filter: blur(10px);
-}
-
-.promise-item > span:last-child {
-  min-width: 0;
-}
-
-.promise-icon {
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
-}
-
 @media (min-width: 741px) {
   /* The header is one rung on the --ws-z-* ladder: still above the isolated
      screen-share stage, but always below modal masks, menus and toasts. */
   .app-shell .workspace-header {
     position: relative;
     z-index: var(--ws-z-header);
-  }
-}
-
-@media (max-width: 740px) {
-  .promise-list {
-    gap: 10px;
-  }
-  .promise-item {
-    min-height: 54px;
-    gap: 7px;
-    padding: 8px 9px;
-  }
-  .promise-icon {
-    width: 32px;
-    height: 32px;
-    flex-basis: 32px;
-  }
-}
-
-@media (max-width: 420px) {
-  .promise-list {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .promise-item {
-    padding: 10px 12px;
   }
 }
 

@@ -26,12 +26,6 @@
         data-ws-part="home.gateway-status"
         ><span class="tiny-dot"></span> {{ t("secureGateway") }}</div
       >
-      <span
-        class="version-badge"
-        :title="`${t('currentVersion')}: v${appVersion}`"
-        :aria-label="`${t('currentVersion')}: v${appVersion}`"
-        >v{{ appVersion }}</span
-      >
       <a
         class="guide-button"
         href="/download"
@@ -80,7 +74,6 @@ import type { Language } from "../../i18n/web-client.js";
 
 defineProps<{
   brandName: string;
-  appVersion: string;
   skinOptions: SkinOption[];
   t: (key: string, variables?: Record<string, string | number>) => string;
 }>();

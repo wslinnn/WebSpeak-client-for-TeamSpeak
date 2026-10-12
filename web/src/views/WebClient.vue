@@ -21,7 +21,6 @@
         v-model:language="language"
         v-model:skin-id="activeSkinId"
         :brand-name="skinHomeCopy.brandName || siteName"
-        :app-version="appVersion"
         :skin-options="skinOptions"
         :t="t"
         @skin-change="onSkinChange"
@@ -43,11 +42,6 @@
           class="join-copy"
           data-ws-part="home.hero"
         >
-          <div
-            class="eyebrow"
-            data-ws-part="home.hero.eyebrow"
-            ><span class="eyebrow-dot"></span> {{ skinHomeCopy.eyebrow || t("privateAudio") }}</div
-          >
           <h1 data-ws-part="home.hero.title"
             >{{ skinHomeCopy.title || t("joinLine1") }}<br /><em>{{
               skinHomeCopy.titleAccent || t("joinLine2")
@@ -58,26 +52,6 @@
             data-ws-part="home.hero.description"
             >{{ skinHomeCopy.description || localizedWelcomeText }}</p
           >
-          <div
-            class="promise-list"
-            data-ws-part="home.features"
-          >
-            <div
-              v-for="feature in skinHomeFeatures"
-              :key="feature.id"
-              class="promise-item"
-              data-ws-part="home.feature"
-              :data-ws-feature-id="feature.id"
-              ><span :class="['promise-icon', feature.tone]"
-                ><Icon
-                  :name="feature.icon"
-                  :size="16" /></span
-              ><span
-                ><b>{{ feature.title }}</b
-                ><small>{{ feature.description }}</small></span
-              ></div
-            >
-          </div>
         </div>
 
         <div
@@ -1284,29 +1258,6 @@ const skinOptions = computed<SkinOption[]>(() => [
   ...installedSkins.value.filter((skin) => !catalogSkins.value.some((item) => item.id === skin.id) && isPublicSkinEnabled(skin.id)).map((skin) => ({ value: skin.id, label: skin.name, icon: "compass" })),
 ]);
 const skinHomeCopy = computed<SkinHomeCopy>(() => resolveSkinHomeCopy(activeSkin.value, language.value));
-const skinHomeFeatures = computed(() => {
-  const defaults = [
-    { id: "quality", title: t("highQuality"), description: t("opusAudio"), icon: "waveform", tone: "" },
-    { id: "realtime", title: t("realtime"), description: t("membersSync"), icon: "users", tone: "sand" },
-  ];
-  const features = [...defaults];
-  const custom = skinHomeCopy.value.features ?? [];
-  const icons = ["waveform", "shield", "users"];
-  const tones = ["", "mint", "sand"];
-  custom.forEach((feature, index) => {
-    const base = defaults[index];
-    const replacement = {
-      id: base?.id ?? `custom-${index}`,
-      title: feature.title.trim() || base?.title || "",
-      description: feature.description.trim() || base?.description || "",
-      icon: base?.icon ?? icons[index % icons.length],
-      tone: base?.tone ?? tones[index % tones.length],
-    };
-    if (base) features[index] = replacement;
-    else if (replacement.title && replacement.description) features.push(replacement);
-  });
-  return features;
-});
 const audioControls = useWebClientAudioControls({
   settingsOpen,
   microphoneMuted,
