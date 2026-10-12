@@ -35,9 +35,9 @@
         step="5"
         :value="(volumes[memberMenu.member.id] ?? 1) * 100"
         :style="rangeStyle((volumes[memberMenu.member.id] ?? 1) / 4, 1)"
-        :aria-label="t('memberVolume')"
+        :aria-label="`${t('memberVolume')} ${Math.round((volumes[memberMenu.member.id] ?? 1) * 100)}%`"
         @input="emit('volumeInput', memberMenu.member.id, $event)"
-    /></label>
+      /><strong class="menu-volume-value">{{ Math.round((volumes[memberMenu.member.id] ?? 1) * 100) }}%</strong></label>
     <button
       type="button"
       @click="
