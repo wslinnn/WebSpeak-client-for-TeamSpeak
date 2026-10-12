@@ -151,6 +151,7 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       teardownAmp(slot);
       slot.element.muted = true;
       slot.element.volume = 1;
+      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "master muted");
       return;
     }
     const perSpeaker = slot.clientId > 0 ? options.speakerVolume(slot.clientId) : 1;
@@ -159,6 +160,7 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       teardownAmp(slot);
       slot.element.muted = false;
       slot.element.volume = clamp01(combined);
+      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "element", clamp01(combined));
       return;
     }
     // Amplification beyond 100% needs a gain node, and the pipe's context is
@@ -169,12 +171,14 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       teardownAmp(slot);
       slot.element.muted = false;
       slot.element.volume = 1;
+      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "awaiting flow, clamped", combined);
       return;
     }
     const pipe = ensureAmp(slot);
     if (!pipe) {
       slot.element.muted = false;
       slot.element.volume = 1;
+      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "pipe unavailable, clamped");
       return;
     }
     // The element stays attached and playing: it is the pipeline Chrome
@@ -182,6 +186,7 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     slot.element.muted = true;
     slot.element.volume = 1;
     pipe.gain.gain.value = Math.min(4, combined);
+    if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "pipe", pipe.gain.gain.value);
   }
 
   function ensureAmp(slot: SlotChannel): AmpPipe | null {
@@ -360,9 +365,14 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     /** Re-reads the stored per-speaker volume for every slot bound to the
      *  given TeamSpeak client id. */
     refreshSpeakerVolume(clientId: number): void {
+      let matched = 0;
       for (const slot of slots.values()) {
-        if (slot.clientId === clientId) applySlotPlayback(slot);
+        if (slot.clientId === clientId) {
+          matched++;
+          applySlotPlayback(slot);
+        }
       }
+      if (playbackDebug) console.info("[playback-debug] refreshSpeakerVolume", clientId, "matched", matched, "of", slots.size);
     },
   };
 }
