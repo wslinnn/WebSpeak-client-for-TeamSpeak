@@ -14,6 +14,8 @@ interface UseWebClientAudioControlsOptions {
   prepareInputDevices: () => Promise<void>;
   setInputVolume: (value: number) => void;
   setNoiseSuppressionEnabled: (enabled: boolean) => Promise<void>;
+  setEchoCancellationEnabled: (enabled: boolean) => Promise<void>;
+  setAutoGainControlEnabled: (enabled: boolean) => Promise<void>;
   setOutputVolume: (value: number) => void;
   setVoxThreshold: (value: number) => void;
   setNotificationVolume: (value: number) => void;
@@ -41,6 +43,8 @@ export function useWebClientAudioControls({
   prepareInputDevices,
   setInputVolume,
   setNoiseSuppressionEnabled,
+  setEchoCancellationEnabled,
+  setAutoGainControlEnabled,
   setOutputVolume,
   setVoxThreshold,
   setNotificationVolume,
@@ -89,6 +93,14 @@ export function useWebClientAudioControls({
 
   function onNoiseSuppressionToggle(event: Event): void {
     void setNoiseSuppressionEnabled((event.target as HTMLInputElement).checked);
+  }
+
+  function onEchoCancellationToggle(event: Event): void {
+    void setEchoCancellationEnabled((event.target as HTMLInputElement).checked);
+  }
+
+  function onAutoGainControlToggle(event: Event): void {
+    void setAutoGainControlEnabled((event.target as HTMLInputElement).checked);
   }
 
   function onOutputVolume(event: Event): void {
@@ -234,6 +246,8 @@ export function useWebClientAudioControls({
     micMeterBars,
     onInputVolume,
     onNoiseSuppressionToggle,
+    onEchoCancellationToggle,
+    onAutoGainControlToggle,
     onOutputVolume,
     onVoxThreshold,
     onNotificationVolume,

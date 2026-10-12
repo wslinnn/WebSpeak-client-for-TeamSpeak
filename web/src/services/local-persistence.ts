@@ -46,6 +46,8 @@ export interface LocalPreferences {
   skinId?: string;
   microphoneMuted?: boolean;
   noiseSuppressionEnabled?: boolean;
+  echoCancellationEnabled?: boolean;
+  autoGainControlEnabled?: boolean;
   voxThreshold?: number;
   language?: "zh" | "en" | "de" | "ru" | "ja";
   preferredInputDeviceId?: string;

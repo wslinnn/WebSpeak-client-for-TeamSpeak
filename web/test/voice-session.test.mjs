@@ -2402,6 +2402,26 @@ test("a failed noise suppression change restores its setting and preserves WebRT
   assert.notEqual(voice.state.microphoneErrorCode, "");
 });
 
+test("echo cancellation and auto gain default off, re-apply constraints and roll back on failure", async () => {
+  const requested = [];
+  navigator.mediaDevices.enumerateDevices = async () => availableDevices;
+  navigator.mediaDevices.getUserMedia = async options => { requested.push(options.audio); return microphoneStream(); };
+  const { peer } = await connectWebRtc();
+  assert.equal(requested.at(-1).echoCancellation, false, "echo cancellation must default off");
+  assert.equal(requested.at(-1).autoGainControl, false, "auto gain must default off");
+  assert.equal(requested.at(-1).noiseSuppression, true, "noise suppression keeps its opt-out default");
+  await voice.setEchoCancellationEnabled(true);
+  await voice.setAutoGainControlEnabled(true);
+  assert.equal(requested.at(-1).echoCancellation, true);
+  assert.equal(requested.at(-1).autoGainControl, true);
+  const livePeer = TestPeer.instances.at(-1);
+  navigator.mediaDevices.getUserMedia = async () => { throw new Error("Capture reconfiguration failed"); };
+  await voice.setEchoCancellationEnabled(false);
+  assert.equal(voice.echoCancellationEnabled.value, true, "a failed change restores the committed value");
+  assert.notEqual(livePeer.connectionState, "closed");
+  voice.disconnect();
+});
+
 test("changing processing during an input switch commits the device actually acquired", async () => {
   navigator.mediaDevices.enumerateDevices = async () => availableDevices;
   await voice.ensureMicrophone();

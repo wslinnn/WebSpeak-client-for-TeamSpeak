@@ -239,6 +239,16 @@ export function useVoiceWebSocket() {
   const noiseSuppressionEnabled = ref(true);
   let noiseSuppressionTouched = false;
   let committedNoiseSuppressionEnabled = noiseSuppressionEnabled.value;
+  // Latency-adding browser processing defaults off (2026-10-14 拍板): the
+  // echo canceller alone costs tens of milliseconds; headset users rarely
+  // need it. Both flip through the same track-constraint reconfiguration as
+  // noise suppression.
+  const echoCancellationEnabled = ref(false);
+  let echoCancellationTouched = false;
+  let committedEchoCancellationEnabled = echoCancellationEnabled.value;
+  const autoGainControlEnabled = ref(false);
+  let autoGainControlTouched = false;
+  let committedAutoGainControlEnabled = autoGainControlEnabled.value;
   const inputVolume = ref(1);
   const outputVolume = ref(1);
   const outputMuted = ref(false);
@@ -362,6 +372,8 @@ export function useVoiceWebSocket() {
       inputDeviceId: committedInputDeviceId,
       microphoneMuted: microphoneMuted.value,
       noiseSuppressionEnabled: committedNoiseSuppressionEnabled,
+      echoCancellationEnabled: committedEchoCancellationEnabled,
+      autoGainControlEnabled: committedAutoGainControlEnabled,
       voxThreshold: voxThreshold.value,
       inputGain: inputVolume.value,
       outputVolume: outputVolume.value,
@@ -388,6 +400,14 @@ export function useVoiceWebSocket() {
     if (!noiseSuppressionTouched && typeof preferences.noiseSuppressionEnabled === "boolean") {
       noiseSuppressionEnabled.value = preferences.noiseSuppressionEnabled;
       committedNoiseSuppressionEnabled = preferences.noiseSuppressionEnabled;
+    }
+    if (!echoCancellationTouched && typeof preferences.echoCancellationEnabled === "boolean") {
+      echoCancellationEnabled.value = preferences.echoCancellationEnabled;
+      committedEchoCancellationEnabled = preferences.echoCancellationEnabled;
+    }
+    if (!autoGainControlTouched && typeof preferences.autoGainControlEnabled === "boolean") {
+      autoGainControlEnabled.value = preferences.autoGainControlEnabled;
+      committedAutoGainControlEnabled = preferences.autoGainControlEnabled;
     }
     if (typeof preferences.voxThreshold === "number") voxThreshold.value = clamp(preferences.voxThreshold, 0.001, 0.08);
     if (typeof preferences.inputGain === "number") inputVolume.value = Math.max(0, Math.min(1, preferences.inputGain));
@@ -534,11 +554,11 @@ export function useVoiceWebSocket() {
     const constraints: MediaTrackConstraints = {
       sampleRate: { ideal: 48000 },
       channelCount: { ideal: 1 },
-      echoCancellation: true,
+      echoCancellation: echoCancellationEnabled.value,
       noiseSuppression: noiseSuppressionEnabled.value,
-      // Keep the microphone's natural dynamics. Browser AGC can make speech
-      // pump in volume, especially while background noise changes.
-      autoGainControl: false,
+      // Off by default on purpose: browser AGC pumps volume as background
+      // noise changes, and the manual input gain is the loudness control.
+      autoGainControl: autoGainControlEnabled.value,
     };
     if (selectedInputDeviceId.value) constraints.deviceId = { exact: selectedInputDeviceId.value };
     return constraints;
@@ -850,12 +870,16 @@ export function useVoiceWebSocket() {
       if (!isCurrent()) return;
       committedInputDeviceId = selectedInputDeviceId.value;
       committedNoiseSuppressionEnabled = noiseSuppressionEnabled.value;
+      committedEchoCancellationEnabled = echoCancellationEnabled.value;
+      committedAutoGainControlEnabled = autoGainControlEnabled.value;
       localStorage.setItem("webspeak:input-device", committedInputDeviceId);
       await saveAudioPreferences();
     } catch (error) {
       if (!isCurrent() || error instanceof CancelledMediaOperation) return;
       selectedInputDeviceId.value = committedInputDeviceId;
       noiseSuppressionEnabled.value = committedNoiseSuppressionEnabled;
+      echoCancellationEnabled.value = committedEchoCancellationEnabled;
+      autoGainControlEnabled.value = committedAutoGainControlEnabled;
       localStorage.setItem("webspeak:input-device", committedInputDeviceId);
       throw error;
     }
@@ -1075,6 +1099,8 @@ export function useVoiceWebSocket() {
     selectedInputDeviceId.value = committedInputDeviceId;
     selectedOutputDeviceId.value = committedOutputDeviceId;
     noiseSuppressionEnabled.value = committedNoiseSuppressionEnabled;
+    echoCancellationEnabled.value = committedEchoCancellationEnabled;
+    autoGainControlEnabled.value = committedAutoGainControlEnabled;
     microphoneTest.dispose();
     audioDiagnostics.reset();
     commands.clear(new Error("语音连接已关闭"));
@@ -1484,6 +1510,28 @@ export function useVoiceWebSocket() {
     }
   }
 
+  async function setEchoCancellationEnabled(enabled: boolean): Promise<void> {
+    if (echoCancellationEnabled.value === enabled) return;
+    echoCancellationTouched = true;
+    echoCancellationEnabled.value = enabled;
+    try {
+      await reconfigureMicrophone();
+    } catch (error) {
+      setMicrophoneError(error);
+    }
+  }
+
+  async function setAutoGainControlEnabled(enabled: boolean): Promise<void> {
+    if (autoGainControlEnabled.value === enabled) return;
+    autoGainControlTouched = true;
+    autoGainControlEnabled.value = enabled;
+    try {
+      await reconfigureMicrophone();
+    } catch (error) {
+      setMicrophoneError(error);
+    }
+  }
+
   function setOutputVolume(volume: number): void {
     outputVolume.value = Math.max(0, Math.min(1, volume));
     applyOutputVolume();
@@ -1528,6 +1576,8 @@ export function useVoiceWebSocket() {
     pokeNotifications,
     microphoneMuted,
     noiseSuppressionEnabled,
+    echoCancellationEnabled,
+    autoGainControlEnabled,
     inputVolume,
     outputVolume,
     outputMuted,
@@ -1556,6 +1606,8 @@ export function useVoiceWebSocket() {
     setVolume,
     setInputVolume,
     setNoiseSuppressionEnabled,
+    setEchoCancellationEnabled,
+    setAutoGainControlEnabled,
     setOutputVolume,
     toggleOutputMute,
     setVoxThreshold,

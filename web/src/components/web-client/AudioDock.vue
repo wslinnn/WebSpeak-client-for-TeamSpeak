@@ -66,6 +66,24 @@
               :aria-label="t('noiseSuppression')"
               @change="onNoiseSuppressionToggle"
           /></label>
+          <label class="dock-switch-row"
+            ><span
+              ><strong>{{ t("echoCancellation") }}</strong></span
+            ><input
+              type="checkbox"
+              :checked="echoCancellationEnabled"
+              :aria-label="t('echoCancellation')"
+              @change="onEchoCancellationToggle"
+          /></label>
+          <label class="dock-switch-row"
+            ><span
+              ><strong>{{ t("autoGainControl") }}</strong></span
+            ><input
+              type="checkbox"
+              :checked="autoGainControlEnabled"
+              :aria-label="t('autoGainControl')"
+              @change="onAutoGainControlToggle"
+          /></label>
         </div>
       </div>
       <div
@@ -141,13 +159,13 @@ import type { useVoiceWebSocket } from "../../composables/useVoiceWebSocket.js";
 import type { useWebClientAudioControls } from "../../composables/useWebClientAudioControls.js";
 
 const props = defineProps<{
-  model: Pick<ReturnType<typeof useVoiceWebSocket>, "microphoneMuted" | "inputVolume" | "outputVolume" | "outputMuted" | "noiseSuppressionEnabled" | "accompanimentActive" | "micLevel">;
-  controls: Pick<ReturnType<typeof useWebClientAudioControls>, "toggleMicrophone" | "onInputVolume" | "onOutputVolume" | "onNoiseSuppressionToggle" | "toggleAccompaniment">;
+  model: Pick<ReturnType<typeof useVoiceWebSocket>, "microphoneMuted" | "inputVolume" | "outputVolume" | "outputMuted" | "noiseSuppressionEnabled" | "echoCancellationEnabled" | "autoGainControlEnabled" | "accompanimentActive" | "micLevel">;
+  controls: Pick<ReturnType<typeof useWebClientAudioControls>, "toggleMicrophone" | "onInputVolume" | "onOutputVolume" | "onNoiseSuppressionToggle" | "onEchoCancellationToggle" | "onAutoGainControlToggle" | "toggleAccompaniment">;
   t: (key: string) => string;
   rangeStyle: (value: number, max: number) => Record<string, string>;
 }>();
-const { microphoneMuted, inputVolume, outputVolume, outputMuted, noiseSuppressionEnabled, accompanimentActive, micLevel } = props.model;
-const { toggleMicrophone, onInputVolume, onOutputVolume, onNoiseSuppressionToggle, toggleAccompaniment } = props.controls;
+const { microphoneMuted, inputVolume, outputVolume, outputMuted, noiseSuppressionEnabled, echoCancellationEnabled, autoGainControlEnabled, accompanimentActive, micLevel } = props.model;
+const { toggleMicrophone, onInputVolume, onOutputVolume, onNoiseSuppressionToggle, onEchoCancellationToggle, onAutoGainControlToggle, toggleAccompaniment } = props.controls;
 const emit = defineEmits<{ settings: []; outputMute: [] }>();
 // The dock is the "am I being heard" surface: while muted, pin the meter to
 // zero so a moving bar can never suggest the room can hear the user. The raw

@@ -89,6 +89,28 @@
                 :checked="noiseSuppressionEnabled"
                 :aria-label="t('noiseSuppression')"
                 @change="onNoiseSuppressionToggle" /></label
+            ><label
+              v-if="isMobileViewport"
+              class="mobile-noise-toggle"
+              ><span
+                ><strong>{{ t("echoCancellation") }}</strong
+                ><small>{{ t("echoCancellationHint") }}</small></span
+              ><input
+                type="checkbox"
+                :checked="echoCancellationEnabled"
+                :aria-label="t('echoCancellation')"
+                @change="onEchoCancellationToggle" /></label
+            ><label
+              v-if="isMobileViewport"
+              class="mobile-noise-toggle"
+              ><span
+                ><strong>{{ t("autoGainControl") }}</strong
+                ><small>{{ t("autoGainControlHint") }}</small></span
+              ><input
+                type="checkbox"
+                :checked="autoGainControlEnabled"
+                :aria-label="t('autoGainControl')"
+                @change="onAutoGainControlToggle" /></label
             ><template v-if="isMobileViewport"
               ><div class="settings-range-row"
                 ><label class="settings-label">{{ t("inputVolume") }}</label
@@ -273,6 +295,8 @@ type AudioSettingsState = Pick<ReturnType<typeof useVoiceWebSocket>,
   | "audioContextState"
   | "microphoneMuted"
   | "noiseSuppressionEnabled"
+  | "echoCancellationEnabled"
+  | "autoGainControlEnabled"
   | "inputVolume"
   | "outputVolume"
   | "voxThreshold"
@@ -285,6 +309,8 @@ type AudioSettingsControls = Pick<ReturnType<typeof useWebClientAudioControls>,
   | "settingsError"
   | "onInputVolume"
   | "onNoiseSuppressionToggle"
+  | "onEchoCancellationToggle"
+  | "onAutoGainControlToggle"
   | "onOutputVolume"
   | "onVoxThreshold"
   | "onNotificationVolume"
@@ -324,6 +350,8 @@ const {
   audioContextState,
   microphoneMuted,
   noiseSuppressionEnabled,
+  echoCancellationEnabled,
+  autoGainControlEnabled,
   inputVolume,
   outputVolume,
   voxThreshold,
@@ -336,6 +364,8 @@ const {
   settingsError: audioSettingsError,
   onInputVolume,
   onNoiseSuppressionToggle,
+  onEchoCancellationToggle,
+  onAutoGainControlToggle,
   onOutputVolume,
   onVoxThreshold,
   onNotificationVolume,

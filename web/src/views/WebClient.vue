@@ -995,6 +995,8 @@ const {
   pokeNotifications,
   microphoneMuted,
   noiseSuppressionEnabled,
+  echoCancellationEnabled,
+  autoGainControlEnabled,
   inputVolume,
   outputVolume,
   outputMuted,
@@ -1018,6 +1020,8 @@ const {
   setVolume,
   setInputVolume,
   setNoiseSuppressionEnabled,
+  setEchoCancellationEnabled,
+  setAutoGainControlEnabled,
   setOutputVolume,
   toggleOutputMute,
   setVoxThreshold,
@@ -1317,6 +1321,8 @@ const audioControls = useWebClientAudioControls({
   prepareInputDevices,
   setInputVolume,
   setNoiseSuppressionEnabled,
+  setEchoCancellationEnabled,
+  setAutoGainControlEnabled,
   setOutputVolume,
   setVoxThreshold,
   setNotificationVolume,
@@ -1340,7 +1346,7 @@ function reconnectMobile(): void {
   reconnectNow();
 }
 const { toggleMicrophone, stopWhisperTalk } = audioControls;
-const audioDockState = { microphoneMuted, inputVolume, outputVolume, outputMuted, noiseSuppressionEnabled, accompanimentActive, micLevel };
+const audioDockState = { microphoneMuted, inputVolume, outputVolume, outputMuted, noiseSuppressionEnabled, echoCancellationEnabled, autoGainControlEnabled, accompanimentActive, micLevel };
 const audioSettingsState = {
   inputDevices,
   outputDevices,
@@ -1351,6 +1357,8 @@ const audioSettingsState = {
   audioContextState,
   microphoneMuted,
   noiseSuppressionEnabled,
+  echoCancellationEnabled,
+  autoGainControlEnabled,
   inputVolume,
   outputVolume,
   voxThreshold,
