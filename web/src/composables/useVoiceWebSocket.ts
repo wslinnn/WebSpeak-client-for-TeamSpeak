@@ -1446,6 +1446,8 @@ export function useVoiceWebSocket() {
       INVALID_MEMBER_VOLUME: "成员音量无效",
       INVALID_WHISPER_TARGETS: "私语目标无效",
       INVALID_WHISPER_STATE: "私语状态无效",
+      INVALID_MICROPHONE_STATE: "麦克风状态无效",
+      INVALID_ACCOMPANIMENT_STATE: "伴奏状态无效",
       NO_WHISPER_TARGETS: "请先选择私语目标",
       SESSION_NOT_READY: "TeamSpeak 会话尚未就绪",
       RATE_LIMITED: "操作过于频繁，请稍后重试",

@@ -285,6 +285,7 @@ export const ru: Record<string, string> = {
   copiedNickname: "Имя скопировано",
   sendMessagePlaceholder: "Сообщение в канал…",
   send: "Отправить",
+  messageInput: "Ввод сообщения",
   muteMic: "Выключить микрофон",
   unmuteMic: "Включить микрофон",
   microphoneActive: "Микрофон включён",

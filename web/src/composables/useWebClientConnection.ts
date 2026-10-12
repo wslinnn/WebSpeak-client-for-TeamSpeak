@@ -142,6 +142,9 @@ export function useWebClientConnection({
   }
 
   async function selectChannel(channel: TreeChannel): Promise<void> {
+    // The empty-directory placeholder row is not a TeamSpeak channel; the
+    // gateway would reject the switch with INVALID_CHANNEL_ID.
+    if (channel.id === "__current__") return;
     const previousChannelId = selectedChannelId.value;
     const previousChannelName = channelName.value;
     selectedChannelId.value = channel.id;

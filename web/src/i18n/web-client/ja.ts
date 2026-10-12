@@ -285,6 +285,7 @@ export const ja: Record<string, string> = {
   copiedNickname: "ニックネームをコピーしました",
   sendMessagePlaceholder: "チャンネルへメッセージを送信…",
   send: "送信",
+  messageInput: "メッセージ入力",
   muteMic: "マイクをミュート",
   unmuteMic: "マイクのミュートを解除",
   microphoneActive: "マイクオン",

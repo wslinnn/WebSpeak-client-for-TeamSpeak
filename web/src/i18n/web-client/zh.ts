@@ -224,6 +224,7 @@ export const zh: Record<string, string> = {
     copiedNickname: "昵称已复制",
     sendMessagePlaceholder: "发送消息给频道成员…",
     send: "发送",
+    messageInput: "消息输入",
     muteMic: "闭麦",
     unmuteMic: "开麦",
     microphoneActive: "麦克风已开启",

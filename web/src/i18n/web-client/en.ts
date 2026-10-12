@@ -224,6 +224,7 @@ export const en: Record<string, string> = {
     copiedNickname: "Nickname copied",
     sendMessagePlaceholder: "Message the channel…",
     send: "Send",
+    messageInput: "Message input",
     muteMic: "Mute mic",
     unmuteMic: "Unmute mic",
     microphoneActive: "Microphone on",

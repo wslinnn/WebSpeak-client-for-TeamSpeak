@@ -93,7 +93,7 @@ export function useWebClientMembers({
   }
 
   function toggleMemberMoveMenu(): void {
-    memberMoveMenuOpen.value = true;
+    memberMoveMenuOpen.value = !memberMoveMenuOpen.value;
   }
 
   async function moveMemberDirect(member: ChannelMember, targetChannelId: string): Promise<void> {
@@ -211,7 +211,11 @@ export function useWebClientMembers({
   }
 
   function pokeMember(member: ChannelMember): void {
-    sendPoke(member.id, window.prompt(t("pokeMessagePrompt"), "") ?? "");
+    // Cancel and empty inputs send nothing: an empty poke is rejected by the
+    // gateway anyway, and a cancelled prompt must never fire a "sent" toast.
+    const message = window.prompt(t("pokeMessagePrompt"), "");
+    if (message === null || !message.trim()) return;
+    sendPoke(member.id, message);
     showToast(t("pokeSent"));
   }
 
@@ -224,9 +228,19 @@ export function useWebClientMembers({
 
   function toggleAway(): void {
     onManualStatusChange?.();
-    away.value = !away.value;
-    awayMessage.value = away.value ? (window.prompt(t("awayPrompt"), awayMessage.value) ?? "") : "";
-    setAway(away.value, awayMessage.value);
+    if (!away.value) {
+      // A cancelled prompt leaves the current status untouched; an empty
+      // message is a valid away without a note.
+      const message = window.prompt(t("awayPrompt"), awayMessage.value);
+      if (message === null) return;
+      away.value = true;
+      awayMessage.value = message;
+      setAway(true, message);
+      return;
+    }
+    away.value = false;
+    awayMessage.value = "";
+    setAway(false, "");
   }
 
   function setAutomaticAway(value: boolean): void {

@@ -90,7 +90,6 @@ export function useWebClientPublicConfig({
     initialized,
     siteName,
     appVersion,
-    openTargetPrefillBlocked,
     serverConfigLoading,
     publicConfigFailed,
     localizedWelcomeText,

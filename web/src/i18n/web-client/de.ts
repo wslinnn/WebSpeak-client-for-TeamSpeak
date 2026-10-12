@@ -223,6 +223,7 @@ export const de: Record<string, string> = {
   copiedNickname: "Name kopiert",
   sendMessagePlaceholder: "Nachricht an die Kanalmitglieder…",
   send: "Senden",
+  messageInput: "Nachrichteneingabe",
   muteMic: "Mikrofon stummschalten",
   unmuteMic: "Mikrofon einschalten",
   microphoneActive: "Mikrofon eingeschaltet",

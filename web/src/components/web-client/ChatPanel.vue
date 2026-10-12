@@ -190,7 +190,7 @@
         @compositionend="composing = false"
         @keydown="onComposerKeydown"
         :placeholder="chatPlaceholder"
-        :aria-label="t('send')"
+        :aria-label="t('messageInput')"
       ></textarea>
       <span
         v-if="messageDraft.length > 450"

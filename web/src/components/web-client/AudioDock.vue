@@ -23,7 +23,6 @@
           :title="microphoneMuted ? t('unmuteMic') : t('muteMic')"
           :aria-label="microphoneMuted ? t('microphoneMuted') : t('microphoneActive')"
           :aria-pressed="!microphoneMuted"
-          aria-haspopup="dialog"
           @click="toggleMicrophone"
           ><Icon
             :name="microphoneMuted ? 'mic-off' : 'mic'"
@@ -97,7 +96,6 @@
           :title="outputMuted ? t('unmuteOutput') : t('muteOutput')"
           :aria-label="outputMuted ? t('unmuteOutput') : t('muteOutput')"
           :aria-pressed="!outputMuted"
-          aria-haspopup="dialog"
           @click="emit('outputMute')"
           ><Icon
             :name="outputMuted ? 'volume-off' : 'volume'"
