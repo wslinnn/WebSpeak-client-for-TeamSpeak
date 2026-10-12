@@ -2389,6 +2389,23 @@ test("failure on the WebRTC output restores the previously committed context sin
   assert.equal(voice.selectedOutputDeviceId.value, "");
 });
 
+test("a channelSwitched reply settles the pending switch instead of timing out", async () => {
+  const socket = await connect();
+  let settled = false;
+  const pending = voice.switchChannel("9").then(() => { settled = true; });
+  const sent = socket.messages.filter(message => message.type === "switchChannel").at(-1);
+  assert.ok(sent?.requestId, "the switch command must carry a requestId");
+  socket.receive({ type: "channelSwitched", requestId: sent.requestId, channelId: "9" });
+  // A regression here leaves the command pending: the explicit loser fails
+  // fast with the cause instead of hanging the whole suite for 8 seconds.
+  await Promise.race([
+    pending,
+    new Promise((_, reject) => setTimeout(() => reject(new Error("channelSwitched did not settle the pending switch")), 500)),
+  ]);
+  assert.equal(settled, true);
+  assert.equal(voice.state.errorCode, "", "a successful switch must not surface an error");
+});
+
 test("a failed noise suppression change restores its setting and preserves WebRTC capture", async () => {
   navigator.mediaDevices.enumerateDevices = async () => availableDevices;
   const initial = microphoneStream();

@@ -1183,6 +1183,11 @@ export function useVoiceWebSocket() {
         state.channelSwitchedChannelId = typeof msg.channelId === "string" || typeof msg.channelId === "number" ? String(msg.channelId) : "";
         state.error = "";
         state.errorCode = "";
+        // The gateway answers switchChannel with this message instead of the
+        // generic commandCompleted; without settling here the pending command
+        // rides out its 8s timeout and rolls back a switch that already
+        // happened on TeamSpeak.
+        commands.settle(typeof msg.requestId === "string" ? msg.requestId : "");
         break;
       case "audioStats": {
         const sequence = typeof msg.sequence === "string" ? msg.sequence : "";
