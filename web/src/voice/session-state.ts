@@ -28,10 +28,13 @@ export function createVoiceSessionState(options: SessionStateOptions) {
   let sequence = 0;
   const memberKeys = reactive(new Map<number, string>());
   const unknownSenders = new Map<number, string>();
-  // Avatars arrive once per uid (memberAvatar) and never ride the directory.
-  // Keyed by uid so reconnects and later joins restore images without a new
-  // download; survives session resets on purpose. A long-lived page must not
-  // accumulate every uid it ever saw, so the cache is a bounded LRU.
+  // Avatars arrive as capability URLs (avatarSnapshot / avatarUpdate) and
+  // render as background-image URLs — the browser's HTTP cache absorbs every
+  // refetch across refreshes and resumes, so the page never re-hauls bytes.
+  // A URL only enters state after an Image probe loads: a miss (evicted
+  // cache, stale id) keeps the initial-letter fallback instead of a blank
+  // box. Keyed by uid so reconnects and later joins restore images without
+  // any gateway traffic; a bounded LRU caps a long-lived page's memory.
   const avatars = new Map<string, string>();
   const AVATAR_CACHE_LIMIT = 200;
   const getAvatar = (uid: string): string | undefined => {
@@ -42,10 +45,22 @@ export function createVoiceSessionState(options: SessionStateOptions) {
     }
     return cached;
   };
-  const storeAvatar = (uid: string, avatar: string): void => {
+  const applyAvatar = (uid: string, url: string): void => {
+    if (avatars.get(uid) === url) return;
     avatars.delete(uid);
     while (avatars.size >= AVATAR_CACHE_LIMIT) avatars.delete(avatars.keys().next().value!);
-    avatars.set(uid, avatar);
+    avatars.set(uid, url);
+    for (const member of members) {
+      if (member.uid === uid && member.avatar !== url) member.avatar = url;
+    }
+  };
+  const storeAvatar = (uid: string, url: string): void => {
+    if (avatars.get(uid) === url) return;
+    if (typeof Image === "undefined") { applyAvatar(uid, url); return; }
+    const probe = new Image();
+    probe.onload = () => applyAvatar(uid, url);
+    probe.onerror = () => { /* keep the initial-letter fallback */ };
+    probe.src = url;
   };
   const nextId = (kind: string) => `${kind}-${epoch.value}-${sequence++}`;
   const normalize = (member: ChannelMember): ChannelMember => {
@@ -214,13 +229,12 @@ export function createVoiceSessionState(options: SessionStateOptions) {
         if (index >= 0) channels.splice(index, 1);
         break;
       }
-      case "memberAvatar": {
-        const uid = message.uid;
-        if (!uid || !message.avatar) break;
-        storeAvatar(uid, message.avatar);
-        for (const member of members) {
-          if (member.uid === uid) member.avatar = message.avatar;
-        }
+      case "avatarSnapshot": {
+        for (const item of message.avatars) storeAvatar(item.uid, item.url);
+        break;
+      }
+      case "avatarUpdate": {
+        storeAvatar(message.uid, message.url);
         break;
       }
       case "chatMessage": {

@@ -6,6 +6,7 @@ import { createServer as createHttpServer } from "node:http";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { VoiceBridge, type VoiceBridgeOptions } from "./voice-bridge.js";
+import type { AvatarService } from "./avatar-service.js";
 import { mountRtpLabIfEnabled } from "./rtp-lab.js";
 import type { Logger } from "../logger.js";
 import type { TeamSpeakTarget } from "../domain/teamspeak-target.js";
@@ -48,6 +49,8 @@ export interface WebServerOptions {
 export interface WebServer {
   start(): Promise<void>;
   stop(): Promise<void>;
+  /** Capability-URL projection of the shared avatar cache (ops/diagnostic). */
+  avatars: AvatarService;
 }
 
 export function createWebServer(options: WebServerOptions): WebServer {
@@ -138,6 +141,9 @@ export function createWebServer(options: WebServerOptions): WebServer {
   const joinRateLimiter = new JoinRateLimiter();
   const skinDownloadLimiter = new SkinDownloadRateLimiter();
   const skinPreviewLimiter = new SkinDownloadRateLimiter();
+  // A page fetches one avatar per roster member on first sight; the window
+  // quota covers the 100-session roster burst with room for reloads.
+  const avatarLimiter = new SkinDownloadRateLimiter(1024, 240);
   const startedAt = Date.now();
   // Limiter key for a request: the client IP when trust proxy is configured,
   // otherwise the socket address, aggregated to a /64 for IPv6.
@@ -252,6 +258,31 @@ export function createWebServer(options: WebServerOptions): WebServer {
     response.setHeader("Content-Type", preview.mimeType);
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.send(preview.bytes);
+  });
+
+  // Avatar bytes ride plain cacheable HTTP, not the voice WebSocket: the WS
+  // path hands out capability URLs (/avatars/<hmac>?v=<content-hash>) whose
+  // stability is what lets the browser's disk cache absorb every refresh and
+  // resume. The endpoint is a read-only projection of the shared cache —
+  // ids are unguessable HMAC outputs, misses never trigger downloads, and
+  // the per-peer limiter bounds hammering.
+  app.get("/avatars/:aid", (request, response) => {
+    const aid = typeof request.params.aid === "string" ? request.params.aid : "";
+    if (!avatarLimiter.allow(peerKey(request))) {
+      response.status(429).setHeader("Cache-Control", "no-store").json({ ok: false, code: "RATE_LIMITED" });
+      return;
+    }
+    const entry = voiceBridge.avatars.serve(aid);
+    if (!entry) {
+      response.status(404).setHeader("Cache-Control", "no-store").end();
+      return;
+    }
+    // private: browsers may pin the bytes across reloads, but shared proxies
+    // must not; immutable is sound because the content hash versions the URL.
+    response.setHeader("Cache-Control", "private, max-age=31536000, immutable");
+    response.setHeader("Content-Type", entry.mime);
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    response.send(entry.data);
   });
 
   app.post("/api/join-ticket", async (request, response) => {
@@ -419,6 +450,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
         server.close(() => resolve());
       });
     },
+    avatars: voiceBridge.avatars,
   };
 }
 

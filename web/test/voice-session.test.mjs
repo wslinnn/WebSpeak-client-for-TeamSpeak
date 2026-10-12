@@ -346,11 +346,11 @@ test("omitted channel members preserve known data and avatars reject a different
   socket.receive({ type: "channelList", channels: [{ id: "1", parentID: "0", name: "Renamed lobby" }] });
   assert.equal(voice.members.length, 1);
   assert.equal(voice.channels[0].members?.[0]?.nickname, "Visitor");
-  socket.receive({ type: "memberAvatar", id: 7, uid: "other-user", avatar: "wrong" });
+  socket.receive({ type: "avatarUpdate", uid: "other-user", url: "/avatars/otheruser" });
   assert.equal(voice.members[0].avatar, undefined);
-  socket.receive({ type: "memberAvatar", id: 7, uid: "user", avatar: "correct" });
-  assert.equal(voice.members[0].avatar, "correct");
-  assert.equal(voice.channels[0].members[0].avatar, "correct");
+  socket.receive({ type: "avatarUpdate", uid: "user", url: "/avatars/abcdef12?v=abc123" });
+  assert.equal(voice.members[0].avatar, "/avatars/abcdef12?v=abc123");
+  assert.equal(voice.channels[0].members[0].avatar, "/avatars/abcdef12?v=abc123");
 });
 
 test("member deltas patch fields in place and move members between channels", async () => {
@@ -412,16 +412,16 @@ test("channel deltas create, rename and remove channels without touching members
 test("member avatars are keyed by uid, warm later joins and survive reconnects", async () => {
   const socket = await connect();
   socket.receive({ type: "connected", tsClientId: 1 });
-  socket.receive({ type: "memberAvatar", uid: "user", avatar: "data:image/png;base64,ok" });
+  socket.receive({ type: "avatarUpdate", uid: "user", url: "/avatars/abcdef12?v=abc123" });
   assert.equal(voice.members.length, 0, "an avatar for an unknown member only warms the cache");
   socket.receive({ type: "memberEnter", id: 7, uid: "user", nickname: "Later", channelId: "1" });
-  assert.equal(voice.members[0].avatar, "data:image/png;base64,ok", "a later join restores the warm avatar");
+  assert.equal(voice.members[0].avatar, "/avatars/abcdef12?v=abc123", "a later join restores the warm avatar");
   socket.receive({ type: "channelList", channels: [{ id: "1", parentID: "0", name: "Lobby", members: [...voice.members.map(({ avatar, ...rest }) => rest)] }] });
-  assert.equal(voice.members[0].avatar, "data:image/png;base64,ok", "a directory without avatars keeps warm ones");
+  assert.equal(voice.members[0].avatar, "/avatars/abcdef12?v=abc123", "a directory without avatars keeps warm ones");
   socket.receive({ type: "disconnected", recoverable: true });
   socket.receive({ type: "connected", tsClientId: 2 });
   socket.receive({ type: "channelList", channels: [{ id: "1", parentID: "0", name: "Lobby", members: [{ id: 8, uid: "user", nickname: "Reconnected" }] }] });
-  assert.equal(voice.members[0].avatar, "data:image/png;base64,ok", "avatars survive a reconnect reset");
+  assert.equal(voice.members[0].avatar, "/avatars/abcdef12?v=abc123", "avatars survive a reconnect reset");
 });
 
 test("explicit disconnect and replacement target clear all session history and notifications", async () => {

@@ -13,7 +13,7 @@ const snapshot = (...clients: ClientInfo[]): TSDirectorySnapshot => ({ channels:
 function fixture(t: TestContext) {
   const phase = { current: true, accepting: true, published: false, connected: false, selfId: 1, channelId: 1n };
   const state: SessionDirectoryState = { channelTree: [], members: new Map(), whisperTargetIds: new Set(), whisperActive: false };
-  const avatarCache = new Map<string, string | null>();
+  const avatarUrls = new Map<string, string>();
   const messages: ServerMessage[] = [];
   const events: Array<{ kind: string; message: string }> = [];
   const callbacks: Array<{ kind: string; value?: unknown }> = [];
@@ -22,7 +22,10 @@ function fixture(t: TestContext) {
     getClientAvatar: async () => null,
   });
   const coordinator = new SessionEventCoordinator({
-    state, client, avatarCache, nickname: "Self", requestedChannel: "Lobby",
+    state, client, avatars: {
+      url: uid => avatarUrls.get(uid) ?? null,
+      store: (uid, data) => { avatarUrls.set(uid, `/avatars/${uid}?v=${data.length}`); return true; },
+    }, nickname: "Self", requestedChannel: "Lobby",
     isCurrent: () => phase.current, acceptsDirectory: () => phase.accepting,
     isPublished: () => phase.published, isConnected: () => phase.connected,
     sendJson: message => messages.push(message), addEvent: (kind, message) => events.push({ kind, message }),
@@ -36,7 +39,7 @@ function fixture(t: TestContext) {
     onAvatarError: (_id, _uid, value) => callbacks.push({ kind: "avatar-error", value }),
   });
   t.after(() => coordinator.close());
-  return { phase, state, avatarCache, messages, events, callbacks, client, coordinator };
+  return { phase, state, avatarUrls, messages, events, callbacks, client, coordinator };
 }
 
 test("welcome events reconcile before publication and self follows the connected SDK channel", t => {
@@ -135,12 +138,12 @@ test("reset rejects backoff events, keeps shared avatar positives and close deta
   const captured = f.client.listeners("clientEnter")[0]!;
   let externalEvents = 0;
   f.client.on("clientEnter", () => externalEvents++);
-  f.avatarCache.set("uid-2", "cached");
+  f.avatarUrls.set("uid-2", "cached");
   f.coordinator.reset(); f.phase.accepting = false;
   f.client.emit("directorySnapshot", snapshot(member(9)));
   assert.equal(f.coordinator.ready, false);
   assert.equal(f.state.members.size, 0);
-  assert.deepEqual([...f.avatarCache], [["uid-2", "cached"]]);
+  assert.deepEqual([...f.avatarUrls], [["uid-2", "cached"]]);
   f.phase.accepting = true;
   f.client.emit("directorySnapshot", snapshot(member(1)));
   assert.equal(f.state.members.has(9), false);

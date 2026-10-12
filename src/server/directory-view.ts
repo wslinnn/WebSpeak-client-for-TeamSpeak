@@ -2,9 +2,9 @@ import type { ChannelInfo } from "../shared/voice-models.js";
 import type { TSDirectorySnapshot } from "./ts-client.js";
 
 // Avatars are intentionally absent from the directory projection: embedding
-// base64 images in every channelList resends multiplied directory traffic by
-// the largest avatar in the tree. They travel once per uid via memberAvatar
-// messages from the shared cross-session cache instead.
+// images in every channelList resends multiplied directory traffic by the
+// largest avatar in the tree. They travel as capability URLs (avatarSnapshot
+// / avatarUpdate messages) from the shared cross-session cache instead.
 export function mapChannelTree(snapshot: TSDirectorySnapshot): ChannelInfo[] {
   return snapshot.channels.map((channel) => ({
     id: String(channel.id),
@@ -25,14 +25,6 @@ export function mapChannelTree(snapshot: TSDirectorySnapshot): ChannelInfo[] {
         channelCommander: client.channelCommander,
       })),
   }));
-}
-
-export function avatarDataUrl(data: Buffer): string | null {
-  if (data.length >= 8 && data.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return `data:image/png;base64,${data.toString("base64")}`;
-  if (data.length >= 3 && data.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))) return `data:image/jpeg;base64,${data.toString("base64")}`;
-  if (data.length >= 6 && (data.subarray(0, 6).toString("ascii") === "GIF87a" || data.subarray(0, 6).toString("ascii") === "GIF89a")) return `data:image/gif;base64,${data.toString("base64")}`;
-  if (data.length >= 12 && data.subarray(0, 4).toString("ascii") === "RIFF" && data.subarray(8, 12).toString("ascii") === "WEBP") return `data:image/webp;base64,${data.toString("base64")}`;
-  return null;
 }
 
 export function normalizeDirectorySnapshot(

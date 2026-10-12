@@ -5,7 +5,6 @@ import type { ChannelInfo, ChannelMember } from "../shared/voice-models.js";
 import type { ServerMessage } from "../shared/server-messages.js";
 import { DirectorySynchronizer } from "./directory-sync.js";
 import { mapChannelTree, normalizeDirectorySnapshot } from "./directory-view.js";
-import type { AvatarCache } from "./member-avatars.js";
 import { MemberAvatarLoader } from "./member-avatars.js";
 import type { TSClient, TSChatMessage, TSDirectoryClient, TSDirectorySnapshot, TSRawNotification, TSVoiceData } from "./ts-client.js";
 
@@ -36,8 +35,8 @@ interface SdkEvents {
 export interface SessionEventOptions {
   state: SessionDirectoryState;
   client: Pick<TSClient, "getClientId" | "getChannelId" | "getClientAvatar"> & Partial<Pick<TSClient, "refreshDirectoryClients">> & Pick<EventEmitter, "on" | "off">;
-  /** Avatar bytes shared across sessions; positives outlive this session. */
-  avatarCache: AvatarCache;
+  /** Shared avatar publication: URL lookups over the cross-session cache. */
+  avatars: { url(uid: string): string | null; store(uid: string, data: Buffer): boolean };
   nickname: string;
   requestedChannel?: string;
   isCurrent(): boolean;
@@ -69,10 +68,12 @@ export class SessionEventCoordinator {
   constructor(private readonly options: SessionEventOptions) {
     const { state, client } = options;
     this.avatars = new MemberAvatarLoader({
-      members: state.members, cache: options.avatarCache,
+      members: state.members,
+      avatarUrl: uid => options.avatars.url(uid),
+      store: (uid, data) => options.avatars.store(uid, data),
       isCurrent: () => this.isCurrent() && options.isConnected(),
       load: (id, uid) => client.getClientAvatar(id, uid),
-      publish: (uid, avatar) => options.sendJson({ type: "memberAvatar", uid, avatar }),
+      publish: (uid, url) => options.sendJson({ type: "avatarUpdate", uid, url }),
       onError: options.onAvatarError,
     });
     // Subscribe before connect(): welcome events may precede the first snapshot.
@@ -200,7 +201,15 @@ export class SessionEventCoordinator {
     }
   }
 
-  scheduleAvatars(): void { this.avatars.schedule(); }
+  /** View (re)attachment: one idempotent URL snapshot covers every visible
+   *  member the cache can serve; transfer failures retry once; new downloads
+   *  defer to the batch. */
+  attachAvatars(): void {
+    const snapshot = this.avatars.snapshot();
+    if (snapshot.length) this.options.sendJson({ type: "avatarSnapshot", avatars: snapshot });
+    this.avatars.retryFailedDownloads();
+    this.avatars.schedule();
+  }
 
   private refresh(): void {
     const snapshot = this.directory.getSnapshot();

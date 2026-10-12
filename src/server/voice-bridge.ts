@@ -12,6 +12,7 @@ import { SessionManager, type SessionTeardownReason } from "./session-manager.js
 import { WebRtcAudioSession, type WebRtcAudioOptions, type WebRtcAudioSessionOptions, type WebRtcSessionDescription } from "./webrtc-audio.js";
 import { normalizeScreenShareIceServers, type ScreenShareIceServer } from "./screen-share.js";
 import { AvatarLruCache } from "./avatar-cache.js";
+import { AvatarService } from "./avatar-service.js";
 import { createVoiceConnectionHandler } from "./voice-bridge/connection-handler.js";
 import { DetachedSessionPool } from "./voice-bridge/detached-pool.js";
 import { createVoiceRtc, type VoiceRtc } from "./voice-bridge/voice-rtc.js";
@@ -50,7 +51,7 @@ export class VoiceBridge {
   private readonly identityLeases = new IdentityLeaseStore();
   // One cache serves every session: avatars are keyed by TeamSpeak uid, so a
   // reconnection or a second browser reuses the same download.
-  private readonly avatarCache = new AvatarLruCache(AVATAR_CACHE_CAPACITY);
+  private readonly avatarService = new AvatarService(new AvatarLruCache(AVATAR_CACHE_CAPACITY));
   // Completed sessions by transport path. The compatibility path is the
   // 768 kbit/s PCM fallback, so its share decides whether the Opus-over-WS
   // upgrade is worth building; this counter is its trigger measurement.
@@ -95,7 +96,7 @@ export class VoiceBridge {
       dependencies: this.dependencies,
       sessionManager: this.sessionManager,
       identityLeases: this.identityLeases,
-      avatarCache: this.avatarCache,
+      avatars: this.avatarService,
       screenShares: this.screenShares,
       detachedPool: this.detachedPool,
       resolveConnection: url => this.resolveConnection(url),
@@ -109,8 +110,8 @@ export class VoiceBridge {
   }
 
   attach(server: Server): void {
-    // Avatar data is delivered as a data URL in a memberAvatar message. Keep
-    // the frame limit above the encoded avatar ceiling with room for JSON.
+    // Avatars travel as URLs now; the frame ceiling bounds the largest state
+    // snapshots (event log, member roster) plus JSON overhead.
     this.wss = new WebSocketServer({ server, path: "/ws/voice", maxPayload: 512 * 1024 });
     this.detachedPool.startHeartbeat();
 
@@ -147,7 +148,13 @@ export class VoiceBridge {
 
   /** Diagnostic visibility into the shared cross-session avatar cache. */
   get avatarCacheSize(): number {
-    return this.avatarCache.size;
+    return this.avatarService.size;
+  }
+
+  /** Read-only capability-URL projection of the avatar cache; the HTTP
+   *  endpoint serves bytes from it without touching session state. */
+  get avatars(): AvatarService {
+    return this.avatarService;
   }
 
   /**

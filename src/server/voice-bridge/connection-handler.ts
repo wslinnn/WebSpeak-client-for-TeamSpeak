@@ -23,7 +23,7 @@ import { resolveClientAddress } from "../client-ip.js";
 import type { ScreenShareCoordinator } from "../screen-share-coordinator.js";
 import type { SessionManager } from "../session-manager.js";
 import type { IdentityLeaseStore } from "../identity-lease.js";
-import type { AvatarLruCache } from "../avatar-cache.js";
+import type { AvatarService } from "../avatar-service.js";
 import type { DetachedSessionPool } from "./detached-pool.js";
 import type { ServerEvent, VoiceBridgeDependencies, VoiceBridgeOptions, WebClientEntry } from "./types.js";
 
@@ -36,7 +36,7 @@ export interface VoiceConnectionHandlerDeps {
   dependencies: VoiceBridgeDependencies;
   sessionManager: SessionManager;
   identityLeases: IdentityLeaseStore;
-  avatarCache: AvatarLruCache;
+  avatars: AvatarService;
   screenShares: ScreenShareCoordinator;
   detachedPool: DetachedSessionPool;
   resolveConnection: (url: URL) => JoinTicketPayload | null;
@@ -307,7 +307,7 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       sendJson(connectedMessage());
       sendJson({ type: "channelList", channels: entry!.channelTree });
       if (wasReconnecting) sendJson({ type: "reconnected" });
-      events.scheduleAvatars();
+      events.attachAvatars();
     };
 
     /** The `connected` snapshot: used for the first join and identically for
@@ -346,7 +346,7 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       }
       sendJson(connectedMessage());
       sendJson({ type: "channelList", channels: entry!.channelTree });
-      events.scheduleAvatars();
+      events.attachAvatars();
       return true;
     };
 
@@ -466,7 +466,7 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
 
     const events = new SessionEventCoordinator({
       state: entry, client: tsClient, nickname, requestedChannel: channelName,
-      avatarCache: deps.avatarCache,
+      avatars: deps.avatars,
       isCurrent: () => deps.entries.get(entryId) === entry && session.state !== "disconnecting" && session.state !== "idle" && session.state !== "failed",
       acceptsDirectory: () => session.state === "authenticating" || session.state === "syncing" || session.state === "connected",
       isPublished: () => tsReady && initialStateSent,

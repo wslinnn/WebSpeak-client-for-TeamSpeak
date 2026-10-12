@@ -10,6 +10,11 @@ type Request = { requestId?: string };
 type Failure = { code?: string; detail?: string };
 type ChatFields = { invokerId?: number; invokerName?: string; message: string; timestamp?: number };
 
+/** Avatar capability reference: the URL is the credential (an HMAC-derived
+ *  opaque id, unguessable, never expires) and only carries a version query
+ *  so the browser's HTTP cache key stays stable across refreshes. */
+export interface AvatarUrlRef { uid: string; url: string }
+
 /** Public JSON messages. Internal sockets, SDK clients and media objects stay out. */
 export type ServerMessage =
   | Message<"connected", { tsClientId: number; members?: ChannelMember[]; serverEventLog?: ServerEvent[]; identity?: string; webrtcAvailable?: boolean; webRtcStunServer?: string; whisperTargetIds?: number[]; whisperActive?: boolean; screenShareIceServers?: ScreenShareIceServer[]; reconnectTicket?: string }>
@@ -17,7 +22,8 @@ export type ServerMessage =
   | Message<"memberLeave", { id: number }>
   | Message<"memberUpdated", { id: number } & Partial<Pick<ChannelMember, "nickname" | "uid" | "away" | "awayMessage" | "inputMuted" | "outputMuted" | "channelCommander">>>
   | Message<"memberMoved", { id: number; channelId?: string }>
-  | Message<"memberAvatar", { id?: number; uid: string; avatar?: string }>
+  | Message<"avatarSnapshot", { avatars: AvatarUrlRef[] }>
+  | Message<"avatarUpdate", { uid: string; url: string }>
   | Message<"channelList", { channels: ChannelInfo[] }>
   | Message<"channelCreated", { channel: ChannelInfo }>
   | Message<"channelUpdated", { id: string; name: string; description?: string }>
@@ -55,6 +61,9 @@ const identifier = (value: unknown): value is string => text(value) && value.len
 const channelId = (value: unknown): value is string | number => (text(value) && /^\d{1,20}$/.test(value)) || (finite(value) && Number.isSafeInteger(value) && value >= 0);
 const optional = (value: unknown, check: (value: unknown) => boolean): boolean => value === undefined || check(value);
 const arrayOf = (value: unknown, check: (value: unknown) => boolean): boolean => Array.isArray(value) && value.every(check);
+// Gateway-relative capability path: opaque id, optional content-version query.
+const avatarUrl = (value: unknown): value is string =>
+  text(value) && /^\/avatars\/[A-Za-z0-9_-]{8,64}(\?v=[A-Za-z0-9]{1,64})?$/.test(value);
 
 function member(value: unknown): value is ChannelMember {
   return isRecord(value) && clientId(value.id) && text(value.nickname)
@@ -124,7 +133,8 @@ const valid: Record<ServerMessage["type"], (message: RecordValue) => boolean> = 
     && optional(m.away, boolean) && optional(m.awayMessage, text) && optional(m.inputMuted, boolean)
     && optional(m.outputMuted, boolean) && optional(m.channelCommander, boolean),
   memberMoved: m => clientId(m.id) && optional(m.channelId, channelId),
-  memberAvatar: m => optional(m.id, clientId) && identifier(m.uid) && optional(m.avatar, v => text(v) && v.length <= 524_288),
+  avatarSnapshot: m => arrayOf(m.avatars, v => isRecord(v) && identifier(v.uid) && avatarUrl(v.url)),
+  avatarUpdate: m => identifier(m.uid) && avatarUrl(m.url),
   channelList: m => arrayOf(m.channels, channel),
   channelCreated: m => channel(m.channel),
   channelUpdated: m => channelId(m.id) && text(m.name) && optional(m.description, text),

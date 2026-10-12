@@ -1,5 +1,5 @@
 const WINDOW_MS = 60 * 1000;
-const MAX_DOWNLOADS = 10;
+const DEFAULT_MAX_DOWNLOADS = 10;
 
 interface PeerWindow {
   startedAt: number;
@@ -9,12 +9,13 @@ interface PeerWindow {
 /**
  * Bounds skin archive downloads (each up to 20 MB, minutes of airtime on a
  * 3 Mbit/s uplink) so one peer cannot monopolize the gateway's egress by
- * re-fetching packages in a loop.
+ * re-fetching packages in a loop. The window quota is configurable because
+ * avatar fetches are the same shape but burst N-at-once per page load.
  */
 export class SkinDownloadRateLimiter {
   private readonly peers = new Map<string, PeerWindow>();
 
-  constructor(private readonly maxTrackedPeers = 1024) {}
+  constructor(private readonly maxTrackedPeers = 1024, private readonly maxDownloads = DEFAULT_MAX_DOWNLOADS) {}
 
   allow(peer: string, now = Date.now()): boolean {
     const current = this.peers.get(peer);
@@ -28,7 +29,7 @@ export class SkinDownloadRateLimiter {
       this.peers.set(peer, { startedAt: now, requests: 1 });
       return true;
     }
-    if (current.requests >= MAX_DOWNLOADS) return false;
+    if (current.requests >= this.maxDownloads) return false;
     current.requests += 1;
     return true;
   }

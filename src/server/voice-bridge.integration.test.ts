@@ -332,6 +332,60 @@ test("a dropped browser socket keeps the TeamSpeak session and a resume reattach
   assert.equal(f.bridge.getActiveCount(), 0);
 });
 
+test("a resumed view is re-served cached avatars without a second TeamSpeak transfer", { timeout: 5_000 }, async t => {
+  const reconnectTickets = new ReconnectTicketStore();
+  let downloads = 0;
+  const f = await fixture(t, {
+    bridgeOptions: { reconnectTickets },
+    configureSdk: sdk => {
+      sdk.directory = {
+        channels: [{ name: "Lobby", description: "", id: 1n, parentID: 0n, order: 0n }],
+        clients: [
+          { nickname: "Self", uid: "uid-self", serverGroups: [], channelID: 1n, type: 1, id: 1 },
+          { nickname: "Peer", uid: "uid-peer", serverGroups: [], channelID: 1n, type: 1, id: 2 },
+        ],
+      };
+      sdk.avatarRequest = async () => {
+        downloads += 1;
+        return { cacheKey: "sample", data: Buffer.from("GIF89a") };
+      };
+    },
+  });
+  await waitFor(() => f.messages.some(message => JSON.parse(message.data.toString()).type === "avatarUpdate"));
+  const avatarUids = (messages: Array<{ data: Buffer }>) => messages
+    .map(message => JSON.parse(message.data.toString()) as { type: string; uid?: string; avatars?: Array<{ uid: string }> })
+    .flatMap(message => message.type === "avatarUpdate" ? [message.uid!]
+      : message.type === "avatarSnapshot" ? (message.avatars ?? []).map(item => item.uid)
+      : [])
+    .sort();
+  assert.deepEqual(avatarUids(f.messages), ["uid-peer", "uid-self"]);
+  const downloadsBeforeResume = downloads;
+
+  // Page refresh: the browser socket drops and the resume ticket reattaches
+  // the kept session — the same avatar loader whose `attempted` set must not
+  // gate the fresh page's delivery.
+  const entry = [...f.entries.values()][0]! as DetachableEntry;
+  f.socket.close(1001, "going away");
+  await once(f.socket, "close");
+  await waitFor(() => entry.detached === true);
+  const token = (JSON.parse(f.messages[0]!.data.toString()) as { reconnectTicket?: string }).reconnectTicket;
+  const record = reconnectTickets.consume(token!);
+  assert.ok(record);
+  const resumeTicket = f.tickets.create({ ...record.payload, resumeOfEntryId: record.entryId });
+  const secondSocket = new WebSocket(`ws://127.0.0.1:${f.port}/ws/voice?ticket=${resumeTicket}`);
+  const secondMessages: Array<{ data: Buffer }> = [];
+  secondSocket.on("message", data => secondMessages.push({ data: data as Buffer }));
+  const secondFirst = once(secondSocket, "message");
+  await once(secondSocket, "open");
+  const second = JSON.parse((await secondFirst)[0].toString()) as { type: string };
+  assert.equal(second.type, "connected");
+  await nextTurn();
+  assert.deepEqual(avatarUids(secondMessages), ["uid-peer", "uid-self"], "the resumed page must receive the cached avatars again");
+  assert.equal(downloads, downloadsBeforeResume, "delivery must not re-download from TeamSpeak");
+  secondSocket.close(1000, "done");
+  await once(secondSocket, "close");
+});
+
 test("a detached session past its grace window releases the kept TeamSpeak connection", { timeout: 5_000 }, async t => {
   const reconnectTickets = new ReconnectTicketStore();
   const f = await fixture(t, { bridgeOptions: { reconnectTickets } });
