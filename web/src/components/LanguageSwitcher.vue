@@ -98,14 +98,13 @@ function collectClipAncestors(el: HTMLElement): HTMLElement[] {
 
 /**
  * The dropdown is absolutely positioned relative to the trigger and anchored
- * to its right edge, so a trigger near the left screen edge (phone headers,
- * admin cards, narrow windows) pushed the 360px menu off screen. After the
- * menu renders, clamp it into the viewport — horizontally against both edges
- * and vertically flipping above the trigger when the bottom would clip. The
- * same check runs against the nearest scroll/clip containers: a menu that fits
- * the viewport but not its clipping ancestor (e.g. the admin login card, which
- * scrolls) flips above too. The CSS default placement stays untouched whenever
- * it already fits.
+ * to its right edge, so a trigger near a container edge pushed the 360px menu
+ * past the viewport or past any clipping ancestor (e.g. the admin login card,
+ * whose overflow-y:auto also turns overflow-x into auto). After the menu
+ * renders, clamp it into the tightest bound of every clipping ancestor and
+ * the viewport — horizontally against both edges, vertically flipping above
+ * the trigger when the bottom would clip. The CSS default placement stays
+ * untouched whenever it already fits.
  */
 function placeDropdown(): void {
   const rootEl = root.value;
@@ -121,29 +120,32 @@ function placeDropdown(): void {
   const height = dropdownEl.offsetHeight;
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const overflowLeft = rootRect.right - width < VIEWPORT_MARGIN;
-  const overflowRight = rootRect.left + width > viewportWidth - VIEWPORT_MARGIN;
-  // Vertical budget: the tightest bound of every clipping ancestor and the
-  // viewport decides whether the menu fits below the trigger at all.
+  // Tightest bound of every clipping ancestor and the viewport, per side.
   let bottomBound = viewportHeight - VIEWPORT_MARGIN;
   let topBound = VIEWPORT_MARGIN;
+  let leftBound = VIEWPORT_MARGIN;
+  let rightBound = viewportWidth - VIEWPORT_MARGIN;
   for (const node of collectClipAncestors(rootEl)) {
     const rect = node.getBoundingClientRect();
     bottomBound = Math.min(bottomBound, rect.bottom);
     topBound = Math.max(topBound, rect.top);
+    leftBound = Math.max(leftBound, rect.left);
+    rightBound = Math.min(rightBound, rect.right);
   }
   const clippedBelow = rootRect.bottom + MENU_GAP + height > bottomBound;
-  if (!overflowLeft && !overflowRight && !clippedBelow) return;
-  const viewportLeft = Math.min(
-    Math.max(rootRect.right - width, VIEWPORT_MARGIN),
-    viewportWidth - VIEWPORT_MARGIN - width,
-  );
-  // Prefer flipping above only when that side is not clipped even worse.
+  // CSS default: the menu's right edge anchors to the trigger's right edge.
+  const anchoredLeft = rootRect.right - width;
+  const fitsHorizontally = anchoredLeft >= leftBound && rootRect.right <= rightBound;
+  if (!clippedBelow && fitsHorizontally) return;
+  // Keep the right-anchored position when it fits; otherwise push into the
+  // bounds. A container narrower than the menu cannot fit it at all — align
+  // to its left edge and let the container scroll.
+  const menuLeft = Math.min(Math.max(anchoredLeft, leftBound), Math.max(leftBound, rightBound - width));
   const placeAbove = clippedBelow && rootRect.top - MENU_GAP - height >= topBound;
   const viewportTop = placeAbove
     ? Math.max(topBound, rootRect.top - MENU_GAP - height)
     : rootRect.bottom + MENU_GAP;
-  dropdownEl.style.left = `${Math.round(viewportLeft - rootRect.left)}px`;
+  dropdownEl.style.left = `${Math.round(menuLeft - rootRect.left)}px`;
   dropdownEl.style.top = `${Math.round(viewportTop - rootRect.top)}px`;
   dropdownEl.style.right = "auto";
 }
