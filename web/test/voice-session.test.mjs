@@ -189,6 +189,13 @@ function replaceGlobal(name, value) {
 before(async () => {
   // The noise-suppression library declares a worklet subclass at import time.
   replaceGlobal("AudioWorkletNode", class {});
+  // The WebRTC transport builds one MediaStream per slot track (the gateway's
+  // answer carries no per-slot msid, so event.streams[0] is a shared default
+  // stream and must never be attached directly).
+  replaceGlobal("MediaStream", class {
+    constructor(tracks) { this.tracks = tracks ?? []; this.id = `stub-${Math.random().toString(36).slice(2)}`; }
+    getAudioTracks() { return this.tracks; }
+  });
   vite = await createServer({
     configFile: false,
     root: fileURLToPath(new URL("../", import.meta.url)),
@@ -1535,7 +1542,7 @@ test("a queued track event from a closed peer cannot replace current playback", 
   const first = await connectWebRtc();
   const oldOnTrack = first.peer.ontrack;
   const current = await connectWebRtc();
-  current.peer.ontrack({ streams: [microphoneStream()], transceiver: current.peer.transceivers[1] });
+  current.peer.ontrack({ streams: [microphoneStream()], track: microphoneStream().getAudioTracks()[0], transceiver: current.peer.transceivers[1] });
   const output = [...audioElements][0];
   oldOnTrack({ streams: [microphoneStream()] });
   assert.deepEqual([...audioElements], [output]);
@@ -1547,7 +1554,7 @@ test("a late playback rejection does not restore notices or retry listeners afte
   const output = new TestAudioElement();
   output.play = () => playback.promise;
   document.createElement = () => output;
-  peer.ontrack({ streams: [microphoneStream()], transceiver: peer.transceivers[1] });
+  peer.ontrack({ streams: [microphoneStream()], track: microphoneStream().getAudioTracks()[0], transceiver: peer.transceivers[1] });
   voice.disconnect();
   playback.reject(new Error("autoplay blocked"));
   await nextTurn();
@@ -1559,7 +1566,7 @@ test("a playback pause failure cannot prevent peer and microphone cleanup", asyn
   const microphone = microphoneStream();
   navigator.mediaDevices.getUserMedia = async () => microphone;
   const { peer } = await connectWebRtc();
-  peer.ontrack({ streams: [microphoneStream()], transceiver: peer.transceivers[1] });
+  peer.ontrack({ streams: [microphoneStream()], track: microphoneStream().getAudioTracks()[0], transceiver: peer.transceivers[1] });
   const output = [...audioElements][0];
   t.mock.method(output, "pause", () => { throw new Error("Playback unavailable"); }, { times: 1 });
   assert.doesNotThrow(() => voice.disconnect());
@@ -1589,7 +1596,7 @@ test("a playback setup failure releases its element and restores compatibility a
   output.remove = () => { removed = true; audioElements.delete(output); };
   Object.defineProperty(output, "srcObject", { set(value) { if (value) throw new Error("Playback source unavailable"); } });
   document.createElement = () => output;
-  assert.doesNotThrow(() => peer.ontrack({ streams: [microphoneStream()], transceiver: peer.transceivers[1] }));
+  assert.doesNotThrow(() => peer.ontrack({ streams: [microphoneStream()], track: microphoneStream().getAudioTracks()[0], transceiver: peer.transceivers[1] }));
   await nextTurn();
   assert.equal(removed, true);
   assert.equal(peer.connectionState, "closed");
@@ -1609,7 +1616,7 @@ test("a queued old playback retry cannot play a replacement session", async t =>
   const blocked = new TestAudioElement();
   blocked.play = async () => { throw new Error("Gesture required"); };
   document.createElement = () => blocked;
-  first.peer.ontrack({ streams: [microphoneStream()], transceiver: first.peer.transceivers[1] });
+  first.peer.ontrack({ streams: [microphoneStream()], track: microphoneStream().getAudioTracks()[0], transceiver: first.peer.transceivers[1] });
   await nextTurn();
   const oldRetry = retry;
   assert.equal(typeof oldRetry, "function");
@@ -1618,7 +1625,7 @@ test("a queued old playback retry cannot play a replacement session", async t =>
   let plays = 0;
   output.play = async () => { plays++; };
   document.createElement = () => output;
-  next.peer.ontrack({ streams: [microphoneStream()], transceiver: next.peer.transceivers[1] });
+  next.peer.ontrack({ streams: [microphoneStream()], track: microphoneStream().getAudioTracks()[0], transceiver: next.peer.transceivers[1] });
   await nextTurn();
   assert.equal(plays, 1);
   oldRetry();
@@ -1634,7 +1641,7 @@ test("overlapping playback retry gestures share one in-flight play attempt", asy
   let plays = 0;
   output.play = () => ++plays === 1 ? Promise.reject(new Error("Gesture required")) : playback.promise;
   document.createElement = () => output;
-  peer.ontrack({ streams: [microphoneStream()], transceiver: peer.transceivers[1] });
+  peer.ontrack({ streams: [microphoneStream()], track: microphoneStream().getAudioTracks()[0], transceiver: peer.transceivers[1] });
   await nextTurn();
   window.dispatchEvent(new Event("pointerdown"));
   window.dispatchEvent(new Event("keydown"));
@@ -1896,7 +1903,7 @@ test("a voiceRoute announcement binds the downstream slot to the member's volume
   const receiver = {
     getStats: async () => new Map([["in", { type: "inbound-rtp", kind: "audio", packetsReceived: 10, audioLevel: 0.2 }]]),
   };
-  peer.ontrack({ streams: [microphoneStream()], transceiver: peer.transceivers[1], receiver });
+  peer.ontrack({ streams: [microphoneStream()], track: microphoneStream().getAudioTracks()[0], transceiver: peer.transceivers[1], receiver });
   socket.receive({ type: "voiceRoute", slots: [7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] });
   await nextTurn();
   const output = [...audioElements][0];
@@ -2332,7 +2339,7 @@ test("disconnect skips queued output changes and keeps only the last committed d
 test("failure on the WebRTC output restores the previously committed context sink", async t => {
   navigator.mediaDevices.enumerateDevices = async () => availableDevices;
   const { peer } = await connectWebRtc();
-  peer.ontrack({ streams: [microphoneStream()], transceiver: peer.transceivers[1] });
+  peer.ontrack({ streams: [microphoneStream()], track: microphoneStream().getAudioTracks()[0], transceiver: peer.transceivers[1] });
   const output = [...audioElements][0];
   output.setSinkId = async id => { if (id === "speaker-a") throw new Error("Output denied"); output.sinkId = id; };
   const ctx = AudioContextStub.instances.at(-1);

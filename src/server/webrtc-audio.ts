@@ -24,7 +24,7 @@ const DEFAULT_WEBRTC_OPUS_PAYLOAD_TYPE = 111;
 // opens exactly this many recvonly transceivers; extra ones are answered
 // inactive. Speaking slots are assigned LRU: in a room with more concurrent
 // speakers than slots the least recently active voice stream stops.
-const MAX_DOWNSTREAM_SLOTS = 12;
+const MAX_DOWNSTREAM_SLOTS = 16;
 
 // WebRTC is served by the WebSpeak process itself. The default range is also
 // published by the bundled Docker Compose file; advanced administrators can

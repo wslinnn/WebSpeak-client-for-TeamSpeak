@@ -7,7 +7,7 @@ import { createWebRtcPlayback, type WebRtcPlaybackOptions } from "./webrtc-playb
 // assigns TeamSpeak speakers to them LRU-style and announces assignments via
 // voiceRoute messages; with the pool in place a new speaker never triggers a
 // renegotiation. Must mirror MAX_DOWNSTREAM_SLOTS in src/server/webrtc-audio.ts.
-const DOWNSTREAM_SLOTS = 12;
+const DOWNSTREAM_SLOTS = 16;
 
 interface Microphone {
   context: AudioContext;
@@ -190,7 +190,16 @@ export function createWebRtcTransport(options: TransportOptions) {
         if (!isCurrent(record)) return;
         const slotIndex = peer.getTransceivers().indexOf(event.transceiver) - 1;
         if (slotIndex < 0 || slotIndex >= DOWNSTREAM_SLOTS) return;
-        try { playback.attach(event.streams[0] ?? new MediaStream([event.track]), slotIndex, event.receiver); }
+        try {
+          // NEVER use event.streams[0] here: the gateway's answer carries no
+          // per-slot msid (the offer pre-opens bare recvonly transceivers and
+          // werift echoes no stream ids back), so Chrome groups every
+          // downstream track into ONE default MediaStream. Attaching that
+          // shared stream would make all 12 elements play the full mix and
+          // per-slot volume/mute would silently do nothing. A fresh
+          // MediaStream per track restores slot isolation.
+          playback.attach(new MediaStream([event.track]), slotIndex, event.receiver);
+        }
         catch { void fail(record, "WEBRTC_PLAYBACK_FAILED"); }
       };
       record.meter = createMicrophoneMeter(context, stream, rms => options.onLevel(rms, track));

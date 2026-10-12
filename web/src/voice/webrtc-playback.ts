@@ -88,6 +88,7 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
         slotStates.push({
           slot: index,
           clientId: slot.clientId,
+          streamId: slot.stream.id,
           vol: slot.element.volume,
           muted: slot.element.muted,
           paused: slot.element.paused,
