@@ -55,6 +55,45 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
   const SLOT_POLL_INTERVAL_MS = 150;
   const SLOT_SPEAKING_HANGOVER_MS = 600;
 
+  // Playback state dump for `webspeak:playback-debug` — the runtime values
+  // (slot binding, applied element volume, pipe state, packet flow) that the
+  // member-volume chain cannot be diagnosed without in a real browser.
+  const playbackDebug = (() => {
+    try { return localStorage.getItem("webspeak:playback-debug") === "1"; } catch { return false; }
+  })();
+  if (playbackDebug) {
+    (window as unknown as { __webspeakPlayback: () => Promise<unknown> }).__webspeakPlayback = async () => {
+      const slotStates = [];
+      for (const [index, slot] of slots) {
+        let packets = -1;
+        let level = -1;
+        if (slot.receiver) {
+          try {
+            const report = await slot.receiver.getStats();
+            report.forEach(entry => {
+              if (entry.type === "inbound-rtp" && entry.kind === "audio") {
+                packets = entry.packetsReceived ?? -1;
+                level = entry.audioLevel ?? -1;
+              }
+            });
+          } catch { /* the receiver may be gone */ }
+        }
+        slotStates.push({
+          slot: index,
+          clientId: slot.clientId,
+          vol: slot.element.volume,
+          muted: slot.element.muted,
+          paused: slot.element.paused,
+          pipeGain: slot.amp ? slot.amp.gain.gain.value : null,
+          packets,
+          level,
+        });
+      }
+      return { master: options.volume(), slots: slotStates };
+    };
+    console.info("[playback-debug] hook installed — call await __webspeakPlayback()");
+  }
+
   function applySink(target: SinkAudioElement | (AudioContext & { setSinkId?: (deviceId: string) => Promise<void> })): void {
     if (!sinkDevice) return;
     clean(() => { void target.setSinkId?.(sinkDevice).catch(() => undefined); });
@@ -280,6 +319,7 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     /** Binds TeamSpeak client ids to the downstream slots (0 = free); each
      *  bound slot re-reads its per-speaker gain. */
     setSlotClients(slotClientIds: readonly number[]): void {
+      if (playbackDebug) console.info("[playback-debug] setSlotClients", [...slotClientIds]);
       for (const [slotIndex, slot] of slots) {
         const clientId = slotClientIds[slotIndex] ?? 0;
         if (slot.clientId === clientId) continue;

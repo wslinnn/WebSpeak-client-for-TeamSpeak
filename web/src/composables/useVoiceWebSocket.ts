@@ -1232,6 +1232,7 @@ export function useVoiceWebSocket() {
       }
       case "voiceRoute":
         webRtcVoiceRoutes.value = [...msg.slots];
+        if (localStorage.getItem("webspeak:playback-debug") === "1") console.info("[playback-debug] voiceRoute received", [...msg.slots]);
         webrtc.setSlotClients(msg.slots);
         break;
       case "commandCompleted": {
@@ -1449,6 +1450,7 @@ export function useVoiceWebSocket() {
   function setVolume(clientId: number, volume: number): void {
     const normalized = Math.max(0, Math.min(4, volume));
     volumes[clientId] = normalized;
+    if (localStorage.getItem("webspeak:playback-debug") === "1") console.info("[playback-debug] setVolume", clientId, normalized);
     const member = members.find((candidate) => candidate.id === clientId);
     if (member?.uid) storedVolumesByUid[member.uid] = normalized;
     // Per-speaker volume is applied locally on the playback graph (both the
