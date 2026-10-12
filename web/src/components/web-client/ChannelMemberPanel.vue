@@ -195,9 +195,9 @@
                 step="5"
                 :value="(volumes[member.id] ?? 1) * 100"
                 :style="rangeStyle((volumes[member.id] ?? 1) / 4, 1)"
-                :aria-label="t('memberVolume')"
+                :aria-label="`${t('memberVolume')} ${Math.round((volumes[member.id] ?? 1) * 100)}%`"
                 @input="emit('volumeInput', member.id, $event)"
-            /></div>
+              /><span class="member-volume-value">{{ Math.round((volumes[member.id] ?? 1) * 100) }}%</span></div>
             <button
               v-if="isMobileViewport && !member.isSelf"
               type="button"

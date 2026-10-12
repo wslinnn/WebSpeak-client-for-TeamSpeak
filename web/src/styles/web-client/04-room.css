@@ -578,7 +578,16 @@
   align-items: center;
   gap: 5px;
   color: #a1afaa;
-  width: 64px;
+  width: 96px;
+}
+
+:deep(.member-volume-value) {
+  min-width: 30px;
+  font-size: 10px;
+  line-height: 1;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  opacity: .8;
 }
 
 :deep(.member-volume input) {
