@@ -824,7 +824,6 @@
       :controls="audioControls"
       :microphone-error="voiceState.microphoneError"
       :microphone-error-code="voiceState.microphoneErrorCode"
-      :is-mobile-viewport="isMobileViewport"
       :desktop-notifications-enabled="desktopNotificationsEnabled"
       :on-desktop-notifications-toggle="onDesktopNotificationsToggle"
       :t="t"

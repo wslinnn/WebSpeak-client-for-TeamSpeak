@@ -79,7 +79,6 @@
                 {{ microphoneMuted ? t("unmuteMic") : t("muteMic") }}</button
               ></div
             ><label
-              v-if="isMobileViewport"
               class="mobile-noise-toggle"
               ><span
                 ><strong>{{ t("noiseSuppression") }}</strong
@@ -90,7 +89,6 @@
                 :aria-label="t('noiseSuppression')"
                 @change="onNoiseSuppressionToggle" /></label
             ><label
-              v-if="isMobileViewport"
               class="mobile-noise-toggle"
               ><span
                 ><strong>{{ t("echoCancellation") }}</strong
@@ -101,7 +99,6 @@
                 :aria-label="t('echoCancellation')"
                 @change="onEchoCancellationToggle" /></label
             ><label
-              v-if="isMobileViewport"
               class="mobile-noise-toggle"
               ><span
                 ><strong>{{ t("autoGainControl") }}</strong
@@ -111,21 +108,20 @@
                 :checked="autoGainControlEnabled"
                 :aria-label="t('autoGainControl')"
                 @change="onAutoGainControlToggle" /></label
-            ><template v-if="isMobileViewport"
-              ><div class="settings-range-row"
-                ><label class="settings-label">{{ t("inputVolume") }}</label
-                ><strong>{{ Math.round(inputVolume * 100) }}%</strong></div
-              ><input
-                class="settings-range"
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                :value="inputVolume * 100"
-                :style="rangeStyle(inputVolume, 1)"
-                :aria-label="t('inputVolume')"
-                @input="onInputVolume" /></template
             ><div class="settings-range-row"
+              ><label class="settings-label">{{ t("inputVolume") }}</label
+              ><strong>{{ Math.round(inputVolume * 100) }}%</strong></div
+            ><input
+              class="settings-range"
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              :value="inputVolume * 100"
+              :style="rangeStyle(inputVolume, 1)"
+              :aria-label="t('inputVolume')"
+              @input="onInputVolume"
+            /><div class="settings-range-row"
               ><label class="settings-label">{{ t("voxThreshold") }}</label
               ><strong>{{ (voxThreshold * 100).toFixed(1) }}%</strong></div
             ><input
@@ -205,21 +201,20 @@
                 name="info"
                 :size="16"
               /><span>{{ t("outputDeviceUnsupported") }}</span></p
-            ><template v-if="isMobileViewport"
-              ><div class="settings-range-row"
-                ><label class="settings-label">{{ t("speakers") }}</label
-                ><strong>{{ Math.round(outputVolume * 100) }}%</strong></div
-              ><input
-                class="settings-range"
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                :value="outputVolume * 100"
-                :style="rangeStyle(outputVolume, 1)"
-                :aria-label="t('outputVolume')"
-                @input="onOutputVolume" /></template
             ><div class="settings-range-row"
+              ><label class="settings-label">{{ t("speakers") }}</label
+              ><strong>{{ Math.round(outputVolume * 100) }}%</strong></div
+            ><input
+              class="settings-range"
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              :value="outputVolume * 100"
+              :style="rangeStyle(outputVolume, 1)"
+              :aria-label="t('outputVolume')"
+              @input="onOutputVolume"
+            /><div class="settings-range-row"
               ><label class="settings-label">{{ t("notificationVolume") }}</label
               ><strong>{{ Math.round(notificationVolume * 100) }}%</strong></div
             ><input
@@ -326,7 +321,6 @@ const props = defineProps<{
   controls: AudioSettingsControls;
   microphoneError: string;
   microphoneErrorCode: string;
-  isMobileViewport: boolean;
   desktopNotificationsEnabled: boolean;
   onDesktopNotificationsToggle: (event: Event) => void;
   t: (key: string, variables?: Record<string, string | number>) => string;
