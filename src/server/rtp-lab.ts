@@ -247,6 +247,10 @@ pre { background: #f6f6f6; padding: 10px; border-radius: 8px; min-height: 200px;
   <label><input type="radio" name="silence" value="frames" checked>发 3 字节静音帧</label>
   <label><input type="radio" name="silence" value="none">完全停发</label>
 </fieldset>
+<fieldset><legend>播放方式（语音房静音判别：切换后需刷新页面）</legend>
+  <label><input type="radio" name="sink" value="element" checked>直连 audio 元素</label>
+  <label><input type="radio" name="sink" value="graph">Web Audio 图（复刻语音房）</label>
+</fieldset>
 <pre id="log"></pre>
 <script src="/_rtp-lab/lab.js"></script>
 </body>
@@ -262,23 +266,65 @@ let started = false;
 const ICE_SERVERS = JSON.parse(document.body.dataset.iceServers || "[]");
 const peer = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 peer.onconnectionstatechange = () => log("peer: " + peer.connectionState);
+function sinkMode() {
+  const el = document.querySelector('input[name="sink"]:checked');
+  return el ? el.value : "element";
+}
+document.querySelectorAll('input[name="sink"]').forEach(radio => {
+  radio.addEventListener("change", () => { if (started) log("播放方式已选 " + sinkMode() + "（切换需刷新页面）"); });
+});
 peer.ontrack = (event) => {
-  const audio = document.createElement("audio");
-  audio.autoplay = true;
-  audio.srcObject = new MediaStream([event.track]);
-  document.body.append(audio);
-  audio.play().catch(e => log("play blocked: " + e.message));
+  const trackStream = new MediaStream([event.track]);
   const ctx = audioCtx ?? new AudioContext();
-  const source = ctx.createMediaStreamSource(new MediaStream([event.track]));
-  const analyser = ctx.createAnalyser();
-  analyser.fftSize = 1024;
-  source.connect(analyser);
-  const samples = new Float32Array(1024);
+  const useGraph = sinkMode() === "graph";
+  log("sink: " + (useGraph ? "Web Audio 图（复刻语音房）" : "直连元素") + " ctx=" + ctx.state);
+  let analyser;
+  if (useGraph) {
+    // Replicates the voice room's sink shape: track → source → gain →
+    // analyser → master → MediaStreamDestination → hidden element. If the
+    // context is not rendering, the room-side symptom (buffer never drains,
+    // packetsDiscarded≈packetsReceived) reproduces here.
+    const source = ctx.createMediaStreamSource(trackStream);
+    const gain = ctx.createGain();
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    const master = ctx.createGain();
+    const destination = ctx.createMediaStreamDestination();
+    source.connect(gain);
+    gain.connect(analyser);
+    gain.connect(master);
+    master.connect(destination);
+    const hidden = document.createElement("audio");
+    hidden.autoplay = true;
+    hidden.muted = false;
+    hidden.setAttribute("playsinline", "");
+    hidden.setAttribute("aria-hidden", "true");
+    hidden.tabIndex = -1;
+    hidden.style.position = "fixed";
+    hidden.style.width = "1px";
+    hidden.style.height = "1px";
+    hidden.style.opacity = "0";
+    hidden.style.pointerEvents = "none";
+    hidden.srcObject = destination.stream;
+    document.body.append(hidden);
+    hidden.play().then(() => log("graph element playing")).catch(e => log("graph play blocked: " + e.message));
+    window.__labGraph = { ctx, source, gain, master, destination, analyser };
+  } else {
+    const audio = document.createElement("audio");
+    audio.autoplay = true;
+    audio.srcObject = trackStream;
+    document.body.append(audio);
+    audio.play().catch(e => log("play blocked: " + e.message));
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    ctx.createMediaStreamSource(trackStream).connect(analyser);
+  }
+  const samples = new Float32Array(analyser.fftSize);
   setInterval(() => {
     analyser.getFloatTimeDomainData(samples);
     let sum = 0;
     for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
-    log("analyserRMS=" + Math.sqrt(sum / samples.length).toFixed(5));
+    log("analyserRMS=" + Math.sqrt(sum / samples.length).toFixed(5) + " ctx=" + ctx.state);
   }, 1500);
   setInterval(async () => {
     const report = await peer.getStats();
@@ -331,5 +377,9 @@ document.getElementById("stop").addEventListener("click", async () => {
   await fetch("/_rtp-lab/mode", { method: "POST", headers: { "content-type": "application/json" },
     body: JSON.stringify({ pacing: "stopped", channels: 1, silence: "frames" }) });
   log("stopped");
-});`;
+});
+window.__lab = {
+  get peer() { return peer; },
+  get audioCtx() { return audioCtx; },
+};`;
 }
