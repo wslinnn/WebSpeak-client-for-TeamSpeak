@@ -25,6 +25,13 @@ interface SlotChannel {
   clientId: number;
   active: boolean;
   lastAudioAt: number;
+  /** Highest packetsReceived observed on this slot's receiver. A grow-only
+   *  counter: it drives both the speaking delta and the flow gate. */
+  packetsSeen: number;
+  /** True once any RTP packet has arrived on the slot. The amplification
+   *  pipe may only be built after this: a pipe whose context was created
+   *  before the track's first packet is bound dead (see the module note). */
+  flowed: boolean;
   amp: AmpPipe | null;
 }
 
@@ -34,11 +41,14 @@ interface SlotChannel {
 // regardless of when the AudioContext was created: a context that existed
 // before a remote track started flowing never renders that track (its source
 // nodes yield silence forever), which is exactly how the whole room went
-// mute while stats kept counting arrivals. Web Audio is therefore opt-in:
-// per-speaker volume up to 100% rides element.volume, and only amplification
-// beyond 100% builds a gain pipe on a context created on demand (after media
-// flows). Speaking detection reads receiver.getStats() audioLevel for the
-// same reason — an analyser in a poisoned context never receives samples.
+// mute while stats kept counting arrivals. Web Audio is therefore opt-in AND
+// flow-gated: per-speaker volume up to 100% rides element.volume, and only
+// amplification beyond 100% builds a gain pipe — never before the slot's
+// first RTP packet, so a persisted >100% volume cannot poison itself at bind
+// time. Speaking detection counts receiver.getStats() packetsReceived deltas:
+// packets flow whenever the member transmits, immune to element volume, mute
+// and playout semantics that make decoded-audio levels drift with the very
+// slider being dragged.
 export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
   let playbackGeneration = 0;
   const slots = new Map<number, SlotChannel>();
@@ -47,13 +57,10 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
   let ampContext: AudioContext | null = null;
   let sinkDevice = "";
   const clean = (operation: () => void): void => { try { operation(); } catch { /* continue teardown */ } };
-  // The gateway's old mixer used an Int16 RMS of 160 (≈0.5% of full scale)
-  // for its speaking indicator; the float-domain equivalent sits near 0.005,
-  // raised a little so breath and room noise stay quiet. getStats audioLevel
-  // reports the same float domain.
-  const SLOT_SPEAKING_LEVEL = 0.01;
   const SLOT_POLL_INTERVAL_MS = 150;
-  const SLOT_SPEAKING_HANGOVER_MS = 600;
+  // TeamSpeak transmits in VAD bursts with word gaps between them; the hold
+  // bridges those gaps so the badge behaves like the native client's.
+  const SLOT_SPEAKING_HANGOVER_MS = 1_200;
 
   // Playback state dump for `webspeak:playback-debug` — the runtime values
   // (slot binding, applied element volume, pipe state, packet flow) that the
@@ -84,6 +91,7 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
           vol: slot.element.volume,
           muted: slot.element.muted,
           paused: slot.element.paused,
+          flowed: slot.flowed,
           pipeGain: slot.amp ? slot.amp.gain.gain.value : null,
           packets,
           level,
@@ -115,7 +123,7 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
   function attach(stream: MediaStream, slotIndex: number, receiver: RTCRtpReceiver | null = null): void {
     let slot = slots.get(slotIndex);
     if (!slot) {
-      slot = { element: createSlotElement(), stream, receiver, clientId: 0, active: false, lastAudioAt: 0, amp: null };
+      slot = { element: createSlotElement(), stream, receiver, clientId: 0, active: false, lastAudioAt: 0, packetsSeen: 0, flowed: false, amp: null };
       slots.set(slotIndex, slot);
     } else {
       slot.receiver = receiver;
@@ -153,9 +161,16 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       slot.element.volume = clamp01(combined);
       return;
     }
-    // Amplification beyond 100% needs a gain node. The pipe context is
-    // created on demand — by now the track has flowed, so the binding is
-    // alive; if Web Audio is unavailable the volume clamps at 100%.
+    // Amplification beyond 100% needs a gain node, and the pipe's context is
+    // only trustworthy once the slot has received RTP: created earlier it
+    // would be bound dead. Until then the element renders at up to 100% and
+    // the flow poll upgrades the slot the moment packets arrive.
+    if (!slot.flowed) {
+      teardownAmp(slot);
+      slot.element.muted = false;
+      slot.element.volume = 1;
+      return;
+    }
     const pipe = ensureAmp(slot);
     if (!pipe) {
       slot.element.muted = false;
@@ -241,11 +256,19 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     for (const slot of slots.values()) {
       if (!slot.receiver || slot.clientId <= 0) continue;
       void slot.receiver.getStats().then(report => {
-        let level = 0;
+        let packets = slot.packetsSeen;
         report.forEach(entry => {
-          if (entry.type === "inbound-rtp" && entry.kind === "audio") level = entry.audioLevel ?? 0;
+          if (entry.type === "inbound-rtp" && entry.kind === "audio") packets = entry.packetsReceived ?? slot.packetsSeen;
         });
-        if (level >= SLOT_SPEAKING_LEVEL) slot.lastAudioAt = Date.now();
+        // Flow gate: the first packet unlocks pipe creation for >100% gains.
+        if (packets > 0 && !slot.flowed) {
+          slot.flowed = true;
+          applySlotPlayback(slot);
+        }
+        // Speaking = transmission, not decoded level: packets grow whenever
+        // the member transmits, regardless of element volume or mute.
+        if (packets > slot.packetsSeen) slot.lastAudioAt = Date.now();
+        slot.packetsSeen = packets;
         const active = Date.now() - slot.lastAudioAt < SLOT_SPEAKING_HANGOVER_MS;
         if (active !== slot.active) {
           slot.active = active;
@@ -324,6 +347,13 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
         const clientId = slotClientIds[slotIndex] ?? 0;
         if (slot.clientId === clientId) continue;
         slot.clientId = clientId;
+        // A reassigned slot speaks for a new member: the previous hold must
+        // not light the newcomer, and the volume re-read follows below.
+        slot.lastAudioAt = 0;
+        if (slot.active) {
+          slot.active = false;
+          options.onSlotActivity(slot.clientId, false);
+        }
         applySlotPlayback(slot);
       }
     },
