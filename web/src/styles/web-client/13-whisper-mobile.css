@@ -131,6 +131,14 @@
     letter-spacing: .04em;
     text-transform: uppercase;
   }
+  /* The exit action must stay visually and spatially separated from the
+     appearance group: the language menu overlays this area while open, and a
+     stray click must never land on the disconnect button. */
+  .mobile-more-panel .more-panel-separator {
+    height: 1px;
+    margin: 6px 0;
+    background: var(--border);
+  }
   .mobile-more-panel button {
     display: flex;
     align-items: center;

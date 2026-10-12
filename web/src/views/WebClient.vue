@@ -725,6 +725,10 @@
             :menu-label="t('languageMenu')"
             @change="persistLanguage"
         /></div>
+        <div
+          class="more-panel-separator"
+          aria-hidden="true"
+        ></div>
         <button
           type="button"
           class="danger"

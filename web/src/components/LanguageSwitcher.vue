@@ -27,7 +27,7 @@
         :class="{ selected: modelValue === option.value }"
         role="option"
         :aria-selected="modelValue === option.value"
-        @pointerdown.stop.prevent="select(option.value)"
+        @pointerdown.stop.prevent="select(option.value, $event)"
         @keydown.enter.prevent="select(option.value)"
         @keydown.space.prevent="select(option.value)"
       >
@@ -160,7 +160,32 @@ function close() {
   open.value = false;
 }
 
-function select(value: Language) {
+let clickGuardArmed = false;
+
+/**
+ * Selecting unmounts the menu under the finger: the gesture's trailing click
+ * can then synthesize on whatever element the tap now covers — on the phone's
+ * "more" panel that is the exit button directly below the menu, so picking a
+ * language could disconnect the user. One capture-phase, one-shot swallow of
+ * that trailing click; the timeout releases the guard when no click follows.
+ * Only pointer selections arm it — keyboard activation has no trailing click.
+ */
+function armClickGuard(): void {
+  if (clickGuardArmed) return;
+  clickGuardArmed = true;
+  const swallow = (event: Event): void => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  document.addEventListener("click", swallow, { capture: true, once: true });
+  window.setTimeout(() => {
+    document.removeEventListener("click", swallow, { capture: true });
+    clickGuardArmed = false;
+  }, 400);
+}
+
+function select(value: Language, gesture?: Event) {
+  if (gesture instanceof PointerEvent) armClickGuard();
   emit("update:modelValue", value);
   emit("change", value);
   close();
