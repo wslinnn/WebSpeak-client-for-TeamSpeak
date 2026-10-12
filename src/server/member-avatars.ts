@@ -9,7 +9,7 @@ interface AvatarMember {
 /** Only the cache surface the loader needs; plain Maps and AvatarLruCache both fit. */
 export interface AvatarCache {
   get(uid: string): string | null | undefined;
-  set(uid: string, avatar: string | null): unknown;
+  set(uid: string, avatar: string): unknown;
   has(uid: string): boolean;
   delete(uid: string): unknown;
 }
@@ -21,7 +21,7 @@ export const MAX_RELAY_AVATAR_BYTES = 256 * 1024;
 
 export interface MemberAvatarOptions {
   members: ReadonlyMap<number, AvatarMember>;
-  /** Shared across sessions; positives survive reconnects, negatives do not. */
+  /** Shared across sessions; holds positives only. */
   cache: AvatarCache;
   isCurrent(): boolean;
   load(id: number, uid: string): Promise<TSClientAvatar | null>;
@@ -31,9 +31,12 @@ export interface MemberAvatarOptions {
 
 /**
  * Optional SDK downloads belong to one connected directory generation.
- * Positive results land in the shared cross-session cache; failures are
- * negative-cached for the current session only so a transient file-transfer
- * problem is retried after the next reconnect.
+ * Downloaded avatars land in the shared cross-session cache, and cached
+ * positives are re-published to every later session that can see the member:
+ * the cache only spares the TeamSpeak file transfer, never the delivery — a
+ * fresh session has not seen the bytes yet. Failures and unusable images stay
+ * session-local (in `attempted`), so the next connection retries them
+ * naturally without poisoning other sessions.
  */
 export class MemberAvatarLoader {
   private timer: ReturnType<typeof setTimeout> | null = null;
@@ -51,7 +54,6 @@ export class MemberAvatarLoader {
     const byUid = new Map<string, AvatarMember>();
     for (const member of this.options.members.values()) {
       if (!member.uid || this.attempted.has(member.uid)) continue;
-      if (this.options.cache.has(member.uid)) continue;
       byUid.set(member.uid, member);
     }
     return [...byUid.values()];
@@ -77,19 +79,30 @@ export class MemberAvatarLoader {
         if (!isCurrent()) return;
         if (this.options.members.get(member.id)?.uid !== member.uid) continue;
         this.attempted.add(member.uid);
+        // A cache hit still needs its delivery to this session; only the
+        // TeamSpeak download is skipped.
+        const cached = this.options.cache.get(member.uid);
+        if (cached) {
+          this.options.publish(member.uid, cached);
+          continue;
+        }
         try {
           const loaded = await this.options.load(member.id, member.uid);
           if (!isCurrent()) return;
           const current = this.options.members.get(member.id);
           if (current?.uid !== member.uid) continue;
           const avatar = loaded && loaded.data.byteLength <= MAX_RELAY_AVATAR_BYTES ? avatarDataUrl(loaded.data) : null;
-          this.options.cache.set(member.uid, avatar);
-          if (avatar) this.options.publish(member.uid, avatar);
+          if (avatar) {
+            this.options.cache.set(member.uid, avatar);
+            this.options.publish(member.uid, avatar);
+          }
+          // Absent, denied or oversized images store nothing: `attempted`
+          // keeps them from retrying this session, and the next session
+          // retries them by itself.
         } catch (error: unknown) {
           if (!isCurrent()) return;
           if (this.options.members.get(member.id)?.uid !== member.uid) continue;
           // Permission and file-transfer failures are optional, not join errors.
-          this.options.cache.set(member.uid, null);
           this.options.onError(member.id, member.uid, error);
         }
       }
@@ -106,11 +119,9 @@ export class MemberAvatarLoader {
     if (this.timer !== null) clearTimeout(this.timer);
     this.timer = null;
     this.batch = null;
-    // Negative entries expire with the session so the next connection retries
-    // them; positive entries stay in the shared cache.
-    for (const uid of this.attempted) {
-      if (this.options.cache.get(uid) === null) this.options.cache.delete(uid);
-    }
+    // Failure state lives only in `attempted`, so clearing it makes the next
+    // connection retry failed downloads while the shared cache keeps serving
+    // positives without a second transfer.
     this.attempted.clear();
   }
 

@@ -37,37 +37,38 @@ function fixture(t: TestContext, cache: Map<string, string | null> = new Map(), 
 test("avatar batches deduplicate identities and contain optional download failures", async t => {
   const f = fixture(t);
   f.add(1); f.add(2, "user-1"); f.add(3); f.add(4); f.add(5, ""); f.add(6);
-  f.cache.set("user-6", null);
   f.state.load = async id => {
     if (id === 3) return { cacheKey: "invalid", data: Buffer.from("not an image") };
     if (id === 4) throw new Error("Permission denied");
+    if (id === 6) return null;
     return avatar("one");
   };
   f.loader.schedule(); f.loader.schedule();
   await f.tick();
-  assert.deepEqual(f.calls, [2, 3, 4]);
+  assert.deepEqual(f.calls, [2, 3, 4, 6]);
   assert.deepEqual(f.published, [{ uid: "user-1", avatar: dataUrl("one") }]);
   assert.equal(f.cache.get("user-1"), dataUrl("one"));
-  assert.equal(f.cache.get("user-3"), null);
-  assert.equal(f.cache.get("user-4"), null);
+  assert.equal(f.cache.has("user-3"), false, "unusable images are not stored");
+  assert.equal(f.cache.has("user-4"), false, "failures are session-local, not shared");
+  assert.equal(f.cache.has("user-6"), false, "absent avatars are not stored");
   assert.equal(f.errors.length, 1);
   f.loader.schedule(); await f.tick();
-  assert.equal(f.calls.length, 3, "known absent/denied avatars must not cause a retry loop");
+  assert.equal(f.calls.length, 4, "known absent/denied avatars must not cause a retry loop");
 });
 
-test("reset expires only negative cache entries so reconnects retry failures, not successes", async t => {
+test("reset expires only session-local state so reconnects retry failures, not successes", async t => {
   const f = fixture(t);
   f.add(1); f.add(2);
   f.state.load = async id => (id === 2 ? avatar("two") : Promise.reject(new Error("Permission denied")));
   f.loader.schedule(); await f.tick();
   assert.deepEqual(f.calls, [1, 2]);
-  assert.equal(f.cache.get("user-1"), null);
+  assert.equal(f.cache.has("user-1"), false, "failures stay session-local");
   assert.equal(f.cache.get("user-2"), dataUrl("two"));
   f.loader.reset();
-  assert.equal(f.cache.has("user-1"), false, "negative entries expire with the session");
   assert.equal(f.cache.get("user-2"), dataUrl("two"), "positive entries survive the session");
   f.loader.schedule(); await f.tick();
   assert.deepEqual(f.calls, [1, 2, 1], "only the failed uid is downloaded again");
+  assert.deepEqual(f.published.at(-1), { uid: "user-2", avatar: dataUrl("two") }, "the cached positive is re-delivered to the reconnecting session");
 });
 
 for (const outcome of ["success", "failure"] as const) {
@@ -158,8 +159,9 @@ test("a shared cache satisfies a new session without a second download", async t
   first.loader.close();
   const second = fixture(t, cache, false);
   second.add(9, "user-1");
-  second.loader.schedule(); await nextTurn();
+  second.loader.schedule(); await second.tick();
   assert.deepEqual(second.calls, [], "the warm uid must skip the SDK download");
+  assert.deepEqual(second.published, [{ uid: "user-1", avatar: dataUrl("user-1") }], "the cached avatar must still be delivered to the new session");
 });
 
 test("avatar LRU cache evicts the least recently read entry beyond capacity", () => {

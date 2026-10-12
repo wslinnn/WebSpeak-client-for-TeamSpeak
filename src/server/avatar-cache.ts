@@ -4,9 +4,9 @@
  * Avatars are keyed by TeamSpeak identity (uid), which is stable across
  * reconnects and sessions, so one download serves every current and future
  * member with the same uid. Entries are evicted least-recently-used to bound
- * memory; negative entries (a uid with no downloadable avatar) share the same
- * bound. The loader keeps per-session retry semantics, so this class only
- * stores values.
+ * memory; the loader only stores positives — failures stay session-local so
+ * they are retried on the next connection instead of poisoning other
+ * sessions. This class only stores values.
  */
 export class AvatarLruCache {
   private readonly entries = new Map<string, string | null>();
