@@ -192,7 +192,14 @@ export function useVoiceWebSocket() {
   const accompanimentErrorCode = ref<AccompanimentErrorCode>("");
   const accompaniment = createAccompaniment({
     isSupported: () => accompanimentSupported.value,
-    getTarget: () => webrtc.active && webrtc.peer && micStream ? webrtc.input : null,
+    // One stable target identity: the accompaniment module compares
+    // getTarget() === target to tell its own capture apart from superseded
+    // ones, so a fresh object per call would cancel every capture.
+    getTarget: () => {
+      const capture = microphoneCapture;
+      if (!webrtc.active || !webrtc.peer || !micStream || !capture) return null;
+      return accompanimentTarget;
+    },
     onActive(active) {
       const changed = accompanimentActive.value !== active;
       accompanimentActive.value = active;
@@ -230,7 +237,7 @@ export function useVoiceWebSocket() {
   const testAudioUrl = ref("");
   const microphoneTest = createMicrophoneTest({
     prepare: async () => { await prepareInputDevices(); return micStream; },
-    onActive: active => { microphoneTestActive.value = active; },
+    onActive: active => { microphoneTestActive.value = active; applyUplinkGate(); applyUplinkRouting(); },
     onUrl: url => { testAudioUrl.value = url; },
     onStopped: () => { if (!state.connected) stopMicrophone(); },
     onError: error => { setMicrophoneError(error); },
@@ -286,6 +293,17 @@ export function useVoiceWebSocket() {
   // whenever a downstream slot assignment changes. The multi-track playback
   // binds its per-slot streams through this table.
   const webRtcVoiceRoutes = ref<number[]>([]);
+  // One stable accompaniment target for the whole voice instance: the
+  // accompaniment module compares getTarget() === target to tell its own
+  // capture apart from superseded ones, so a fresh object per call would
+  // cancel every capture. Null-checks stay in getTarget.
+  const accompanimentTarget = {
+    setAccompaniment: (stream: MediaStream | null) => {
+      microphoneCapture?.setAccompaniment(stream);
+      applyUplinkRouting(stream !== null);
+    },
+  };
+
   const webrtc = createWebRtcTransport({
     stunServer: () => webRtcStunServer,
     onTransportChange(snapshot) {
@@ -293,12 +311,14 @@ export function useVoiceWebSocket() {
     },
     prepareMicrophone: async () => {
       await ensureMicrophone();
-      return micStream ? { context: getAudioCtx(), stream: micStream,
-        processedStream: microphoneCapture?.processedStream ?? micStream } : null;
+      const capture = microphoneCapture;
+      return micStream && capture ? { context: getAudioCtx(), stream: micStream,
+        processedStream: capture.processedStream, capture } : null;
     },
     stopPcm: stopCaptureGraph,
     muted: () => microphoneMuted.value,
-    inputVolume: () => inputVolume.value,
+    uplinkBypass: () => !noiseSuppressionEnabled.value && inputVolume.value === 1
+      && !accompanimentActive.value && !microphoneTestActive.value,
     accompanimentActive: () => accompanimentActive.value,
     releaseAccompaniment: () => accompaniment.stop(),
     onLevel(rms, track) {
@@ -435,9 +455,17 @@ export function useVoiceWebSocket() {
     if (!audioCtx) {
       audioCtx = new AudioContext({ sampleRate: 48000 }) as SinkAudioContext;
       audioContextState.value = audioCtx.state;
+      // A suspended context silently starves the uplink graph and playback;
+      // keep the shared context alive across lifecycle events (same failure
+      // class Newt-Desktop documents for its destination-node uplink).
+      const resumeAudioCtx = (): void => {
+        if (audioCtx && audioCtx.state === "suspended") void audioCtx.resume().catch(() => undefined);
+      };
       audioCtx.addEventListener("statechange", () => {
         if (audioCtx) audioContextState.value = audioCtx.state;
+        resumeAudioCtx();
       });
+      document.addEventListener("visibilitychange", resumeAudioCtx);
       outputDeviceSupported.value = typeof audioCtx.setSinkId === "function"
         || typeof (HTMLMediaElement.prototype as SinkAudioElement).setSinkId === "function";
       if (selectedOutputDeviceId.value && outputDeviceSupported.value) {
@@ -719,7 +747,7 @@ export function useVoiceWebSocket() {
       micStream = nextStream;
       microphoneCapture = nextCapture;
       Object.assign(microphoneProcessing, nextCapture.processing);
-      nextCapture.setVolume(inputVolume.value);
+      applyUplinkGate();
       nextCapture.activate();
       // The fallback for a later failed change is this actual live graph, even
       // if device enumeration or WebRTC negotiation is still in progress.
@@ -1417,13 +1445,39 @@ export function useVoiceWebSocket() {
     connect(lastConnection.target, lastConnection.channel, lastConnection.nickname, lastConnection.serverPassword, lastConnection.rememberIdentity ? identityMaterial.value || lastConnection.identity : "", lastConnection.rememberIdentity);
   }
 
+  /** True when nothing needs the WebAudio uplink graph and the raw capture
+   *  track can feed the sender directly. The mic test always forces the
+   *  graph: its broadcast gate works by gain, which the bypass skips. */
+  function uplinkBypassActive(): boolean {
+    return !noiseSuppressionEnabled.value && inputVolume.value === 1
+      && !accompanimentActive.value && !microphoneTestActive.value;
+  }
+
+  /** Applies the broadcast gate (user mute, or the mic test which must not
+   *  reach the room). The gate works by capture gain so the mic test's
+   *  recorder — which taps the raw stream — keeps hearing real audio; only
+   *  the user mute may disable the track itself. */
+  function applyUplinkGate(): void {
+    const silent = microphoneMuted.value || microphoneTestActive.value;
+    microphoneCapture?.setVolume(silent ? 0 : inputVolume.value);
+    micStream?.getAudioTracks().forEach((track) => { track.enabled = !microphoneMuted.value; });
+  }
+
+  /** Re-picks the uplink track after any processing state change: raw direct
+   *  when nothing needs the graph, the processed mix otherwise. */
+  function applyUplinkRouting(forceGraph = false): void {
+    if (!webrtc.active || !micStream) return;
+    const bypass = !forceGraph && uplinkBypassActive();
+    const capture = microphoneCapture;
+    webrtc.setUplinkStream(bypass || !capture ? micStream : capture.processedStream);
+  }
+
   function setMicrophoneMuted(muted: boolean): void {
     microphoneMuted.value = muted;
     voxAttack = 0;
     voxRelease = 0;
     accumLen = 0;
-    if (webrtc.active) micStream?.getAudioTracks().forEach((track) => { track.enabled = !muted; });
-    webrtc.input?.setVolume(muted ? 0 : inputVolume.value);
+    applyUplinkGate();
     sendCmd("setMicrophoneMuted", { muted });
     if (muted && state.tsClientId) clearSpeaking(state.tsClientId);
     void saveAudioPreferences();
@@ -1501,8 +1555,8 @@ export function useVoiceWebSocket() {
 
   function setInputVolume(volume: number): void {
     inputVolume.value = Math.max(0, Math.min(1, volume));
-    microphoneCapture?.setVolume(inputVolume.value);
-    webrtc.input?.setVolume(microphoneMuted.value ? 0 : inputVolume.value);
+    applyUplinkGate();
+    applyUplinkRouting();
     void saveAudioPreferences();
   }
 

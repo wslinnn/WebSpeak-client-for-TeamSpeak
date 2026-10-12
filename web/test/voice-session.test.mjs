@@ -1310,23 +1310,6 @@ test("an optional content hint failure does not abandon or fail accompaniment ca
   assert.equal(stream.track.readyState, "ended");
 });
 
-test("failed initial WebRTC input allocation releases partial nodes before PCM fallback", async t => {
-  const createGain = AudioContextStub.prototype.createGain;
-  let gainCalls = 0;
-  t.mock.method(AudioContextStub.prototype, "createGain", function () {
-    if (++gainCalls === 3) throw new Error("Mixed input gain unavailable");
-    return createGain.call(this);
-  });
-  const socket = await connect();
-  socket.receive({ type: "connected", tsClientId: 1, webrtcAvailable: true });
-  await nextTurn();
-  assert.equal(TestPeer.instances[0].connectionState, "closed");
-  assert.equal(AudioContextStub.destinations[1].stream.track.readyState, "ended");
-  assert.ok(AudioContextStub.mediaSources[1].disconnects > 0);
-  assert.equal(voice.state.microphoneErrorCode, "");
-  assert.equal(voice.state.audioNoticeCode, "WEBRTC_FALLBACK");
-});
-
 test("a failing mix-node disconnect cannot prevent peer and microphone cleanup", async t => {
   const microphone = microphoneStream();
   navigator.mediaDevices.getUserMedia = async () => microphone;
@@ -1437,7 +1420,7 @@ test("a failed source selection preserves active accompaniment and disconnect cl
 test("an unavailable microphone analyser releases its partial source without failing voice", async t => {
   t.mock.method(AudioContextStub.prototype, "createAnalyser", () => { throw new Error("Analyser unavailable"); });
   const { peer } = await connectWebRtc();
-  assert.equal(AudioContextStub.mediaSources[2].disconnects, 1);
+  assert.equal(AudioContextStub.mediaSources.at(-1).disconnects, 1);
   assert.notEqual(peer.connectionState, "closed");
   assert.equal(peer.sender.track.readyState, "live");
 });
@@ -1447,7 +1430,7 @@ test("a failed microphone meter connection releases all prepared meter nodes", a
   analyser.connect = () => { throw new Error("Meter unavailable"); };
   t.mock.method(AudioContextStub.prototype, "createAnalyser", () => analyser);
   const { peer } = await connectWebRtc();
-  assert.equal(AudioContextStub.mediaSources[2].disconnects, 1);
+  assert.equal(AudioContextStub.mediaSources.at(-1).disconnects, 1);
   assert.equal(analyser.disconnects, 1);
   assert.equal(AudioContextStub.gains.at(-1).disconnects, 1);
   assert.equal(peer.sender.track.readyState, "live");
@@ -1475,7 +1458,7 @@ test("a microphone analyser read failure stops only the meter and clears its lev
   assert.equal(voice.micLevel.value, 0);
   assert.ok(meter.cleared.includes(meter.intervals[0]));
   assert.equal(meter.analysers[0].disconnects, 1);
-  assert.equal(AudioContextStub.mediaSources[2].disconnects, 1);
+  assert.equal(AudioContextStub.mediaSources.at(-1).disconnects, 1);
   assert.equal(AudioContextStub.gains.at(-1).disconnects, 1);
   assert.notEqual(peer.connectionState, "closed");
   assert.equal(peer.sender.track.readyState, "live");
@@ -1486,7 +1469,7 @@ test("a meter disconnect failure cannot interrupt the remaining session cleanup"
   const microphone = microphoneStream();
   navigator.mediaDevices.getUserMedia = async () => microphone;
   const { peer } = await connectWebRtc();
-  t.mock.method(AudioContextStub.mediaSources[2], "disconnect", () => { throw new Error("Meter already closed"); }, { times: 1 });
+  t.mock.method(AudioContextStub.mediaSources.at(-1), "disconnect", () => { throw new Error("Meter already closed"); }, { times: 1 });
   assert.doesNotThrow(() => voice.disconnect());
   assert.equal(peer.connectionState, "closed");
   assert.equal(microphone.track.readyState, "ended");
@@ -2404,6 +2387,48 @@ test("a channelSwitched reply settles the pending switch instead of timing out",
   ]);
   assert.equal(settled, true);
   assert.equal(voice.state.errorCode, "", "a successful switch must not surface an error");
+});
+
+test("the uplink applies the input gain exactly once (no squared stage)", async () => {
+  await connectWebRtc();
+  voice.setInputVolume(0.5);
+  assert.ok(AudioContextStub.gains.some(gain => gain.gain.value === 0.5), "one gain carries the slider value");
+  assert.equal(AudioContextStub.gains.some(gain => gain.gain.value === 0.25), false, "the gain must not be applied twice");
+});
+
+test("with denoise off at unity gain the uplink bypasses the WebAudio graph", async () => {
+  let lastGumStream;
+  navigator.mediaDevices.enumerateDevices = async () => availableDevices;
+  navigator.mediaDevices.getUserMedia = async () => { lastGumStream = microphoneStream(); return lastGumStream; };
+  const { peer } = await connectWebRtc();
+  assert.equal(peer.sender.track, AudioContextStub.destinations.at(-1).stream.getAudioTracks()[0], "noise suppression on keeps the processed mix");
+  await voice.setNoiseSuppressionEnabled(false);
+  const live = TestPeer.instances.at(-1);
+  assert.equal(live.sender.track, lastGumStream.getAudioTracks()[0], "denoise off at unity gain feeds the sender the raw track");
+  voice.setInputVolume(0.8);
+  assert.equal(live.sender.track, AudioContextStub.destinations.at(-1).stream.getAudioTracks()[0], "a non-unity gain returns the sender to the processed mix");
+  voice.disconnect();
+});
+
+test("the microphone test gates the room uplink by gain without disabling the raw track", async () => {
+  const raw = microphoneStream();
+  navigator.mediaDevices.enumerateDevices = async () => availableDevices;
+  navigator.mediaDevices.getUserMedia = async () => raw;
+  const { peer } = await connectWebRtc();
+  const live = TestPeer.instances.at(-1);
+  // Mark the capture gain with a unique value so the gate is observable on
+  // the exact node the slider drives, whatever else shares the context.
+  voice.setInputVolume(0.6);
+  const captureGain = AudioContextStub.gains.find(gain => gain.gain.value === 0.6);
+  assert.ok(captureGain, "the uplink gain follows the slider");
+  voice.setInputVolume(1);
+  await voice.startMicrophoneTest();
+  assert.equal(captureGain.gain.value, 0, "the mic test must gate the uplink by gain");
+  assert.equal(raw.getAudioTracks()[0].enabled, true, "the test recorder taps the raw track and needs it live");
+  assert.notEqual(live.sender.track, raw.getAudioTracks()[0], "the gate rides the processed mix — raw bypass would skip the gain");
+  voice.stopMicrophoneTest();
+  assert.equal(captureGain.gain.value, 1, "stopping the test restores the user gain");
+  voice.disconnect();
 });
 
 test("a failed noise suppression change restores its setting and preserves WebRTC capture", async () => {

@@ -15,6 +15,9 @@ export interface MicrophoneCapture {
   processing: MicrophoneProcessingSettings;
   activate(): void;
   setVolume(value: number): void;
+  /** Mixes application audio into the uplink destination, bypassing the
+   *  microphone gain and denoise; null removes a previous accompaniment. */
+  setAccompaniment(stream: MediaStream | null): void;
   stopCapture(): void;
   dispose(): void;
 }
@@ -58,16 +61,19 @@ export function createMicrophoneCaptureFactory() {
     let silent: GainNode | null = null;
     let worklet: AudioWorkletNode | null = null;
     let script: ScriptProcessorNode | null = null;
+    let accompanimentSource: MediaStreamAudioSourceNode | null = null;
     let active = false;
     let disposed = false;
     const clean = (operation: () => void) => { try { operation(); } catch { /* release the other resources too */ } };
     function stopCapture() {
       active = false;
+      // Only the PCM tap is torn down: the gain stage keeps feeding the
+      // destination for the WebRTC uplink, so volume control survives a
+      // transport's stopPcm (which runs on every WebRTC start).
       if (worklet) { clean(() => worklet!.port.close()); clean(() => worklet!.disconnect()); }
       if (script) clean(() => script!.disconnect());
-      if (gain) clean(() => gain!.disconnect());
       if (silent) clean(() => silent!.disconnect());
-      worklet = null; script = null; gain = null; silent = null;
+      worklet = null; script = null; silent = null;
     }
     function dispose() {
       if (disposed) return;
@@ -75,6 +81,7 @@ export function createMicrophoneCaptureFactory() {
       stopCapture();
       if (denoiser) { clean(() => denoiser!.destroy()); clean(() => denoiser!.disconnect()); }
       if (source) clean(() => source!.disconnect());
+      if (accompanimentSource) clean(() => accompanimentSource!.disconnect());
       if (destination) {
         clean(() => destination!.disconnect());
         for (const track of destination.stream.getTracks()) clean(() => track.stop());
@@ -110,9 +117,13 @@ export function createMicrophoneCaptureFactory() {
       destination = ctx.createMediaStreamDestination();
       destination.channelCount = 1;
       destination.channelCountMode = "explicit";
-      processedSource.connect(destination);
+      // Single gain stage: the destination carries the processed mix (post
+      // denoise and gain) for the WebRTC uplink, the worklet taps the same
+      // gain for the compatibility PCM path.
       gain = ctx.createGain();
       gain.gain.value = options.volume;
+      processedSource.connect(gain);
+      gain.connect(destination);
       silent = ctx.createGain();
       silent.gain.value = 0;
       if (supportsWorklet) {
@@ -135,7 +146,6 @@ export function createMicrophoneCaptureFactory() {
         script = ctx.createScriptProcessor(1024, 1, 1);
         script.onaudioprocess = event => onSamples(event.inputBuffer.getChannelData(0));
       }
-      processedSource.connect(gain);
       const capture = worklet ?? script!;
       gain.connect(capture);
       capture.connect(silent);
@@ -152,6 +162,30 @@ export function createMicrophoneCaptureFactory() {
         },
         activate() { if (!disposed && (worklet || script)) active = true; },
         setVolume(value) { if (gain) gain.gain.value = value; },
+        setAccompaniment(stream) {
+          if (disposed) {
+            if (stream) throw new DOMException("Microphone capture closed", "AbortError");
+            return;
+          }
+          let candidate: MediaStreamAudioSourceNode | null = null;
+          try {
+            if (stream) {
+              if (!stream.getAudioTracks().some(track => track.readyState === "live")) {
+                throw new Error("Accompaniment has no live audio track");
+              }
+              candidate = ctx.createMediaStreamSource(stream);
+              // Application audio retains its source level and bypasses the
+              // microphone gain and denoise; the destination carries the mix.
+              candidate.connect(destination!);
+            }
+          } catch (error) {
+            if (candidate) clean(() => candidate!.disconnect());
+            throw error;
+          }
+          const previous = accompanimentSource;
+          accompanimentSource = candidate;
+          if (previous) clean(() => previous.disconnect());
+        },
         stopCapture,
         dispose,
       };

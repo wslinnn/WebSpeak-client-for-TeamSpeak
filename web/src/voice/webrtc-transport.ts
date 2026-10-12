@@ -1,7 +1,13 @@
 import { isSessionDescription, WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS, type WebRtcClientMessage } from "../../../src/shared/webrtc.js";
-import { createWebRtcInput, type WebRtcInput } from "./webrtc-input.js";
 import { createMicrophoneMeter, type MicrophoneMeter } from "./microphone-meter.js";
 import { createWebRtcPlayback, type WebRtcPlaybackOptions } from "./webrtc-playback.js";
+
+/** The microphone capture controller the sender routes from; the caller owns
+ *  its lifetime — it outlives transport restarts. */
+export interface UplinkCapture {
+  setVolume(value: number): void;
+  setAccompaniment(stream: MediaStream | null): void;
+}
 
 // Downstream speaking slots pre-negotiated in every offer. The gateway
 // assigns TeamSpeak speakers to them LRU-style and announces assignments via
@@ -13,6 +19,7 @@ interface Microphone {
   context: AudioContext;
   stream: MediaStream;
   processedStream: MediaStream;
+  capture: UplinkCapture;
 }
 
 interface Connection {
@@ -25,7 +32,10 @@ interface TransportOptions {
   stunServer?(): string;
   stopPcm(): void;
   muted(): boolean;
-  inputVolume(): number;
+  /** True when nothing needs the WebAudio uplink graph (denoise off, unity
+   *  gain, no accompaniment, no mic test): the raw capture track then feeds
+   *  the sender directly, immune to AudioContext suspension. */
+  uplinkBypass(): boolean;
   accompanimentActive(): boolean;
   releaseAccompaniment(): void;
   onLevel(rms: number | null, track: MediaStreamTrack): void;
@@ -41,7 +51,6 @@ interface TransportOptions {
 interface Attempt {
   connection: Connection;
   peer: RTCPeerConnection | null;
-  input: WebRtcInput | null;
   meter: MicrophoneMeter | null;
   active: boolean;
   closed: boolean;
@@ -73,8 +82,10 @@ function attachDecodeTap(transceiver: RTCRtpTransceiver, label: string): void {
   }
 }
 
-// One attempt owns peer negotiation, input, metering and remote playback. The
-// caller continues to own microphone acquisition, PCM and the control socket.
+// One attempt owns peer negotiation, metering and remote playback. The
+// caller owns microphone acquisition and the capture graph (which outlives
+// transport restarts); this side only picks which uplink track feeds the
+// sender and can move the sender between them without renegotiation.
 export function createWebRtcTransport(options: TransportOptions) {
   let current: Attempt | null = null;
   let generation = 0;
@@ -88,11 +99,8 @@ export function createWebRtcTransport(options: TransportOptions) {
   function releaseInput(record = current): void {
     clean(options.releaseAccompaniment);
     if (!record) return;
-    const input = record.input;
     const meter = record.meter;
-    record.input = null;
     record.meter = null;
-    if (input) clean(() => input.dispose());
     if (meter) clean(() => meter.dispose());
   }
 
@@ -153,7 +161,7 @@ export function createWebRtcTransport(options: TransportOptions) {
 
   async function start(connection: Connection): Promise<void> {
     stop();
-    const record: Attempt = { connection, peer: null, input: null, meter: null,
+    const record: Attempt = { connection, peer: null, meter: null,
       active: false, closed: false, answerTimer: null, cancelIce: null };
     current = record;
     notifyTransport();
@@ -172,9 +180,15 @@ export function createWebRtcTransport(options: TransportOptions) {
       record.peer = peer;
       notifyTransport();
       track.enabled = !options.muted();
-      const input = createWebRtcInput(context, processedStream, options.muted() ? 0 : options.inputVolume());
-      record.input = input;
-      peer.addTrack(input.stream.getAudioTracks()[0]!, input.stream);
+      // Raw-direct uplink: with denoise off, unity gain, no accompaniment and
+      // no mic test the WebAudio graph adds only an AudioContext-suspension
+      // hazard, so the raw capture track feeds the sender directly.
+      // setUplinkStream moves the sender back onto the processed mix when
+      // anything starts needing the graph again.
+      const uplink = options.uplinkBypass() ? stream : processedStream;
+      const uplinkTrack = uplink.getAudioTracks()[0];
+      if (!uplinkTrack || uplinkTrack.readyState !== "live") throw new Error("没有可用的上行音轨");
+      peer.addTrack(uplinkTrack, uplink);
       // The downstream slot pool rides in the same offer: one recvonly
       // transceiver per slot, after the uplink m-line the addTrack created.
       // The transform must attach before negotiation — after the answer the
@@ -265,8 +279,19 @@ export function createWebRtcTransport(options: TransportOptions) {
     releaseInput(): void { releaseInput(); },
     async fallback(reason: string): Promise<void> { if (current) await fail(current, reason); },
     get peer(): RTCPeerConnection | null { return current?.peer ?? null; },
-    get input(): WebRtcInput | null { return current?.input ?? null; },
     get active(): boolean { return current?.active ?? false; },
+    /** Moves the sender between the raw capture track and the processed mix
+     *  without renegotiation; a no-op while the transport is down. */
+    setUplinkStream(stream: MediaStream): void {
+      const record = current;
+      const peer = record?.peer;
+      if (!record || record.closed || !peer) return;
+      const track = stream.getAudioTracks()[0];
+      if (!track) return;
+      const sender = peer.getSenders().find(candidate => candidate.track?.kind === "audio");
+      if (!sender || sender.track === track) return;
+      sender.replaceTrack(track).catch(() => undefined);
+    },
     get output() { return playback.output; },
     setOutputVolume: playback.setVolume,
     /** Routes all slot elements (and any amplification context) to an output
