@@ -6,6 +6,7 @@ import { createServer as createHttpServer } from "node:http";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { VoiceBridge, type VoiceBridgeOptions } from "./voice-bridge.js";
+import { mountRtpLabIfEnabled } from "./rtp-lab.js";
 import type { Logger } from "../logger.js";
 import type { TeamSpeakTarget } from "../domain/teamspeak-target.js";
 import { formatTeamSpeakConnectionTarget, parseTeamSpeakConnectionTarget } from "../domain/teamspeak-connection-target.js";
@@ -116,6 +117,11 @@ export function createWebServer(options: WebServerOptions): WebServer {
   // upgrades and binary downloads (skins) are not compressible types and stay
   // untouched by the default filter.
   app.use(compression());
+
+  // RTP isolation lab (diagnostics only): mount is a no-op unless
+  // WEBSPEAK_RTP_DEBUG=1, keeping the routes and synthetic streaming
+  // machinery out of production paths.
+  mountRtpLabIfEnabled(app, { logger });
 
   const voiceBridge = new VoiceBridge(options.voiceBridgeOptions, logger);
   const adminSessions = new AdminSessionStore();
