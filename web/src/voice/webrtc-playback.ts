@@ -276,10 +276,12 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
         if (packets > slot.packetsSeen) slot.lastAudioAt = Date.now();
         slot.packetsSeen = packets;
         const active = Date.now() - slot.lastAudioAt < SLOT_SPEAKING_HANGOVER_MS;
-        if (active !== slot.active) {
-          slot.active = active;
-          options.onSlotActivity(slot.clientId, active);
-        }
+        // Report level, not edges: the badge is a self-expiring hold that
+        // survives on repeated marks (the fallback path re-marks per voice
+        // frame; this poll is the WebRTC path's only heartbeat), so a single
+        // rising edge would let a continuously speaking member go dark.
+        if (active || slot.active) options.onSlotActivity(slot.clientId, active);
+        slot.active = active;
       }).catch(() => undefined);
     }
   }
@@ -352,13 +354,16 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       for (const [slotIndex, slot] of slots) {
         const clientId = slotClientIds[slotIndex] ?? 0;
         if (slot.clientId === clientId) continue;
+        const previous = slot.clientId;
         slot.clientId = clientId;
-        // A reassigned slot speaks for a new member: the previous hold must
-        // not light the newcomer, and the volume re-read follows below.
+        // A reassigned slot speaks for a new member: the previous speaker's
+        // hold must be cleared by the id it was lit with (reporting after the
+        // rebind would clear the newcomer instead), and the volume re-read
+        // follows below.
         slot.lastAudioAt = 0;
         if (slot.active) {
           slot.active = false;
-          options.onSlotActivity(slot.clientId, false);
+          options.onSlotActivity(previous, false);
         }
         applySlotPlayback(slot);
       }

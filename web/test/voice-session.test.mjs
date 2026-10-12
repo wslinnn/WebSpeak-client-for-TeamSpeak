@@ -1919,6 +1919,46 @@ test("a voiceRoute announcement binds the downstream slot to the member's volume
   assert.equal(AudioContextStub.gains.some(gain => gain.gain.value === 3), false, "volumes for unbound speakers apply nowhere");
 });
 
+test("a transmitting slot keeps the speaking badge lit across polls and the hangover clears it", async t => {
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+  const intervals = [];
+  t.mock.method(globalThis, "setInterval", (callback, delay) => {
+    const timer = { callback, delay };
+    intervals.push(timer);
+    return timer;
+  });
+  const { socket, peer } = await connectWebRtc();
+  let packets = 0;
+  let transmitting = true;
+  const receiver = {
+    getStats: async () => {
+      if (transmitting) packets += 10;
+      return new Map([["in", { type: "inbound-rtp", kind: "audio", packetsReceived: packets }]]);
+    },
+  };
+  peer.ontrack({ streams: [microphoneStream()], track: microphoneStream().getAudioTracks()[0], transceiver: peer.transceivers[1], receiver });
+  socket.receive({ type: "voiceRoute", slots: [7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] });
+  await nextTurn();
+  const drivePolls = async () => {
+    for (const timer of intervals) timer.callback();
+    await nextTurn();
+  };
+
+  await drivePolls();
+  assert.ok(voice.speakingIds.has(7), "the first flowing packets light the member");
+  t.mock.timers.tick(400);
+  assert.equal(voice.speakingIds.has(7), false, "the hold expires without a fresh mark");
+  await drivePolls();
+  assert.ok(voice.speakingIds.has(7), "each poll re-marks a still-transmitting member");
+  transmitting = false;
+  t.mock.timers.tick(800);
+  await drivePolls();
+  assert.ok(voice.speakingIds.has(7), "the hangover bridges the gap after packets stop");
+  t.mock.timers.tick(2_000);
+  await drivePolls();
+  assert.equal(voice.speakingIds.has(7), false, "silence outlasts the hangover and clears the member");
+});
+
 test("disconnect cancels an ICE gathering wait without sending an offer", async t => {
   t.mock.method(TestPeer.prototype, "setLocalDescription", async function(description) {
     this.localDescription = description;
