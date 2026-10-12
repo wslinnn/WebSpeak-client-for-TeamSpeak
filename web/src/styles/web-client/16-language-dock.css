@@ -219,6 +219,18 @@
   transition: opacity .16s ease, transform .16s ease, visibility .16s ease;
 }
 
+/* Invisible bridge over the 10px gap between the control and its panel:
+   without it the pointer leaves :hover while travelling to the panel and
+   the panel closes before the sliders can be reached. */
+:deep(.dock-hover-panel)::before {
+  content: "";
+  position: absolute;
+  right: 0;
+  left: 0;
+  bottom: -10px;
+  height: 10px;
+}
+
 :deep(.dock-hover-panel::after) {
   content: "";
   position: absolute;
