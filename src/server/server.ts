@@ -121,7 +121,17 @@ export function createWebServer(options: WebServerOptions): WebServer {
   // RTP isolation lab (diagnostics only): mount is a no-op unless
   // WEBSPEAK_RTP_DEBUG=1, keeping the routes and synthetic streaming
   // machinery out of production paths.
-  mountRtpLabIfEnabled(app, { logger });
+  mountRtpLabIfEnabled(app, {
+    logger,
+    // The lab must bind the production ICE port range and public address:
+    // container port mappings only expose the voice path's UDP range, so a
+    // default-configured lab session would never connect.
+    ...(options.voiceBridgeOptions.webRtc
+      ? { webrtc: typeof options.voiceBridgeOptions.webRtc === "function"
+        ? options.voiceBridgeOptions.webRtc()
+        : options.voiceBridgeOptions.webRtc }
+      : {}),
+  });
 
   const voiceBridge = new VoiceBridge(options.voiceBridgeOptions, logger);
   const adminSessions = new AdminSessionStore();

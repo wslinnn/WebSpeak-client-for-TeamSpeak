@@ -2,6 +2,7 @@ import express from "express";
 import { MediaStreamTrack, RtpHeader, RtpPacket, RTCPeerConnection, useOPUS } from "werift";
 import { isSessionDescription } from "../shared/webrtc.js";
 import { OpusEncoder } from "./opus-codec.js";
+import type { WebRtcAudioOptions } from "./webrtc-audio.js";
 import type { Logger as LoggerType } from "../logger.js";
 
 /**
@@ -18,6 +19,10 @@ const TONE_PCM = 960; // 20 ms at 48 kHz.
 
 export interface RtpLabOptions {
   logger: LoggerType;
+  /** The production WebRTC transport config: without the same UDP port range
+   *  and public addresses the lab's ICE candidates are unreachable behind a
+   *  container port mapping and the session never connects. */
+  webrtc?: WebRtcAudioOptions;
 }
 
 interface LabMode extends Record<string, unknown> {
@@ -33,6 +38,7 @@ const DEFAULT_MODE: LabMode = { channels: 2, pacing: "burst", silence: "frames" 
 export function mountRtpLabIfEnabled(app: express.Express, options: RtpLabOptions): void {
   if (process.env.WEBSPEAK_RTP_DEBUG !== "1") return;
   const logger = options.logger.child({ component: "rtp-lab" });
+  const webrtc = options.webrtc;
   const sessions = new Set<RtpLabSession>();
 
   app.get("/_rtp-lab", (_request, response) => {
@@ -47,7 +53,7 @@ export function mountRtpLabIfEnabled(app: express.Express, options: RtpLabOption
         response.status(400).json({ error: "invalid offer" });
         return;
       }
-      const session = new RtpLabSession(logger);
+      const session = new RtpLabSession(logger, webrtc);
       sessions.add(session);
       session.closed.then(() => sessions.delete(session));
       const answer = await session.accept({ type: "offer", sdp: body.sdp as string });
@@ -84,13 +90,19 @@ class RtpLabSession {
   private framesInPair = 0;
   private pairGapUntil = 0;
 
-  constructor(logger: LoggerType) {
+  constructor(logger: LoggerType, webrtc?: WebRtcAudioOptions) {
+    // Mirrors the production voice path's ICE config: without the same UDP
+    // port range and public address the lab candidates are unreachable
+    // behind a container port mapping.
+    const publicAddresses = webrtc?.publicHost ? [webrtc.publicHost] : undefined;
     this.peer = new RTCPeerConnection({
-      iceServers: [],
+      iceServers: webrtc?.stunServer ? [{ urls: webrtc.stunServer }] : [],
       codecs: { audio: [useOPUS()] },
       iceUseIpv4: true,
-      iceUseIpv6: false,
+      iceUseIpv6: webrtc?.ipv6Enabled === true,
       iceUseTcp: false,
+      ...(webrtc?.udpPortRange ? { icePortRange: [...webrtc.udpPortRange] as [number, number] } : {}),
+      ...(publicAddresses ? { iceAdditionalHostAddresses: publicAddresses } : {}),
     });
     this.peer.addTransceiver("audio", { direction: "recvonly" });
     const downlink = this.peer.addTransceiver("audio", { direction: "sendonly" });
