@@ -309,16 +309,16 @@ export function useVoiceWebSocket() {
       catch (error) { if (isCurrent()) setMicrophoneError(error); }
     },
     playback: {
-      context: () => audioCtx,
       volume: effectiveOutputVolume,
       speakerVolume: clientId => volumes[clientId] ?? 1,
       onEndpoint(output) {
         clearAudioNotice("OUTPUT_DEVICE_PENDING_WEBRTC");
-        if (!selectedOutputDeviceId.value || !output.setSinkId) return;
-        const deviceId = selectedOutputDeviceId.value;
-        const generation = outputDeviceGeneration;
-        void audioSinkRouter.set(output, deviceId, () => generation === outputDeviceGeneration
-          && webrtc.output === output && selectedOutputDeviceId.value === deviceId).catch(() => undefined);
+        // The slot pool routes its own elements (and any amplification
+        // context) via setSinkDevice: elements are created per slot, so a
+        // single-endpoint router cannot track them. Failures here surface
+        // through the explicit setOutputDevice flow instead.
+        webrtc.setSinkDevice(selectedOutputDeviceId.value).catch(() => undefined);
+        void output;
       },
       onBlocked(blocked) {
         if (blocked) setAudioNotice("PLAYBACK_BLOCKED", "浏览器阻止了音频自动播放，暂时听不到其他成员的声音：请点击页面任意位置，或在地址栏允许本站播放声音");
@@ -479,7 +479,6 @@ export function useVoiceWebSocket() {
 
   async function setAudioSink(ctx: SinkAudioContext, deviceId: string): Promise<void> {
     const generation = outputDeviceGeneration;
-    const output = webrtc.output;
     const isCurrent = () => generation === outputDeviceGeneration && audioCtx === ctx
       && selectedOutputDeviceId.value === deviceId;
     const mediaSinkSupported = typeof (HTMLMediaElement.prototype as SinkAudioElement).setSinkId === "function";
@@ -494,8 +493,10 @@ export function useVoiceWebSocket() {
       await audioSinkRouter.set(ctx, deviceId, isCurrent);
       routed = true;
     }
-    if (output?.setSinkId) {
-      await audioSinkRouter.set(output, deviceId, () => isCurrent() && output === webrtc.output);
+    // The WebRTC slot pool routes its own elements and amplification context;
+    // a failure must propagate so the committed choice rolls back.
+    if (state.connected && webrtc.active) {
+      await webrtc.setSinkDevice(deviceId);
       routed = true;
     }
     if (!routed) {

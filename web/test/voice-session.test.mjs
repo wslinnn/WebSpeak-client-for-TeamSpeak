@@ -1890,9 +1890,11 @@ test("a voiceRoute announcement binds the downstream slot to the member's volume
   peer.ontrack({ streams: [microphoneStream()], transceiver: peer.transceivers[1] });
   socket.receive({ type: "voiceRoute", slots: [7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] });
   await nextTurn();
-  assert.ok(AudioContextStub.gains.some(gain => gain.gain.value === 1), "the bound slot starts at the neutral volume");
+  const output = [...audioElements][0];
+  assert.equal(output.volume, 1, "the bound slot starts at the neutral volume");
   voice.setVolume(7, 2);
-  assert.ok(AudioContextStub.gains.some(gain => gain.gain.value === 2), "the bound slot follows the member volume slider");
+  assert.ok(AudioContextStub.gains.some(gain => gain.gain.value === 2), "amplification beyond 100% rides the gain pipe");
+  assert.equal(output.muted, true, "the element stays attached as the puller while the pipe renders");
   voice.setVolume(9, 3);
   assert.equal(AudioContextStub.gains.some(gain => gain.gain.value === 3), false, "volumes for unbound speakers apply nowhere");
 });

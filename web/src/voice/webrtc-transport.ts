@@ -190,7 +190,7 @@ export function createWebRtcTransport(options: TransportOptions) {
         if (!isCurrent(record)) return;
         const slotIndex = peer.getTransceivers().indexOf(event.transceiver) - 1;
         if (slotIndex < 0 || slotIndex >= DOWNSTREAM_SLOTS) return;
-        try { playback.attach(event.streams[0] ?? new MediaStream([event.track]), slotIndex); }
+        try { playback.attach(event.streams[0] ?? new MediaStream([event.track]), slotIndex, event.receiver); }
         catch { void fail(record, "WEBRTC_PLAYBACK_FAILED"); }
       };
       record.meter = createMicrophoneMeter(context, stream, rms => options.onLevel(rms, track));
@@ -260,6 +260,9 @@ export function createWebRtcTransport(options: TransportOptions) {
     get active(): boolean { return current?.active ?? false; },
     get output() { return playback.output; },
     setOutputVolume: playback.setVolume,
+    /** Routes all slot elements (and any amplification context) to an output
+     *  device; "" restores the default output. */
+    setSinkDevice: (deviceId: string): Promise<void> => playback.setSinkDevice(deviceId),
     /** Binds TeamSpeak client ids to the downstream slots (0 = free); each
      *  bound slot re-reads its per-speaker gain. */
     setSlotClients: (slots: readonly number[]): void => playback.setSlotClients(slots),
