@@ -6,6 +6,8 @@
 
 - 自动恢复有终态拒绝（封禁/密码错/昵称占用/身份冲突）即清意图；显式加入导航（URL 带 server/tsHost/target 等）优先于自动恢复。
 - 头像交付=无账本的 URL 快照（2026-10-14 URL 化改造，终结三轮推送漏发返工）：视图（重）附着一律走 attachAvatars（snapshot() 全集 + retryFailedDownloads + 下载排期），**禁止引入「谁已见过哪些字节」的记账状态**——推送字节+视图记账是已被证伪的模型；字节经 `GET /avatars/:aid?v=<内容hash>` 由浏览器 HTTP 缓存吸收（404 不入前端状态，保持首字母回落）。URL 稳定性是缓存命中的前提：aid 是 HMAC capability（URL 即凭证、无时效），勿加时效签名或把签名放进 query；缓存只存正项，failure 记 view-local absent/error。loader 语义有单测、resume 接线有集成测试、端点响应头有独立测试钉住。
+- 音频处理默认（2026-10-14 拍板）：增加延迟的处理默认关——回声消除默认关（外放用户自行开启防回声）、自动增益默认关，降噪默认开；三开关在桌面音频坞麦克风面板与移动音频设置，经约束重配+偏好持久化（touched 门控），勿静默回退默认值。
+- 上行链形态（2026-10-14 重构）：单层增益 + R/G 模式（raw 直连/处理混音，replaceTrack 切换）——细则与红线（单增益、麦测试增益门控、stopCapture 边界、accompaniment target 稳定身份）钉在 voice.md 回归不变量节。
 - 语音内切换不同服务器=显式离开（内部断开 1000 → 网关 teardown，不进 detached 池），同目标换频道走 switchChannel。
 - 收藏密码只存在于 IndexedDB 收藏记录（切服/回填顺带携带，上游不存密码的模型不采纳）。
 - fixed 模式免密直进的唯一密码权威是网关服务端注入（`policy.serverPassword`），客户端不得把本地表单密码上送覆盖。
@@ -31,6 +33,7 @@
 ## 条件重开项及触发器
 
 - 头像换新检测（cacheKey 失效）：成员换头像后旧图残留到网关重启/LRU 淘汰。URL 化后检测路径已明确且廉价——`fileTransferInitDownload` 一次命令往返返回 size/mtime，按 uid 比对元数据即可发现变化（重下→内容 hash 翻新→新 URL 增量推送，浏览器自动拉新）；等真实场景反馈再立项。
+- 更强上行降噪模型（DeepFilterNet/DTLN 等，形态参考本机 tsweb/Newt-Desktop 的模型选择+强度记忆）：CPU 换音质，契合「最佳音质」优先级；当前 RNNoise 够用时不动。
 - T10 Opus-over-WS：诊断 `voiceTransports.compatRatio` 持续 >5%。
 - Opus DTX：实测 WebRTC 出向码率在语音活跃期逼近 3Mbps 上限时。
 - worker_threads：100 会话上限内不需要——基准 100 会话×4 说话人编解码地板 ≈1.3 核。

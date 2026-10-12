@@ -8,6 +8,7 @@
 
 - **上行**：answer fmtp 钉 `maxaveragebitrate=60000;usedtx=0`（60k 在 TS quality 10 的 7.71KiB/s 预算内、64k 会被服务器裁包；fmtp 只是上限，浏览器端 applyAnswer 后对音频 sender `setParameters` maxBitrate=60000 配套才生效；不设 stereo——上行 mono，stereo 声明只会分薄码率）。
 - **下行**：每说话人一条 RTP 流。网关预开 16 条 sendonly 槽轨（浏览器 offer 预开同数 recvonly 免重协商；超出的 m-line answer inactive 防恶意 offer 放大），TS 原始 Opus 包 payload 一字节不动，只重写 seq/timestamp（帧时长经 RFC 6716 TOC 解析，`opus-frame.ts` 覆盖 SILK/hybrid/CELT×code 0-3，已用 @discordjs/opus 60k 全档真实编码包逐帧验证解析正确）、marker 标流首包、随机起点防跨流关联；说话人 LRU 占槽、绑定经 voiceRoute 消息下发。
+- **上行链（2026-10-14 重构，`0583362`）**：采集图单层化 source→[RNNoise]→gain→destination——gain 全链唯一（兼容 PCM worklet 分接同源，旧双层图曾把音量平方施加），webrtc-input 已删；**R/G 模式**：降噪关+音量 100%+无伴奏+无麦测试 → 原始轨 replaceTrack 直连 sender（免疫 context 挂起类故障），否则 processedStream；麦克风测试经增益门控广播（原始轨保持 live 供录制，track.enabled 门控会录到静音）；共享 AudioContext 带 resume 看门狗。回归不变量见下节。
 - **槽位池 12→16**（`4f08c2b`）：`DOWNSTREAM_SLOTS`（前端）/`MAX_DOWNSTREAM_SLOTS`（网关）成对扩容；voiceRoute 校验上限本就 ≤16；新旧混跑时多余 m-line 按 inactive 降级。槽位语义：每听众 16 路并发预算，LRU 淘汰最久未说话者；成员音量是本地渲染参数，不影响他人听感、不影响说话者上行。
 - **网关 mixer 全套已删**：音频 CPU 趋零，`setMemberVolume` 网关命令与 `voiceActivity` 事件随删。
 - **voice-bridge 已拆分**：DetachedSessionPool / createVoiceRtc / createVoiceConnectionHandler 三模块（拆分记录见 `.agents/notes/history.md`）。
@@ -87,4 +88,4 @@ S2C 数据报 = 4B EAX tag + 3B 头（packetID u16BE + typeFlagged：低 nibble 
 - werift↔werift 的 ICE 在本机沙箱永卡 connecting——双 werift 探针不可用于媒体层验证；Chrome↔werift 正常。
 - CJS 包 `await import()` 的具名导出可能是 undefined 须走 `m.default`（曾致 lab 发裸 PCM 的假静音）。
 - 多轨链路已真 Chrome 端到端验证有声：本地 lab werift 多轨 sender→Chrome insertable-streams 抓包确认 Opus 帧原样到达（TOC 0xf8）→ analyserRMS 0.196 / audioLevel 0.32。落地时测试基线 568；测试 window stub 需 setInterval/clearInterval。
-- 兼容路径（WS 回退）上行编码仍是 `opus-codec.ts` 24kbps/VOIP/FEC10%（低 CPU 回退定位，未提码）；麦克风约束 `microphoneConstraints()`=AEC on+Chrome NS on+AGC off 未动；浏览器直连 TS 协议已否决。
+- 兼容路径（WS 回退）上行编码仍是 `opus-codec.ts` 24kbps/VOIP/FEC10%（低 CPU 回退定位，未提码）；麦克风约束 `microphoneConstraints()` 三项全可开关（2026-10-14：回声消除默认关、自动增益默认关、降噪默认开——延迟项默认关拍板）；浏览器直连 TS 协议已否决。
