@@ -57,6 +57,14 @@ export function mountRtpLabIfEnabled(app: express.Express, options: RtpLabOption
     response.end(labPage(webrtc?.stunServer ? [{ urls: webrtc.stunServer }] : []));
   });
 
+  // The page logic lives in a same-origin static script: the global CSP sets
+  // script-src 'self' (no unsafe-inline/nonce), so an inline <script> would be
+  // silently blocked and the page would render as dead buttons.
+  app.get("/_rtp-lab/lab.js", (_request, response) => {
+    response.setHeader("content-type", "text/javascript; charset=utf-8");
+    response.end(labScript());
+  });
+
   app.post("/_rtp-lab/offer", express.json({ limit: "512kb" }), async (request, response) => {
     try {
       // The body is the full session description object ({type:"offer",sdp}),
@@ -210,6 +218,9 @@ class RtpLabSession {
 }
 
 function labPage(iceServers: Array<{ urls: string }>): string {
+  // ICE config rides a data attribute into the external script: the JSON only
+  // ever contains STUN URLs, but escape single quotes defensively anyway.
+  const iceServersAttr = JSON.stringify(iceServers).replaceAll("'", "&#39;");
   return `<!doctype html>
 <html lang="zh">
 <head><meta charset="utf-8"><title>RTP Lab</title>
@@ -220,7 +231,7 @@ label { margin-right: 14px; }
 button { padding: 6px 14px; }
 pre { background: #f6f6f6; padding: 10px; border-radius: 8px; min-height: 200px; white-space: pre-wrap; }
 </style></head>
-<body>
+<body data-ice-servers='${iceServersAttr}'>
 <h1>RTP 隔离实验室</h1>
 <p>本页面与网关直连 WebRTC（不经 TeamSpeak），网关播放可切换特征的测试音。逐个模式切换并听：哪个模式静音，即锁定元凶特征。</p>
 <p><button id="start">开始连接</button> <button id="apply" disabled>应用模式</button> <button id="stop" disabled>停止</button></p>
@@ -237,13 +248,18 @@ pre { background: #f6f6f6; padding: 10px; border-radius: 8px; min-height: 200px;
   <label><input type="radio" name="silence" value="none">完全停发</label>
 </fieldset>
 <pre id="log"></pre>
-<script>
-const logEl = document.getElementById("log");
+<script src="/_rtp-lab/lab.js"></script>
+</body>
+</html>`;
+}
+
+function labScript(): string {
+  return `const logEl = document.getElementById("log");
 const log = (msg) => { logEl.textContent += msg + "\\n"; };
 // Created inside the click handler so Web Audio has sticky user activation.
 let audioCtx = null;
 let started = false;
-const ICE_SERVERS = ${JSON.stringify(iceServers)};
+const ICE_SERVERS = JSON.parse(document.body.dataset.iceServers || "[]");
 const peer = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 peer.onconnectionstatechange = () => log("peer: " + peer.connectionState);
 peer.ontrack = (event) => {
@@ -315,8 +331,5 @@ document.getElementById("stop").addEventListener("click", async () => {
   await fetch("/_rtp-lab/mode", { method: "POST", headers: { "content-type": "application/json" },
     body: JSON.stringify({ pacing: "stopped", channels: 1, silence: "frames" }) });
   log("stopped");
-});
-</script>
-</body>
-</html>`;
+});`;
 }
