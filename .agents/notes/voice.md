@@ -36,6 +36,11 @@
 
 ## 回归不变量
 
+- **上行单增益铁律**（2026-10-14 上行重构）：输入音量只施加在采集图唯一的 gain 上一处（destination 在增益后，WebRTC 上行与兼容 PCM 共享该级）。**禁止再建第二层增益/destination**——旧双层图曾把音量平方（0.5×0.5=0.25）。
+- **R/G 上行模式**：降噪关+音量 100%+无伴奏+无麦测试 → 原始轨经 `setUplinkStream` 直连 sender（绕过整个 WebAudio 图，免疫 context 挂起——Newt-Desktop 同款教训「WebAudio Destination 挂起→0 字节上行」）；任一条件成立回 processedStream。切换走 sender.replaceTrack，无重协商。**bypass 条件必须包含 !microphoneTestActive**——麦测试的广播门控靠增益，raw 直连会绕过门控。
+- **麦测试不广播**：测试激活期间上行由采集增益静音（MediaRecorder 直接 tap 原始轨，禁止用 track.enabled 门控——那会让测试录到静音）；测试结束恢复用户音量。
+- **stopCapture 只拆 PCM 分接（worklet/script/silent），不得动 gain**：transport 每次 start 都调 stopPcm→stopCapture，拆增益会杀死上行音量控制（2026-10-14 单增益化时踩过，测试抓到）。
+- **accompaniment getTarget 必须返回稳定同一对象**：模块用 `getTarget() === target` 判自身捕获 vs 被顶替捕获，每次新建对象会把一切捕获当过期取消（2026-10-14 踩过，5 个伴奏测试抓到）。
 - **协商完成（answer 应用）前不得向槽位注入 RTP**——Chrome 会把未信令 SSRC 错误关联到已存在 m-section 永久污染。
 - `onSlotActivity` 是**电平语义**：active 期间每次轮询（150ms）都上报，靠消费方的自熄 hold（360ms）续命；只报上升沿会让持续说话的成员在 360ms 后熄灯（兼容路径按帧重 mark 不受影响，WebRTC 路径的轮询是唯一心跳）。槽位换人时必须用**旧** clientId 清灯。
 - WebRTC pacer 空闲 200ms 停表、入帧即恢复（禁止逐帧门控）。
