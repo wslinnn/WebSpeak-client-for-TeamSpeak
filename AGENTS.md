@@ -46,7 +46,7 @@ npm --prefix web ci --no-audit --no-fund
 
 ## 前端约定
 
-- 五个语言包（i18n）必须覆盖中文基准键集（当前中文 366 键；en 独立实现、de/ru/ja 以 `...en` 展开再覆盖，对齐测试只做包含校验=zh 键必须在每一语出现，新增键仍须五语同加）；`t()` 的变量替换用双花括号 `{{name}}`，单括号不替换会原样输出；用户可见错误要按错误类型区分。
+- 五个语言包（i18n）必须覆盖中文基准键集（当前中文 365 键；en 独立实现、de/ru/ja 以 `...en` 展开再覆盖，对齐测试只做包含校验=zh 键必须在每一语出现，新增键仍须五语同加）；`t()` 的变量替换用双花括号 `{{name}}`，单括号不替换会原样输出；用户可见错误要按错误类型区分。
 - 管理台 API 响应经 `admin-responses.ts` 校验器按声明字段投影（未声明的字段被静默丢弃），前端再把聚合响应扁平化进 `useAdminOperations.ts` 的 operations 状态——新增后端诊断/响应字段必须同步三处：校验器声明、扁平化投影、模板消费点；只改校验器会以扁平类型在 vue-tsc 报错，只改模板则拿到 undefined。
 - 文档级页面样式必须由 `html[data-ws-route]` 门控（路由加载后 CSS 常驻）；保留 `data-ws-part` 皮肤钩子与既有 `:deep` 选择器的顺序和特异性；新增 `data-ws-part` 必须同步登记 docs/SKIN_DEVELOPMENT.md（skin-pack.test 会扫描）；部件审计只认静态 data-ws-part 字面量，动态 part 用 v-bind 表达且全部变体登记。
 - 模板/CSS 格式化改动与行为改动分开；包裹 Vue 标签时保留内联空白文本节点。
@@ -68,7 +68,7 @@ npm --prefix web ci --no-audit --no-fund
 
 ## 踩坑红线（一句话版；细节与出处在主题文档）
 
-- 管道尾接 grep/tail 会吃 `npm run verify` 的退出码——判定一律 `> log 2>&1; st=$?` 显式判 st（曾两次带病提交）。
+- 管道尾接 grep/tail 会吃 `npm run verify` 的退出码——判定一律 `> log 2>&1; st=$?` 显式判 st；且**先看 st 再提交**，不得把「grep 日志返回 0」当验证通过（曾三次带病提交，最近一次即提交链里 grep 日志成功掩盖了 EXIT=1）。
 - web-client.css 与 i18n/web-client.ts 是混合行尾（部分 CRLF）：脚本化字符串替换必须按实际行尾匹配；批量 CSS 手术用字符级扫描器、按选择器组整组判断（行级脚本会把 `.a,⏎.b {` 组删成孤儿残片炸 postcss）。
 - Git Bash 里 `node -e` 内联脚本带正则转义/中文会碎——批量文本手术一律 Write 临时 .mjs 文件执行，用完删除。
 - 凡验证 TTL/超时的测试一律 mock 时钟（t.mock.timers 钉死 Date.now）；测试替身与被测预算共享时钟时，替身改记录、不推进时钟。
