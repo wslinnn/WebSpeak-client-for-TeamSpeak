@@ -8,7 +8,7 @@
 
 @media (min-width: 981px) {
   .app-shell {
-    grid-template-columns: 86px 304px minmax(0, 1fr) minmax(340px, min(38vw, 520px));
+    grid-template-columns: 86px 304px minmax(280px, 1fr) minmax(340px, min(38vw, 520px));
     background: var(--wsd-bg);
     transition: grid-template-columns .24s cubic-bezier(.2, .75, .25, 1);
   }
@@ -16,7 +16,7 @@
   /* Collapse keeps four tracks (the fourth shrinks to 0) so the template
    * interpolates; the panel fades instead of unmounting. */
   .app-shell[data-chat-collapsed="true"] {
-    grid-template-columns: 86px 304px minmax(0, 1fr) 0;
+    grid-template-columns: 86px 304px minmax(280px, 1fr) 0;
   }
 
   /* Server rail: KAAK-style rounded-square column with the own identity
@@ -276,6 +276,15 @@
 
   :deep(.app-shell > .chat-panel .message-composer) {
     flex: 0 0 auto;
+  }
+}
+
+/* 981-1009px: the four track minimums (86+304+280+340) already exceed the
+ * viewport, so the chat column drops its 340px floor in this band — the stage
+ * keeps KAAK's 280px floor and the shell never overflows horizontally. */
+@media (min-width: 981px) and (max-width: 1009px) {
+  .app-shell {
+    grid-template-columns: 86px 304px minmax(280px, 1fr) minmax(280px, min(38vw, 520px));
   }
 }
 
