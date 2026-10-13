@@ -378,7 +378,7 @@
     font-size: 12px;
   }
   :deep(.app-shell.mobile-view-chat .message-bubble) {
-    padding: 10px 12px;
+    padding: 0;
     font-size: 14px;
   }
   :deep(.app-shell.mobile-view-chat .message-composer) {

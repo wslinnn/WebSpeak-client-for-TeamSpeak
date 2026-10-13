@@ -42,9 +42,12 @@
 
 .web-client[data-ws-skin="builtin.dark"] :deep(.section-heading h2),
 .web-client[data-ws-skin="builtin.dark"] :deep(.member-panel-heading h2),
-.web-client[data-ws-skin="builtin.dark"] :deep(.message-meta strong),
 .web-client[data-ws-skin="builtin.dark"] :deep(.member-copy strong) {
   color: var(--wsd-text);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.message-meta strong) {
+  color: var(--wsd-text-muted);
 }
 
 .web-client[data-ws-skin="builtin.dark"] :deep(.section-kicker),
@@ -103,15 +106,6 @@
 .web-client[data-ws-skin="builtin.dark"] .chat-panel,
 .web-client[data-ws-skin="builtin.dark"] :deep(.chat-heading) {
   border-color: var(--wsd-border);
-}
-
-.web-client[data-ws-skin="builtin.dark"] :deep(.message-bubble) {
-  color: var(--wsd-text);
-  background: var(--wsd-raised);
-}
-
-.web-client[data-ws-skin="builtin.dark"] :deep(.message-row.mine .message-bubble) {
-  background: var(--wsd-accent-soft);
 }
 
 .web-client[data-ws-skin="builtin.dark"] :deep(.message-composer) {

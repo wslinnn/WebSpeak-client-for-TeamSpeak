@@ -619,21 +619,12 @@
   }
 
   :deep(.message-meta strong) {
-    color: var(--wsd-text);
+    color: var(--wsd-text-muted);
   }
 
   :deep(.message-meta time),
   :deep(.event-row time) {
     color: var(--wsd-text-dim);
-  }
-
-  :deep(.message-bubble) {
-    color: var(--wsd-text);
-    background: var(--wsd-raised);
-  }
-
-  :deep(.message-row.mine .message-bubble) {
-    background: var(--wsd-accent-soft);
   }
 
   :deep(.chat-empty) {

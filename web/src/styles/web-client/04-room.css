@@ -259,19 +259,15 @@
   background: transparent;
 }
 
-:deep(.message-row.mine) {
-  align-self: flex-end;
-  flex-direction: row-reverse;
-}
-
 :deep(.message-avatar) {
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   flex: 0 0 auto;
   color: #fff;
-  border-radius: 10px;
+  border: 1px solid var(--wsd-border);
+  border-radius: 50%;
   font-size: 11px;
   font-weight: 700;
 }
@@ -287,37 +283,27 @@
   margin: 1px 0 6px;
 }
 
-:deep(.message-row.mine .message-meta) {
-  justify-content: flex-end;
-}
-
 :deep(.message-meta strong) {
-  color: #384843;
+  color: var(--wsd-text-muted);
   font-size: 11px;
+  font-weight: 600;
 }
 
 :deep(.message-meta time) {
-  color: #a1ada9;
-  font-size: 9px;
+  color: var(--wsd-text-dim);
+  font-size: 10px;
 }
 
 :deep(.message-bubble) {
-  /* anywhere keeps long URLs/IDs from stretching the bubble past the chat
+  /* anywhere keeps long URLs/IDs from stretching the text past the chat
    * column; pre-wrap preserves the newlines the sender typed. */
   overflow-wrap: anywhere;
   white-space: pre-wrap;
-  padding: 10px 13px;
-  color: #43534e;
-  background: #f1f5f3;
-  border-radius: 4px 13px 13px 13px;
-  font-size: 12px;
+  padding: 0;
+  color: var(--wsd-text);
+  background: transparent;
+  font-size: 13px;
   line-height: 1.55;
-}
-
-:deep(.message-row.mine .message-bubble) {
-  color: #fff;
-  background: #006a64;
-  border-radius: 13px 4px 13px 13px;
 }
 
 :deep(.message-composer) {

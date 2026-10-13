@@ -58,14 +58,13 @@
 }
 
 :deep(.app-shell .message-meta strong) {
-  font-size: 13.75px;
+  font-size: 11px;
 }
 
 :deep(.app-shell .message-meta time) {
-  font-size: 11.25px;
+  font-size: 10px;
 }
 
-:deep(.app-shell .message-bubble),
 :deep(.app-shell .message-composer :is(input, textarea)) {
   font-size: 15px;
 }
