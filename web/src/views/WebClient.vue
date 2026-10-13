@@ -386,8 +386,11 @@
         /></button>
       </div>
       <!-- Desktop server rail: favorites in open mode, the own identity tile
-           always. Hidden on touch sizes where the strip above replaces it. -->
+           always — but only where the four-column workspace (≥981px) gives it
+           a purpose; the legacy band below keeps the old geometry without an
+           empty strip. -->
       <aside
+        v-if="accessMode === 'open' || chatColumnActive"
         class="favorite-server-rail"
         data-ws-part="voice.favorite-server-rail"
         :role="accessMode === 'open' ? 'toolbar' : undefined"
