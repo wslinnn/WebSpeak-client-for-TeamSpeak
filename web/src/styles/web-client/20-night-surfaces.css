@@ -82,7 +82,18 @@
 .web-client[data-ws-skin="builtin.dark"] :deep(.member-channel-group.current .member-channel-heading) {
   color: var(--wsd-text);
   background: var(--wsd-raised);
-  box-shadow: inset 2px 0 0 var(--wsd-accent);
+  box-shadow: none;
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-channel-group.current .member-channel-heading)::before {
+  position: absolute;
+  left: 0;
+  top: 5px;
+  bottom: 5px;
+  width: 3px;
+  content: "";
+  background: var(--wsd-accent);
+  border-radius: 0 4px 4px 0;
 }
 
 .web-client[data-ws-skin="builtin.dark"] .breadcrumbs {

@@ -84,20 +84,33 @@
     min-width: 0;
     overflow: hidden;
     color: var(--wsd-text);
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
+    letter-spacing: -.35px;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   :deep(.member-server-badge) {
+    display: inline-flex;
     flex: 0 0 auto;
-    padding: 3px 9px;
+    align-items: center;
+    gap: 5px;
+    height: 20px;
+    padding: 0 9px;
     color: var(--wsd-accent);
     background: var(--wsd-accent-soft);
     border-radius: 999px;
     font-size: 11px;
     font-weight: 700;
+  }
+
+  :deep(.member-server-badge)::before {
+    width: 6px;
+    height: 6px;
+    content: "";
+    background: currentColor;
+    border-radius: 50%;
   }
 
   :deep(.member-server-welcome) {
@@ -143,12 +156,10 @@
   :deep(.member-group-label) {
     display: block;
     flex: 0 0 auto;
-    padding: 12px 14px 6px;
+    padding: 14px 8px 4px;
     color: var(--wsd-text-muted);
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
-    letter-spacing: .04em;
-    text-transform: uppercase;
   }
 
   /* Stage: the workspace keeps its column, now on the shared backdrop. */
@@ -388,9 +399,11 @@
   }
 
   :deep(.member-channel-heading) {
-    padding: 7px 8px;
+    position: relative;
+    min-height: 38px;
+    padding: 0 10px;
     color: var(--wsd-text);
-    border-radius: 8px;
+    border-radius: 7px;
   }
 
   :deep(.member-channel-heading:hover) {
@@ -401,7 +414,18 @@
   :deep(.member-channel-group.current .member-channel-heading) {
     color: var(--wsd-text);
     background: var(--wsd-raised);
-    box-shadow: inset 2px 0 0 var(--wsd-accent);
+    box-shadow: none;
+  }
+
+  :deep(.member-channel-group.current .member-channel-heading)::before {
+    position: absolute;
+    left: 0;
+    top: 5px;
+    bottom: 5px;
+    width: 3px;
+    content: "";
+    background: var(--wsd-accent);
+    border-radius: 0 4px 4px 0;
   }
 
   :deep(.member-channel-heading span) {
@@ -411,6 +435,8 @@
 
   :deep(.member-channel-heading small) {
     color: var(--wsd-text-dim);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
   }
 
   :deep(.member-channel-group.selected .member-channel-heading) {
@@ -443,15 +469,15 @@
   }
 
   :deep(.member-row) {
-    padding: 4px 8px;
-    border-radius: 8px;
+    padding: 2px 10px;
+    border-radius: 5px;
   }
 
   :deep(.member-avatar) {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    font-size: 9px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 10px;
   }
 
   :deep(.member-avatar.speaking) {

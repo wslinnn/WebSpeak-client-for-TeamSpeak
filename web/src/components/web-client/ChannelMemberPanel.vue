@@ -71,7 +71,7 @@
               : 'idle'
         "
         :data-member-channel-id="channelItem.id"
-        :style="{ marginLeft: `${channelItem.depth * 10}px` }"
+        :style="{ marginLeft: `${channelItem.depth * 14}px` }"
         @pointermove="onTreePointerMove($event)"
         @pointerup="onTreePointerEnd($event)"
         @pointercancel="onTreePointerCancel($event)"
@@ -92,7 +92,7 @@
           >
             <Icon
               name="volume"
-              :size="16"
+              :size="17"
             />
             <span>{{ channelItem.name }}</span>
             <small>{{ channelItem.members.length }}</small>
