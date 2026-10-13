@@ -11,6 +11,14 @@
         data-ws-state="connected"
       >{{ t("serverConnected") }}</span></div>
     <div
+      v-if="welcomeMessage"
+      class="member-server-welcome"
+      data-ws-part="voice.server-welcome"
+    >
+      <strong>{{ t("serverWelcome") }}</strong>
+      <p>{{ welcomeMessage }}</p>
+    </div>
+    <div
       class="member-panel-heading"
       data-ws-part="voice.member-panel.heading"
       ><div
@@ -261,6 +269,7 @@ const memberQuery = defineModel<string>("query", { required: true });
 const props = defineProps<{
   model: MemberPanelModel;
   serverLabel: string;
+  welcomeMessage: string;
   filteredMemberChannels: readonly TreeChannel[];
   currentChannelId?: string;
   mobileVisible: boolean;

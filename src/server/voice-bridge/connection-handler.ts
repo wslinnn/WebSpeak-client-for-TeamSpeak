@@ -12,6 +12,7 @@ import { SessionEventCoordinator } from "../session-events.js";
 import type { SessionTeardownReason } from "../session-manager.js";
 import { parseClientCommand } from "../voice-protocol.js";
 import { isRecoverable, reconnectDelayMs, reconnectWindowOpen } from "../reconnect-policy.js";
+import { parseServerInfoRow } from "./server-info.js";
 import type { WebRtcAudioOptions, WebRtcSessionDescription } from "../webrtc-audio.js";
 import { parseScreenShareMessage, type ScreenShareIceServer } from "../screen-share.js";
 import { handleCommand } from "../voice-commands.js";
@@ -306,8 +307,29 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       session.transition("connected");
       sendJson(connectedMessage());
       sendJson({ type: "channelList", channels: entry!.channelTree });
+      void sendServerInfo();
       if (wasReconnecting) sendJson({ type: "reconnected" });
       events.attachAvatars();
+    };
+
+    /** The browser welcome card's data: fetched once per TeamSpeak connection
+     *  (the entry caches it) and replayed instantly on resume reattach. A
+     *  server that restricts `serverinfo` simply leaves the card absent. */
+    const sendServerInfo = async (): Promise<void> => {
+      if (entry!.serverInfo) {
+        sendJson({ type: "serverInfo", ...entry!.serverInfo });
+        return;
+      }
+      try {
+        const rows = await tsClient.execCommandWithResponse("serverinfo", 3000);
+        const info = parseServerInfoRow(rows[0]);
+        if (info && initialStateSent) {
+          entry!.serverInfo = info;
+          sendJson({ type: "serverInfo", ...info });
+        }
+      } catch {
+        // Optional decoration: restricted or missing serverinfo is fine.
+      }
     };
 
     /** The `connected` snapshot: used for the first join and identically for
@@ -346,6 +368,7 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       }
       sendJson(connectedMessage());
       sendJson({ type: "channelList", channels: entry!.channelTree });
+      void sendServerInfo();
       events.attachAvatars();
       return true;
     };

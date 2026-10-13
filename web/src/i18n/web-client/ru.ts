@@ -293,6 +293,7 @@ export const ru: Record<string, string> = {
   people: "Участники",
   searchMembers: "Поиск участников",
   serverConnected: "Подключено",
+  serverWelcome: "Приветствие сервера",
   voiceGroup: "Голосовые каналы",
   openChat: "Открыть чат",
   closeChat: "Свернуть чат",

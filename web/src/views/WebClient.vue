@@ -695,6 +695,7 @@
         v-model:query="memberQuery"
         :model="memberControls"
         :server-label="connectedServerLabel"
+        :welcome-message="voiceState.serverWelcomeMessage"
         :filtered-member-channels="filteredMemberChannels"
         :current-channel-id="currentChannel?.id"
         :mobile-visible="mobileSection === 'channels'"
@@ -1190,10 +1191,11 @@ const {
   upsertFavoriteServer,
   clearServerHistory,
 } = useWebClientServerHistory({ serverHost, serverPort, serverPassword, nickname, channel, rememberIdentity, identityMaterial, t, showToast });
-// Server header label for the workspace channel pane: the saved favorite's
-// display name when the current target is saved, otherwise the raw address.
+// Server header label for the workspace channel pane: the live TeamSpeak
+// server name when reported, else the saved favorite's display name, else the
+// raw address.
 const connectedServerLabel = computed(
-  () => favoriteServers.value.find((server) => server.address === currentTarget.value)?.label ?? currentTarget.value,
+  () => voiceState.serverName || (favoriteServers.value.find((server) => server.address === currentTarget.value)?.label ?? currentTarget.value),
 );
 // Docked chat column: ≥981px the chat docks as the shell's fourth grid
 // column; below that it stays in its workspace slot. Exactly one instance

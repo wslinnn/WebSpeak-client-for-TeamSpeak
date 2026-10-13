@@ -227,6 +227,7 @@ export const de: Record<string, string> = {
   people: "Mitglieder",
   searchMembers: "Mitglieder suchen",
   serverConnected: "Verbunden",
+  serverWelcome: "Server-Willkommen",
   voiceGroup: "Sprachkanäle",
   openChat: "Chat öffnen",
   closeChat: "Chat einklappen",

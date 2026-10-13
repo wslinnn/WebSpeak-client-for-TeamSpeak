@@ -228,6 +228,7 @@ export const en: Record<string, string> = {
     people: "People",
     searchMembers: "Search members",
     serverConnected: "Connected",
+    serverWelcome: "Server welcome",
     voiceGroup: "Voice channels",
     openChat: "Open chat",
     closeChat: "Collapse chat",

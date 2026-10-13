@@ -289,6 +289,7 @@ export const ja: Record<string, string> = {
   people: "メンバー",
   searchMembers: "メンバーを検索",
   serverConnected: "接続済み",
+  serverWelcome: "サーバーの歓迎メッセージ",
   voiceGroup: "ボイスチャンネル",
   openChat: "チャットを開く",
   closeChat: "チャットを折りたたむ",

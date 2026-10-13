@@ -56,6 +56,10 @@ export interface VoiceState {
    *  not land here: the server-switch banner treats this field as "the join
    *  failed", and an unrelated audio/chat error would falsely fail it. */
   connectionFailureCode: string;
+  /** serverinfo fields for the channel pane header and welcome card; both
+   *  stay empty when the server restricts serverinfo. */
+  serverName: string;
+  serverWelcomeMessage: string;
 }
 
 export interface AudioInputDevice {
@@ -80,7 +84,7 @@ class CancelledMediaOperation extends Error {
 
 export function useVoiceWebSocket() {
   const ws = shallowRef<WebSocket | null>(null);
-  const state = reactive<VoiceState>({ connected: false, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false, tsClientId: 0, error: "", errorCode: "", retryNotUntil: 0, microphoneError: "", microphoneErrorCode: "", audioNotice: "", audioNoticeCode: "", channelSwitchedChannelId: "", selfMovedChannelId: "", connectionFailureCode: "" });
+  const state = reactive<VoiceState>({ connected: false, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false, tsClientId: 0, error: "", errorCode: "", retryNotUntil: 0, microphoneError: "", microphoneErrorCode: "", audioNotice: "", audioNoticeCode: "", channelSwitchedChannelId: "", selfMovedChannelId: "", connectionFailureCode: "", serverName: "", serverWelcomeMessage: "" });
   const sessionState = createVoiceSessionState({
     selfId: () => state.tsClientId,
     onMemberRemoved(id) {
@@ -1222,6 +1226,10 @@ export function useVoiceWebSocket() {
         audioDiagnostics.receive(sequence, msg.stats);
         break;
       }
+      case "serverInfo":
+        state.serverName = typeof msg.name === "string" ? msg.name : "";
+        state.serverWelcomeMessage = typeof msg.welcomeMessage === "string" ? msg.welcomeMessage : "";
+        break;
       case "disconnected":
         state.connected = false;
         state.connecting = false;

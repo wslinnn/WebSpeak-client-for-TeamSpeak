@@ -98,6 +98,36 @@
     font-weight: 700;
   }
 
+  :deep(.member-server-welcome) {
+    flex: 0 0 auto;
+    margin: 12px 12px 0;
+    padding: 10px 12px;
+    background: var(--wsd-raised);
+    border: 1px solid var(--wsd-border);
+    border-left: 3px solid var(--wsd-accent);
+    border-radius: 10px;
+  }
+
+  :deep(.member-server-welcome strong) {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--wsd-text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+  }
+
+  :deep(.member-server-welcome p) {
+    max-height: 96px;
+    margin: 0;
+    overflow-y: auto;
+    color: var(--wsd-text);
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+
   :deep(.member-panel-heading) {
     min-height: 36px;
     justify-content: flex-end;
