@@ -411,19 +411,18 @@
 }
 
 :deep(.member-row.dragging) {
-  opacity: .45;
+  opacity: .55;
 }
 
-:deep(.member-channel-group.drag-over) {
-  padding: 6px 6px 12px;
-  border: 1px dashed var(--accent);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--accent) 7%, transparent);
-}
-
+/* Drop feedback is row-level like the reference instead of a dashed box
+ * around the whole group. The ring is an outline so it survives the current/
+ * selected heading rules (which pin their own background and box-shadow);
+ * plain rows additionally take the green tint. */
 :deep(.member-channel-group.drag-over .member-channel-heading) {
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 13%, var(--surface-1));
+  outline: 1px solid var(--wsd-accent);
+  outline-offset: -1px;
+  color: var(--wsd-text);
+  background: color-mix(in srgb, var(--wsd-accent) 16%, transparent);
 }
 
 
