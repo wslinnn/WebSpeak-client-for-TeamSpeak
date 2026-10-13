@@ -75,4 +75,6 @@ npm --prefix web ci --no-audit --no-fund
 - CSS 死类清理对动态类前缀（`mobile-view-` / `language-` / `skin-preview--` / `permission-` 等）豁免；名单随新增动态类维护。
 - i18n 键校验勿依赖缩进（en 块尾部空格曾伪报缺键）。
 - 改样式后先看 diff、按属性数自检（曾整段误删相邻属性声明）。
+- 给已有「直接子级通用规则」的容器加新子元素（如 `.voice-card > span` 状态行），新子元素的类规则必须带容器前缀抬特异性——裸类规则会被 (0,2,1) 压过且 grep 规则文本看不出来（mic 角标错位三轮破案，details 在 decisions/history 五轮）。
+- 判「样式为什么这样渲染」必须真浏览器查计算样式（产物 CSS + 手摆 DOM 探针 + getComputedStyle），规则文本 grep 与部署状态推断都不算数（四轮曾据此误判「部署过期」）。
 - 全局弹窗/通知必须放模板根部（页面 v-if/v-else 分支之外），进房态与首页态都要可达。
