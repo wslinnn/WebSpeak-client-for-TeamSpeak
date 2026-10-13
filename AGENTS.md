@@ -46,7 +46,7 @@ npm --prefix web ci --no-audit --no-fund
 
 ## 前端约定
 
-- 五个语言包（i18n）必须实现同一组翻译键（当前五语 326 键完全对齐，de/ru/ja 无英文继承，新增键必须五语同加）；`t()` 的变量替换用双花括号 `{{name}}`，单括号不替换会原样输出；用户可见错误要按错误类型区分。
+- 五个语言包（i18n）必须覆盖中文基准键集（当前中文 366 键；en 独立实现、de/ru/ja 以 `...en` 展开再覆盖，对齐测试只做包含校验=zh 键必须在每一语出现，新增键仍须五语同加）；`t()` 的变量替换用双花括号 `{{name}}`，单括号不替换会原样输出；用户可见错误要按错误类型区分。
 - 管理台 API 响应经 `admin-responses.ts` 校验器按声明字段投影（未声明的字段被静默丢弃），前端再把聚合响应扁平化进 `useAdminOperations.ts` 的 operations 状态——新增后端诊断/响应字段必须同步三处：校验器声明、扁平化投影、模板消费点；只改校验器会以扁平类型在 vue-tsc 报错，只改模板则拿到 undefined。
 - 文档级页面样式必须由 `html[data-ws-route]` 门控（路由加载后 CSS 常驻）；保留 `data-ws-part` 皮肤钩子与既有 `:deep` 选择器的顺序和特异性；新增 `data-ws-part` 必须同步登记 docs/SKIN_DEVELOPMENT.md（skin-pack.test 会扫描）；部件审计只认静态 data-ws-part 字面量，动态 part 用 v-bind 表达且全部变体登记。
 - 模板/CSS 格式化改动与行为改动分开；包裹 Vue 标签时保留内联空白文本节点。
