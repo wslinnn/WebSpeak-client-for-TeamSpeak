@@ -639,6 +639,7 @@
     display: none;
     width: 34px;
     height: 24px;
+    border: 1px solid var(--wsd-chip-border);
     border-radius: 6px;
     color: var(--wsd-accent);
     background:
@@ -646,7 +647,7 @@
       linear-gradient(currentColor, currentColor) 11px 50% / 3px 12px,
       linear-gradient(currentColor, currentColor) 16px 50% / 3px 8px,
       linear-gradient(currentColor, currentColor) 21px 50% / 3px 14px,
-      #111216d9;
+      var(--wsd-chip-bg);
     background-repeat: no-repeat;
     box-shadow: 0 0 8px color-mix(in srgb, var(--wsd-accent) 33%, transparent);
     content: "";
@@ -668,8 +669,9 @@
     place-items: center;
     width: 25px;
     height: 25px;
-    color: #c8c9ce;
-    background: #111216d9;
+    color: var(--wsd-chip-text);
+    background: var(--wsd-chip-bg);
+    border: 1px solid var(--wsd-chip-border);
     border-radius: 4px;
   }
 
