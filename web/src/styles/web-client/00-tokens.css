@@ -16,8 +16,10 @@
   --wsd-text: #22262b;
   --wsd-text-muted: #626a72;
   --wsd-text-dim: #9099a1;
-  --wsd-accent: #6cbf00;
-  --wsd-accent-hover: #7ac51a;
+  /* Day accent: the deeper sibling of the night brand green — same hue, but
+   * small accent-colored text stays legible on white surfaces. */
+  --wsd-accent: #4f9e0c;
+  --wsd-accent-hover: #468f0a;
   --wsd-accent-soft: rgba(108, 191, 0, .14);
   --wsd-danger: #d24d4d;
   --wsd-radius: 9px;
