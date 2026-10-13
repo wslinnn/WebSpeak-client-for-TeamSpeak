@@ -8,6 +8,7 @@
     <div class="desktop-audio-dock-heading">
       <i class="desktop-audio-dock-dot"></i>
       <strong>{{ channelName }}</strong>
+      <slot name="status"></slot>
       <button
         type="button"
         class="desktop-audio-dock-power"
@@ -15,8 +16,8 @@
         :title="t('exit')"
         @click="emit('disconnect')"
         ><Icon
-          name="door"
-          :size="13" /></button>
+          name="power"
+          :size="20" /></button>
     </div>
     <div class="desktop-audio-dock-actions">
       <div

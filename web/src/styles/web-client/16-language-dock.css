@@ -163,6 +163,10 @@
     position: relative;
     padding-bottom: calc(16px + 48px);
   }
+  /* From 741px up the voice-status trigger lives in the dock heading. */
+  :deep(.workspace-actions .network-performance) {
+    display: none;
+  }
   :deep(.app-shell .message-composer) {
     position: absolute;
     z-index: 3;

@@ -497,12 +497,6 @@
             class="workspace-actions"
             data-ws-part="voice.header-actions"
           >
-            <VoicePerformancePanel
-              :model="performance"
-              :transport="voiceTransport"
-              :screen-share-web-rtc-stats="screenShareWebRtcStats"
-              :t="t"
-            />
             <button
               v-if="isMobileViewport"
               class="header-action microphone-header-toggle"
@@ -734,7 +728,16 @@
           @settings="settingsOpen = true"
           @output-mute="toggleOutputMute"
           @disconnect="leaveVoiceWorkspace"
-        />
+        >
+          <template #status>
+            <VoicePerformancePanel
+              :model="performance"
+              :transport="voiceTransport"
+              :screen-share-web-rtc-stats="screenShareWebRtcStats"
+              :t="t"
+            />
+          </template>
+        </AudioDock>
       </ChannelMemberPanel>
 
       <section

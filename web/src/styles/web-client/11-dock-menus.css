@@ -223,7 +223,8 @@
 
 :deep(.desktop-audio-dock) {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: 10px;
   flex: 0 0 auto;
   min-width: 0;
@@ -234,6 +235,112 @@
   border: 1px solid var(--wsd-border);
   border-radius: 17px;
   box-shadow: none;
+}
+
+/* Dock heading: live dot + channel name + the voice-status trigger slot +
+ * the round power button (KAAK's four-column heading). */
+:deep(.desktop-audio-dock-heading) {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) 28px 28px;
+  align-items: center;
+  gap: 2px 5px;
+  min-width: 0;
+  min-height: 22px;
+}
+
+:deep(.desktop-audio-dock-dot) {
+  width: 8px;
+  height: 8px;
+  background: var(--wsd-accent);
+  border-radius: 50%;
+}
+
+:deep(.desktop-audio-dock-heading strong) {
+  overflow: hidden;
+  color: var(--wsd-text);
+  font-size: 13px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:deep(.desktop-audio-dock-power) {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  min-width: 25px;
+  height: 25px;
+  min-height: 25px;
+  padding: 0;
+  color: #ff4c49;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+:deep(.desktop-audio-dock-power:hover),
+:deep(.desktop-audio-dock-power:focus-visible) {
+  color: #ff8498;
+  background: #3a292b;
+}
+
+/* Voice-status trigger inside the dock: transparent round with an accent
+ * waveform glyph drawn by ::before (KAAK); its panel opens upward. */
+:deep(.desktop-audio-dock .performance-trigger) {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  overflow: hidden;
+  color: var(--wsd-accent);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  font-size: 0;
+}
+
+:deep(.desktop-audio-dock .performance-trigger > *) {
+  display: none;
+}
+
+:deep(.desktop-audio-dock .performance-trigger::before) {
+  content: "";
+  display: block;
+  width: 17px;
+  height: 14px;
+  background:
+    linear-gradient(currentColor, currentColor) 0 100% / 3px 4px,
+    linear-gradient(currentColor, currentColor) 5px 100% / 3px 7px,
+    linear-gradient(currentColor, currentColor) 10px 100% / 3px 10px,
+    linear-gradient(currentColor, currentColor) 15px 100% / 3px 14px;
+  background-repeat: no-repeat;
+}
+
+:deep(.desktop-audio-dock .performance-trigger:hover),
+:deep(.desktop-audio-dock .performance-trigger:focus-visible),
+:deep(.desktop-audio-dock .performance-trigger[aria-expanded="true"]) {
+  color: var(--wsd-accent-hover);
+  background: var(--wsd-accent-soft);
+  transform: translateY(-1px);
+}
+
+:deep(.desktop-audio-dock .performance-trigger:focus-visible) {
+  outline: 2px solid var(--wsd-accent);
+  outline-offset: 2px;
+}
+
+:deep(.desktop-audio-dock .performance-panel) {
+  top: auto;
+  right: auto;
+  bottom: calc(100% + 9px);
+  left: 0;
+  width: min(360px, calc(100vw - 108px));
+  max-height: min(70dvh, 560px);
+  overflow: auto;
 }
 
 :deep(.desktop-audio-dock-actions) {
