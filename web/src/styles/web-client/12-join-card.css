@@ -131,7 +131,7 @@
 .web-client :deep(input:focus-visible),
 .web-client :deep(select:focus-visible),
 .web-client textarea:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
   outline-offset: 2px;
 }
 

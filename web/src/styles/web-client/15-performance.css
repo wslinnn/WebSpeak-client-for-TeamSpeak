@@ -84,6 +84,10 @@
   opacity: .55;
 }
 
+:deep(.performance-refresh:disabled .ui-icon) {
+  animation: spin .72s linear infinite;
+}
+
 :deep(.performance-metrics) {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -116,6 +120,7 @@
   margin-top: 6px;
   color: var(--accent);
   font-size: 18px;
+  font-variant-numeric: tabular-nums;
 }
 
 :deep(.performance-metrics span) {

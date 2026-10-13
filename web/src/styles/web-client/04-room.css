@@ -310,10 +310,10 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  min-height: 48px;
+  min-height: 44px;
   padding: 6px 8px 6px 12px;
   background: #f3f6f5;
-  border-radius: 11px;
+  border-radius: 9px;
 }
 
 :deep(.message-composer :is(input, textarea)) {
@@ -348,12 +348,12 @@
 :deep(.send-button) {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   flex: 0 0 auto;
   color: #fff;
-  background: #006a64;
-  border-radius: 9px;
+  background: var(--wsd-accent);
+  border-radius: 50%;
   cursor: pointer;
 }
 

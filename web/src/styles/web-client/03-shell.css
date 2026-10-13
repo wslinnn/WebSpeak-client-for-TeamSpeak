@@ -216,7 +216,9 @@
 }
 
 .favorite-server-button:hover,
-.favorite-server-button:focus-visible {
+.favorite-server-button:focus-visible,
+.favorite-server-rail .favorite-server-add:hover,
+.favorite-server-rail .favorite-server-add:focus-visible {
   background: var(--wsd-hover);
 }
 
@@ -270,11 +272,6 @@
   border-radius: 50%;
 }
 
-/* Pin the add tile to the bottom of the rail while the tiles scroll. */
-.favorite-server-rail > .favorite-server-add {
-  margin-top: auto;
-}
-
 /* Desktop shows the initial only; the full label takes over on touch sizes. */
 .favorite-server-chip-label {
   display: none;
@@ -301,7 +298,9 @@
   cursor: default;
 }
 
-.favorite-server-add {
+/* The chip strip keeps its compact dashed add; the rail add follows the
+ * rail tile group rule (58px solid tile in the list flow). */
+.favorite-server-strip .favorite-server-add {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -315,7 +314,7 @@
   cursor: pointer;
 }
 
-.favorite-server-add:hover {
+.favorite-server-strip .favorite-server-add:hover {
   color: #277970;
   background: #eef8f5;
 }

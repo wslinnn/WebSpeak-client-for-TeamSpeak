@@ -696,8 +696,8 @@
 
   :deep(.chat-tabs button.active) {
     color: var(--wsd-text);
-    background: var(--wsd-raised);
-    border-color: var(--wsd-border);
+    background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-raised));
+    border-color: color-mix(in srgb, var(--wsd-accent) 33%, transparent);
   }
 
   :deep(.chat-heading h2) {

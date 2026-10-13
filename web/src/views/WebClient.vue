@@ -434,7 +434,7 @@
           @click="openFavoriteServerDialog()"
         ><Icon
             name="plus"
-            :size="17"
+            :size="21"
         /></button>
         </template>
         <SkinSwitcher
