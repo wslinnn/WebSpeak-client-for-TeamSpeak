@@ -179,7 +179,7 @@
 
 :deep(.dock-hover-control) {
   position: relative;
-  flex: 0 0 34px;
+  min-width: 0;
 }
 
 :deep(.dock-hover-panel) {

@@ -601,7 +601,6 @@
                 :avatar-initial="avatarInitial"
                 :t="t"
                 @member-actions="openMemberActions"
-                @stop-share="stopScreenShare"
               />
               <WhisperControls
                 v-if="whisperTargetIds.size"
@@ -722,12 +721,16 @@
           v-if="!isMobileViewport"
           :model="audioDockState"
           :controls="audioControls"
+          :share="{ screenShareActive, screenShareStarting }"
           :t="t"
           :range-style="rangeStyle"
           :channel-name="currentChannelName"
           @settings="settingsOpen = true"
           @output-mute="toggleOutputMute"
           @disconnect="leaveVoiceWorkspace"
+          @start-share="startWithSettings"
+          @stop-share="stopScreenShare"
+          @share-settings="screenShareSettingsOpen = true"
         >
           <template #status>
             <VoicePerformancePanel
@@ -1435,8 +1438,8 @@ const screenShareControls = useWebClientScreenShare({
   avatarStyle,
   t,
 });
-const { settingsOpen: screenShareSettingsOpen, errorText: screenShareErrorText } = screenShareControls;
-const memberSharingState = { screenShareActive, screenShareStarting, screenShareViewingStreamId, settingsOpen: screenShareSettingsOpen };
+const { settingsOpen: screenShareSettingsOpen, errorText: screenShareErrorText, startWithSettings } = screenShareControls;
+const memberSharingState = { screenShareViewingStreamId };
 const {
   channelTree,
   currentChannel,

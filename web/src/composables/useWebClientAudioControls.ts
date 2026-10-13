@@ -248,6 +248,7 @@ export function useWebClientAudioControls({
     onNoiseSuppressionToggle,
     onEchoCancellationToggle,
     onAutoGainControlToggle,
+    setNoiseSuppressionEnabled,
     onOutputVolume,
     onVoxThreshold,
     onNotificationVolume,

@@ -27,6 +27,15 @@
           name="more"
           :size="17"
       /></button>
+      <span
+        class="voice-mic-status"
+        data-ws-part="voice.member.mic-status"
+        :data-ws-state="member.inputMuted ? 'muted' : 'idle'"
+        :title="member.inputMuted ? t('inputMuted') : t('microphone')"
+        ><Icon
+          :name="member.inputMuted ? 'mic-off' : 'mic'"
+          :size="13"
+      /></span>
       <div
         :class="[
           'voice-avatar-wrap',
@@ -54,18 +63,6 @@
             ></i></span
           ><span>{{ t("sharingScreen") }}</span></span
         >
-        <button
-          v-if="member.isSelf && (screenShareActive || screenShareStarting)"
-          type="button"
-          class="screen-share-stop-button"
-          data-ws-part="voice.member.stop-share"
-          :aria-label="t('stopScreenShare')"
-          :title="t('stopScreenShare')"
-          @click.stop="emit('stopShare')"
-          ><Icon
-            name="close"
-            :size="14"
-        /></button>
       </div>
       <strong data-ws-part="voice.member.name">{{
         member.isSelf ? t("you") : member.nickname
@@ -74,37 +71,11 @@
         isSpeaking(member) ? t("speaking") : member.isSelf ? t("connectedYou") : t("connected")
       }}</span>
       <div
-        v-if="member.isSelf || screenShareStreamForMember(member)"
+        v-if="!member.isSelf && screenShareStreamForMember(member)"
         class="screen-share-card-actions"
         data-ws-part="voice.member.share-actions"
       >
-        <template v-if="member.isSelf && !screenShareActive && !screenShareStarting">
-          <div class="screen-share-start-actions">
-            <button
-              type="button"
-              class="screen-share-card-button"
-              @click.stop="startScreenShareWithSettings"
-              ><Icon
-                name="monitor"
-                :size="13"
-              />
-              {{ t("startScreenShare") }}</button
-            >
-            <button
-              type="button"
-              class="screen-share-settings-button"
-              :aria-label="t('screenShareSettings')"
-              :aria-expanded="screenShareSettingsOpen"
-              :title="t('screenShareSettings')"
-              @click.stop="screenShareSettingsOpen = !screenShareSettingsOpen"
-              ><Icon
-                name="settings"
-                :size="13"
-            /></button>
-          </div>
-        </template>
         <button
-          v-else-if="!member.isSelf"
           type="button"
           :class="[
             'screen-share-card-button',
@@ -150,14 +121,14 @@ import type { ChannelMember, useVoiceWebSocket } from "../../composables/useVoic
 import type { useWebClientScreenShare } from "../../composables/useWebClientScreenShare.js";
 const props = defineProps<{
   currentMembers: ChannelMember[]; isMobileViewport: boolean;
-  sharing: Pick<ReturnType<typeof useVoiceWebSocket>, "screenShareActive" | "screenShareStarting" | "screenShareViewingStreamId"> & Pick<ReturnType<typeof useWebClientScreenShare>, "settingsOpen">;
-  controls: Pick<ReturnType<typeof useWebClientScreenShare>, "streamForMember" | "toggleForMember" | "startWithSettings">;
+  sharing: Pick<ReturnType<typeof useVoiceWebSocket>, "screenShareViewingStreamId">;
+  controls: Pick<ReturnType<typeof useWebClientScreenShare>, "streamForMember" | "toggleForMember">;
   isSpeaking: (member: ChannelMember) => boolean;
   avatarStyle: (name: string, isSelf?: boolean, avatar?: string) => Record<string, string>;
   avatarInitial: (name: string) => string; t: (key: string) => string;
 }>();
-const { screenShareActive, screenShareStarting, screenShareViewingStreamId, settingsOpen: screenShareSettingsOpen } = props.sharing;
-const { streamForMember: screenShareStreamForMember, toggleForMember: toggleScreenShareForMember, startWithSettings: startScreenShareWithSettings } = props.controls;
-const emit = defineEmits<{ memberActions: [member: ChannelMember]; stopShare: [] }>();
+const { screenShareViewingStreamId } = props.sharing;
+const { streamForMember: screenShareStreamForMember, toggleForMember: toggleScreenShareForMember } = props.controls;
+const emit = defineEmits<{ memberActions: [member: ChannelMember] }>();
 const screenShareIndicatorBars = [5, 10, 7, 12, 8, 10];
 </script>
