@@ -272,7 +272,8 @@
     white-space: nowrap;
   }
 
-  /* Docked chat column: full-height panel between tabs and composer. */
+  /* Docked chat column: full-height panel sharing the stage backdrop (KAAK's
+   * conversation tone) between tabs and composer. */
   .app-shell > .chat-panel {
     display: flex;
     flex-direction: column;
@@ -282,7 +283,7 @@
     min-height: 0;
     margin: 0;
     padding: 0;
-    background: var(--wsd-panel);
+    background: var(--wsd-bg);
     border-top: 0;
     border-left: 1px solid var(--wsd-border);
     transition: opacity .16s ease;
