@@ -288,6 +288,8 @@ export const ja: Record<string, string> = {
   microphoneMutedHint: "マイクがミュート中のため、他のメンバーに声が聞こえません",
   people: "メンバー",
   searchMembers: "メンバーを検索",
+  serverConnected: "接続済み",
+  voiceGroup: "ボイスチャンネル",
   memberStates: "メンバーの状態",
   inputMuted: "マイクを無効化",
   outputMuted: "出力を無効化",

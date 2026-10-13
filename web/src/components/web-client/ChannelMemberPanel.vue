@@ -4,6 +4,13 @@
     data-ws-part="voice.member-panel"
   >
     <div
+      class="member-server-header"
+      data-ws-part="voice.server-header"
+    ><strong>{{ serverLabel }}</strong><span
+        class="member-server-badge"
+        data-ws-state="connected"
+      >{{ t("serverConnected") }}</span></div>
+    <div
       class="member-panel-heading"
       data-ws-part="voice.member-panel.heading"
       ><div
@@ -31,6 +38,10 @@
       class="member-tree"
       data-ws-part="voice.member-panel.channels"
     >
+      <div
+        class="member-group-label"
+        data-ws-part="voice.group-label"
+      >{{ t("voiceGroup") }}</div>
       <section
         v-for="channelItem in filteredMemberChannels"
         :key="channelItem.id"
@@ -249,6 +260,7 @@ type MemberPanelModel = Pick<ReturnType<typeof useWebClientMembers>,
 const memberQuery = defineModel<string>("query", { required: true });
 const props = defineProps<{
   model: MemberPanelModel;
+  serverLabel: string;
   filteredMemberChannels: readonly TreeChannel[];
   currentChannelId?: string;
   mobileVisible: boolean;

@@ -227,6 +227,8 @@ export const en: Record<string, string> = {
     microphoneMutedHint: "Your microphone is muted and other members cannot hear you",
     people: "People",
     searchMembers: "Search members",
+    serverConnected: "Connected",
+    voiceGroup: "Voice channels",
     memberStates: "Member states",
     inputMuted: "Microphone muted",
     outputMuted: "Output muted",

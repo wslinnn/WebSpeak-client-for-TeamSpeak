@@ -227,6 +227,8 @@ export const zh: Record<string, string> = {
     microphoneMutedHint: "麦克风已关闭，其他人听不到你的声音",
     people: "成员",
     searchMembers: "搜索成员",
+    serverConnected: "已连接",
+    voiceGroup: "语音分组",
     memberStates: "成员状态",
     inputMuted: "已禁用麦克风",
     outputMuted: "已禁用扬声器",

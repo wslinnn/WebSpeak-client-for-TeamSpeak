@@ -450,3 +450,15 @@
   padding: 31px 0 27px;
 }
 
+
+/* Workspace redesign scaffolding: server header row, voice group label and
+ * rail identity tile are structural additions for the upcoming workspace
+ * layout; the current layout keeps them out of sight until it lands. */
+.rail-identity {
+  display: none;
+}
+
+:deep(.member-server-header),
+:deep(.member-group-label) {
+  display: none;
+}

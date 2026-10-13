@@ -434,6 +434,18 @@
             name="plus"
             :size="17"
         /></button>
+        <div
+          class="rail-identity"
+          data-ws-part="voice.rail-identity"
+          :title="nickname"
+        ><span
+            class="rail-identity-avatar"
+            :style="avatarStyle(nickname, true, '')"
+            aria-hidden="true"
+          >{{ avatarInitial(nickname) }}</span><span
+            class="rail-identity-presence"
+            aria-hidden="true"
+          ></span></div>
       </aside>
       <main
         class="workspace"
@@ -651,6 +663,7 @@
       <ChannelMemberPanel
         v-model:query="memberQuery"
         :model="memberControls"
+        :server-label="connectedServerLabel"
         :filtered-member-channels="filteredMemberChannels"
         :current-channel-id="currentChannel?.id"
         :mobile-visible="mobileSection === 'channels'"
@@ -1146,6 +1159,11 @@ const {
   upsertFavoriteServer,
   clearServerHistory,
 } = useWebClientServerHistory({ serverHost, serverPort, serverPassword, nickname, channel, rememberIdentity, identityMaterial, t, showToast });
+// Server header label for the workspace channel pane: the saved favorite's
+// display name when the current target is saved, otherwise the raw address.
+const connectedServerLabel = computed(
+  () => favoriteServers.value.find((server) => server.address === currentTarget.value)?.label ?? currentTarget.value,
+);
 // Right-click / long-press on a server row (rail, strip chips or join form):
 // the context menu owns edit / favorite / delete instead of hidden single
 // actions. Long-press covers touch screens, which never fire contextmenu.
