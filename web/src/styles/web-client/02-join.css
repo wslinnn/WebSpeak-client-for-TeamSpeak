@@ -99,6 +99,20 @@
   row-gap: 6px;
 }
 
+/* Mobile-only overflow entry; ≤740 the tools row collapses behind it
+   (web-client-mobile.css owns the panel form). */
+:deep(.header-more) {
+  display: none;
+}
+
+:deep(.header-links) {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: clamp(6px, 1vw, 14px);
+}
+
 :deep(.header-note) {
   display: flex;
   align-items: center;

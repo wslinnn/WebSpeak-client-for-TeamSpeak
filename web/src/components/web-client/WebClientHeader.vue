@@ -26,29 +26,33 @@
         data-ws-part="home.gateway-status"
         ><span class="tiny-dot"></span> {{ t("secureGateway") }}</div
       >
-      <a
-        class="guide-button"
-        href="/download"
-        data-ws-part="home.download-button"
-        :title="t('downloadPage')"
-        :aria-label="t('downloadPage')"
+      <div
+        :class="['header-links', { open: moreOpen }]"
       >
-        <Icon
-          name="download"
-          :size="15"
-        /><span>{{ t("downloadPage") }}</span>
-      </a>
-      <a
-        class="guide-button"
-        href="/admin"
-        :title="t('adminConsole')"
-        :aria-label="t('adminConsole')"
-      >
-        <Icon
-          name="settings"
-          :size="15"
-        /><span>{{ t("adminConsole") }}</span>
-      </a>
+        <a
+          class="guide-button"
+          href="/download"
+          data-ws-part="home.download-button"
+          :title="t('downloadPage')"
+          :aria-label="t('downloadPage')"
+        >
+          <Icon
+            name="download"
+            :size="15"
+          /><span>{{ t("downloadPage") }}</span>
+        </a>
+        <a
+          class="guide-button"
+          href="/admin"
+          :title="t('adminConsole')"
+          :aria-label="t('adminConsole')"
+        >
+          <Icon
+            name="settings"
+            :size="15"
+          /><span>{{ t("adminConsole") }}</span>
+        </a>
+      </div>
       <SkinSwitcher
         v-model="skinId"
         class="join-skin-switcher"
@@ -63,10 +67,32 @@
         @change="emit('languageChange')"
       />
     </div>
+    <button
+      type="button"
+      class="header-more"
+      data-ws-part="home.header-more"
+      :aria-expanded="moreOpen"
+      :aria-label="t('mobileMore')"
+      @click="moreOpen = !moreOpen"
+    >
+      <Icon
+        name="more"
+        :size="17"
+      />
+    </button>
+    <button
+      v-if="moreOpen"
+      type="button"
+      class="header-tools-backdrop"
+      aria-hidden="true"
+      tabindex="-1"
+      @click="moreOpen = false"
+    ></button>
   </header>
 </template>
 
 <script setup lang="ts">
+import { ref } from "vue";
 import Icon from "../Icon.vue";
 import SkinSwitcher, { type SkinOption } from "../SkinSwitcher.vue";
 import LanguageSwitcher from "../LanguageSwitcher.vue";
@@ -83,6 +109,7 @@ const emit = defineEmits<{
   skinChange: [value: string];
   languageChange: [];
 }>();
+const moreOpen = ref(false);
 </script>
 
 <style scoped>
