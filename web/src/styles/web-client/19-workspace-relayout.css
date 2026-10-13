@@ -622,6 +622,27 @@
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--wsd-accent) 13%, transparent);
   }
 
+  /* Tile enter/leave motion: the base rules repeated so they outrank the
+   * ≥981 card transition declared just above. */
+  :deep(.voice-member-move) {
+    transition: transform .28s cubic-bezier(.22, .61, .36, 1);
+  }
+
+  :deep(.voice-member-enter-active),
+  :deep(.voice-member-leave-active) {
+    transition: opacity .2s ease, transform .28s cubic-bezier(.22, .61, .36, 1);
+  }
+
+  :deep(.voice-member-enter-from),
+  :deep(.voice-member-leave-to) {
+    opacity: 0;
+    transform: translateY(10px) scale(.975);
+  }
+
+  :deep(.voice-member-leave-active) {
+    pointer-events: none;
+  }
+
   :deep(.voice-avatar-wrap) {
     z-index: 0;
     display: grid;

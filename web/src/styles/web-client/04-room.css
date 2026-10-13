@@ -99,6 +99,27 @@
   box-shadow: 0 0 14px rgba(144,246,145,.35);
 }
 
+/* Tile enter/leave: the reference's settle — fade plus a 10px lift and a
+ * 2.5% scale off; leaving tiles drop pointer events immediately. */
+:deep(.voice-member-move) {
+  transition: transform .28s cubic-bezier(.22, .61, .36, 1);
+}
+
+:deep(.voice-member-enter-active),
+:deep(.voice-member-leave-active) {
+  transition: opacity .2s ease, transform .28s cubic-bezier(.22, .61, .36, 1);
+}
+
+:deep(.voice-member-enter-from),
+:deep(.voice-member-leave-to) {
+  opacity: 0;
+  transform: translateY(10px) scale(.975);
+}
+
+:deep(.voice-member-leave-active) {
+  pointer-events: none;
+}
+
 :deep(.voice-avatar-wrap) {
   position: relative;
   z-index: 3;
