@@ -78,7 +78,6 @@
     gap: 8px;
     min-height: 50px;
     padding: 0 14px;
-    border-bottom: 1px solid var(--wsd-border);
   }
 
   :deep(.member-server-header strong) {
@@ -120,7 +119,8 @@
     flex: 0 0 auto;
     align-items: center;
     gap: 8px;
-    padding: 10px 14px 0;
+    padding: 10px 14px 13px;
+    border-bottom: 1px solid var(--wsd-border);
   }
 
   :deep(.member-server-kind) {
@@ -859,12 +859,12 @@
   }
 
   :deep(.app-shell > .chat-panel .chat-empty) {
+    align-items: flex-start;
     min-height: 0;
     margin: 28px 0 0;
     color: var(--wsd-text-dim);
     font-size: 11px;
     line-height: 1.5;
-    text-align: center;
   }
 
   :deep(.app-shell > .chat-panel .chat-empty-icon) {
@@ -902,7 +902,7 @@
   }
 
   :deep(.app-shell > .chat-panel .send-button) {
-    color: #fff;
+    color: #142010;
     background: var(--wsd-accent);
   }
 
