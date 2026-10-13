@@ -78,7 +78,7 @@
 ## 工作区 KAAK 对齐四轮不变量（2026-10-13 真机截图实测修正拍板，`4fbf123…012e15b`；取证与细节见 history.md）
 
 - **绿双色分档**：填充类控件（共享绿条/伴奏钮/静噪快开/发送钮/chat-reopen/滑杆拇指与轨道）一律 `--wsd-accent-fill(-hover)`（日间 #69c000/#7ad50a = KAAK 亮绿，夜间与 accent 同值）；小号文字/图标/指示点保持 `--wsd-accent`（日间 #4f9e0c 深绿保白底可读）——勿把文字类消费点迁到 fill，也勿把填充类改回 accent。
-- **磁贴角标片**：mic 角标与说话波形标的底/边/字走 `--wsd-chip-bg/-border/-text`——日间 raised 浅片+描边+次级字，夜间=KAAK 原值 #111216d9/透明边/#c8c9ce；勿回退硬编码深色。
+- **磁贴角标片**：mic 角标与说话波形标的底/边/字走 `--wsd-chip-bg/-border/-text`——日间 raised 浅片+描边+次级字，夜间=KAAK 原值 #111216d9/透明边/#c8c9ce；勿回退硬编码深色。**角标选择器必须是 `.voice-card > .voice-mic-status`（直接子级前缀）**：04 号的状态行通用规则 `.voice-card > span`（0,2,1）会压过裸类规则（0,2,0），五轮破案教训。
 - **聊天列=舞台色**：≥981 聊天列背景 `--wsd-bg`（KAAK 明度关系：聊天与舞台同色、成员面板独立一档、rail 最深）；与舞台间 1px 分隔线保留。
 - **成员行右列叠放**：≥981 行为 grid 三列（22px / minmax(0,1fr) / auto），状态旗标与音量滑杆同格叠放——默认旗标、hover/focus-within 交叉淡入滑杆；触屏（hover:none）滑杆常驻旗标让位。行 min-height 29px、头像缩进与频道名对齐（padding-left 20px）勿动。
 - **头部两行制分隔线在 meta 行下**（KAAK divider 位于名称行+meta 行整体之后），勿移回名称行下。
