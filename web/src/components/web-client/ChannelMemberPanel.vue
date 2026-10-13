@@ -113,8 +113,15 @@
               :size="14"
           /></button>
         </div>
+        <!-- Fold branch: kept mounted so its single grid row can interpolate
+             between 1fr and 0fr (see .member-channel-branch). -->
         <div
-          v-if="!isFolded(channelItem.id) && channelItem.members.length"
+          class="member-channel-branch"
+          :data-expanded="isFolded(channelItem.id) ? 'false' : 'true'"
+        >
+          <div class="member-channel-branch-content">
+        <div
+          v-if="channelItem.members.length"
           class="member-list"
           data-ws-part="voice.channel-group.members"
           role="list"
@@ -237,10 +244,12 @@
           </div>
         </div>
         <div
-          v-else-if="!isFolded(channelItem.id)"
+          v-else
           class="channel-no-members"
           >{{ t("noMembersInChannel") }}</div
         >
+          </div>
+        </div>
       </section>
     </div>
     <div

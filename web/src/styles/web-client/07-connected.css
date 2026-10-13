@@ -190,6 +190,35 @@
   transform: rotate(-90deg);
 }
 
+/* Fold animation: the branch stays mounted and its single grid row
+ * interpolates 1fr -> 0fr (display:none cannot transition), with a short
+ * fade/offset so collapsed members read as leaving rather than snapping. */
+:deep(.member-channel-branch) {
+  display: grid;
+  grid-template-rows: 1fr;
+  min-width: 0;
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  transition: grid-template-rows .15s ease, opacity .14s ease, transform .15s ease, visibility 0s;
+}
+
+:deep(.member-channel-branch[data-expanded="false"]) {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(-2px);
+  visibility: hidden;
+  transition: grid-template-rows .15s ease, opacity .14s ease, transform .15s ease, visibility 0s linear .15s;
+}
+
+:deep(.member-channel-branch-content) {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
 :deep(.member-channel-group.current .member-channel-heading small) {
   color: #4d9a92;
 }
