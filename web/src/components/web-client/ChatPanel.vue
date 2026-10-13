@@ -4,6 +4,23 @@
     data-ws-part="voice.chat"
   >
     <div
+      class="chat-conversation-heading"
+      data-ws-part="voice.chat.title-row"
+    >
+      <strong class="chat-conversation-title">{{ chatTabLabel }}</strong>
+      <button
+        v-if="collapsible"
+        type="button"
+        class="chat-collapse"
+        data-ws-part="voice.chat.collapse"
+        :title="t('closeChat')"
+        :aria-label="t('closeChat')"
+        @click="emit('collapse')"
+      ><Icon
+          name="close"
+          :size="14" /></button>
+    </div>
+    <div
       class="chat-tabs"
       data-ws-part="voice.chat.tabs"
       role="tablist"
@@ -94,19 +111,7 @@
         chatTab === "events"
           ? t("eventCount", { count: serverEvents.length })
           : t("messageCount", { count: visibleChatMessages.length })
-      }}</span
-      ><button
-        v-if="collapsible"
-        type="button"
-        class="chat-collapse"
-        data-ws-part="voice.chat.collapse"
-        :title="t('closeChat')"
-        :aria-label="t('closeChat')"
-        @click="emit('collapse')"
-      ><Icon
-          name="close"
-          :size="15"
-      /></button></div
+      }}</span></div
     >
     <div
       ref="chatListEl"

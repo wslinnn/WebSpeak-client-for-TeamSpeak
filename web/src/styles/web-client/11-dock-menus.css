@@ -537,6 +537,11 @@
   }
 }
 
+/* The outer conversation title row is ≥981 docked-column furniture. */
+:deep(.chat-conversation-heading) {
+  display: none;
+}
+
 :deep(.chat-tabs) {
   display: flex;
   align-items: center;

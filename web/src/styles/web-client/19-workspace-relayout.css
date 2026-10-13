@@ -737,75 +737,157 @@
     color: var(--wsd-text);
   }
 
-  /* Chat column */
-  :deep(.chat-tabs) {
-    margin-top: 12px;
+  /* Chat column: KAAK conversation — outer title row, bordered tabs, 48px
+   * heading with the kicker hidden, message stream, in-flow composer. */
+  :deep(.app-shell > .chat-panel .chat-conversation-heading) {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 9px;
+    min-height: 50px;
     padding: 0 14px;
+    border-bottom: 1px solid var(--wsd-border);
   }
 
-  :deep(.chat-tabs button) {
+  :deep(.app-shell > .chat-panel .chat-conversation-title) {
+    flex: 1 1 auto;
+    overflow: hidden;
+    color: var(--wsd-text);
+    font-size: 14px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :deep(.app-shell > .chat-panel .chat-tabs) {
+    flex: 0 0 auto;
+    margin: 0 14px 5px;
+    padding: 0 0 8px;
+    border-bottom: 1px solid var(--wsd-border);
+  }
+
+  :deep(.app-shell > .chat-panel .chat-tabs button) {
     color: var(--wsd-text-muted);
     background: transparent;
     border-color: var(--wsd-border);
   }
 
-  :deep(.chat-tabs button:hover) {
+  :deep(.app-shell > .chat-panel .chat-tabs button:hover) {
     color: var(--wsd-text);
     background: var(--wsd-hover);
   }
 
-  :deep(.chat-tabs button.active) {
+  :deep(.app-shell > .chat-panel .chat-tabs button.active) {
     color: var(--wsd-text);
     background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-raised));
     border-color: color-mix(in srgb, var(--wsd-accent) 33%, transparent);
   }
 
-  :deep(.chat-heading h2) {
-    color: var(--wsd-text);
+  :deep(.app-shell > .chat-panel .chat-heading) {
+    min-height: 48px;
+    padding: 7px 14px 9px;
   }
 
-  :deep(.message-meta strong) {
+  :deep(.app-shell > .chat-panel .chat-heading .section-kicker) {
+    display: none;
+  }
+
+  :deep(.app-shell > .chat-panel .chat-heading h2) {
+    color: var(--wsd-text);
+    font-size: 14px;
+  }
+
+  :deep(.app-shell > .chat-panel .chat-heading h2 .ui-icon) {
+    color: var(--wsd-accent);
+  }
+
+  :deep(.app-shell > .chat-panel .section-counter) {
+    margin-left: auto;
+    color: var(--wsd-text-dim);
+    font-size: 10px;
+  }
+
+  :deep(.app-shell > .chat-panel .message-list) {
+    flex: 1 1 auto;
+    gap: 17px;
+    min-height: 0;
+    max-height: none;
+    padding: 15px 14px 14px;
+  }
+
+  :deep(.app-shell > .chat-panel .message-row) {
+    max-width: none;
+  }
+
+  :deep(.app-shell > .chat-panel .message-meta) {
+    min-height: 20px;
+    margin: 0 0 2px;
+  }
+
+  :deep(.app-shell > .chat-panel .message-meta strong) {
     color: var(--wsd-text-muted);
   }
 
-  :deep(.message-meta time),
-  :deep(.event-row time) {
+  :deep(.app-shell > .chat-panel .message-meta time),
+  :deep(.app-shell > .chat-panel .event-row time) {
     color: var(--wsd-text-dim);
   }
 
-  :deep(.chat-empty) {
+  :deep(.app-shell > .chat-panel .event-row) {
     color: var(--wsd-text-muted);
   }
 
-  :deep(.chat-empty strong) {
-    color: var(--wsd-text);
+  :deep(.app-shell > .chat-panel .chat-empty) {
+    min-height: 0;
+    margin: 28px 0 0;
+    color: var(--wsd-text-dim);
+    font-size: 11px;
+    line-height: 1.5;
+    text-align: center;
   }
 
-  :deep(.event-row) {
+  :deep(.app-shell > .chat-panel .chat-empty-icon) {
+    display: none;
+  }
+
+  :deep(.app-shell > .chat-panel .chat-empty strong) {
+    display: block;
     color: var(--wsd-text-muted);
+    font-size: 12px;
   }
 
-  :deep(.message-composer) {
+  :deep(.app-shell > .chat-panel .chat-empty span) {
+    margin-top: 4px;
+    font-size: 11px;
+  }
+
+  :deep(.app-shell > .chat-panel .message-composer) {
+    position: static;
+    flex: 0 0 auto;
+    margin-top: 8px;
     color: var(--wsd-text);
     background: var(--wsd-raised);
     border: 1px solid var(--wsd-border);
+    border-radius: 9px;
   }
 
-  :deep(.message-composer textarea) {
+  :deep(.app-shell > .chat-panel .message-composer textarea) {
     color: var(--wsd-text);
     background: transparent;
   }
 
-  :deep(.message-composer textarea::placeholder) {
+  :deep(.app-shell > .chat-panel .message-composer textarea::placeholder) {
     color: var(--wsd-text-dim);
   }
 
-  :deep(.send-button) {
+  :deep(.app-shell > .chat-panel .send-button) {
     color: #fff;
     background: var(--wsd-accent);
   }
 
-  :deep(.chat-status) {
+  :deep(.app-shell > .chat-panel .chat-status) {
+    flex: 0 0 auto;
+    margin: 5px 14px 0;
     color: var(--wsd-text-dim);
   }
 }
