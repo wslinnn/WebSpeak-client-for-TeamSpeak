@@ -7,7 +7,7 @@
     <button
       type="button"
       class="performance-trigger"
-      :title="t('voiceStatus')"
+      :title="transport !== 'disconnected' ? t('voiceStatus') + ' · ' + transportLabel : t('voiceStatus')"
       :aria-label="t('voiceStatus')"
       :aria-expanded="performancePanelOpen"
       @click.stop="togglePerformancePanel"

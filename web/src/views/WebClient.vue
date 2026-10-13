@@ -474,6 +474,16 @@
           data-ws-part="voice.header"
         >
           <div
+            v-if="chatColumnActive"
+            class="room-bar"
+            ><Icon
+              name="volume"
+              :size="16"
+            /><strong>{{ currentChannelName }}</strong
+            ><span>- {{ t("onlineShort", { count: currentMembers.length }) }}</span></div
+          >
+          <div
+            v-if="!chatColumnActive"
             class="breadcrumbs"
             data-ws-part="voice.breadcrumbs"
             ><span class="mobile-brand">TeamSpeak <em>Web</em></span
@@ -557,6 +567,7 @@
                 aria-hidden="true"
               ></div>
               <div
+                v-if="!chatColumnActive"
                 class="section-heading"
                 data-ws-part="voice.activity-heading"
                 ><div
