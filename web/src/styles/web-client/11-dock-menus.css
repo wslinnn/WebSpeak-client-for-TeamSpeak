@@ -409,37 +409,38 @@
   position: fixed;
   z-index: var(--ws-z-menu);
   display: grid;
-  min-width: 188px;
+  min-width: 236px;
   gap: 3px;
   padding: 8px;
-  background: #fff;
-  border: 1px solid #e0eae6;
-  border-radius: 10px;
-  box-shadow: 0 14px 35px rgba(20, 50, 44, .16);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
+  border-radius: 11px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, .18);
 }
 
 :deep(.member-context-menu strong) {
   padding: 4px 8px 7px;
-  color: #2a3934;
-  font-size: 12px;
+  color: var(--wsd-text);
+  font-size: 13px;
 }
 
 :deep(.member-context-menu button) {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px;
-  color: #52625c;
+  min-height: 34px;
+  padding: 7px 9px;
+  color: var(--wsd-text-muted);
   background: transparent;
   border-radius: 6px;
-  font-size: 11px;
+  font-size: 12px;
   text-align: left;
   cursor: pointer;
 }
 
 :deep(.member-context-menu button:hover) {
-  color: #006a64;
-  background: #edf6f3;
+  color: var(--wsd-text);
+  background: var(--wsd-hover);
 }
 
 :deep(.member-menu-submenu) {
@@ -465,10 +466,10 @@
   gap: 3px;
   padding: 8px;
   overflow-y: auto;
-  background: #fff;
-  border: 1px solid #e0eae6;
-  border-radius: 10px;
-  box-shadow: 0 14px 35px rgba(20, 50, 44, .16);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
+  border-radius: 11px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, .18);
 }
 
 :deep(.member-submenu-panel button) {
@@ -490,7 +491,7 @@
 
 :deep(.member-submenu-panel button small) {
   margin-left: auto;
-  color: #83928c;
+  color: var(--wsd-text-dim);
   font-size: 10px;
   white-space: nowrap;
 }
@@ -498,21 +499,22 @@
 :deep(.member-submenu-empty) {
   display: block;
   padding: 8px;
-  color: #83928c;
+  color: var(--wsd-text-dim);
   font-size: 11px;
 }
 
 :deep(.menu-volume) {
   display: grid;
   gap: 6px;
-  padding: 4px 8px 8px;
-  color: #71817c;
+  padding: 8px;
+  color: var(--wsd-text-muted);
+  border-block: 1px solid var(--wsd-border);
   font-size: 10px;
 }
 
 :deep(.menu-volume-value) {
   justify-self: end;
-  color: #4b5a55;
+  color: var(--wsd-text);
   font-variant-numeric: tabular-nums;
 }
 

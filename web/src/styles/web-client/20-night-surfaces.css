@@ -133,29 +133,3 @@
 .web-client[data-ws-skin="builtin.dark"] :deep(.message-composer :is(input, textarea)::placeholder) {
   color: var(--wsd-text-dim);
 }
-
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-context-menu),
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-submenu-panel) {
-  color: var(--wsd-text);
-  background: var(--wsd-panel);
-  border-color: var(--wsd-border);
-  box-shadow: 0 18px 42px rgba(0, 0, 0, .38);
-}
-
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-context-menu strong) {
-  color: var(--wsd-text);
-}
-
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-context-menu button) {
-  color: var(--wsd-text-muted);
-}
-
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-context-menu button:hover) {
-  color: var(--wsd-text);
-  background: var(--wsd-hover);
-}
-
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-submenu-panel button small),
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-submenu-empty) {
-  color: var(--wsd-text-dim);
-}

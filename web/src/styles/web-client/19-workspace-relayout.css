@@ -31,34 +31,34 @@
     display: grid;
     flex: 0 0 auto;
     place-items: center;
-    width: 56px;
-    height: 56px;
+    width: 58px;
+    height: 58px;
     margin-top: auto;
   }
 
   .rail-identity-avatar {
     display: grid;
     place-items: center;
-    width: 46px;
-    height: 46px;
+    width: 54px;
+    height: 54px;
     overflow: hidden;
     color: var(--wsd-text);
     background: var(--wsd-raised);
     border: 1px solid var(--wsd-border);
     border-radius: 50%;
-    font-size: 16px;
-    font-weight: 800;
+    font-size: 17px;
+    font-weight: 700;
     line-height: 1;
     text-transform: uppercase;
   }
 
   .rail-identity-presence {
     position: absolute;
-    right: 3px;
-    bottom: 3px;
-    width: 12px;
-    height: 12px;
-    border: 2px solid var(--wsd-rail);
+    right: 0;
+    bottom: 0;
+    width: 17px;
+    height: 17px;
+    border: 3px solid var(--wsd-rail);
     border-radius: 50%;
     background: var(--wsd-accent);
   }
@@ -292,14 +292,20 @@
   }
 
   .chat-reopen {
-    color: var(--wsd-text-muted);
-    background: transparent;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    color: #102016;
+    background: var(--wsd-accent);
+    border-radius: 9px;
   }
 
   .chat-reopen:hover,
   .chat-reopen:focus-visible {
-    color: var(--wsd-text);
-    background: var(--wsd-hover);
+    color: #102016;
+    background: var(--wsd-accent-hover);
   }
 
   /* Performance trigger collapses to a round icon button; the transport
