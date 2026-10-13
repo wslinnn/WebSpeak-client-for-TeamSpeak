@@ -45,8 +45,16 @@
       class="member-server-welcome"
       data-ws-part="voice.server-welcome"
     >
-      <strong>{{ t("serverWelcome") }}</strong>
-      <p>{{ welcomeMessage }}</p>
+      <span
+        class="member-server-welcome-icon"
+        aria-hidden="true"
+        ><Icon
+          name="message"
+          :size="13" /></span>
+      <div>
+        <strong>{{ t("serverWelcome") }}</strong>
+        <p>{{ welcomeMessage }}</p>
+      </div>
     </div>
     <div
       class="member-panel-heading"
@@ -194,7 +202,9 @@
               data-ws-part="voice.member-row.copy"
               ><strong
                 v-if="member.isSelf"
-                >{{ memberDisplayName(member) }}</strong
+                >{{ member.nickname }}<em
+                  class="member-self-tag"
+                >{{ t("you") }}</em></strong
               ><button
                 v-else
                 type="button"

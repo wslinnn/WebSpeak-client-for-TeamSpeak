@@ -167,31 +167,43 @@
   }
 
   :deep(.member-server-welcome) {
+    display: flex;
     flex: 0 0 auto;
-    margin: 12px 12px 0;
-    padding: 10px 12px;
+    align-items: flex-start;
+    gap: 9px;
+    margin: 15px 16px 13px;
+    padding: 11px 12px;
     background: var(--wsd-raised);
     border: 1px solid var(--wsd-border);
-    border-left: 3px solid var(--wsd-accent);
-    border-radius: 10px;
+    border-radius: 11px;
+  }
+
+  :deep(.member-server-welcome-icon) {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    color: var(--wsd-accent);
+    background: var(--wsd-accent-soft);
+    border-radius: 7px;
   }
 
   :deep(.member-server-welcome strong) {
     display: block;
-    margin-bottom: 4px;
-    color: var(--wsd-text-muted);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: .04em;
+    margin-bottom: 3px;
+    color: var(--wsd-text);
+    font-size: 12px;
+    font-weight: 750;
   }
 
   :deep(.member-server-welcome p) {
     max-height: 96px;
     margin: 0;
     overflow-y: auto;
-    color: var(--wsd-text);
-    font-size: 12px;
-    line-height: 1.6;
+    color: var(--wsd-text-muted);
+    font-size: 11px;
+    line-height: 1.55;
     overflow-wrap: anywhere;
     white-space: pre-wrap;
   }
@@ -540,6 +552,14 @@
   :deep(.member-name-button) {
     color: var(--wsd-text);
     font-size: 12px;
+  }
+
+  :deep(.member-self-tag) {
+    margin-left: 5px;
+    color: var(--wsd-accent);
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 700;
   }
 
   :deep(.member-copy span) {
