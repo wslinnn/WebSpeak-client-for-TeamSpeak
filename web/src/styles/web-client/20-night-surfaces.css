@@ -26,7 +26,7 @@
 }
 
 .web-client[data-ws-skin="builtin.dark"] :deep(.voice-card) {
-  background: var(--wsd-raised);
+  background: var(--wsd-bg);
   border-color: var(--wsd-border);
   box-shadow: none;
 }

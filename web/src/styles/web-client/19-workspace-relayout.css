@@ -466,15 +466,98 @@
     color: var(--wsd-text-dim);
   }
 
+  /* Participant tiles: wide 1.82:1 cards sharing the stage backdrop. */
+  :deep(.app-shell .voice-grid) {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    align-content: center;
+    justify-content: center;
+    justify-items: center;
+    align-items: center;
+    min-height: 100%;
+    margin-top: 0;
+    padding: 14px 0 16px;
+  }
+
   :deep(.voice-card) {
-    background: var(--wsd-raised);
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    width: 100%;
+    max-width: 480px;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    background: var(--wsd-bg);
     border-color: var(--wsd-border);
+    border-radius: 6px;
+    box-shadow: none;
+    text-align: left;
+    transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease;
+  }
+
+  :deep(.voice-card:hover) {
+    z-index: 3;
+    transform: none;
+    background: var(--wsd-hover);
     box-shadow: none;
   }
 
   :deep(.voice-card.speaking) {
-    border-color: var(--wsd-accent);
-    box-shadow: 0 0 12px var(--wsd-accent-soft);
+    border-color: color-mix(in srgb, var(--wsd-accent) 53%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--wsd-accent) 13%, transparent);
+  }
+
+  :deep(.voice-avatar-wrap) {
+    z-index: 0;
+    display: grid;
+    place-items: center;
+    grid-row: 1;
+    width: 100%;
+    min-height: 0;
+    margin: 0 0 6px;
+    padding: 10px;
+  }
+
+  :deep(.voice-avatar-wrap)::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 0;
+    display: none;
+    width: 116px;
+    height: 116px;
+    border: 2px solid color-mix(in srgb, var(--wsd-accent) 53%, transparent);
+    border-radius: 50%;
+    content: "";
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+
+  :deep(.voice-card.speaking .voice-avatar-wrap)::after {
+    display: block;
+    animation: voice-speaking-ring 1.08s cubic-bezier(.2, .6, .35, 1) infinite;
+  }
+
+  :deep(.voice-avatar) {
+    width: 104px;
+    height: 104px;
+    font-size: 34px;
+    box-shadow: 0 0 0 4px var(--wsd-border);
+    transition: box-shadow .2s ease;
+  }
+
+  :deep(.voice-avatar.speaking) {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--wsd-accent) 67%, transparent), 0 0 18px color-mix(in srgb, var(--wsd-accent) 33%, transparent);
+  }
+
+  :deep(.app-shell .voice-card > strong) {
+    padding: 0 13px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  :deep(.app-shell .voice-card > span) {
+    margin-top: 0;
+    padding: 0 13px 12px;
   }
 
   :deep(.voice-empty) {
@@ -567,4 +650,9 @@
   :deep(.chat-status) {
     color: var(--wsd-text-dim);
   }
+}
+
+@keyframes voice-speaking-ring {
+  0% { opacity: .72; transform: translate(-50%, -50%) scale(.84); }
+  82%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.2); }
 }
