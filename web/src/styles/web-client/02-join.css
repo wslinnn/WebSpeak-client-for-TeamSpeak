@@ -334,7 +334,7 @@
 :deep(.field-wrap:focus-within) {
   color: #006a64;
   background: #fff;
-  box-shadow: 0 0 0 2px #81d8d0;
+  box-shadow: 0 0 0 2px rgba(0, 106, 100, .35);
 }
 
 :deep(.field-wrap input) {

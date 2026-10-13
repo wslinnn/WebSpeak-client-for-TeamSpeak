@@ -236,8 +236,8 @@
 }
 
 :deep(.settings-select:focus) {
-  border-color: #81d8d0;
-  box-shadow: 0 0 0 2px rgba(129,216,208,.2);
+  border-color: var(--wsd-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--wsd-accent) 20%, transparent);
 }
 
 :deep(.settings-select:disabled) {

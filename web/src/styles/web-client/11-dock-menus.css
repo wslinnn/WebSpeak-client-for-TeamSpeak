@@ -550,19 +550,19 @@
 }
 
 :deep(.menu-volume input::-webkit-slider-thumb) {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   appearance: none;
-  border: 2px solid #81d8d0;
+  border: 2px solid var(--wsd-accent);
   border-radius: 50%;
   background: #fff;
   cursor: pointer;
 }
 
 :deep(.menu-volume input::-moz-range-thumb) {
-  width: 14px;
-  height: 14px;
-  border: 2px solid #81d8d0;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--wsd-accent);
   border-radius: 50%;
   background: #fff;
   cursor: pointer;
