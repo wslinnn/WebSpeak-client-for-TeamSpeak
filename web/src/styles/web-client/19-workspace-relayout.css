@@ -262,17 +262,6 @@
     background: var(--wsd-hover);
   }
 
-  .disconnect-button {
-    color: var(--wsd-danger);
-    background: transparent;
-    border: 1px solid color-mix(in srgb, var(--wsd-danger) 45%, transparent);
-  }
-
-  .disconnect-button:hover {
-    color: #fff;
-    background: var(--wsd-danger);
-  }
-
   :deep(.performance-trigger) {
     color: var(--wsd-text);
     background: var(--wsd-raised);
@@ -434,12 +423,51 @@
     color: var(--wsd-text-dim);
   }
 
-  :deep(.desktop-audio-dock-copy strong) {
-    color: var(--wsd-text);
+  /* Dock heading: live dot + channel name + the round power button. */
+  :deep(.desktop-audio-dock-heading) {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    min-height: 22px;
   }
 
-  :deep(.desktop-audio-dock-copy span) {
-    color: var(--wsd-text-dim);
+  :deep(.desktop-audio-dock-dot) {
+    flex: 0 0 8px;
+    width: 8px;
+    height: 8px;
+    background: var(--wsd-accent);
+    border-radius: 50%;
+  }
+
+  :deep(.desktop-audio-dock-heading strong) {
+    flex: 1 1 auto;
+    overflow: hidden;
+    color: var(--wsd-text);
+    font-size: 13px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :deep(.desktop-audio-dock-power) {
+    display: grid;
+    flex: 0 0 25px;
+    place-items: center;
+    width: 25px;
+    height: 25px;
+    padding: 0;
+    color: #ff4c49;
+    background: transparent;
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  :deep(.desktop-audio-dock-power:hover),
+  :deep(.desktop-audio-dock-power:focus-visible) {
+    background: color-mix(in srgb, #ff4c49 16%, transparent);
   }
 
   /* Stage */

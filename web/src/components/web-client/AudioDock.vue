@@ -5,12 +5,19 @@
     role="toolbar"
     :aria-label="t('desktopAudioControls')"
   >
-    <div class="desktop-audio-dock-copy"
-      ><strong>{{ t("desktopAudioControls") }}</strong
-      ><span>{{
-        accompanimentActive ? t("accompanimentActive") : t("desktopAudioHint")
-      }}</span></div
-    >
+    <div class="desktop-audio-dock-heading">
+      <i class="desktop-audio-dock-dot"></i>
+      <strong>{{ channelName }}</strong>
+      <button
+        type="button"
+        class="desktop-audio-dock-power"
+        :aria-label="t('exit')"
+        :title="t('exit')"
+        @click="emit('disconnect')"
+        ><Icon
+          name="door"
+          :size="13" /></button>
+    </div>
     <div class="desktop-audio-dock-actions">
       <div
         class="dock-hover-control"
@@ -161,10 +168,11 @@ const props = defineProps<{
   controls: Pick<ReturnType<typeof useWebClientAudioControls>, "toggleMicrophone" | "onInputVolume" | "onOutputVolume" | "onNoiseSuppressionToggle" | "onEchoCancellationToggle" | "onAutoGainControlToggle" | "toggleAccompaniment">;
   t: (key: string) => string;
   rangeStyle: (value: number, max: number) => Record<string, string>;
+  channelName: string;
 }>();
 const { microphoneMuted, inputVolume, outputVolume, outputMuted, noiseSuppressionEnabled, echoCancellationEnabled, autoGainControlEnabled, accompanimentActive, micLevel } = props.model;
 const { toggleMicrophone, onInputVolume, onOutputVolume, onNoiseSuppressionToggle, onEchoCancellationToggle, onAutoGainControlToggle, toggleAccompaniment } = props.controls;
-const emit = defineEmits<{ settings: []; outputMute: [] }>();
+const emit = defineEmits<{ settings: []; outputMute: []; disconnect: [] }>();
 // The dock is the "am I being heard" surface: while muted, pin the meter to
 // zero so a moving bar can never suggest the room can hear the user. The raw
 // capture level stays available in the settings dialog for diagnostics.

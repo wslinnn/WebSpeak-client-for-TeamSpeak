@@ -236,30 +236,6 @@
   box-shadow: none;
 }
 
-:deep(.desktop-audio-dock-copy) {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-  gap: 3px;
-}
-
-:deep(.desktop-audio-dock-copy strong) {
-  overflow: hidden;
-  color: var(--text-primary);
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-:deep(.desktop-audio-dock-copy span) {
-  overflow: hidden;
-  font-size: 10px;
-  line-height: 1.35;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 :deep(.desktop-audio-dock-actions) {
   display: flex;
   align-items: center;

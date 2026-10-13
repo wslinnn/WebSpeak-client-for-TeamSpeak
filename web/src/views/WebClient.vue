@@ -525,15 +525,7 @@
                 name="message"
                 :size="17"
             /></button>
-            <button
-              class="disconnect-button"
-              :aria-label="t('exit')"
-              @click="leaveVoiceWorkspace"
-              ><Icon
-                name="door"
-                :size="17"
-              /><span>{{ t("exit") }}</span></button
-            >
+
           </div>
         </header>
 
@@ -724,8 +716,10 @@
           :controls="audioControls"
           :t="t"
           :range-style="rangeStyle"
+          :channel-name="currentChannelName"
           @settings="settingsOpen = true"
           @output-mute="toggleOutputMute"
+          @disconnect="leaveVoiceWorkspace"
         />
       </ChannelMemberPanel>
 
