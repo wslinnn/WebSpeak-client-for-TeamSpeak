@@ -51,3 +51,19 @@
 ## 待拍板
 
 - 上游式「复制服务器/频道链接」（?server=&channel=）是否补回（默认不做，做则放 more 面板守住 header 图标数）。
+
+## 已拍板待实施（工作区 KAAK 对齐二轮，2026-10-13 用户逐项选择）
+
+差距证据与行号：`reports/17-kaak对齐差距清单.md`；上游参照源码：`D:\develop\project\tsweb\tmp-kaak\`（skin.css 4501 行）。用户拍板结论：
+
+1. **退出断电钮移入语音坞**（KAAK skin.css:3541-3562：坞头部=8px 绿点+频道名 13px/650+25px `#ff4c49` 电源圆钮）；顶栏退出钮删除。
+2. **皮肤/语言切换器移入服务器栏**：两块 58px 瓦片置于收藏列表与身份牌之间（KAAK :659-673），点开仍是现有面板；顶栏移除。注意：切到暗色下的亮面是 skin-pack 测试钉住的，迁移时保留面板本体亮面。
+3. **舞台顶部改 KAAK room bar**（46px 细条：灰 glyph+频道名 14px/700+"- n 在线"12px，skin.css:1529-1568），删除「语音动态/正在发言」heading；语音状态触发器改 32px 圆形图标钮迁入 room bar。
+4. **TS host banner 图暂不做**，欢迎卡维持纯文字（CSP img-src 仅 self/blob，外链需网关代理或放 CSP，价值低）。
+5. **频道加入改「单击选中+双击加入」**+选中行「双击加入」hint（KAAK :1132）——用户明确选择改变自用单击习惯。
+6. **磁贴 104px 大头像但名字常驻**（不采纳 KAAK「聊天展开时隐藏名字、hover 上浮」）。
+7. **成员行内音量滑条保留**（不收进右键菜单）。
+8. **聊天整组对齐 KAAK 降噪流**：去气泡、自己消息左对齐、作者 11px/600 muted、时间 10px、正文 13px/1.55。
+9. **音频设置只对齐排印与容器**（标题 32px/600、标签 10px→14px/400、内层 660px 卡、backdrop 加深、select 40px radius 12），保留自由流行布局，不做两列 72px 行制。
+
+实施顺序（每步 verify+commit）：①**P0 级联修复**——builtin light/dark skin.css 里四栏工作区已迁移选择器（app-shell/workspace/workspace-header/member-panel/voice-card/message-bubble/member-row:hover/member-channel-group.current/member-context-menu/breadcrumbs/voice-card.speaking/滚动条色）`:where()` 化或删除，否则皮肤以 0,3,0+后置注入压过 19 分片全部 wsd 值（证据见报告 17 §0）；②纯样式 P0 组：`.web-client` 挂 `font-family:var(--wsd-font)`（现零消费）、聊天折叠改「第 4 列到 0+舞台 3/5+淡出」、磁贴 1.82:1+auto-fit 300px+104px 头像+脉冲说话环、服务器瓦片 58px/2px 绿描边/左缘标 4×34、语音坞 282px 居中浮卡、四处 `#81d8d0` teal 滑条拇指换绿、密码框紧凑化+`primary-button` 硬编码 `#006a64` 修复；③拍板功能项①-⑨；④P1/P2 细节（报告 17 各表）。夜间表面明度关系对齐 KAAK：舞台/聊天(#26272b 系)要比频道面板(#1d1e22 系)亮、rail 最暗。

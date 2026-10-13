@@ -36,6 +36,7 @@
 
 ## 遗留与待复测
 
+- **KAAK 对齐二轮待实施（2026-10-13 拍板完毕，compact 后动手）**：9 项用户逐项拍板（退出钮进坞、切换器进服务器栏瓦片、舞台改 room bar、banner 暂缓、**单击选中+双击加入**、磁贴名字常驻、滑条留行内、聊天整组降噪流、音频设置只对齐排印容器）与实施顺序（级联修复→纯样式 P0→拍板项→P1/P2）全部记在 decisions.md「已拍板待实施」节；差距行号证据在 `reports/17-kaak对齐差距清单.md`（§0 皮肤压制 wsd 级联问题已主会话复核成立）。**第一刀必须是级联修复**。上游参照源码在 `D:\develop\project\tsweb\tmp-kaak\`（保留勿删）。当前本地提交栈 `36bdb8a…e93cf92`（含四栏布局第一批 7 笔）全部 verify 绿、**未推送**，推送等用户放行；沙箱目检手法=临时补丁强制 `voiceShellVisible` 用完即还原（详见下方批次条目）。
 - **工作区四栏布局待真机复测（2026-10-13 `6e061e7…2b01819` 未推送）**：连真实 TS 服务器后——服务器名行显示真实名（serverinfo 受限时回落收藏名）、欢迎卡（有欢迎语的服务器）绿左条卡片且纯文本换行正常；折叠聊天（持久化、恢复钮）与列宽动画；成员右键菜单/音量滑条百分比/拖拽换频道在频道面板新行高下的命中；磁贴说话光环；白天模式 accent 加深后的徽标/发送钮观感；741-980 与移动端确认零回归；ILLUSIA/自定义皮肤在新几何下的表现（预期不保证，看是否需要跟进适配）。
 - **SkinSwitcher 下拉无任何钳制（同类溢出隐患待修）**：`skin-dropdown` 是裸 absolute right:0（SkinSwitcher.vue:128），placeDropdown 模式只在 LanguageSwitcher——移动端「更多」面板（overflow:hidden）里就有 mobile-skin-switcher，皮肤下拉（5 项 ≈200px 高）在面板底部/手机小屏大概率被裁；首页头部窄屏也值得查。修法：把 LanguageSwitcher 的 placeDropdown+collectClipAncestors 抽成共享 composable 两处复用。
 - **首页瘦身待复测（2026-10-12 `e4a1e43` 已推送）**：桌面首页 hero（现只有标题+描述）与五语新文案观感；移动端首页只显登录卡片、hero 不再占位；暗色皮肤下 header/hero 颜色正常（暗皮肤删了 eyebrow/promise 选择器）；加载一个旧版带 features 的 .wskin 应被拒且报错文案可读（预期行为）。
