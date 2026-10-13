@@ -599,6 +599,7 @@
     grid-template-rows: minmax(0, 1fr) auto auto;
     width: 100%;
     max-width: 480px;
+    aspect-ratio: 1.82;
     min-height: 0;
     padding: 0;
     overflow: hidden;
