@@ -57,6 +57,7 @@
           'member-channel-group',
           {
             current: currentChannelId === channelItem.id,
+            selected: selectedChannelId === channelItem.id,
             'drag-over': dragOverChannelId === channelItem.id,
             folded: isFolded(channelItem.id),
           },
@@ -85,7 +86,9 @@
             :data-ws-state="channelItem.id === currentChannelId ? 'current' : 'idle'"
             :aria-current="channelItem.id === currentChannelId ? 'true' : undefined"
             :title="t('switchChannel')"
-            @click="emit('selectChannel', channelItem)"
+            @click="selectedChannelId = channelItem.id"
+            @dblclick="emit('selectChannel', channelItem)"
+            @keydown.enter.prevent="emit('selectChannel', channelItem)"
           >
             <Icon
               name="volume"
@@ -93,6 +96,10 @@
             />
             <span>{{ channelItem.name }}</span>
             <small>{{ channelItem.members.length }}</small>
+            <em
+              v-if="selectedChannelId === channelItem.id && channelItem.id !== currentChannelId"
+              class="member-channel-join-hint"
+            >{{ t("doubleClickToJoin") }}</em>
           </button>
           <button
             type="button"
@@ -246,7 +253,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, type CSSProperties } from "vue";
+import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import Icon from "../Icon.vue";
 import type { TreeChannel } from "../../composables/useWebClientChannels.js";
 import type { useWebClientMembers } from "../../composables/useWebClientMembers.js";
@@ -286,6 +293,13 @@ const emit = defineEmits<{
   toggleFold: [channelId: string];
   volumeInput: [clientId: number, event: Event];
 }>();
+
+// KAAK-style join interaction: a single click selects the channel, a double
+// click (or Enter) commits the move. Selection clears once the move lands.
+const selectedChannelId = ref<string | null>(null);
+watch(() => props.currentChannelId, () => {
+  selectedChannelId.value = null;
+});
 
 // Searching targets people, not structure: the fold memory is ignored while
 // a query is active so every match stays visible.

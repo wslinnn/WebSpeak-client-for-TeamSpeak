@@ -163,6 +163,7 @@ export const de: Record<string, string> = {
   serverPasswordRetry: "Passwort eingeben und erneut versuchen",
   serverPasswordRetryPlaceholder: "Serverpasswort eingeben",
   switchChannel: "Kanal wechseln",
+  doubleClickToJoin: "Doppelklick zum Beitreten",
   collapseChannel: "Kanalmitglieder einklappen",
   expandChannel: "Kanalmitglieder ausklappen",
   websocket: "WebSocket",

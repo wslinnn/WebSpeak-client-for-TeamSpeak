@@ -229,6 +229,7 @@ export const ja: Record<string, string> = {
   serverPasswordRetry: "パスワードを入力して再試行",
   serverPasswordRetryPlaceholder: "サーバーパスワードを入力",
   switchChannel: "チャンネルを切り替え",
+  doubleClickToJoin: "ダブルクリックで参加",
   collapseChannel: "チャンネルのメンバーを折りたたむ",
   expandChannel: "チャンネルのメンバーを展開",
   websocket: "WebSocket",

@@ -233,6 +233,7 @@ export const ru: Record<string, string> = {
   serverPasswordRetry: "Введите пароль и повторите",
   serverPasswordRetryPlaceholder: "Пароль сервера",
   switchChannel: "Сменить канал",
+  doubleClickToJoin: "Двойной клик для входа",
   collapseChannel: "Свернуть участников канала",
   expandChannel: "Развернуть участников канала",
   websocket: "WebSocket",

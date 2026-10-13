@@ -373,6 +373,20 @@
     color: var(--wsd-text-dim);
   }
 
+  :deep(.member-channel-group.selected .member-channel-heading) {
+    background: var(--wsd-hover);
+  }
+
+  :deep(.member-channel-join-hint) {
+    flex: 0 0 auto;
+    margin-left: 6px;
+    color: var(--wsd-accent);
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
   :deep(.member-channel-fold) {
     color: var(--wsd-text-dim);
   }
