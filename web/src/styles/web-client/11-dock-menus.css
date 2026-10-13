@@ -640,8 +640,7 @@
 
 :deep(.member-row:hover),
 :deep(.member-row:focus-within) {
-  background: #edf7f4;
-  box-shadow: 0 4px 12px rgba(20, 58, 51, .07);
+  background: var(--wsd-hover);
 }
 
 :deep(.member-context-menu) {

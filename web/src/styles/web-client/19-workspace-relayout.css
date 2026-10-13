@@ -529,9 +529,42 @@
   }
 
   :deep(.member-row) {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) auto;
     min-height: 29px;
     padding: 2px 10px 2px 20px;
     border-radius: 5px;
+  }
+
+  /* KAAK rows carry no inline volume: the nickname keeps the full width and
+   * the slider lives in the same right-hand cell as the state flags,
+   * crossfading in on hover and keyboard focus. */
+  :deep(.member-row .member-flags),
+  :deep(.member-row .member-volume) {
+    grid-row: 1;
+    grid-column: 3;
+    align-self: center;
+  }
+
+  :deep(.member-row .member-flags) {
+    transition: opacity .14s ease;
+  }
+
+  :deep(.member-row .member-volume) {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .14s ease;
+  }
+
+  :deep(.member-row:hover .member-flags),
+  :deep(.member-row:focus-within .member-flags) {
+    opacity: 0;
+  }
+
+  :deep(.member-row:hover .member-volume),
+  :deep(.member-row:focus-within .member-volume) {
+    opacity: 1;
+    pointer-events: auto;
   }
 
   :deep(.member-avatar) {
@@ -924,4 +957,17 @@
 @keyframes voice-speaking-wave {
   0% { transform: scaleY(.65); opacity: .7; }
   100% { transform: scaleY(1.12); opacity: 1; }
+}
+
+/* Touch screens have no hover: the volume slider stays visible and the
+ * state flags yield (the same states remain in the member context menu). */
+@media (min-width: 981px) and (hover: none) {
+  :deep(.member-row .member-flags) {
+    opacity: 0;
+  }
+
+  :deep(.member-row .member-volume) {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
