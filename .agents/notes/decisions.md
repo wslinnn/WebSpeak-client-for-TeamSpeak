@@ -71,6 +71,14 @@
 - **坞头部四列 grid**（点/频道名/语音状态 28px/断电 28px）：语音状态触发器经 AudioDock `status` 插槽从顶栏移入（顶栏实例 ≥741 隐藏、≤740 移动端保留原样）；坞内形态=透明圆钮 + `::before` 波形条，面板向上弹出（min(360px, 100vw-108px)）；断电钮 power 字形，hover #ff8498/#3a292b。
 - **坞动作区**：行 1 = 共享绿条（右端内嵌共享设置齿轮）+ 伴奏钮；行 2 = 语音设置标签 + 静噪快开 + mic + 输出（28×23 透明小钮，静音/关=红字+斜杠线）。**共享入口唯一化**：发起/停止/设置都在坞内绿条，自己磁贴无共享动作（`voice.member.stop-share` 部件已退役）、他人卡保留观看钮。
 - **服务器头部两行制**：名称行（名称 + ≡ 切换下拉）+ meta 行（类型 tag「TeamSpeak」+ 在线/离开 + 搜索折叠钮 27px）；「已连接」胶囊与 serverConnected 键已删。搜索框 ≥981 折叠（输入中保持展开）、<981 常驻；≡ 下拉 Teleport 到应用根——频道面板 overflow hidden 会裁剪 fixed 后代，勿改回面板内绝对定位。
-- **聊天列结构**：外层 50px 标题行（页签名 + 折叠钮，`voice.chat.title-row`，≥981 专属、窄屏隐藏）→ tabs（底边框）→ heading（kicker 隐藏、h2 14px、counter 10px、图标 accent）→ 消息流（行无宽度上限、meta 间距 2px、gap 17）→ composer 常规流（margin-top 8px）。空态无图标块、顶部居中 11px。
+- **聊天列结构**：外层 50px 标题行（页签名 + 折叠钮，`voice.chat.title-row`，≥981 专属、窄屏隐藏）→ tabs（底边框）→ heading（kicker 隐藏、h2 14px、counter 10px、图标 accent）→ 消息流（行无宽度上限、meta 间距 2px、gap 17）→ composer 常规流（margin-top 8px）。空态无图标块、左上 11px（28px 上边距；四轮从居中改定，KAAK 即左上）。
 - **频道面板滚动结构（≥981）**：面板 flex 列 + overflow hidden，**滚动收敛到频道树**——面板级弹出层（语音状态面板、悬停音量面板）因此能越过面板绘制在舞台上（KAAK 同构）；勿改回面板整体滚动（会重新裁剪弹出层；拖拽自动滚动也依赖树自身滚动）。
 - 成员行自我标识 = 昵称 + 绿「你」标；欢迎卡 = 图标式（无左条）。分组头折叠、磁贴名字 chip 化：已评估不做（2026-10-13）。
+
+## 工作区 KAAK 对齐四轮不变量（2026-10-13 真机截图实测修正拍板，`4fbf123…012e15b`；取证与细节见 history.md）
+
+- **绿双色分档**：填充类控件（共享绿条/伴奏钮/静噪快开/发送钮/chat-reopen/滑杆拇指与轨道）一律 `--wsd-accent-fill(-hover)`（日间 #69c000/#7ad50a = KAAK 亮绿，夜间与 accent 同值）；小号文字/图标/指示点保持 `--wsd-accent`（日间 #4f9e0c 深绿保白底可读）——勿把文字类消费点迁到 fill，也勿把填充类改回 accent。
+- **磁贴角标片**：mic 角标与说话波形标的底/边/字走 `--wsd-chip-bg/-border/-text`——日间 raised 浅片+描边+次级字，夜间=KAAK 原值 #111216d9/透明边/#c8c9ce；勿回退硬编码深色。
+- **聊天列=舞台色**：≥981 聊天列背景 `--wsd-bg`（KAAK 明度关系：聊天与舞台同色、成员面板独立一档、rail 最深）；与舞台间 1px 分隔线保留。
+- **成员行右列叠放**：≥981 行为 grid 三列（22px / minmax(0,1fr) / auto），状态旗标与音量滑杆同格叠放——默认旗标、hover/focus-within 交叉淡入滑杆；触屏（hover:none）滑杆常驻旗标让位。行 min-height 29px、头像缩进与频道名对齐（padding-left 20px）勿动。
+- **头部两行制分隔线在 meta 行下**（KAAK divider 位于名称行+meta 行整体之后），勿移回名称行下。
