@@ -153,10 +153,11 @@
   :deep(.desktop-audio-dock) {
     position: absolute;
     z-index: var(--ws-z-raised);
-    left: 18px;
-    right: 18px;
+    left: 0;
+    right: 0;
     bottom: 18px;
-    margin-top: 0;
+    width: min(282px, calc(100% - 22px));
+    margin: 0 auto;
   }
   .app-shell .chat-panel {
     position: relative;

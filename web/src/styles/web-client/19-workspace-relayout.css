@@ -434,13 +434,6 @@
     color: var(--wsd-text-dim);
   }
 
-  :deep(.desktop-audio-dock) {
-    color: var(--wsd-text);
-    background: var(--wsd-raised);
-    border: 1px solid var(--wsd-border);
-    box-shadow: none;
-  }
-
   :deep(.desktop-audio-dock-copy strong) {
     color: var(--wsd-text);
   }
