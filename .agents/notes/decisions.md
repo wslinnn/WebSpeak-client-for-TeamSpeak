@@ -17,6 +17,9 @@
 - 模态框只经按钮/Esc 关闭、不响应 backdrop 点击。
 - 多根子组件的元素不带父作用域属性，父 scoped 样式必须 :deep()（自持样式+Teleport 是更优解，ServerContextMenu 即范本）。
 - 带 backdrop-filter/transform 的元素会成为 fixed 后代的包含块，fixed 浮层不得挂其子树内；Teleport 目标用 .web-client 根而非 body（皮肤选择器 .ws-skin-root [data-ws-part=…] 与 z 阶梯变量都挂在 .web-client 上）。
+- 配置弹窗=全量配置面，两端必须一致（2026-10-13 拍板「PC 对齐移动端，不做删减」）：平台差异只允许用快捷面承载（音频坞悬停面板），禁止用 viewport 门控在弹窗里删项；新配置项两端同加。
+- pointerdown 激活即卸载的浮层（下拉选项），必须吞掉手势尾随 click（一次性捕获守卫）——菜单卸载后合成 click 会落在新暴露的元素上（实案：更多面板切语言误触退出按钮断连）；danger 动作必须与浮层覆盖区空间隔离（更多面板分隔线）。
+- 下拉浮层钳制必须四边含裁剪祖先（LanguageSwitcher placeDropdown 模式）：overflow-y 非 visible 时 overflow-x 计算值连带非 visible（CSS 规范）——只钳垂直会从水平方向溢出（实案：登录卡片）；视口钳制管不了 overflow 祖先，实施前先收集 overflow≠visible 的容器，边界取祖先∩视口最紧者。
 
 ## 已评估否决项（勿重新立项）
 
