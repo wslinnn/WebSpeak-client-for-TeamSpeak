@@ -124,6 +124,16 @@
     background: var(--wsd-bg);
   }
 
+  /* Participant stage centers vertically like the reference room view. */
+  .workspace-scroll {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .workspace-content {
+    margin: auto 0;
+  }
+
   .workspace-header {
     min-height: 40px;
     padding: 0 12px;
@@ -188,5 +198,335 @@
 
   :deep(.app-shell > .chat-panel .message-composer) {
     flex: 0 0 auto;
+  }
+}
+
+/* Detail pass: legacy hardcoded surfaces inside the four columns re-expressed
+ * with --wsd-* so day and night stay coherent. Skin/language selectors keep
+ * their intentionally light surfaces (pinned by skin-pack tests). */
+@media (min-width: 981px) {
+  .breadcrumbs .crumb-muted {
+    color: var(--wsd-text-dim);
+  }
+
+  .breadcrumbs strong {
+    color: var(--wsd-text);
+  }
+
+  .chat-reopen {
+    color: var(--wsd-text-muted);
+    background: transparent;
+  }
+
+  .chat-reopen:hover,
+  .chat-reopen:focus-visible {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+  }
+
+  .disconnect-button {
+    color: var(--wsd-danger);
+    background: transparent;
+    border: 1px solid color-mix(in srgb, var(--wsd-danger) 45%, transparent);
+  }
+
+  .disconnect-button:hover {
+    color: #fff;
+    background: var(--wsd-danger);
+  }
+
+  :deep(.performance-trigger) {
+    color: var(--wsd-text);
+    background: var(--wsd-raised);
+    border: 1px solid var(--wsd-border);
+  }
+
+  :deep(.performance-trigger:hover),
+  :deep(.performance-trigger:focus-visible) {
+    background: var(--wsd-hover);
+  }
+
+  :deep(.performance-trigger-label) {
+    color: var(--wsd-text);
+  }
+
+  /* Channel pane rhythm: children own their padding. */
+  :deep(.member-panel) {
+    padding: 0 0 14px;
+  }
+
+  :deep(.member-server-header) {
+    min-height: 52px;
+    padding: 0 16px;
+  }
+
+  :deep(.member-panel-heading) {
+    padding: 6px 16px 0;
+  }
+
+  :deep(.status-button) {
+    padding: 4px 9px;
+    color: var(--wsd-text-muted);
+    background: var(--wsd-raised);
+    border: 1px solid var(--wsd-border);
+  }
+
+  :deep(.status-button:hover) {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+  }
+
+  :deep(.status-button.active) {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+    border-color: var(--wsd-border);
+  }
+
+  :deep(.status-button.active .status-dot) {
+    background: var(--wsd-text-dim);
+  }
+
+  :deep(.member-search) {
+    margin: 10px 16px 0;
+    color: var(--wsd-text);
+    background: var(--wsd-raised);
+    border: 1px solid var(--wsd-border);
+  }
+
+  :deep(.member-search input) {
+    color: var(--wsd-text);
+    background: transparent;
+  }
+
+  :deep(.member-search input::placeholder) {
+    color: var(--wsd-text-dim);
+  }
+
+  :deep(.member-tree) {
+    margin-top: 4px;
+    padding: 0 8px;
+  }
+
+  :deep(.member-group-label) {
+    padding: 14px 8px 6px;
+  }
+
+  :deep(.member-channel-group) {
+    padding: 2px 0 6px;
+    border-bottom: 0;
+  }
+
+  :deep(.member-channel-group + .member-channel-group) {
+    margin-top: 2px;
+  }
+
+  :deep(.member-channel-heading) {
+    padding: 7px 8px;
+    color: var(--wsd-text);
+    border-radius: 8px;
+  }
+
+  :deep(.member-channel-heading:hover) {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+  }
+
+  :deep(.member-channel-group.current .member-channel-heading) {
+    color: var(--wsd-text);
+    background: var(--wsd-raised);
+    box-shadow: inset 2px 0 0 var(--wsd-accent);
+  }
+
+  :deep(.member-channel-heading span) {
+    color: inherit;
+    font-size: 13px;
+  }
+
+  :deep(.member-channel-heading small) {
+    color: var(--wsd-text-dim);
+  }
+
+  :deep(.member-channel-fold) {
+    color: var(--wsd-text-dim);
+  }
+
+  :deep(.member-channel-fold:hover),
+  :deep(.member-channel-group.current .member-channel-fold) {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+  }
+
+  :deep(.member-list) {
+    gap: 2px;
+    margin-top: 6px;
+  }
+
+  :deep(.member-row) {
+    padding: 4px 8px;
+    border-radius: 8px;
+  }
+
+  :deep(.member-avatar) {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    font-size: 9px;
+  }
+
+  :deep(.member-avatar.speaking) {
+    box-shadow: 0 0 0 2px var(--wsd-accent);
+  }
+
+  :deep(.member-presence) {
+    border-color: var(--wsd-panel);
+    background: var(--wsd-accent);
+  }
+
+  :deep(.member-copy strong),
+  :deep(.member-name-button) {
+    color: var(--wsd-text);
+    font-size: 12px;
+  }
+
+  :deep(.member-copy span) {
+    color: var(--wsd-text-dim);
+  }
+
+  :deep(.channel-no-members) {
+    color: var(--wsd-text-dim);
+  }
+
+  :deep(.desktop-audio-dock) {
+    color: var(--wsd-text);
+    background: var(--wsd-raised);
+    border: 1px solid var(--wsd-border);
+    box-shadow: none;
+  }
+
+  :deep(.desktop-audio-dock-copy strong) {
+    color: var(--wsd-text);
+  }
+
+  :deep(.desktop-audio-dock-copy span) {
+    color: var(--wsd-text-dim);
+  }
+
+  /* Stage */
+  .voice-activity-artwork {
+    display: none;
+  }
+
+  :deep(.section-heading h2) {
+    color: var(--wsd-text);
+  }
+
+  :deep(.section-kicker) {
+    color: var(--wsd-text-muted);
+  }
+
+  :deep(.section-counter) {
+    color: var(--wsd-text-dim);
+  }
+
+  :deep(.voice-card) {
+    background: var(--wsd-raised);
+    border-color: var(--wsd-border);
+    box-shadow: none;
+  }
+
+  :deep(.voice-card.speaking) {
+    border-color: var(--wsd-accent);
+    box-shadow: 0 0 12px var(--wsd-accent-soft);
+  }
+
+  :deep(.voice-empty) {
+    color: var(--wsd-text-muted);
+    background: var(--wsd-raised);
+    border-color: var(--wsd-border);
+  }
+
+  :deep(.voice-empty strong) {
+    color: var(--wsd-text);
+  }
+
+  /* Chat column */
+  :deep(.chat-tabs) {
+    margin-top: 12px;
+    padding: 0 14px;
+  }
+
+  :deep(.chat-tabs button) {
+    color: var(--wsd-text-muted);
+    background: transparent;
+    border-color: var(--wsd-border);
+  }
+
+  :deep(.chat-tabs button:hover) {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+  }
+
+  :deep(.chat-tabs button.active) {
+    color: var(--wsd-text);
+    background: var(--wsd-raised);
+    border-color: var(--wsd-border);
+  }
+
+  :deep(.chat-heading h2) {
+    color: var(--wsd-text);
+  }
+
+  :deep(.message-meta strong) {
+    color: var(--wsd-text);
+  }
+
+  :deep(.message-meta time),
+  :deep(.event-row time) {
+    color: var(--wsd-text-dim);
+  }
+
+  :deep(.message-bubble) {
+    color: var(--wsd-text);
+    background: var(--wsd-raised);
+  }
+
+  :deep(.message-row.mine .message-bubble) {
+    background: var(--wsd-accent-soft);
+  }
+
+  :deep(.chat-empty) {
+    color: var(--wsd-text-muted);
+  }
+
+  :deep(.chat-empty strong) {
+    color: var(--wsd-text);
+  }
+
+  :deep(.event-row) {
+    color: var(--wsd-text-muted);
+  }
+
+  :deep(.message-composer) {
+    color: var(--wsd-text);
+    background: var(--wsd-raised);
+    border: 1px solid var(--wsd-border);
+  }
+
+  :deep(.message-composer textarea) {
+    color: var(--wsd-text);
+    background: transparent;
+  }
+
+  :deep(.message-composer textarea::placeholder) {
+    color: var(--wsd-text-dim);
+  }
+
+  :deep(.send-button) {
+    color: #fff;
+    background: var(--wsd-accent);
+  }
+
+  :deep(.chat-status) {
+    color: var(--wsd-text-dim);
   }
 }

@@ -385,17 +385,15 @@
             :size="14"
         /></button>
       </div>
-      <!-- Desktop server rail: the leftmost column of the shell (left of the
-           member sidebar, like upstream). Hidden on touch sizes where the
-           strip above replaces it. The title carries name + address because a
-           styled tooltip inside the scrolling column would be clipped. -->
+      <!-- Desktop server rail: favorites in open mode, the own identity tile
+           always. Hidden on touch sizes where the strip above replaces it. -->
       <aside
-        v-if="accessMode === 'open'"
         class="favorite-server-rail"
         data-ws-part="voice.favorite-server-rail"
-        role="toolbar"
-        :aria-label="t('favoriteServers')"
+        :role="accessMode === 'open' ? 'toolbar' : undefined"
+        :aria-label="accessMode === 'open' ? t('favoriteServers') : undefined"
       >
+        <template v-if="accessMode === 'open'">
         <button
           v-for="server in favoriteServers"
           :key="server.id"
@@ -435,6 +433,7 @@
             name="plus"
             :size="17"
         /></button>
+        </template>
         <div
           class="rail-identity"
           data-ws-part="voice.rail-identity"
