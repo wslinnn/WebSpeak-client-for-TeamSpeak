@@ -156,7 +156,7 @@
 
 /* Desktop: the server rail is the leftmost shell column (left of the member
  * sidebar), styled after upstream — accent-tinted surface, token borders so
- * skins retint the whole column, 48px tiles wrapping 40px name-hashed
+ * skins retint the whole column, 58px tiles wrapping full-bleed name-hashed
  * avatars, hover ring, and the active server marked by the left-edge pill.
  * The horizontal strip only serves ≤740 touch layouts, where there is no side
  * column. The rail keeps 10px left padding so the active pill (-9px from the
@@ -191,23 +191,24 @@
   }
 }
 
-/* Server tile: 48px grid button wrapping the avatar; hover/focus and the
- * active state trade the corner radius for an accent ring. */
+/* Server tile: 58px grid button wrapping the full-bleed monogram; hover
+ * shifts the surface only, the active server gets the 2px brand-green
+ * outline plus the left-edge pill. No radius morph, no ring. */
 .favorite-server-button,
 .favorite-server-add {
   position: relative;
   display: grid;
-  width: 48px;
-  height: 48px;
-  flex: 0 0 48px;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
   place-items: center;
-  padding: 3px;
+  padding: 0;
   color: var(--text-primary);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  background: var(--wsd-raised);
+  border: 2px solid transparent;
+  border-radius: 18px;
   cursor: pointer;
-  transition: border-radius .16s ease, transform .16s ease, box-shadow .16s ease;
+  transition: background .15s ease, border-color .15s ease;
   /* Same long-press contract as the strip chips. */
   -webkit-user-select: none;
   user-select: none;
@@ -215,22 +216,22 @@
 }
 
 .favorite-server-button:hover,
-.favorite-server-button:focus-visible,
-.favorite-server-button.active,
-.favorite-server-add:hover,
-.favorite-server-add:focus-visible {
-  border-radius: 15px;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
+.favorite-server-button:focus-visible {
+  background: var(--wsd-hover);
+}
+
+.favorite-server-button.active {
+  border-color: var(--wsd-accent);
 }
 
 .favorite-server-button.active::before {
   position: absolute;
-  left: -9px;
+  left: -16px;
+  top: 10px;
   width: 4px;
-  height: 24px;
+  height: 34px;
   content: "";
-  background: var(--accent);
+  background: var(--wsd-accent);
   border-radius: 0 4px 4px 0;
 }
 
@@ -241,15 +242,15 @@
 
 .favorite-server-avatar {
   display: grid;
-  width: 40px;
-  height: 40px;
-  flex: 0 0 40px;
+  width: 100%;
+  height: 100%;
+  flex: 0 0 auto;
   place-items: center;
   overflow: hidden;
-  color: #19342f;
-  border-radius: 13px;
-  font-size: 17px;
-  font-weight: 800;
+  color: var(--wsd-text);
+  border-radius: 16px;
+  font-size: 23px;
+  font-weight: 600;
   line-height: 1;
   text-transform: uppercase;
 }
