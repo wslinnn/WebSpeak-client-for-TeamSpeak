@@ -618,7 +618,7 @@
   width: 16px;
   height: 16px;
   appearance: none;
-  border: 2px solid var(--wsd-accent);
+  border: 2px solid var(--wsd-accent-fill);
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 2px 4px rgba(0,0,0,.12);
@@ -629,7 +629,7 @@
 :deep(.settings-range::-moz-range-thumb) {
   width: 16px;
   height: 16px;
-  border: 2px solid var(--wsd-accent);
+  border: 2px solid var(--wsd-accent-fill);
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 2px 4px rgba(0,0,0,.12);

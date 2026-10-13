@@ -357,12 +357,12 @@
   display: flex;
   align-items: stretch;
   min-width: 0;
-  background: var(--wsd-accent);
+  background: var(--wsd-accent-fill);
   border-radius: 9px;
 }
 
 :deep(.desktop-audio-dock-share:not(.is-stop):hover) {
-  background: var(--wsd-accent-hover);
+  background: var(--wsd-accent-fill-hover);
 }
 
 :deep(.desktop-audio-dock-share.is-stop) {
@@ -423,13 +423,13 @@
   border: 0;
   border-radius: 9px;
   color: #fff;
-  background: var(--wsd-accent);
+  background: var(--wsd-accent-fill);
   cursor: pointer;
 }
 
 :deep(.desktop-audio-dock-accompaniment:hover),
 :deep(.desktop-audio-dock-accompaniment:focus-visible) {
-  background: var(--wsd-accent-hover);
+  background: var(--wsd-accent-fill-hover);
 }
 
 :deep(.desktop-audio-dock-accompaniment.active) {
@@ -473,11 +473,11 @@
 
 :deep(.desktop-audio-dock-noise[aria-pressed="true"]) {
   color: #fff;
-  background: var(--wsd-accent);
+  background: var(--wsd-accent-fill);
 }
 
 :deep(.desktop-audio-dock-noise[aria-pressed="true"]:hover) {
-  background: var(--wsd-accent-hover);
+  background: var(--wsd-accent-fill-hover);
 }
 
 :deep(.desktop-audio-dock-control[data-muted="true"]),
@@ -770,7 +770,7 @@
   width: 16px;
   height: 16px;
   appearance: none;
-  border: 2px solid var(--wsd-accent);
+  border: 2px solid var(--wsd-accent-fill);
   border-radius: 50%;
   background: #fff;
   cursor: pointer;
@@ -779,7 +779,7 @@
 :deep(.menu-volume input::-moz-range-thumb) {
   width: 16px;
   height: 16px;
-  border: 2px solid var(--wsd-accent);
+  border: 2px solid var(--wsd-accent-fill);
   border-radius: 50%;
   background: #fff;
   cursor: pointer;
@@ -891,7 +891,7 @@
   display: block;
   height: 100%;
   min-width: 0;
-  background: linear-gradient(90deg, #69c8bb, #58d675);
+  background: linear-gradient(90deg, var(--wsd-accent), var(--wsd-accent-fill));
   border-radius: inherit;
   transition: width .08s linear;
 }

@@ -1784,7 +1784,7 @@ function formatTime(timestamp: number) {
 
 function rangeStyle(value: number, max: number) {
   const percent = Math.max(0, Math.min(100, (value / max) * 100));
-  return { background: `linear-gradient(to right, #006a64 0%, #006a64 ${percent}%, #e7eceb ${percent}%, #e7eceb 100%)` };
+  return { background: `linear-gradient(to right, var(--wsd-accent-fill) 0%, var(--wsd-accent-fill) ${percent}%, var(--wsd-border) ${percent}%, var(--wsd-border) 100%)` };
 }
 
 function onVolInput(clientId: number, event: Event) {

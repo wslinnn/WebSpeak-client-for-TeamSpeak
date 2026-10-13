@@ -17,9 +17,13 @@
   --wsd-text-muted: #626a72;
   --wsd-text-dim: #9099a1;
   /* Day accent: the deeper sibling of the night brand green — same hue, but
-   * small accent-colored text stays legible on white surfaces. */
+   * small accent-colored text stays legible on white surfaces. Filled
+   * controls (share bar, toggles, sliders) use the vivid KAAK green instead:
+   * blocks carry color fine, small text does not. */
   --wsd-accent: #4f9e0c;
   --wsd-accent-hover: #468f0a;
+  --wsd-accent-fill: #69c000;
+  --wsd-accent-fill-hover: #7ad50a;
   --wsd-accent-soft: rgba(108, 191, 0, .14);
   --wsd-danger: #d24d4d;
   --wsd-radius: 9px;
@@ -38,6 +42,8 @@
   --wsd-text-dim: #777a82;
   --wsd-accent: #6cbf00;
   --wsd-accent-hover: #7ac51a;
+  --wsd-accent-fill: #6cbf00;
+  --wsd-accent-fill-hover: #7ac51a;
   --wsd-accent-soft: rgba(108, 191, 0, .18);
   --wsd-danger: #e36b6b;
 }
