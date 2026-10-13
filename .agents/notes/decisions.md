@@ -20,6 +20,7 @@
 - 配置弹窗=全量配置面，两端必须一致（2026-10-13 拍板「PC 对齐移动端，不做删减」）：平台差异只允许用快捷面承载（音频坞悬停面板），禁止用 viewport 门控在弹窗里删项；新配置项两端同加。
 - pointerdown 激活即卸载的浮层（下拉选项），必须吞掉手势尾随 click（一次性捕获守卫）——菜单卸载后合成 click 会落在新暴露的元素上（实案：更多面板切语言误触退出按钮断连）；danger 动作必须与浮层覆盖区空间隔离（更多面板分隔线）。
 - 下拉浮层钳制必须四边含裁剪祖先（LanguageSwitcher placeDropdown 模式）：overflow-y 非 visible 时 overflow-x 计算值连带非 visible（CSS 规范）——只钳垂直会从水平方向溢出（实案：登录卡片）；视口钳制管不了 overflow 祖先，实施前先收集 overflow≠visible 的容器，边界取祖先∩视口最紧者。
+- 工作区四栏布局（2026-10-13 拍板，报告 16）：≥981 走 `86/304/1fr/聊天列` 四栏，配色一律走 `--wsd-*` token 层——日间默认值在 00-tokens.css 基础层、夜间整块翻转挂 builtin.dark 属性选择器（皮肤选择器就是日/夜开关）；旧 `--ws-*`/`--surface-*` 并存服务未迁移区域，新代码勿混用两套。ChatPanel 按 ≥981 断点双实例渲染（桌面 shell 子元素/窄屏 workspace 原位）——移动端聊天视图的 CSS 依赖面板在 workspace 内的位置，勿把窄屏实例也搬去 shell；聊天折叠持久化键 `webspeak:chat-collapsed`。皮肤/语言切换器在暗色下保持亮面是 skin-pack 测试钉住的刻意设计。新布局规则集中在 `19-workspace-relayout.css` 单分片；跨组件选择器必须整链 `:deep()`（子组件内部元素不带父作用域属性）。
 
 ## 已评估否决项（勿重新立项）
 
