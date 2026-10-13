@@ -251,6 +251,7 @@
                   :size="13" /></span
             ></div>
             <div
+              v-if="!member.isSelf"
               class="member-volume"
               data-ws-part="voice.member-row.volume"
               @pointerdown.stop
