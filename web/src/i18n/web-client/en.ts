@@ -229,6 +229,8 @@ export const en: Record<string, string> = {
     searchMembers: "Search members",
     serverConnected: "Connected",
     voiceGroup: "Voice channels",
+    openChat: "Open chat",
+    closeChat: "Collapse chat",
     memberStates: "Member states",
     inputMuted: "Microphone muted",
     outputMuted: "Output muted",

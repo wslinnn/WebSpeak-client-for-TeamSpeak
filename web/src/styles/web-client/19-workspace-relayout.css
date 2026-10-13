@@ -1,0 +1,192 @@
+/*
+ * Workspace relayout: the docked four-column workspace (≥981px) — server
+ * rail 86px with identity tile, channel pane 304px, participant stage, and a
+ * collapsible chat column. All colors come from --wsd-* tokens. Below 981px
+ * the previous geometry is untouched; the chat panel simply stays in its
+ * workspace slot (the view mounts exactly one ChatPanel instance).
+ */
+
+@media (min-width: 981px) {
+  .app-shell {
+    grid-template-columns: 86px 304px minmax(0, 1fr) minmax(340px, min(38vw, 520px));
+    background: var(--wsd-bg);
+    transition: grid-template-columns .24s cubic-bezier(.2, .75, .25, 1);
+  }
+
+  .app-shell[data-chat-collapsed="true"] {
+    grid-template-columns: 86px 304px minmax(0, 1fr);
+  }
+
+  /* Server rail: KAAK-style rounded-square column with the own identity
+   * pinned to the bottom above the connection dot. */
+  .favorite-server-rail {
+    background: var(--wsd-rail);
+    border-right: 1px solid var(--wsd-border);
+  }
+
+  .rail-identity {
+    position: relative;
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    margin-top: auto;
+  }
+
+  .rail-identity-avatar {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    overflow: hidden;
+    color: var(--wsd-text);
+    background: var(--wsd-raised);
+    border: 1px solid var(--wsd-border);
+    border-radius: 50%;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .rail-identity-presence {
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--wsd-rail);
+    border-radius: 50%;
+    background: var(--wsd-accent);
+  }
+
+  /* Channel pane: the member panel becomes the server column. */
+  :deep(.member-panel) {
+    background: var(--wsd-panel);
+    border-right: 1px solid var(--wsd-border);
+    border-left: 0;
+  }
+
+  :deep(.member-server-header) {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+    min-height: 50px;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--wsd-border);
+  }
+
+  :deep(.member-server-header strong) {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--wsd-text);
+    font-size: 15px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :deep(.member-server-badge) {
+    flex: 0 0 auto;
+    padding: 3px 9px;
+    color: var(--wsd-accent);
+    background: var(--wsd-accent-soft);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  :deep(.member-panel-heading) {
+    min-height: 36px;
+    justify-content: flex-end;
+    border-bottom: 0;
+  }
+
+  :deep(.member-panel-heading > div:first-child) {
+    display: none;
+  }
+
+  :deep(.member-group-label) {
+    display: block;
+    flex: 0 0 auto;
+    padding: 12px 14px 6px;
+    color: var(--wsd-text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+
+  /* Stage: the workspace keeps its column, now on the shared backdrop. */
+  .workspace {
+    background: var(--wsd-bg);
+  }
+
+  .workspace-header {
+    min-height: 40px;
+    padding: 0 12px;
+    background: var(--wsd-panel);
+    border-bottom: 1px solid var(--wsd-border);
+  }
+
+  /* Docked chat column: full-height panel between tabs and composer. */
+  .app-shell > .chat-panel {
+    display: flex;
+    flex-direction: column;
+    grid-column: 4;
+    grid-row: 2;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    background: var(--wsd-panel);
+    border-top: 0;
+    border-left: 1px solid var(--wsd-border);
+  }
+
+  .app-shell[data-chat-collapsed="true"] > .chat-panel {
+    display: none;
+  }
+
+  :deep(.app-shell > .chat-panel .chat-heading) {
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    padding-top: 14px;
+  }
+
+  :deep(.app-shell > .chat-panel .section-counter) {
+    margin-left: auto;
+  }
+
+  :deep(.chat-collapse) {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    color: var(--wsd-text-muted);
+    background: transparent;
+    border-radius: 7px;
+  }
+
+  :deep(.chat-collapse:hover),
+  :deep(.chat-collapse:focus-visible) {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+  }
+
+  :deep(.app-shell > .chat-panel .message-list) {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+  }
+
+  :deep(.app-shell > .chat-panel .message-composer) {
+    flex: 0 0 auto;
+  }
+}

@@ -94,7 +94,19 @@
         chatTab === "events"
           ? t("eventCount", { count: serverEvents.length })
           : t("messageCount", { count: visibleChatMessages.length })
-      }}</span></div
+      }}</span
+      ><button
+        v-if="collapsible"
+        type="button"
+        class="chat-collapse"
+        data-ws-part="voice.chat.collapse"
+        :title="t('closeChat')"
+        :aria-label="t('closeChat')"
+        @click="emit('collapse')"
+      ><Icon
+          name="close"
+          :size="15"
+      /></button></div
     >
     <div
       ref="chatListEl"
@@ -235,12 +247,14 @@ const props = defineProps<{
   t: (key: string, variables?: Record<string, string | number>) => string;
   currentChannelName: string;
   mobileHidden: boolean;
+  collapsible?: boolean;
   serverEvents: readonly ServerEvent[];
   avatarStyle: (name: string, isSelf?: boolean, avatar?: string) => CSSProperties;
   avatarInitial: (name: string) => string;
   messageAvatar: (message: ChatMessage) => string;
   formatTime: (timestamp: number) => string;
 }>();
+const emit = defineEmits<{ collapse: [] }>();
 
 // The page owns one stable controller across room and mobile view changes.
 // Keep its list ref attached to the rendered scroller, including unmount cleanup.

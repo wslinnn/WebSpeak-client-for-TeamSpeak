@@ -221,6 +221,7 @@
     <div
       v-else
       :class="['app-shell', `mobile-view-${mobileSection}`]"
+      :data-chat-collapsed="chatCollapsed ? 'true' : 'false'"
       :data-performance-open="performancePanelOpen ? 'true' : 'false'"
       data-ws-part="voice.shell"
       @click="memberMenu = null"
@@ -511,6 +512,18 @@
               @change="persistLanguage"
             />
             <button
+              v-if="chatColumnActive && chatCollapsed"
+              type="button"
+              class="header-action chat-reopen"
+              data-ws-part="voice.chat.reopen"
+              :title="t('openChat')"
+              :aria-label="t('openChat')"
+              @click="chatCollapsed = false"
+            ><Icon
+                name="message"
+                :size="17"
+            /></button>
+            <button
               class="disconnect-button"
               :aria-label="t('exit')"
               @click="leaveVoiceWorkspace"
@@ -646,6 +659,7 @@
             </div>
 
             <ChatPanel
+              v-if="!chatColumnActive"
               :model="chat"
               :t="t"
               :current-channel-name="currentChannelName"
@@ -659,6 +673,24 @@
           </div>
         </div>
       </main>
+
+      <!-- Docked chat column (≥981px): a shell-level fourth grid column.
+           Narrow viewports keep the panel in its workspace slot above — the
+           chat controller is prop-driven, so exactly one instance is live. -->
+      <ChatPanel
+        v-if="chatColumnActive"
+        :model="chat"
+        :t="t"
+        :current-channel-name="currentChannelName"
+        :mobile-hidden="false"
+        :collapsible="true"
+        :server-events="serverEvents"
+        :avatar-style="avatarStyle"
+        :avatar-initial="avatarInitial"
+        :message-avatar="messageAvatar"
+        :format-time="formatTime"
+        @collapse="chatCollapsed = true"
+      />
 
       <ChannelMemberPanel
         v-model:query="memberQuery"
@@ -1164,6 +1196,22 @@ const {
 const connectedServerLabel = computed(
   () => favoriteServers.value.find((server) => server.address === currentTarget.value)?.label ?? currentTarget.value,
 );
+// Docked chat column: ≥981px the chat docks as the shell's fourth grid
+// column; below that it stays in its workspace slot. Exactly one instance
+// is mounted at a time, and the prop-driven controller keeps chat state.
+const dockedChatQuery = window.matchMedia("(min-width: 981px)");
+const chatColumnActive = ref(dockedChatQuery.matches);
+const onDockedChatChange = (event: MediaQueryListEvent) => {
+  chatColumnActive.value = event.matches;
+};
+dockedChatQuery.addEventListener("change", onDockedChatChange);
+onUnmounted(() => dockedChatQuery.removeEventListener("change", onDockedChatChange));
+// Chat collapse persists; the reopen control lives in the workspace header.
+const chatCollapsed = ref(localStorage.getItem("webspeak:chat-collapsed") === "1");
+watch(chatCollapsed, (collapsed) => {
+  if (collapsed) localStorage.setItem("webspeak:chat-collapsed", "1");
+  else localStorage.removeItem("webspeak:chat-collapsed");
+});
 // Right-click / long-press on a server row (rail, strip chips or join form):
 // the context menu owns edit / favorite / delete instead of hidden single
 // actions. Long-press covers touch screens, which never fire contextmenu.

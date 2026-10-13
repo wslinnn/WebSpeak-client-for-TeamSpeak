@@ -229,6 +229,8 @@ export const zh: Record<string, string> = {
     searchMembers: "搜索成员",
     serverConnected: "已连接",
     voiceGroup: "语音分组",
+    openChat: "打开聊天",
+    closeChat: "收起聊天",
     memberStates: "成员状态",
     inputMuted: "已禁用麦克风",
     outputMuted: "已禁用扬声器",

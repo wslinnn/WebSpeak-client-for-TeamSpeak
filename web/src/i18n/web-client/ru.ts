@@ -294,6 +294,8 @@ export const ru: Record<string, string> = {
   searchMembers: "Поиск участников",
   serverConnected: "Подключено",
   voiceGroup: "Голосовые каналы",
+  openChat: "Открыть чат",
+  closeChat: "Свернуть чат",
   memberStates: "Состояния участников",
   inputMuted: "Микрофон отключён",
   outputMuted: "Звук отключён",

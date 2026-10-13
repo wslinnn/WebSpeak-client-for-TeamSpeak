@@ -290,6 +290,8 @@ export const ja: Record<string, string> = {
   searchMembers: "メンバーを検索",
   serverConnected: "接続済み",
   voiceGroup: "ボイスチャンネル",
+  openChat: "チャットを開く",
+  closeChat: "チャットを折りたたむ",
   memberStates: "メンバーの状態",
   inputMuted: "マイクを無効化",
   outputMuted: "出力を無効化",

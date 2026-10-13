@@ -228,6 +228,8 @@ export const de: Record<string, string> = {
   searchMembers: "Mitglieder suchen",
   serverConnected: "Verbunden",
   voiceGroup: "Sprachkanäle",
+  openChat: "Chat öffnen",
+  closeChat: "Chat einklappen",
   memberStates: "Mitgliederstatus",
   inputMuted: "Mikrofon deaktiviert",
   outputMuted: "Lautsprecher deaktiviert",
