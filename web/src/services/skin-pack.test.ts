@@ -77,16 +77,16 @@ test("skin CSS permits visual decoration but prevents layout, text-flow, and con
 test("custom skins can override theme appearance without !important or private class selectors", () => {
   const css = '.ws-skin-root[data-ws-skin="builtin.dark"] .join-page .join-card { color: white; }';
   assert.equal(
-    scopeBuiltinThemeForCustomSkin(css, "dark", "community.illusia-voice"),
-    ':where(.ws-skin-root[data-ws-skin="community.illusia-voice"]) .join-page .join-card { color: white; }',
+    scopeBuiltinThemeForCustomSkin(css, "dark", "community.example"),
+    ':where(.ws-skin-root[data-ws-skin="community.example"]) .join-page .join-card { color: white; }',
   );
 });
 
 test("community skins use a scoped light fallback instead of inheriting the night skin", async () => {
   const lightCss = await readFile(new URL("../skins/builtin/light/skin.css", import.meta.url), "utf8");
-  const scoped = scopeBuiltinThemeForCustomSkin(lightCss, "light", "community.illusia-voice");
-  assert.match(scoped, /:where\(\.ws-skin-root\[data-ws-skin="community\.illusia-voice"\]\) \{\s*color-scheme: light;/);
-  assert.match(scoped, /:where\(\.ws-skin-root\[data-ws-skin="community\.illusia-voice"\]\) \.settings-content/);
+  const scoped = scopeBuiltinThemeForCustomSkin(lightCss, "light", "community.example");
+  assert.match(scoped, /:where\(\.ws-skin-root\[data-ws-skin="community\.example"\]\) \{\s*color-scheme: light;/);
+  assert.match(scoped, /:where\(\.ws-skin-root\[data-ws-skin="community\.example"\]\) \.settings-content/);
 });
 
 async function componentSources(directory: string): Promise<string> {
@@ -136,63 +136,6 @@ test("skin content supports localized interface message overrides and includes t
   assert.ok(skin.assets["assets/preview.png"]);
 });
 
-test("the ILLUSIA visual-only example imports without replacing WebSpeak's base translations", async () => {
-  const bytes = await readFile(new URL("../../../docs/examples/illusia-voice.wskin", import.meta.url));
-  const skin = await importSkinPack(new File([bytes], "illusia-voice.wskin", { type: "application/octet-stream" }));
-  assert.equal(skin.id, "community.illusia-voice");
-  assert.equal(skin.name, "ILLUSIA风");
-  assert.equal(skin.version, "1.0.29");
-  assert.equal(skin.contentData, undefined);
-  assert.equal(skin.previewBlob?.type, "image/webp");
-  assert.ok(skin.assets["assets/background-composite.webp"]);
-  assert.ok(skin.assets["assets/bg-room-main.webp"]);
-  assert.ok(skin.assets["assets/banner-character-main.webp"]);
-  assert.ok(skin.assets["assets/foreground-headphone.webp"]);
-  assert.ok(skin.assets["assets/chat-empty-chibi.webp"]);
-  assert.ok(skin.assets["assets/button-mascot.webp"]);
-  assert.ok(skin.assets["assets/footer-wave.png"]);
-  assert.match(skin.css, /\.ws-skin-root\[data-ws-skin="community\.illusia-voice"\]/);
-  assert.match(skin.css, /skin\.menu/);
-  assert.match(skin.css, /skin\.menu[^{}]*\[role="listbox"\]/);
-  assert.match(skin.css, /skin\.option/);
-  assert.match(skin.css, /language\.trigger/);
-  assert.match(skin.css, /language\.menu[^{}]*\[role="listbox"\]/);
-  assert.match(skin.css, /language\.option/);
-  assert.match(skin.css, /data-ws-skin-id="community\.illusia-voice"/);
-  assert.match(skin.css, /data-ws-part="home\.join-card\.waveform"/);
-  assert.match(skin.css, /data-ws-part="home\.join-card\.sonar"/);
-  assert.match(skin.css, /data-ws-part="home\.join-card"\]\s*\{[^}]*background-image:\s*url\("wskin-asset:assets%2Fbanner-mascot-blob\.webp"\)/s);
-  assert.doesNotMatch(skin.css, /data-ws-part="home\.join-card"\]\s*\{[^}]*radial-gradient/s);
-  assert.match(skin.css, /data-ws-part="voice\.member-panel"\]\s*\{[^}]*background-position:\s*0 0, right top, right top, center/s);
-  assert.match(skin.css, /data-ws-part="voice\.member-panel"\]\s*::before\s*\{[^}]*background-image:\s*url\("wskin-asset:assets%2Fforeground-headphone\.webp"\)[^}]*filter:\s*drop-shadow/s);
-  assert.doesNotMatch(skin.css, /illusia-card-signal|illusia-card-glow/);
-  assert.match(skin.css, /illusia-home-aura/);
-  assert.match(skin.css, /voice\.activity[\s\S]*?wskin-asset:assets%2Fbanner-character-main\.webp/);
-  assert.match(skin.css, /voice\.activity\.artwork[\s\S]*?wskin-asset:assets%2Fbanner-character-main\.webp/);
-  assert.match(skin.css, /data-ws-part="voice\.activity"\]\s*\{[^}]*border-color:\s*rgba\(113, 211, 222, \.62\);[^}]*border-radius:\s*24px;[^}]*background-image:[\s\S]*?bg-room-main\.webp[^}]*backdrop-filter:\s*blur\(10px\)/);
-  assert.match(skin.css, /voice\.activity\.artwork[^{}]*\{[^}]*background-position:\s*right 16px bottom 8px;[^}]*background-size:\s*auto 150px;[^}]*filter:\s*drop-shadow\(0 18px 22px/);
-  assert.match(skin.css, /@media \(max-width: 1100px\)[\s\S]*?voice\.activity\.artwork[^{}]*\{[^}]*background-position:\s*right 12px bottom 6px;[^}]*background-size:\s*auto 118px/);
-  assert.doesNotMatch(skin.css, /voice\.chat\.empty[^{}]*data-ws-state="messages-empty"\]\s*> :first-child/);
-  assert.match(skin.css, /data-ws-part="voice\.channel-group"\]\s*\{[^}]*border-color:\s*rgba\(8, 126, 134, \.32\)/);
-  assert.match(skin.css, /data-ws-part="voice\.channel-group"\]\[data-ws-state="current"\]\s*\{[^}]*border-color:\s*rgba\(8, 126, 134, \.48\)/);
-  assert.match(skin.css, /voice\.chat\.empty[^{}]*data-ws-state="messages-empty"[\s\S]*?wskin-asset:assets%2Fchat-empty-chibi\.webp/);
-  assert.match(skin.css, /voice\.chat\.empty[^{}]*\{[^}]*background-size:\s*22px 22px, 300px 250px, cover, min\(340px, 46vw\) auto/s);
-  assert.match(skin.css, /voice\.chat\.empty[^{}]*data-ws-state="messages-empty"[^{}]*\{[^}]*background-position:\s*0 0, right center, center, center 8px;[^}]*background-size:\s*22px 22px, 300px 250px, cover, min\(340px, 46vw\) auto/s);
-  assert.match(skin.css, /data-ws-state="messages-empty"\]::before\s*\{[^}]*color:\s*rgba\(71, 126, 148, \.9\);[^}]*radial-gradient\(circle, #527f91 0 1\.6px/s);
-  assert.match(skin.css, /data-ws-state="messages-empty"\]::after\s*\{[^}]*color:\s*rgba\(71, 126, 148, \.9\)/s);
-  assert.match(skin.css, /@media \(max-width: 1100px\)[\s\S]*?voice\.chat\.empty[^{}]*\{[^}]*background-position:\s*0 0, right 8px center, center, center 8px;[^}]*background-size:\s*22px 22px, 260px 220px, cover, min\(300px, 66vw\) auto/s);
-  assert.match(skin.css, /@media \(max-width: 1100px\)[\s\S]*?voice\.chat\.empty[^{}]*data-ws-state="messages-empty"[^{}]*\{[^}]*background-position:\s*0 0, right center, center, center 8px;[^}]*background-size:\s*22px 22px, 260px 220px, cover, min\(300px, 66vw\) auto/s);
-  assert.doesNotMatch(skin.css, /data-ws-state="messages-empty"[^{}]*\{[^}]*color: transparent/s);
-  assert.doesNotMatch(skin.css, /(?:^|[;{\s])(?:position|inset|top|right|bottom|left|width|height|min-height|padding|z-index|transform)\s*:/);
-  assert.doesNotMatch(skin.css, /\[data-ws-part="home\.join-card"\]\s*\{[^}]*animation:/);
-  assert.doesNotMatch(skin.css, /\[data-ws-part="home\.join-card"\]\s*\{\s*animation: none;/);
-  assert.match(skin.css, /home\.footer[\s\S]*?footer-wave\.png/);
-  assert.match(skin.css, /\[data-ws-part="home"\] \[data-ws-part="home\.connect"\]/);
-  assert.doesNotMatch(skin.css, /\[data-ws-page="home"\] \[data-ws-part="home\.connect"\]/);
-  assert.match(skin.css, /home\.connect[\s\S]*?wskin-asset:assets%2Fbutton-mascot\.webp/);
-  assert.match(skin.css, /voice\.screen-player[\s\S]*?background: linear-gradient\(135deg, rgba\(250, 255, 255, \.96\), rgba\(220, 245, 250, \.94\)\)/);
-  assert.doesNotMatch(skin.css, /voice\.screen-player[^{}]*\{[^}]*background: rgba\(10, 34, 45, \.96\)/);
-});
 
 test("the activity artwork layer floats above room content without intercepting controls", async () => {
   const css = await readWebClientCss();
@@ -223,7 +166,7 @@ test("channel empty state removes its bubble ornament and keeps the text-channel
   assert.match(chat, /tab\.value === "channel" \? t\("textChannel"\)/);
 });
 
-test("homepage motion and room content spacing preserve the ILLUSIA layout", async () => {
+test("homepage motion and room content spacing keep the baseline layout", async () => {
   const css = await readWebClientCss();
   // One reduced-motion kill switch covers the whole client (join page, voice
   // room and dialogs alike) — no per-section carve-outs anymore.

@@ -7,7 +7,7 @@ import {
   listPublicSkins,
 } from "./skin-catalog.js";
 
-test("skin catalog always includes the three protected built-ins and exposes only enabled custom skins", async () => {
+test("skin catalog always includes the two protected built-ins and exposes only enabled custom skins", async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({
     defaultSkinId: "sample-skin",
@@ -23,14 +23,14 @@ test("skin catalog always includes the three protected built-ins and exposes onl
     assert.deepEqual(skins.map((skin) => skin.id), [
       "builtin.light",
       "builtin.dark",
-      "community.illusia-voice",
       "sample-skin",
     ]);
-    assert.deepEqual(BUILTIN_SKIN_CATALOG.map((skin) => skin.id), skins.slice(0, 3).map((skin) => skin.id));
+    assert.deepEqual(BUILTIN_SKIN_CATALOG.map((skin) => skin.id), skins.slice(0, 2).map((skin) => skin.id));
     assert.equal(getPublicDefaultSkinId(), "sample-skin");
     assert.equal(isPublicSkinEnabled("sample-skin"), true);
     assert.equal(isPublicSkinEnabled("disabled-skin"), false);
-    assert.equal(isPublicSkinEnabled("community.illusia-voice"), true);
+    // The retired bundled skin id is rejected even when a directory lists it.
+    assert.equal(isPublicSkinEnabled("community.illusia-voice"), false);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -45,7 +45,7 @@ test("invalid or disabled instance defaults safely fall back to the protected da
 
   try {
     const skins = await listPublicSkins();
-    assert.equal(skins.length, 3);
+    assert.equal(skins.length, 2);
     assert.equal(getPublicDefaultSkinId(), "builtin.light");
   } finally {
     globalThis.fetch = originalFetch;

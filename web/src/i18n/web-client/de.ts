@@ -12,7 +12,6 @@ export const de: Record<string, string> = {
   skinCatalogUnavailable: "Die Design-Liste ist derzeit nicht verfügbar; nur integrierte Designs werden angezeigt",
   skinDay: "Tagesmodus",
   skinNight: "Nachtmodus",
-  skinIllusia: "ILLUSIA-Stil",
   switchToLightTheme: "Zum hellen Design wechseln",
   switchToDarkTheme: "Zum dunklen Design wechseln",
   browserWorkspace: "TeamSpeak im Browser",

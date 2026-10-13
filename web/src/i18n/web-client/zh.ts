@@ -9,7 +9,6 @@ export const zh: Record<string, string> = {
     skinCatalogUnavailable: "皮肤列表暂时不可用，仅显示内置皮肤",
     skinDay: "日间模式",
     skinNight: "夜间模式",
-    skinIllusia: "ILLUSIA 风",
     switchToLightTheme: "切换到浅色主题",
     switchToDarkTheme: "切换到深色主题",
     browserWorkspace: "TeamSpeak 网页客户端",

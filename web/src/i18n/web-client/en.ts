@@ -9,7 +9,6 @@ export const en: Record<string, string> = {
     skinCatalogUnavailable: "The skin list is unavailable for now; only built-in skins are shown",
     skinDay: "Day mode",
     skinNight: "Night mode",
-    skinIllusia: "ILLUSIA style",
     switchToLightTheme: "Switch to light theme",
     switchToDarkTheme: "Switch to dark theme",
     browserWorkspace: "TeamSpeak in your browser",

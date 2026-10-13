@@ -2,8 +2,6 @@ import type { SkinCatalogEntry } from "../../../src/shared/skin-catalog.js";
 import { createSkinOperation, type SkinLoadOptions } from "./skin-operation.js";
 export type { SkinCatalogEntry } from "../../../src/shared/skin-catalog.js";
 
-export const BUILTIN_ILLUSIA_SKIN_ID = "community.illusia-voice";
-
 export const BUILTIN_SKIN_CATALOG: SkinCatalogEntry[] = [
   {
     id: "builtin.light",
@@ -29,22 +27,11 @@ export const BUILTIN_SKIN_CATALOG: SkinCatalogEntry[] = [
     builtIn: true,
     previewKind: "night",
   },
-  {
-    id: BUILTIN_ILLUSIA_SKIN_ID,
-    name: "ILLUSIA风",
-    version: "1.0.28",
-    author: "WebSpeak Project",
-    license: "All rights reserved",
-    description: "A bright original-character art skin for the home and voice room.",
-    minAppVersion: "0.2.6",
-    previewUrl: "/skins/illusia-voice-preview.webp",
-    installedAt: 0,
-    builtIn: true,
-    previewKind: "illusia",
-  },
 ];
 
-const BUILTIN_ILLUSIA_PACKAGE_URL = "/skins/illusia-voice.wskin";
+// The bundled ILLUSIA skin was retired; its id stays frozen on the server
+// (protected built-in), so a directory can never legitimately list it again.
+const RETIRED_BUNDLED_SKIN_IDS = new Set(["community.illusia-voice"]);
 let publicDirectoryLoaded = false;
 let publicEnabledSkinIds = new Set<string>(BUILTIN_SKIN_CATALOG.map((skin) => skin.id));
 let publicDefaultSkinId = "builtin.light";
@@ -63,12 +50,9 @@ export function getPublicDefaultSkinId(): string {
 }
 
 export function isPublicSkinEnabled(id: string): boolean {
+  if (RETIRED_BUNDLED_SKIN_IDS.has(id)) return false;
   if (BUILTIN_SKIN_CATALOG.some((skin) => skin.id === id)) return true;
   return !publicDirectoryLoaded || publicEnabledSkinIds.has(id);
-}
-
-export function getBundledSkinPackageUrl(id: string): string | null {
-  return id === BUILTIN_ILLUSIA_SKIN_ID ? BUILTIN_ILLUSIA_PACKAGE_URL : null;
 }
 
 export async function listPublicSkins(options: SkinLoadOptions = {}): Promise<SkinCatalogEntry[]> {
@@ -84,7 +68,7 @@ export async function listPublicSkins(options: SkinLoadOptions = {}): Promise<Sk
     const directorySkins = (payload as { skins: unknown[] }).skins.flatMap((value) => {
       if (!value || typeof value !== "object") return [];
       const skin = value as Record<string, unknown>;
-      if (typeof skin.id !== "string" || !/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(skin.id) || skin.id.startsWith("builtin.") || skin.id === BUILTIN_ILLUSIA_SKIN_ID) return [];
+      if (typeof skin.id !== "string" || !/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(skin.id) || skin.id.startsWith("builtin.") || RETIRED_BUNDLED_SKIN_IDS.has(skin.id)) return [];
       if ([skin.name, skin.version, skin.author, skin.license, skin.minAppVersion].some((field) => typeof field !== "string")) return [];
       const previewUrl = typeof skin.previewUrl === "string" && skin.previewUrl === `/api/skins/${skin.id}/preview` ? skin.previewUrl : undefined;
       return [{

@@ -13,6 +13,8 @@ const MAX_IMAGE_BYTES = 16 * 1024 * 1024;
 const MAX_FONT_BYTES = 4 * 1024 * 1024;
 const MAX_SKINS = 50;
 const MAX_TOTAL_ARCHIVES = 200 * 1024 * 1024;
+// community.illusia-voice stays listed although the bundled skin was retired:
+// keeping it protected freezes the retired id against re-upload or deletion.
 export const BUILTIN_SKIN_IDS = ["builtin.light", "builtin.dark", "community.illusia-voice"] as const;
 const BUILTIN_SKIN_ID_SET = new Set<string>(BUILTIN_SKIN_IDS);
 const EOCD_SIGNATURE = 0x06054b50;

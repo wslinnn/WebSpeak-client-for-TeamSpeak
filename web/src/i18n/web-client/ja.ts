@@ -13,7 +13,6 @@ export const ja: Record<string, string> = {
   skinCatalogUnavailable: "スキンリストは現在利用できません; 内蔵スキンのみ表示しています",
   skinDay: "昼モード",
   skinNight: "夜モード",
-  skinIllusia: "ILLUSIA スタイル",
   switchToLightTheme: "ライトテーマに切り替え",
   switchToDarkTheme: "ダークテーマに切り替え",
   browserWorkspace: "ブラウザで TeamSpeak",

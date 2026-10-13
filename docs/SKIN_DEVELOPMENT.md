@@ -4,13 +4,13 @@
 
 页面结构、必要控件和所有基础翻译均由 WebSpeak 提供。皮肤包不必携带文案；如果只包含样式与美术素材，所有界面文字仍由 WebSpeak 按当前语言显示。`content.json` 仅用于可选覆盖，缺少的语言或字段回退到 WebSpeak 的基础内容。皮肤不注入 HTML 或 JavaScript，也不改变语音、权限、连接、拖动和屏幕共享行为。**管理后台 `/admin/**` 不属于皮肤范围，始终使用 WebSpeak 自己的固定样式。**
 
-可直接查看 [ILLUSIA 风示例源码](examples/illusia-voice/) 与 [示例说明](examples/ILLUSIA-VOICE.md)。它使用本地美术素材和 CSS 完整定制首页、语音房间、成员区、聊天空状态及播放器，同时沿用 WebSpeak 提供的基础翻译；也是管理控制台内置且不可移除的示例皮肤。
+仓库不再随附示例皮肤；按本文规范从零编写即可，公开部件名称见下方目录。
 
 ## 使用与发布
 
-管理员在 `/admin/skins` 查看三款随 WebSpeak 提供的内置皮肤，并可导入、替换、启用/停用或删除实例自定义皮肤；还可指定访客首次访问时使用的默认皮肤。默认日间、默认夜间和 ILLUSIA 风为受保护内置项，不可替换、停用或移除。访客手动选择的皮肤保存在该浏览器，后续实例默认值变更不会覆盖该明确选择；仅自动套用过旧默认值的浏览器会采用最新实例默认值。皮肤包会缓存在浏览器本地；页面启动时会查询实例目录，目录可用且版本更新时拉取新包。若网络不可用，已缓存的版本仍可使用。
+管理员在 `/admin/skins` 查看两款随 WebSpeak 提供的内置皮肤，并可导入、替换、启用/停用或删除实例自定义皮肤；还可指定访客首次访问时使用的默认皮肤。默认日间与默认夜间为受保护内置项，不可替换、停用或移除。访客手动选择的皮肤保存在该浏览器，后续实例默认值变更不会覆盖该明确选择；仅自动套用过旧默认值的浏览器会采用最新实例默认值。皮肤包会缓存在浏览器本地；页面启动时会查询实例目录，目录可用且版本更新时拉取新包。若网络不可用，已缓存的版本仍可使用。
 
-选择器提供默认日间、默认夜间、内置 ILLUSIA 风和已启用的实例皮肤；没有“跟随系统”选项。停用的实例皮肤不向访客展示，也不能从服务端下载；若它是当前默认皮肤，系统会安全回退到默认日间。管理员设置的默认值只影响未手动选择皮肤的访客。自定义皮肤是独立的外观选择，不继承之前的日间或夜间模式；皮肤未覆盖的部件回退到浅色基础外观，避免一套组件混入另一套模式。自定义皮肤可自行声明 `color-scheme` 并定义深色外观；切换为日间或夜间时，会停用当前自定义包。文档级 `data-theme` 仍由 WebSpeak 保留给管理后台使用。
+选择器提供默认日间、默认夜间和已启用的实例皮肤；没有“跟随系统”选项。停用的实例皮肤不向访客展示，也不能从服务端下载；若它是当前默认皮肤，系统会安全回退到默认日间。管理员设置的默认值只影响未手动选择皮肤的访客。自定义皮肤是独立的外观选择，不继承之前的日间或夜间模式；皮肤未覆盖的部件回退到浅色基础外观，避免一套组件混入另一套模式。自定义皮肤可自行声明 `color-scheme` 并定义深色外观；切换为日间或夜间时，会停用当前自定义包。文档级 `data-theme` 仍由 WebSpeak 保留给管理后台使用。
 
 ## 包结构
 
@@ -32,14 +32,14 @@ assets/brand.woff2            # 可选：自带字体
 ```json
 {
   "schemaVersion": 1,
-  "id": "community.illusia-voice",
-  "name": "ILLUSIA风",
-  "version": "1.0.25",
-  "author": "WebSpeak Project",
-  "license": "All rights reserved",
+  "id": "community.my-art",
+  "name": "MyArt",
+  "version": "1.0.0",
+  "author": "Your Name",
+  "license": "MIT",
   "description": "A visual-only art skin using the WebSpeak interface translations.",
   "entry": "skin.css",
-  "preview": "assets/background-composite.webp",
+  "preview": "assets/preview.png",
   "minAppVersion": "0.2.6"
 }
 ```
@@ -136,10 +136,10 @@ assets/brand.woff2            # 可选：自带字体
 
 `voice.member-panel` 的 `::before` 是成员栏耳机/场景插画层，宿主已固定它的尺寸、位置、透视和前后层级；皮肤只需提供透明背景素材并调整背景显示、滤镜或阴影，不能自行定位或改变尺寸。消息空状态的 `::before` / `::after` 预留给气泡等小型装饰，宿主负责形状位置；皮肤可以绘制边框、底色和点状背景，但标题和说明文字仍由 WebSpeak 翻译并保持可见。
 
-皮肤与语言选择器的触发按钮、菜单和每个选项都提供上述通用部件钩子。`skin.option` 另带有 `data-ws-skin-id`（内置项为 `builtin.light`、`builtin.dark` 和 `community.illusia-voice`，实例皮肤项为其清单 ID）；`language.option` 带有 `data-ws-language`。皮肤可以据此只装饰自己的选择项，而不影响其他皮肤、语言选项或选择器交互。例如：
+皮肤与语言选择器的触发按钮、菜单和每个选项都提供上述通用部件钩子。`skin.option` 另带有 `data-ws-skin-id`（内置项为 `builtin.light` 与 `builtin.dark`，实例皮肤项为其清单 ID）；`language.option` 带有 `data-ws-language`。皮肤可以据此只装饰自己的选择项，而不影响其他皮肤、语言选项或选择器交互。例如：
 
 ```css
-[data-ws-part="skin.option"][data-ws-skin-id="community.illusia-voice"][role="option"] {
+[data-ws-part="skin.option"][data-ws-skin-id="community.my-art"][role="option"] {
   background-image: linear-gradient(110deg, #efffff, #c8f3f2);
 }
 ```
@@ -168,12 +168,12 @@ assets/brand.woff2            # 可选：自带字体
 
 ```css
 @font-face {
-  font-family: "ILLUSIA Sans";
-  src: url("assets/illusia-sans.woff2") format("woff2");
+  font-family: "Brand Sans";
+  src: url("assets/brand.woff2") format("woff2");
   font-display: swap;
 }
 
-[data-ws-page="voice"] { font-family: "ILLUSIA Sans", sans-serif; }
+[data-ws-page="voice"] { font-family: "Brand Sans", sans-serif; }
 ```
 
 字体必须随包附带并拥有可再分发许可。自定义字体可能改变不同语言的字宽，因此校验器会给出提示；发布前必须检查中文、英语、德语、俄语和日语下的标题、按钮和长文案是否仍完整可读。字体族名和 `@keyframes` / `@layer` 名称会自动隔离，避免与其他皮肤冲突。请支持 `prefers-reduced-motion`，并确保焦点、错误、静音、正在说话等状态仍容易辨认。
@@ -224,14 +224,14 @@ CSS 被限定在 `.ws-skin-root` 内，管理员页面不会继承皮肤。删�
 
 ## 制作与验收
 
-1. 复制 `docs/examples/illusia-voice/`，先修改 `manifest.json` 的唯一 `id`、名称、作者、版本和授权。ILLUSIA 是完整的美术参考，不是必须沿用的角色或配色。
+1. 新建包目录，按上方示例编写 `manifest.json` 的唯一 `id`、名称、作者、版本和授权。
 2. 只使用本目录公开的 `data-ws-part`、`data-ws-page`、状态属性和包内静态资源。不要依赖 Vue 内部 class。
 3. 使用本地资源编写 `skin.css`；需要改首页文字或公开翻译时补充 `content.json`。
 4. 在包根目录生成 ZIP，再改扩展名为 `.wskin`。PowerShell 示例：
 
    ```powershell
-   Compress-Archive -Path .\docs\examples\illusia-voice\* -DestinationPath .\illusia-voice.zip -Force
-   Rename-Item .\illusia-voice.zip illusia-voice.wskin
+   Compress-Archive -Path .\my-art\* -DestinationPath .\my-art.zip -Force
+   Rename-Item .\my-art.zip my-art.wskin
    ```
 
 5. 在管理员后台 `/admin/skins` 上传。用访客浏览器分别检查连接首页和语音页；测试自定义图片、所有交互控件、语音/静音状态、成员列表、聊天、屏幕共享播放器和设置，确认组件位置、尺寸、排列与未启用皮肤时一致。

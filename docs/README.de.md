@@ -24,7 +24,7 @@ Derzeit ist keine öffentliche Live-Demo verfügbar. Um WebSpeak auszuprobieren,
 | Identität und Zugriff | Gespeicherte Identität, eigene Ziele sowie Import, Konvertierung, Prüfung und Export von TeamSpeak-3-Identitäten. |
 | Administration | Ziele, Zugriff, öffentliche Medienadresse, IPv6-Kandidaten, Sprach-STUN, Sitzungen, Protokolle, Diagnosen und Backups verwalten. |
 | Projektstruktur | In 0.2.6 wurden Sprach-Gateway, Sitzungsereignisse, Audio und Bildschirmfreigabe in Module aufgeteilt; Sprach- und Admin-Oberflächen in Komponenten, Composables und Dienste zerlegt und um Lebenszyklus- und Wiederverbindungstests ergänzt. |
-| Skins | Geschützte Tages-, Nacht- und ILLUSIA-Skins sowie instanzverwaltete `.wskin`-Designs mit Aktivierungs- und Standardauswahl im Adminbereich. |
+| Skins | Geschützte Tages- und Nacht-Skins sowie instanzverwaltete `.wskin`-Designs mit Aktivierungs- und Standardauswahl im Adminbereich. |
 | Oberfläche | Chinesische, englische, deutsche, russische und japanische Oberfläche sowie responsive Desktop-/Mobilansicht. |
 | Selbsthosting | Daten bleiben beim Betreiber; Pakete für Windows x64 und Linux x64/ARM64, Docker für amd64/arm64. |
 

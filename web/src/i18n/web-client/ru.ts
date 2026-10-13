@@ -13,7 +13,6 @@ export const ru: Record<string, string> = {
   skinCatalogUnavailable: "Список тем временно недоступен; показаны только встроенные",
   skinDay: "Дневной режим",
   skinNight: "Ночной режим",
-  skinIllusia: "Стиль ILLUSIA",
   switchToLightTheme: "Включить светлую тему",
   switchToDarkTheme: "Включить тёмную тему",
   browserWorkspace: "TeamSpeak в браузере",
