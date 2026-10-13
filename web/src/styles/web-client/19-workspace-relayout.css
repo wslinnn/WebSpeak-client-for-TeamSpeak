@@ -13,8 +13,10 @@
     transition: grid-template-columns .24s cubic-bezier(.2, .75, .25, 1);
   }
 
+  /* Collapse keeps four tracks (the fourth shrinks to 0) so the template
+   * interpolates; the panel fades instead of unmounting. */
   .app-shell[data-chat-collapsed="true"] {
-    grid-template-columns: 86px 304px minmax(0, 1fr);
+    grid-template-columns: 86px 304px minmax(0, 1fr) 0;
   }
 
   /* Server rail: KAAK-style rounded-square column with the own identity
@@ -184,10 +186,16 @@
     background: var(--wsd-panel);
     border-top: 0;
     border-left: 1px solid var(--wsd-border);
+    transition: opacity .16s ease;
   }
 
   .app-shell[data-chat-collapsed="true"] > .chat-panel {
-    display: none;
+    overflow: hidden;
+    border-left-width: 0;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .16s ease, visibility 0s linear .24s;
   }
 
   :deep(.app-shell > .chat-panel .chat-heading) {
