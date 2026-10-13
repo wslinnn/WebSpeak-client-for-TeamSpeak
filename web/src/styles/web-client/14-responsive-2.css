@@ -82,25 +82,7 @@
     height: 36px;
     flex-basis: 36px;
   }
-  .workspace-actions .workspace-skin-switcher,
-  .workspace-actions .workspace-language {
-    display: none;
-  }
-  .disconnect-button {
-    width: 36px;
-    height: 36px;
-    min-height: 36px;
-    margin-left: 0;
-    padding: 0;
-    justify-content: center;
-  }
-  .disconnect-button .ui-icon {
-    display: block;
-    margin: 0;
-  }
-  .disconnect-button span {
-    display: none;
-  }
+
   .workspace-content {
     display: block;
     width: 100%;
@@ -565,10 +547,7 @@
     height: 32px;
     flex-basis: 32px;
   }
-  .disconnect-button {
-    width: 32px;
-    height: 32px;
-  }
+
   .room-hero {
     padding-inline: 16px;
   }

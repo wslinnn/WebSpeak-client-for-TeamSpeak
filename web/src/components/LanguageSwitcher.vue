@@ -1,10 +1,11 @@
 <template>
-  <div ref="root" class="language-switcher" :class="{ open }" @keydown.esc="close">
+  <div ref="root" class="language-switcher" :class="{ open, tile }" @keydown.esc="close">
     <button
       type="button"
       class="language-trigger"
       data-ws-part="language.trigger"
       :aria-label="menuLabel"
+      :title="tile ? menuLabel : undefined"
       aria-haspopup="listbox"
       :aria-expanded="open"
       :data-ws-state="open ? 'open' : 'closed'"
@@ -12,8 +13,8 @@
       @click.stop="toggle"
     >
       <span class="language-current-flag" aria-hidden="true">{{ currentLanguage.flag }}</span>
-      <span class="language-current-code">{{ currentLanguage.code }}</span>
-      <Icon name="chevron-down" :size="13" />
+      <span v-if="!tile" class="language-current-code">{{ currentLanguage.code }}</span>
+      <Icon v-if="!tile" name="chevron-down" :size="13" />
     </button>
 
     <div v-if="open" ref="dropdown" :id="menuId" class="language-dropdown" data-ws-part="language.menu" role="listbox" :aria-label="menuLabel" @click.stop>
@@ -51,6 +52,7 @@ type Language = "zh" | "en" | "de" | "ru" | "ja";
 const props = withDefaults(defineProps<{
   modelValue: Language;
   menuLabel?: string;
+  tile?: boolean;
 }>(), {
   menuLabel: "Language",
 });
@@ -110,6 +112,22 @@ function placeDropdown(): void {
   const rootEl = root.value;
   const dropdownEl = dropdown.value;
   if (!rootEl || !dropdownEl) return;
+  if (props.tile) {
+    // Tile mode lives in the server rail, whose overflow clips absolutely
+    // positioned menus: place the dropdown fixed beside the tile instead.
+    const tileRect = rootEl.getBoundingClientRect();
+    const width = dropdownEl.offsetWidth;
+    const height = dropdownEl.offsetHeight;
+    let left = tileRect.right + 8;
+    if (left + width > window.innerWidth - VIEWPORT_MARGIN) left = Math.max(VIEWPORT_MARGIN, tileRect.left - width - 8);
+    let top = tileRect.top;
+    if (top + height > window.innerHeight - VIEWPORT_MARGIN) top = Math.max(VIEWPORT_MARGIN, window.innerHeight - VIEWPORT_MARGIN - height);
+    dropdownEl.style.position = "fixed";
+    dropdownEl.style.left = `${left}px`;
+    dropdownEl.style.top = `${top}px`;
+    dropdownEl.style.right = "auto";
+    return;
+  }
   dropdownEl.style.left = "";
   dropdownEl.style.top = "";
   dropdownEl.style.right = "";
@@ -399,6 +417,40 @@ onUnmounted(() => {
   color: #69d2c7;
   background: #203531;
   border-color: #38564f;
+}
+
+/* Rail tile variant: the trigger turns into a 58px rail tile; the dropdown
+   keeps its light surface and opens to the right of the rail. */
+.language-switcher.tile .language-trigger {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  min-width: 58px;
+  height: 58px;
+  min-height: 58px;
+  padding: 0;
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border: 2px solid transparent;
+  border-radius: 18px;
+  box-shadow: none;
+}
+
+.language-switcher.tile .language-trigger:hover,
+.language-switcher.tile.open .language-trigger {
+  color: var(--wsd-text);
+  background: var(--wsd-hover);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.language-switcher.tile .language-current-flag {
+  font-size: 22px;
+}
+
+.language-switcher.tile .language-dropdown {
+  right: auto;
+  left: 0;
 }
 
 @media (max-width: 520px) {

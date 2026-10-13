@@ -437,6 +437,21 @@
             :size="17"
         /></button>
         </template>
+        <SkinSwitcher
+          v-model="activeSkinId"
+          class="rail-switcher-tile"
+          tile
+          :menu-label="t('skinSelector')"
+          :options="skinOptions"
+          @change="onSkinChange"
+        />
+        <LanguageSwitcher
+          v-model="language"
+          class="rail-switcher-tile"
+          tile
+          :menu-label="t('languageMenu')"
+          @change="persistLanguage"
+        />
         <div
           class="rail-identity"
           data-ws-part="voice.rail-identity"
@@ -500,19 +515,7 @@
                 name="settings"
                 :size="18"
             /></button>
-            <SkinSwitcher
-              v-model="activeSkinId"
-              class="workspace-skin-switcher"
-              :menu-label="t('skinSelector')"
-              :options="skinOptions"
-              @change="onSkinChange"
-            />
-            <LanguageSwitcher
-              v-model="language"
-              class="workspace-language"
-              :menu-label="t('languageMenu')"
-              @change="persistLanguage"
-            />
+
             <button
               v-if="chatColumnActive && chatCollapsed"
               type="button"

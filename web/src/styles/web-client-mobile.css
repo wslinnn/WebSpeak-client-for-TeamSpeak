@@ -96,7 +96,6 @@
   :deep(textarea), :deep(select) { font-size: 16px; }
   :deep(button), :deep(a) { touch-action: manipulation; }
   .workspace-actions .header-action,
-  .disconnect-button,
   :deep(.member-action-button),
   :deep(.member-menu-close),
   :deep(.send-button),

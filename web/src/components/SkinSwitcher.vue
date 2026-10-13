@@ -1,5 +1,5 @@
 <template>
-  <div ref="root" class="skin-switcher" :class="{ open }" @keydown.esc="close">
+  <div ref="root" class="skin-switcher" :class="{ open, tile }" @keydown.esc="close">
     <button
       type="button"
       class="skin-trigger"
@@ -13,12 +13,12 @@
       :aria-controls="menuId"
       @click.stop="toggle"
     >
-      <Icon :name="selectedOption.icon || 'compass'" :size="15" />
-      <span>{{ menuLabel }}</span>
-      <Icon name="chevron-down" :size="12" />
+      <Icon :name="selectedOption.icon || 'compass'" :size="tile ? 22 : 15" />
+      <span v-if="!tile">{{ menuLabel }}</span>
+      <Icon v-if="!tile" name="chevron-down" :size="12" />
     </button>
 
-    <div v-if="open" :id="menuId" class="skin-dropdown" data-ws-part="skin.menu" role="listbox" :aria-label="menuLabel" @click.stop>
+    <div v-if="open" ref="dropdown" :id="menuId" class="skin-dropdown" data-ws-part="skin.menu" role="listbox" :aria-label="menuLabel" @click.stop>
       <button
         v-for="option in options"
         :key="option.value"
@@ -40,7 +40,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import Icon from "./Icon.vue";
 
 export interface SkinOption {
@@ -53,6 +53,7 @@ const props = defineProps<{
   modelValue: string;
   menuLabel: string;
   options: SkinOption[];
+  tile?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -67,6 +68,7 @@ const selectedOption = computed(() => options.value.find((option) => option.valu
   icon: "compass",
 });
 const root = ref<HTMLElement | null>(null);
+const dropdown = ref<HTMLElement | null>(null);
 const open = ref(false);
 const menuId = `skin-menu-${Math.random().toString(36).slice(2, 9)}`;
 
@@ -81,8 +83,41 @@ function onDocumentPointerDown(event: PointerEvent) {
   if (root.value && !root.value.contains(event.target as Node)) close();
 }
 
-onMounted(() => document.addEventListener("pointerdown", onDocumentPointerDown));
-onUnmounted(() => document.removeEventListener("pointerdown", onDocumentPointerDown));
+// Tile mode lives in the server rail, whose overflow clips absolutely
+// positioned menus: place the dropdown fixed beside the tile instead.
+function placeTileDropdown(): void {
+  if (!props.tile) return;
+  const rootEl = root.value;
+  const dropdownEl = dropdown.value;
+  if (!rootEl || !dropdownEl) return;
+  const rootRect = rootEl.getBoundingClientRect();
+  const width = dropdownEl.offsetWidth;
+  const height = dropdownEl.offsetHeight;
+  let left = rootRect.right + 8;
+  if (left + width > window.innerWidth - 8) left = Math.max(8, rootRect.left - width - 8);
+  let top = rootRect.top;
+  if (top + height > window.innerHeight - 8) top = Math.max(8, window.innerHeight - 8 - height);
+  dropdownEl.style.position = "fixed";
+  dropdownEl.style.left = `${left}px`;
+  dropdownEl.style.top = `${top}px`;
+  dropdownEl.style.right = "auto";
+}
+
+watch(open, (isOpen) => {
+  if (isOpen) void nextTick(placeTileDropdown);
+});
+function onWindowResize(): void {
+  if (open.value) placeTileDropdown();
+}
+
+onMounted(() => {
+  document.addEventListener("pointerdown", onDocumentPointerDown);
+  window.addEventListener("resize", onWindowResize);
+});
+onUnmounted(() => {
+  document.removeEventListener("pointerdown", onDocumentPointerDown);
+  window.removeEventListener("resize", onWindowResize);
+});
 </script>
 
 <style scoped>
@@ -192,6 +227,36 @@ onUnmounted(() => document.removeEventListener("pointerdown", onDocumentPointerD
 @media (max-width: 520px) {
   .skin-trigger { min-height: 36px; }
   .skin-dropdown { min-width: 190px; }
+}
+
+/* Rail tile variant: the trigger turns into a 58px rail tile; the dropdown
+   keeps its readable light surface and opens to the right of the rail. */
+.skin-switcher.tile .skin-trigger {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  min-width: 58px;
+  height: 58px;
+  min-height: 58px;
+  padding: 0;
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border: 2px solid transparent;
+  border-radius: 18px;
+  box-shadow: none;
+}
+
+.skin-switcher.tile .skin-trigger:hover,
+.skin-switcher.tile.open .skin-trigger {
+  color: var(--wsd-text);
+  background: var(--wsd-hover);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.skin-switcher.tile .skin-dropdown {
+  right: auto;
+  left: 0;
 }
 
 .skin-switcher.mobile-skin-switcher .skin-trigger {

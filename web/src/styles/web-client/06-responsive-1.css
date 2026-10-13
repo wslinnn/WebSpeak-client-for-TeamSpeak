@@ -171,13 +171,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .disconnect-button {
-    margin-left: 2px;
-    padding-inline: 9px;
-  }
-  .disconnect-button .ui-icon {
-    display: none;
-  }
+
   .workspace-content {
     width: calc(100% - 30px);
     padding-top: 18px;
