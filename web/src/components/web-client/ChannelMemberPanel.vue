@@ -6,10 +6,40 @@
     <div
       class="member-server-header"
       data-ws-part="voice.server-header"
-    ><strong>{{ serverLabel }}</strong><span
-        class="member-server-badge"
-        data-ws-state="connected"
-      >{{ t("serverConnected") }}</span></div>
+    ><strong>{{ serverLabel }}</strong><button
+        ref="switcherTriggerEl"
+        type="button"
+        class="member-server-menu"
+        data-ws-part="voice.server-switcher.trigger"
+        :aria-expanded="switcherOpen"
+        :aria-label="t('favoriteServers')"
+        :title="t('favoriteServers')"
+        @click="toggleSwitcher"
+      ><Icon
+          name="menu"
+          :size="16" /></button></div>
+    <div
+      class="member-server-meta"
+      data-ws-part="voice.server-meta"
+    ><span
+        class="member-server-kind"
+      >TeamSpeak</span><button
+        type="button"
+        class="status-button"
+        :class="{ active: away }"
+        :aria-pressed="!away"
+        @click="toggleAway"
+        ><span class="status-dot"></span>{{ away ? t("away") : t("available") }}</button
+      ><button
+        type="button"
+        class="member-search-toggle"
+        :aria-expanded="searchOpen"
+        :aria-label="t('searchMembers')"
+        :title="t('searchMembers')"
+        @click="toggleSearch"
+      ><Icon
+          name="search"
+          :size="15" /></button></div>
     <div
       v-if="welcomeMessage"
       class="member-server-welcome"
@@ -23,20 +53,15 @@
       data-ws-part="voice.member-panel.heading"
       ><div
         ><h2>{{ t("people") }}</h2></div
-      ><button
-        type="button"
-        class="status-button"
-        :class="{ active: away }"
-        @click="toggleAway"
-        ><span class="status-dot"></span>{{ away ? t("away") : t("available") }}</button
-      ></div
-    >
+    ></div>
     <div
       class="member-search"
+      :class="{ 'search-open': searchOpen || memberQuery.trim().length > 0 }"
       data-ws-part="voice.member-panel.search"
       ><Icon
         name="search"
         :size="15" /><input
+        ref="searchInputEl"
         v-model="memberQuery"
         :placeholder="t('searchMembers')"
         :aria-label="t('searchMembers')"
@@ -258,14 +283,48 @@
       >{{ t("noMatchingMembers") }}</div
     >
     <slot />
+    <Teleport to=".web-client">
+      <template v-if="switcherOpen">
+        <div
+          class="member-server-switcher-backdrop"
+          data-ws-part="voice.server-switcher-backdrop"
+          @click="switcherOpen = false"
+        ></div>
+        <div
+          ref="switcherMenuEl"
+          class="member-server-switcher"
+          data-ws-part="voice.server-switcher"
+          role="menu"
+          tabindex="-1"
+          :style="switcherMenuStyle"
+          @keydown.esc="switcherOpen = false"
+        >
+          <button
+            v-for="server in switcherServers"
+            :key="server.id"
+            type="button"
+            role="menuitem"
+            class="member-server-switcher-item"
+            :data-ws-state="server.address === currentAddress ? 'current' : 'idle'"
+            @click="pickSwitcher(server)"
+          ><span
+              class="member-server-switcher-icon"
+              :style="avatarStyle(server.label, false, '')"
+            >{{ avatarInitial(server.label) }}</span><span
+              class="member-server-switcher-label"
+            >{{ server.label }}</span></button>
+        </div>
+      </template>
+    </Teleport>
   </aside>
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch, type CSSProperties } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch, type CSSProperties } from "vue";
 import Icon from "../Icon.vue";
 import type { TreeChannel } from "../../composables/useWebClientChannels.js";
 import type { useWebClientMembers } from "../../composables/useWebClientMembers.js";
+import type { FavoriteServer } from "../../services/local-persistence.js";
 
 type MemberPanelModel = Pick<ReturnType<typeof useWebClientMembers>,
   | "away"
@@ -292,6 +351,8 @@ const props = defineProps<{
   isMobileViewport: boolean;
   volumes: Record<number, number>;
   foldedChannels: ReadonlySet<string>;
+  switcherServers: readonly FavoriteServer[];
+  currentAddress: string;
   avatarStyle: (name: string, isSelf?: boolean, avatar?: string) => CSSProperties;
   avatarInitial: (name: string) => string;
   rangeStyle: (value: number, max: number) => CSSProperties;
@@ -301,6 +362,7 @@ const emit = defineEmits<{
   selectChannel: [channel: TreeChannel];
   toggleFold: [channelId: string];
   volumeInput: [clientId: number, event: Event];
+  switchServer: [server: FavoriteServer];
 }>();
 
 // KAAK-style join interaction: a single click selects the channel, a double
@@ -309,6 +371,47 @@ const selectedChannelId = ref<string | null>(null);
 watch(() => props.currentChannelId, () => {
   selectedChannelId.value = null;
 });
+
+// KAAK-style header: the ≡ opens a server switcher over the rail favorites,
+// and the search field collapses behind the magnifier toggle.
+const switcherOpen = ref(false);
+const switcherTriggerEl = ref<HTMLElement | null>(null);
+const switcherMenuEl = ref<HTMLElement | null>(null);
+const switcherMenuStyle = ref<CSSProperties>({});
+const searchOpen = ref(false);
+const searchInputEl = ref<HTMLInputElement | null>(null);
+
+function toggleSwitcher(): void {
+  switcherOpen.value = !switcherOpen.value;
+  if (switcherOpen.value) void nextTick(updateSwitcherPlacement);
+}
+
+function updateSwitcherPlacement(): void {
+  const menu = switcherMenuEl.value;
+  const trigger = switcherTriggerEl.value;
+  if (!menu || !trigger) return;
+  const rect = trigger.getBoundingClientRect();
+  const left = Math.max(8, Math.min(rect.right - menu.offsetWidth, window.innerWidth - menu.offsetWidth - 8));
+  const top = Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - menu.offsetHeight - 8));
+  switcherMenuStyle.value = { left: `${left}px`, top: `${top}px` };
+  menu.focus();
+}
+
+function pickSwitcher(server: FavoriteServer): void {
+  switcherOpen.value = false;
+  emit("switchServer", server);
+}
+
+function toggleSearch(): void {
+  searchOpen.value = !searchOpen.value;
+  if (searchOpen.value) void nextTick(() => searchInputEl.value?.focus());
+}
+
+function onGlobalKeydown(event: KeyboardEvent): void {
+  if (event.key === "Escape") switcherOpen.value = false;
+}
+onMounted(() => window.addEventListener("keydown", onGlobalKeydown));
+onUnmounted(() => window.removeEventListener("keydown", onGlobalKeydown));
 
 // Searching targets people, not structure: the fold memory is ignored while
 // a query is active so every match stays visible.
@@ -380,3 +483,80 @@ const {
   onMemberPointerCancel,
 } = props.model;
 </script>
+
+<style scoped>
+/* The switcher teleports to the app root — the channel pane clips fixed
+ * descendants — so it carries its own scoped styles instead of relying on a
+ * host scope attribute. */
+.member-server-switcher-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--ws-z-menu-mask, 300);
+  background: rgba(13, 29, 26, .38);
+  backdrop-filter: blur(2px);
+}
+
+.member-server-switcher {
+  position: fixed;
+  z-index: var(--ws-z-menu, 310);
+  display: grid;
+  gap: 3px;
+  width: min(250px, calc(100vw - 40px));
+  max-height: min(340px, calc(100dvh - 120px));
+  overflow: auto;
+  padding: 6px;
+  color: var(--wsd-text, #22262b);
+  background: var(--wsd-raised, #fff);
+  border: 1px solid var(--wsd-border, #dfe5e8);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .22);
+}
+
+.member-server-switcher-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 7px;
+  color: inherit;
+  background: transparent;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.member-server-switcher-item:hover,
+.member-server-switcher-item:focus-visible {
+  background: var(--wsd-hover, #e9eef0);
+  outline: none;
+}
+
+.member-server-switcher-item[data-ws-state="current"] {
+  color: var(--wsd-accent, #4f9e0c);
+  font-weight: 700;
+}
+
+.member-server-switcher-icon {
+  display: grid;
+  flex: 0 0 28px;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  overflow: hidden;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.member-server-switcher-label {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>

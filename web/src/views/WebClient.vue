@@ -704,6 +704,8 @@
         :is-mobile-viewport="isMobileViewport"
         :volumes="volumes"
         :folded-channels="foldedChannels"
+        :switcher-servers="favoriteServers"
+        :current-address="currentTarget"
         :avatar-style="avatarStyle"
         :avatar-initial="avatarInitial"
         :range-style="rangeStyle"
@@ -711,6 +713,7 @@
         @select-channel="selectChannel"
         @toggle-fold="toggleChannelFold"
         @volume-input="onVolInput"
+        @switch-server="switchServer"
       >
         <div v-if="isMobileViewport" class="mobile-member-controls" role="toolbar" :aria-label="t('desktopAudioControls')">
           <button type="button" class="mobile-voice-toggle" :class="{ muted: microphoneMuted }" :aria-label="t('microphone')" :title="microphoneMuted ? t('microphoneMuted') : t('microphoneActive')" :aria-pressed="!microphoneMuted" @click="toggleMicrophone"><Icon :name="microphoneMuted ? 'mic-off' : 'mic'" :size="20" /><span>{{ t('microphone') }}</span></button>

@@ -228,7 +228,6 @@ export const zh: Record<string, string> = {
     microphoneMutedHint: "麦克风已关闭，其他人听不到你的声音",
     people: "成员",
     searchMembers: "搜索成员",
-    serverConnected: "已连接",
     serverWelcome: "服务器欢迎语",
     voiceGroup: "语音分组",
     openChat: "打开聊天",

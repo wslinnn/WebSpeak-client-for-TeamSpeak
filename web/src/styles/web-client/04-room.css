@@ -494,6 +494,13 @@
   min-height: 33px;
 }
 
+/* The header switcher and collapsed-search toggle are ≥981 furniture; below
+ * that the search field stays always visible. */
+:deep(.member-server-menu),
+:deep(.member-search-toggle) {
+  display: none;
+}
+
 :deep(.member-list) {
   display: flex;
   flex-direction: column;

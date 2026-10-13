@@ -289,7 +289,6 @@ export const ru: Record<string, string> = {
   microphoneMutedHint: "Микрофон выключен, другие участники вас не слышат",
   people: "Участники",
   searchMembers: "Поиск участников",
-  serverConnected: "Подключено",
   serverWelcome: "Приветствие сервера",
   voiceGroup: "Голосовые каналы",
   openChat: "Открыть чат",

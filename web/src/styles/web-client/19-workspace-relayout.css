@@ -74,6 +74,7 @@
     display: flex;
     flex: 0 0 auto;
     align-items: center;
+    justify-content: space-between;
     gap: 8px;
     min-height: 50px;
     padding: 0 14px;
@@ -91,26 +92,78 @@
     white-space: nowrap;
   }
 
-  :deep(.member-server-badge) {
-    display: inline-flex;
+  :deep(.member-server-menu) {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    color: var(--wsd-text-dim);
+    background: transparent;
+    border: 0;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+
+  :deep(.member-server-menu:hover),
+  :deep(.member-server-menu:focus-visible),
+  :deep(.member-server-menu[aria-expanded="true"]) {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+  }
+
+  /* Meta line: static server kind tag + the own presence toggle + the
+   * collapsed search toggle (KAAK's two-line header). */
+  :deep(.member-server-meta) {
+    display: flex;
     flex: 0 0 auto;
     align-items: center;
-    gap: 5px;
+    gap: 8px;
+    padding: 10px 14px 0;
+  }
+
+  :deep(.member-server-kind) {
+    display: inline-flex;
+    align-items: center;
     height: 20px;
     padding: 0 9px;
-    color: var(--wsd-accent);
-    background: var(--wsd-accent-soft);
+    color: var(--wsd-text-muted);
+    background: var(--wsd-raised);
+    border: 1px solid var(--wsd-border);
     border-radius: 999px;
     font-size: 11px;
     font-weight: 700;
   }
 
-  :deep(.member-server-badge)::before {
-    width: 6px;
-    height: 6px;
-    content: "";
-    background: currentColor;
-    border-radius: 50%;
+  :deep(.member-search-toggle) {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 27px;
+    height: 27px;
+    margin-left: auto;
+    padding: 0;
+    color: var(--wsd-text-muted);
+    background: transparent;
+    border: 1px solid var(--wsd-border);
+    border-radius: 7px;
+    cursor: pointer;
+  }
+
+  :deep(.member-search-toggle:hover),
+  :deep(.member-search-toggle:focus-visible),
+  :deep(.member-search-toggle[aria-expanded="true"]) {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+  }
+
+  :deep(.member-search) {
+    display: none;
+  }
+
+  :deep(.member-search.search-open) {
+    display: flex;
   }
 
   :deep(.member-server-welcome) {
@@ -144,12 +197,6 @@
   }
 
   :deep(.member-panel-heading) {
-    min-height: 36px;
-    justify-content: flex-end;
-    border-bottom: 0;
-  }
-
-  :deep(.member-panel-heading > div:first-child) {
     display: none;
   }
 
