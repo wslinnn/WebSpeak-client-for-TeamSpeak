@@ -400,28 +400,17 @@
 
 :deep(.channel-password-modal) {
   position: relative;
-  width: min(420px, 100%);
-  padding: 31px 32px 28px;
+  width: min(438px, 100%);
+  padding: 20px;
   color: #263431;
   border: 1px solid #d9e7e3;
-  border-radius: 18px;
+  border-radius: 16px;
   background: #fff;
   box-shadow: 0 20px 60px rgba(16,40,35,.22);
 }
 
-:deep(.channel-password-icon) {
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  margin-bottom: 17px;
-  color: #006a64;
-  background: #e4f4f0;
-  border-radius: 14px;
-}
-
 :deep(.channel-password-modal h2) {
-  margin: 7px 0 8px;
+  margin: 0 0 8px;
   color: #1d2d29;
   font-size: 24px;
   letter-spacing: -.04em;
@@ -455,8 +444,10 @@
 }
 
 :deep(.channel-password-submit) {
-  min-height: 40px;
-  padding: 0 16px;
+  min-width: 82px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 13px;
 }
 
 :deep(.channel-password-submit .button-spinner) {

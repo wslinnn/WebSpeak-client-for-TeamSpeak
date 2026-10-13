@@ -22,12 +22,6 @@
           name="close"
           :size="19"
       /></button>
-      <div class="channel-password-icon"
-        ><Icon
-          name="lock"
-          :size="22"
-      /></div>
-      <span class="card-kicker">{{ t("serverPasswordPrompt") }}</span>
       <h2 id="server-password-title">{{ t("serverPasswordTitle") }}</h2>
       <p>{{
         errorCode === "INVALID_SERVER_PASSWORD"
@@ -64,10 +58,7 @@
             type="submit"
             class="primary-button channel-password-submit"
             :disabled="!password"
-            ><span>{{ t("serverPasswordRetry") }}</span
-            ><Icon
-              name="chevron-right"
-              :size="17" /></button
+            ><span>{{ t("serverPasswordRetry") }}</span></button
         ></div>
       </form>
     </section>

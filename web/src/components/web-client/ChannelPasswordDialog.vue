@@ -22,12 +22,6 @@
           name="close"
           :size="19"
       /></button>
-      <div class="channel-password-icon"
-        ><Icon
-          name="lock"
-          :size="22"
-      /></div>
-      <span class="card-kicker">{{ t("channelPasswordPrompt") }}</span>
       <h2 id="channel-password-title">{{ t("channelPasswordTitle") }}</h2>
       <p>{{ t("channelPasswordLead") }}</p>
       <form
@@ -71,11 +65,7 @@
               v-if="busy"
               class="button-spinner"
             ></span
-            ><span>{{ t("channelPasswordSubmit") }}</span
-            ><Icon
-              v-if="!busy"
-              name="chevron-right"
-              :size="17" /></button
+            ><span>{{ t("channelPasswordSubmit") }}</span></button
         ></div>
       </form>
     </section>

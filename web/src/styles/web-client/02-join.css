@@ -359,7 +359,7 @@
   justify-content: center;
   gap: 10px;
   color: #fff;
-  background: #006a64;
+  background: var(--wsd-accent);
   border-radius: 9px;
   font-size: 12px;
   font-weight: 700;
@@ -369,8 +369,8 @@
 
 :deep(.primary-button:hover:not(:disabled)),
 :deep(.identity-import-submit:hover:not(:disabled)) {
-  background: #005650;
-  box-shadow: 0 9px 20px rgba(0, 106, 100, .18);
+  background: var(--wsd-accent-hover);
+  box-shadow: 0 9px 20px color-mix(in srgb, var(--wsd-accent) 18%, transparent);
   transform: translateY(-1px);
 }
 
