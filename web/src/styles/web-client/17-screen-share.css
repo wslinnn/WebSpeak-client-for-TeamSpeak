@@ -19,7 +19,7 @@
 
 :deep(.screen-share-live-indicator) {
   position: absolute;
-  top: -16px;
+  top: 10px;
   right: 50%;
   z-index: 2;
   display: inline-flex;
@@ -27,10 +27,10 @@
   gap: 4px;
   min-height: 17px;
   padding: 3px 6px 3px 4px;
-  color: #087b6e;
-  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  color: var(--wsd-chip-text);
+  border: 1px solid var(--wsd-chip-border);
   border-radius: 999px;
-  background: var(--surface-1);
+  background: var(--wsd-chip-bg);
   box-shadow: 0 4px 12px color-mix(in srgb, var(--text-primary) 12%, transparent);
   font-size: 8px;
   font-weight: 800;
@@ -55,7 +55,7 @@
   align-items: center;
   gap: 1px;
   height: 14px;
-  color: #55d3bd;
+  color: var(--wsd-accent);
 }
 
 :deep(.screen-share-wave i) {
@@ -575,7 +575,7 @@
 
 @media (max-width: 740px) {
   :deep(.screen-share-live-indicator) {
-    top: -14px;
+    top: 8px;
     font-size: 7px;
   }
   :deep(.screen-share-card-button) {
