@@ -1,0 +1,156 @@
+/*
+ * Night surfaces for the workspace regions that moved onto the --wsd-*
+ * tokens: these rules take over the night re-theming the built-in skins used
+ * to provide on these selectors (now removed from the builtin skin files),
+ * so the token layer owns the colors at every viewport width. Day mode keeps
+ * the base stylesheet values; the dark attribute is the night switch.
+ */
+
+.web-client[data-ws-skin="builtin.dark"] .app-shell,
+.web-client[data-ws-skin="builtin.dark"] .workspace {
+  background: var(--wsd-bg);
+}
+
+.web-client[data-ws-skin="builtin.dark"] .workspace-header {
+  background: var(--wsd-panel);
+  border-bottom-color: var(--wsd-border);
+}
+
+.web-client[data-ws-skin="builtin.dark"] .workspace-content {
+  color: var(--wsd-text);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-panel) {
+  background: var(--wsd-panel);
+  border-color: var(--wsd-border);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.voice-card) {
+  background: var(--wsd-raised);
+  border-color: var(--wsd-border);
+  box-shadow: none;
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.voice-card.speaking) {
+  border-color: var(--wsd-accent);
+  box-shadow: 0 0 12px var(--wsd-accent-soft);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.voice-card > strong) {
+  color: var(--wsd-text);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.section-heading h2),
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-panel-heading h2),
+.web-client[data-ws-skin="builtin.dark"] :deep(.message-meta strong),
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-copy strong) {
+  color: var(--wsd-text);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.section-kicker),
+.web-client[data-ws-skin="builtin.dark"] :deep(.chat-empty) {
+  color: var(--wsd-text-muted);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.section-counter),
+.web-client[data-ws-skin="builtin.dark"] :deep(.message-meta time),
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-copy span) {
+  color: var(--wsd-text-dim);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.chat-empty strong) {
+  color: var(--wsd-text);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-presence) {
+  border-color: var(--wsd-panel);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-row:hover),
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-row:focus-within) {
+  background: var(--wsd-hover);
+  box-shadow: none;
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-channel-heading) {
+  color: var(--wsd-text);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-channel-group.current .member-channel-heading) {
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  box-shadow: inset 2px 0 0 var(--wsd-accent);
+}
+
+.web-client[data-ws-skin="builtin.dark"] .breadcrumbs {
+  color: var(--wsd-text-dim);
+}
+
+.web-client[data-ws-skin="builtin.dark"] .breadcrumbs strong {
+  color: var(--wsd-text);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-search) {
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border-color: var(--wsd-border);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-search input) {
+  color: var(--wsd-text);
+}
+
+.web-client[data-ws-skin="builtin.dark"] .chat-panel,
+.web-client[data-ws-skin="builtin.dark"] :deep(.chat-heading) {
+  border-color: var(--wsd-border);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.message-bubble) {
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.message-row.mine .message-bubble) {
+  background: var(--wsd-accent-soft);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.message-composer) {
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border-color: var(--wsd-border);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.message-composer :is(input, textarea)) {
+  color: var(--wsd-text);
+  background: transparent;
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.message-composer :is(input, textarea)::placeholder) {
+  color: var(--wsd-text-dim);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-context-menu),
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-submenu-panel) {
+  color: var(--wsd-text);
+  background: var(--wsd-panel);
+  border-color: var(--wsd-border);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .38);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-context-menu strong) {
+  color: var(--wsd-text);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-context-menu button) {
+  color: var(--wsd-text-muted);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-context-menu button:hover) {
+  color: var(--wsd-text);
+  background: var(--wsd-hover);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-submenu-panel button small),
+.web-client[data-ws-skin="builtin.dark"] :deep(.member-submenu-empty) {
+  color: var(--wsd-text-dim);
+}

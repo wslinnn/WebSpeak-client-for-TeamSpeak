@@ -41,3 +41,18 @@
   --wsd-accent-soft: rgba(108, 191, 0, .18);
   --wsd-danger: #e36b6b;
 }
+
+/* Scrollbar colors live here (moved out of the builtin skins with the
+ * workspace re-theme); scrollbar-color inherits to every descendant. */
+.web-client {
+  scrollbar-color: var(--wsd-border) transparent;
+}
+
+:deep(*::-webkit-scrollbar-thumb) {
+  background: var(--wsd-border);
+  border-color: transparent;
+}
+
+:deep(*::-webkit-scrollbar-thumb:hover) {
+  background: var(--wsd-hover);
+}

@@ -316,7 +316,7 @@
   }
 }
 
-/* Scroll geometry is shared; scrollbar colors belong to the active skin. */
+/* Scroll geometry is shared; scrollbar colors come from the --wsd-* tokens (00-tokens.css). */
 
 .web-client,
 .web-client * {
