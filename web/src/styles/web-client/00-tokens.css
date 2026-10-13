@@ -42,6 +42,11 @@
   --wsd-danger: #e36b6b;
 }
 
+/* Typography: the token stack is the app-wide font source. */
+.web-client {
+  font-family: var(--wsd-font);
+}
+
 /* Scrollbar colors live here (moved out of the builtin skins with the
  * workspace re-theme); scrollbar-color inherits to every descendant. */
 .web-client {
