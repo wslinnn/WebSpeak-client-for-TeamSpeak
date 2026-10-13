@@ -664,7 +664,8 @@
   }
 
   /* Speaking wave marker (bottom right) and microphone state badge (top
-   * right), both KAAK card furniture. */
+   * right), both KAAK card furniture. Transparent on purpose: no baked
+   * chip background, so they read on any theme or custom skin. */
   :deep(.voice-card::after) {
     position: absolute;
     right: 12px;
@@ -673,17 +674,13 @@
     display: none;
     width: 34px;
     height: 24px;
-    border: 1px solid var(--wsd-chip-border);
-    border-radius: 6px;
     color: var(--wsd-accent);
     background:
       linear-gradient(currentColor, currentColor) 6px 50% / 3px 6px,
       linear-gradient(currentColor, currentColor) 11px 50% / 3px 12px,
       linear-gradient(currentColor, currentColor) 16px 50% / 3px 8px,
-      linear-gradient(currentColor, currentColor) 21px 50% / 3px 14px,
-      var(--wsd-chip-bg);
+      linear-gradient(currentColor, currentColor) 21px 50% / 3px 14px;
     background-repeat: no-repeat;
-    box-shadow: 0 0 8px color-mix(in srgb, var(--wsd-accent) 33%, transparent);
     content: "";
     pointer-events: none;
     transform-origin: center;
@@ -706,10 +703,7 @@
     place-items: center;
     width: 25px;
     height: 25px;
-    color: var(--wsd-chip-text);
-    background: var(--wsd-chip-bg);
-    border: 1px solid var(--wsd-chip-border);
-    border-radius: 4px;
+    color: var(--wsd-text-muted);
   }
 
   /* Tile enter/leave motion: the base rules repeated so they outrank the

@@ -27,11 +27,7 @@
   gap: 4px;
   min-height: 17px;
   padding: 3px 6px 3px 4px;
-  color: var(--wsd-chip-text);
-  border: 1px solid var(--wsd-chip-border);
-  border-radius: 999px;
-  background: var(--wsd-chip-bg);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--text-primary) 12%, transparent);
+  color: var(--wsd-accent);
   font-size: 8px;
   font-weight: 800;
   line-height: 1;
@@ -45,8 +41,8 @@
   height: 5px;
   flex: 0 0 5px;
   border-radius: 50%;
-  background: #55d783;
-  box-shadow: 0 0 0 3px color-mix(in srgb, #55d783 18%, transparent);
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
   animation: screen-share-live-dot 1.2s ease-in-out infinite;
 }
 

@@ -26,12 +26,6 @@
   --wsd-accent-fill-hover: #7ad50a;
   --wsd-accent-soft: rgba(108, 191, 0, .14);
   --wsd-danger: #d24d4d;
-  /* Tile overlay chips (mic state, speaking wave): light in day so they do
-   * not read as black patches on white cards; the dark skin flips them to
-   * the KAAK translucent dark chip. */
-  --wsd-chip-bg: var(--wsd-raised);
-  --wsd-chip-border: var(--wsd-border);
-  --wsd-chip-text: var(--wsd-text-muted);
   --wsd-radius: 9px;
   --wsd-font: "PingFang SC", "Microsoft YaHei New", 微软雅黑, "Microsoft Yahei", "Microsoft JhengHei", 宋体, SimSun, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
@@ -52,9 +46,6 @@
   --wsd-accent-fill-hover: #7ac51a;
   --wsd-accent-soft: rgba(108, 191, 0, .18);
   --wsd-danger: #e36b6b;
-  --wsd-chip-bg: #111216d9;
-  --wsd-chip-border: transparent;
-  --wsd-chip-text: #c8c9ce;
 }
 
 /* Typography: the token stack is the app-wide font source. */
