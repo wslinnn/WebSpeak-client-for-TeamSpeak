@@ -34,7 +34,7 @@
 7. **useVoiceWebSocket → `src/voice/session-controller.ts`**：行为级等价平移（1456 行，进 max-lines 存量豁免清单，Phase 4 随视图层拆解）。Vue computed（voiceTransport）改为写入点同步重算；Vue 生命周期（onUnmounted）改为显式 `dispose()`（React Provider 卸载时调用）；screen-share 的 `api` 摊平对象取消，暴露 `store` + 动作方法。React 绑定只有 `src/hooks/useVoiceSession.tsx` 一层（context + useStore 选择器）。
 8. **i18n：`createWebClientMessages(language)` 纯函数层**（useWebClientI18n 机械转换，翻译表零漂移 diff 验证），React Provider/hook 随 Phase 3 应用壳落地；五语键集平价测试照旧。
 9. **门禁存量豁免清单**（`eslint.config.js`，Phase 4 拆解后必须清空）：skin-pack.ts / screen-share.ts / session-controller.ts。
-10. **规格测试分两波移植**：已入 web-react（会话生命周期/命令/重连/目录增量/聊天边界/屏幕共享释放/存储命名空间/皮肤包导入/协议解析等 117 用例）；**随视图层重写的测试留旧套件、Phase 4 以 RTL+新钩子重钉**——chat ack 视图分组、channel tree、audio controls、performance 面板轮询、voice-server-switch 横幅、admin-api.integration（切包后把 import 指向新副本）。皮肤包 5 个锚定旧 web-client.css/Vue 源的基线测试留旧套件，Phase 3/4 按新样式基线重钉。
+10. **规格测试分波移植（已完成 4 波，web-react 共 219 用例全绿）**：会话生命周期/命令世代/重连预算/目录增量与头像/命令超时/设备切换与枚举回退/处理开关回滚/麦克风权限代际/伴奏取消与失败隔离/试听表/播放解码与槽位轮询/说话灯泡/WebRTC 协商与回退/音频探测作用域/麦克风试听/屏幕共享/存储命名空间/皮肤包导入/协议解析。**以下测试留旧套件、Phase 4 以 RTL+新钩子重钉**：chat ack 视图分组、channel tree、audio controls（含伴奏错误文案五语言）、performance 面板轮询、voice-server-switch 横幅、admin-api.integration（切包后把 import 指向新副本）。皮肤包 5 个锚定旧 web-client.css/Vue 源的基线测试留旧套件，Phase 3/4 按新样式基线重钉。
 
 ## 待办决策（无）
 

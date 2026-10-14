@@ -104,7 +104,7 @@ export class AudioContextStub extends EventTarget {
   static sources: AudioSourceStub[] = [];
   static gains: AudioNodeStub[] = [];
   static mediaSources: AudioNodeStub[] = [];
-  static destinations: AudioNodeStub[] = [];
+  static destinations: Array<AudioNodeStub & { stream: ReturnType<typeof microphoneStream> }> = [];
   state = "running";
   currentTime = 0;
   sampleRate = 48000;
@@ -198,6 +198,11 @@ export class TestPeer extends EventTarget {
   }
   getTransceivers() { return this.transceivers; }
   getSenders() { return [this.sender]; }
+  // Assigned by the WebRTC transport; tests invoke it directly to simulate
+  // a downstream track arriving.
+  ontrack: ((event: { streams?: unknown[]; track?: unknown; transceiver?: unknown; receiver?: unknown }) => void) | null = null;
+  onconnectionstatechange: (() => void) | null = null;
+  getStats: () => Promise<Map<string, unknown>> = () => Promise.resolve(new Map());
   async createOffer() { return { type: "offer", sdp: "test-offer" }; }
   async setLocalDescription(description: unknown) { this.localDescription = description; }
   async setRemoteDescription(description: unknown) { this.remoteDescription = description; }
