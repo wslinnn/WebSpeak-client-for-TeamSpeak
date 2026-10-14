@@ -84,6 +84,7 @@
 - 首页「设备设置」按钮压到 36px 紧凑高度（`348d118`），勿回 42px 字段几何。
 - **直播中胶囊 = 红底白字开关**（`364c03e`，局部推翻六轮「透明底」与三轮「他人卡保留观看钮」）：他人卡胶囊即观看 toggle（点击观看/观看中再点停，viewing 态调灰），自卡纯状态不可点（停止共享仍唯一在坞内绿条）；底色 `--wsd-danger` 主题红+白字白呼吸点，min-height 26px/字号 11px，位置卡内顶部居中；卡底观看钮与 card-actions/card-button/start-actions 样式已退役，`voice.member.share-actions` 部件注销，`voice.member.live-indicator` 移出皮肤可选淡出清单（交互控件不可被皮肤淡出）。勿给胶囊换绿（绿色语义已被在线/说话占用）。
 - **频道树滚动容器底部留白**（`9930664`）：`.member-tree` padding-bottom 10px 是末行贴边裁切的修复，勿删；再遇「末行被裁」类问题先查滚动容器呼吸空间，不起 margin 假设。
+- **移动首页 header 单行模型**（`2042eb4`+`b054b6b`+`c8d5faa`，真浏览器实测后确立）：≤740 行序=品牌（flex 0 1 auto 可收缩）→ 皮肤/语言（margin-left:auto 贴右）→ 更多钮，`flex-wrap: nowrap`——18-artwork「品牌/工具行各占一行」的旧承诺已废弃勿恢复；皮肤/语言下拉位置由 `services/dropdown-place.ts` 统一钳制（tile=固定贴瓦片、inline=视口+裁剪祖先钳制），勿在组件里重写定位。**特异性教训**：07 号分片的部件钩子规则（0,2,0）会被 09/18 号同特异性后导入规则压掉（设备设置 36px 曾整条失效、被 ≤420 flex-basis 120px 在列向容器里变成 120px 高）——跨分片覆写要么升直接子级选择器（0,3,0），要么落 web-client-mobile.css（最后导入）。
 
 ## 工作区 KAAK 对齐四轮不变量（2026-10-13 真机截图实测修正拍板，`4fbf123…012e15b`；取证与细节见 history.md）
 
