@@ -1,0 +1,203 @@
+/* Increase connected-view typography by 25% while keeping the layout compact. */
+
+.app-shell .breadcrumbs {
+  font-size: 15px;
+}
+
+
+.app-shell .live-pill {
+  font-size: 11.25px;
+}
+
+.app-shell .room-hero h1 {
+  font-size: 32.5px;
+}
+
+.app-shell .room-hero p {
+  font-size: 15px;
+}
+
+.app-shell .room-stats {
+  font-size: 12.5px;
+}
+
+.app-shell .section-kicker,
+.app-shell .section-counter {
+  font-size: 12.5px;
+}
+
+.app-shell .section-heading h2 {
+  font-size: 25px;
+}
+
+.app-shell .voice-card > strong {
+  font-size: 15px;
+}
+
+.app-shell .voice-card > span {
+  font-size: 12.5px;
+}
+
+.app-shell .more-count {
+  font-size: 17.5px;
+}
+
+.app-shell .voice-empty {
+  font-size: 13.75px;
+}
+
+.app-shell .chat-empty strong {
+  font-size: 15px;
+}
+
+.app-shell .chat-empty span {
+  font-size: 12.5px;
+}
+
+.app-shell .message-meta strong {
+  font-size: 11px;
+}
+
+.app-shell .message-meta time {
+  font-size: 10px;
+}
+
+.app-shell .message-composer :is(input, textarea) {
+  font-size: 15px;
+}
+
+.app-shell .dock-user strong {
+  font-size: 13.75px;
+}
+
+.app-shell .dock-user span,
+.app-shell .mic-mode-switch button,
+.app-shell .ptt-indicator {
+  font-size: 11.25px;
+}
+
+.app-shell .member-panel-heading h2 {
+  font-size: 23.75px;
+}
+
+.app-shell .member-search input {
+  font-size: 13.75px;
+}
+
+.app-shell .member-channel-heading span {
+  font-size: 15px;
+}
+
+.app-shell .member-channel-heading small {
+  font-size: 12.5px;
+}
+
+.app-shell .member-copy strong {
+  font-size: 12.5px;
+}
+
+.app-shell .member-copy span,
+.app-shell .channel-no-members {
+  font-size: 11.25px;
+}
+
+.app-shell .member-empty,
+.app-shell .member-panel-tip {
+  font-size: 12.5px;
+}
+
+.settings-modal .settings-header h2 {
+  /* Audio-settings dialog title at its decision value (the 27.5px here used
+   * to out-specify the 32px in 05 and silently win). */
+  font-size: 32px;
+}
+
+.settings-modal .settings-section h3 {
+  font-size: 20px;
+}
+
+.settings-modal .settings-label,
+.settings-modal .settings-range-row strong,
+.settings-modal .settings-error {
+  font-size: 12.5px;
+}
+
+.settings-modal .settings-select {
+  font-size: 13.75px;
+}
+
+.settings-modal .mic-test-header strong {
+  font-size: 13.75px;
+}
+
+.settings-modal .mic-test-header button {
+  font-size: 12.5px;
+}
+
+.settings-modal .meter-labels {
+  font-size: 10px;
+}
+
+.settings-modal .mode-note {
+  font-size: 12.5px;
+}
+
+.join-page .brand-lockup strong {
+  font-size: 22.5px;
+}
+
+.join-page .brand-lockup small,
+.join-page .header-note {
+  font-size: 12.5px;
+}
+
+.join-page .language-switch {
+  font-size: 12.5px;
+}
+
+.join-page .join-copy h1 {
+  font-size: clamp(52px, 6.6vw, 90px);
+}
+
+.join-page .join-description {
+  font-size: 21.25px;
+}
+
+.join-page .card-kicker {
+  font-size: 12.5px;
+}
+
+.join-page .join-card h2 {
+  font-size: 33.75px;
+}
+
+.join-page .card-lead {
+  font-size: 16.25px;
+}
+
+.join-page .notice {
+  font-size: 15px;
+}
+
+.join-page .field-label {
+  font-size: 13.75px;
+}
+
+.join-page .field-wrap input {
+  font-size: 16.25px;
+}
+
+.join-page .primary-button,
+.join-page .identity-import-submit {
+  font-size: 15px;
+}
+
+.join-page .connect-button {
+  font-size: 16.25px;
+}
+
+.join-page .join-meta,
+.join-page .join-footer {
+  font-size: 12.5px;
+}
+

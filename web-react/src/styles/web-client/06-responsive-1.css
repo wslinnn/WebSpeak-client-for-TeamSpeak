@@ -1,0 +1,257 @@
+@media (max-width: 1200px) {
+  .app-shell {
+    grid-template-columns: 72px 255px minmax(0, 1fr) 218px;
+  }
+  .workspace-content {
+    width: min(900px, calc(100% - 42px));
+  }
+  .mic-mode-switch button {
+    padding-inline: 7px;
+  }
+  .member-panel {
+    padding-inline: 12px;
+  }
+  .member-volume {
+    display: none;
+  }
+}
+
+@media (max-width: 980px) {
+  .app-shell {
+    grid-template-columns: 70px 245px minmax(0, 1fr);
+  }
+  .member-panel {
+    display: none;
+  }
+  .room-hero {
+    min-height: 180px;
+  }
+  .join-content {
+    gap: 40px;
+  }
+  .join-card {
+    padding: 28px;
+  }
+}
+
+@media (max-width: 740px) {
+  .join-header,
+  .join-content,
+  .join-footer {
+    width: min(100% - 32px, 560px);
+  }
+  .join-header {
+    min-height: 70px;
+  }
+  .header-note {
+    display: none;
+  }
+  .join-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 35px;
+    padding: 36px 0 48px;
+  }
+  /* Decorative hero copy is desktop-only; phones get straight to the join card. */
+  .join-copy {
+    display: none;
+  }
+  .join-card {
+    padding: 24px 20px;
+  }
+  .join-footer {
+    min-height: 53px;
+  }
+  .join-footer .footer-spacer {
+    display: none;
+  }
+  .join-footer span:last-child {
+    margin-left: auto;
+  }
+  .field-grid {
+    gap: 8px;
+  }
+  .app-shell {
+    display: block;
+  }
+  .nav-rail,
+  .channel-sidebar,
+  .member-panel {
+    display: none;
+  }
+  .workspace {
+    height: 100%;
+  }
+  .workspace-header {
+    min-height: 61px;
+    padding: 0 15px;
+  }
+  .favorite-server-strip {
+    flex: 0 0 auto;
+    gap: 5px;
+    padding: calc(6px + env(safe-area-inset-top, 0px)) 10px 6px;
+  }
+  .favorite-switch-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    width: calc(100% - 30px);
+    margin: 8px auto 0;
+    padding: 10px 14px;
+  }
+  /* Touch targets: icon buttons and picker chips are primary taps on phones,
+   * so they get near-44px hit areas instead of their desktop icon sizes. */
+  .workspace-actions .header-action {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+  }
+  .favorite-server-add {
+    width: 38px;
+    height: 38px;
+    align-self: center;
+  }
+  /* KOOK-style touch chips: avatar tile on top, label below — colored tiles
+   * stay recognizable where text-only chips would blur together. The label
+   * keeps an ellipsis cap so long names cannot widen the strip. */
+  .favorite-server-chip {
+    display: grid;
+    justify-items: center;
+    gap: 3px;
+    width: auto;
+    min-width: 56px;
+    max-width: 94px;
+    height: auto;
+    padding: 4px 5px 5px;
+    border-radius: 11px;
+    background: transparent;
+    border-color: transparent;
+  }
+  .favorite-server-chip-initial {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 15px;
+  }
+  .favorite-server-chip-label {
+    display: block;
+    max-width: 84px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  .favorite-server-chip:hover {
+    border-radius: 11px;
+    transform: none;
+    background: transparent;
+  }
+  .favorite-server-chip.active {
+    color: #277970;
+    background: #e3efec;
+    box-shadow: none;
+  }
+  .local-server-select {
+    padding: 9px 10px;
+    font-size: 11px;
+  }
+  .crumb-muted,
+  .breadcrumbs > .ui-icon {
+    display: none;
+  }
+  /* Keep the current channel name visible on phones: it is the only place
+   * (besides the hidden chat tab header) that says where you are. */
+  .breadcrumbs > strong {
+    display: block;
+    overflow: hidden;
+    min-width: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .workspace-content {
+    width: calc(100% - 30px);
+    padding-top: 18px;
+  }
+  .room-hero {
+    min-height: 182px;
+    padding: 23px 21px;
+  }
+  .room-hero h1 {
+    font-size: 22px;
+  }
+  .room-hero p {
+    max-width: 74%;
+    font-size: 11px;
+  }
+  .voice-section,
+  .chat-panel {
+    margin-top: 25px;
+  }
+  .voice-card {
+    min-height: 143px;
+  }
+  .message-row {
+    max-width: 92%;
+  }
+  .mic-mode-switch button {
+    padding: 6px 7px;
+    font-size: 9px;
+  }
+  .dock-actions {
+    min-width: 75px;
+  }
+  .settings-modal {
+    max-height: calc(100dvh - 28px);
+  }
+  .settings-nav {
+    display: none;
+  }
+  .settings-content {
+    padding: 24px 20px;
+  }
+  .settings-header {
+    min-height: 62px;
+    padding-inline: 20px;
+  }
+  .settings-header h2 {
+    font-size: 19px;
+  }
+  .settings-footer {
+    min-height: 61px;
+    padding-inline: 20px;
+  }
+}
+
+@media (max-width: 420px) {
+  .join-card {
+    border-radius: 15px;
+  }
+  .voice-grid {
+    gap: 8px;
+  }
+  .voice-card {
+    padding-inline: 6px;
+  }
+  .section-counter {
+    display: none;
+  }
+  .workspace-actions .header-action:first-child {
+    display: none;
+  }
+  .dock-actions {
+    min-width: 37px;
+  }
+}
+
+/* Use the wide desktop workspace without stretching voice tiles indefinitely. */
+
+@media (min-width: 1201px) {
+  .app-shell .workspace-content {
+    width: min(1360px, calc(100% - 64px));
+  }
+}
+

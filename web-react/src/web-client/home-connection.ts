@@ -6,7 +6,7 @@ import type { HomeStore } from "./home-store";
 /** 语音视图里连接逻辑消费的最小切面（真实实现 = session-controller 的 view store）。 */
 export interface VoiceConnectionView {
   errorCode: string;
-  errorMessage: string;
+  error: string;
   channelSwitchedChannelId: string;
   selfMovedChannelId: string;
 }
@@ -14,7 +14,7 @@ export interface VoiceConnectionView {
 export interface ChannelLike {
   id: string;
   name: string;
-  members: Array<{ id: number }>;
+  members?: Array<{ id: number }>;
 }
 
 interface Options {
@@ -148,7 +148,7 @@ export function createHomeConnection(options: Options) {
   }
 
   function cancelChannelPassword(): void {
-    const ownChannel = options.getChannels().find((item) => item.members.some((member) => member.id === options.getClientId()));
+    const ownChannel = options.getChannels().find((item) => item.members?.some((member) => member.id === options.getClientId()));
     patch({
       ...(ownChannel ? { selectedChannelId: ownChannel.id } : {}),
       channelPasswordDialog: { open: false, channelId: "", password: "", error: "", submitting: false },
@@ -173,17 +173,17 @@ export function createHomeConnection(options: Options) {
     lastSwitched = snapshot.channelSwitchedChannelId;
     lastSelfMoved = snapshot.selfMovedChannelId;
     if (codeChanged) {
-      handleErrorCode(snapshot.errorCode, snapshot.errorMessage);
+      handleErrorCode(snapshot.errorCode, snapshot.error);
       handleServerPasswordCode(snapshot.errorCode);
     }
     if (switchedChanged) handleChannelSwitched(snapshot.channelSwitchedChannelId);
     if (selfMovedChanged) handleSelfMoved(snapshot.selfMovedChannelId);
   });
 
-  function handleErrorCode(code: string, errorMessage: string): void {
+  function handleErrorCode(code: string, error: string): void {
     const dialog = state().channelPasswordDialog;
     if (code && code !== "CHANNEL_PASSWORD_REQUIRED" && dialog.open && dialog.submitting) {
-      patch({ channelPasswordDialog: { ...dialog, error: errorMessage, submitting: false } });
+      patch({ channelPasswordDialog: { ...dialog, error: error, submitting: false } });
       options.clearError();
       return;
     }

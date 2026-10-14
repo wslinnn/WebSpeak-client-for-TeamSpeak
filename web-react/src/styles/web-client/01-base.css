@@ -1,0 +1,44 @@
+/* Overlay stacking ladder. Every floating layer must take its level from
+   these custom properties — bare z-index numbers are what let the header
+   drift above modal masks. Local 1/2/3 scales inside `isolation: isolate`
+   containers never compare against this ladder. admin.css repeats the same
+   values because the two stylesheets load in separate route bundles. */
+.web-client {
+  --ws-z-raised: 10;
+  --ws-z-header: 100;
+  --ws-z-dropdown: 200;
+  --ws-z-menu-mask: 300;
+  --ws-z-menu: 310;
+  --ws-z-modal-mask: 400;
+  --ws-z-toast: 500;
+}
+
+html[data-ws-route="webclient"] * {
+  box-sizing: border-box;
+}
+
+html[data-ws-route="webclient"] body {
+  margin: 0;
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html[data-ws-route="webclient"] button,
+html[data-ws-route="webclient"] input {
+  font: inherit;
+}
+
+html[data-ws-route="webclient"] button {
+  border: 0;
+}
+
+.web-client {
+  min-height: 100dvh;
+  outline: none;
+  background: var(--surface-0);
+  color: var(--text-primary);
+}
+
+.web-client.skin-initializing {
+  visibility: hidden;
+}
+

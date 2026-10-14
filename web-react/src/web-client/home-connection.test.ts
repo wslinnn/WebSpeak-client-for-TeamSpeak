@@ -15,15 +15,15 @@ let connection: ReturnType<typeof createHomeConnection>;
 const dialog = () => store.getState().channelPasswordDialog;
 const serverDialog = () => store.getState().serverPasswordDialog;
 
-function setVoiceError(code: string, errorMessage = ""): void {
-  voice.store.setState({ errorCode: code, errorMessage });
+function setVoiceError(code: string, error = ""): void {
+  voice.store.setState({ errorCode: code, error });
 }
 
 beforeEach(() => {
   errors = "";
   message = "";
   calls = [];
-  voice = { store: createStore<VoiceConnectionView>(() => ({ errorCode: "", errorMessage: "", channelSwitchedChannelId: "", selfMovedChannelId: "" })) };
+  voice = { store: createStore<VoiceConnectionView>(() => ({ errorCode: "", error: "", channelSwitchedChannelId: "", selfMovedChannelId: "" })) };
   store = createHomeStore();
   store.setState({
     channelPasswordDialog: { open: true, channelId: "2", password: "draft", error: "", submitting: false },

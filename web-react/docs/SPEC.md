@@ -252,7 +252,7 @@ localStorage（`webspeak:` 前缀零例外，2026-10-14 扫描实测 18 键）�
 说话指示三层模型（§5.4）· 静噪与通知音（§5.8）· 共享三预设与码率（§7）· 主题互斥与皮肤包上限（§10）· 强制改密流与登录失败（§12）。
 
 仍开放的采证项（随迁移推进补充）：
-1. 真浏览器布局快照（首页/下载/管理台静态页可无后端截取；进房态需真实 TS 服务器，见报告 20 Phase 0）。
+1. 真浏览器布局快照（首页/下载/管理台静态页可无后端截取；进房态需真实 TS 服务器，见报告 20 Phase 0）。**首页 React 版已于 2026-10-14 P4-3b 走查完毕**（dev 3040+5174）：桌面 1280 计算几何逐项对齐 §17.1（join-content 两列 619.2+520px、join-header 1248px、join-card max-height 530px=100dvh-190px 内滚、皮肤锚点 builtin.light）；交互链路全过（fixed 模式字段隐藏、canJoin 启停、身份导入弹窗滚动锁/焦点/Esc、语言切换即时+持久化+刷新存活、清除本地数据 confirm→命名空间清扫→toast、移动 390 单列与 header 折叠、更多面板开合、/download 导航与 web-client 卸载）。进房态与连接链路留 P4-4/Phase 5。
 2. 新冠点随手登记：迁移中发现任何「测试+代码都无法解释行为来源」的点，先进本节再采证。
 3. **dev 代理下管理台写操作撞 ORIGIN_REJECTED**（2026-10-14，P4-2 走查发现）：后端 `admin-router.ts` 的 requireSameOrigin 要求 `new URL(origin).host === host`，vite 代理转发后两者不一致 → 403。新旧 vite 代理配置逐字一致（均无 changeOrigin），旧版 dev 同样受限——环境限制而非移植回归。dev 下走查管理台登录/写操作需同源直开 3040 或生产模式；deep-link 只读屏（login 渲染、路由锚点、CSS 门控）不受影响。
 
@@ -262,6 +262,8 @@ localStorage（`webspeak:` 前缀零例外，2026-10-14 扫描实测 18 键）�
 - 分诊方法：平价验收遇怪行为 → 查 §0 三类证据 → 有据=照做；无据+可判定缺陷 → 登记于此并按正确行为实现。
 - 已登记不随迁（Phase 4 起）：
   1. **Download 页语言切换不持久化**（旧 DownloadView.vue 的 language 是本地 ref，只有 WebClient.vue:1452 与 AdminView.vue:576 写 `webspeak:language`）。不随迁理由：同一切换器在首页持久、在下载页丢失是实现接线差异而非有意行为。新版 React `I18nProvider` 全局持有一份语言状态并在切换时统一持久化。
+  2. **`.join-footer span:last-child { margin-left: auto }` 是死选择器**（2026-10-14，P4-3b 走查发现）：≤740 时 06-responsive-1 想把「清除本地数据」按钮推到页脚右侧，但按钮不是 span、footer-spacer 同屏 display:none，按钮实际紧跟文本内联——旧 Vue 版 DOM 一致、行为相同。有据保留平价；修复（选择器指向 `.clear-local-button`）随 Phase 5 页脚视觉重做。
+  3. **首页六枚 notice 依次 if 渲染**（脆弱区 ③）：P4-3b 平价移植为 JoinNotices 的条件渲染链；Phase 5 拆解时按互斥语义重写。
 
 ## 20. 测试基建复用清单（characterization 直接蓝本）
 - 可整体搬运（零框架依赖）：`TestSocket`（voice-session.test.mjs:10-23）、`TestPeer`（:130-163）、`AudioContextStub` 家族（:76-121）、`AudioDecoderStub/RecorderStub/AudioSourceStub/AudioNodeStub/TestTrack/TestAudioElement`、`receiveAudio/decodedChunk`、`replaceGlobal` + before/after 强清理模式、`controlRequestTimers`（只拦 8s/15s 两常量）、screen-share 的 `Peer` stub 与 `confirmStart` 模式。

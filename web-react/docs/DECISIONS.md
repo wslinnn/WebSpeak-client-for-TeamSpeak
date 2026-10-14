@@ -51,6 +51,14 @@
 23. **Vue watch → store 订阅**：errorCode/channelSwitchedChannelId/selfMovedChannelId 三字段的弹窗驱动语义（频道密码重开、服务器密码弹窗、强制移动同步选台）改为 zustand subscribe + prev 比较；home-identity 对 rememberIdentity/identityMaterial 的监听同样订阅化（任何来源的变更都作废在途导出）。测试 39 条全平移（connection 4+3 补充 / identity 22 / favorites 4 / switch 4）。
 24. **window.confirm/Toast 走回调注入**：控制器不依赖具体 toast 实现（视图接 sonner），确认弹窗等 P4-3b 视图层决定用 confirmDialog Promise host 还是保留 window.confirm。
 
+## 2026-10-14 · P4-3b 首页视图移植取舍
+
+25. **web-client CSS 全分片剥壳平移**（非按需拆分）：21 分片 + mobile 覆盖层整体字符级剥 `:deep()`/`:global()` 壳（admin 542 处同手法），级联次序原样保留——按选择器组拆分响应式分片正是踩坑红线警告的手木区，Phase 5 视觉重做时一并归零。唯一裸元素泄漏（mobile 层 `input/textarea/select/button/a`，Vue 靠 scoped [data-v] 限域）补 `html[data-ws-route="webclient"]` 门控；组件自带 scoped 样式（语言切换器/手机门/服务器右键菜单）收进 `21-components.css` 尾片，`#app` 挂载点改 `#root`。语言切换器选项常量挪 `i18n/language-options.ts` 保 react-refresh 纯组件。
+26. **live i18n 桥**：home-identity 控制器只创建一次（代际纪律的 downloads/generation 状态不可随语言重建），其 t/localizedMessage 适配器经模块级 `liveMessages` 读当次语言（仅事件与订阅回调触达，渲染路径不经过）；connection/favorites 无瞬时状态，随 messages 重建并配 dispose effect 防订阅泄漏。视图装配独立为 `web-client/use-web-client-controllers.ts`（view 380 行 < 门禁 400）。
+27. **过渡期功能缺口（后续阶段回填）**：header 无 SkinSwitcher（P4-7 皮肤运行时回归，现用 applyTheme 钉内置皮肤）；设备设置按钮 no-op（P4-5 音频设置弹窗回归）；连接成功后仍显示 join 页（P4-4 进房壳落地，data-ws-page 已按 voice 翻转）；服务器密码取消尚未联动切服横幅结算（P4-4 voice-server-switch 接线时补）。
+28. **toast 换 sonner、window.confirm 保留**：旧 2800ms 自绘 toast div 退役（P4-2 admin 同规）；clearBrowserData 的确认弹窗保留 window.confirm（DECISIONS #16/#24 同一纪律，Promise 化替换统一留 Phase 5）。
+29. **输入区焦点指示只留外层框**（走查用户拍板）：`.web-client input:focus-visible` 的 outline 与 `.field-wrap:focus-within` ring 叠成双框——旧版两条同特异性 (0,2,1) 且 12 分片后导入必胜，02 分片里 `.field-wrap input` 的 outline:none 从未真正生效（「同特异性后导入必胜」死规则的又一实例，模式同 SPEC §19-2）。修法：`.field-wrap input:focus-visible` 以 (0,3,1) 显式豁免，按钮/链接/裸 textarea（无外层框者）保留 focus-visible 作键盘可达性指示。
+
 ## 待办决策（无）
 
 （Phase 4 迁移过程中新产生的取舍记此处，格式：日期 · 决策 · 理由 · 影响面）

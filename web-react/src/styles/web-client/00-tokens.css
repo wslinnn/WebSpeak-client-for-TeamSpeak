@@ -1,0 +1,72 @@
+/*
+ * WebSpeak Design tokens (--wsd-*): the shared color language for the
+ * workspace redesign. Day values are the default; the night palette flips in
+ * under the built-in dark skin attribute (the skin selector stays the
+ * day/night switch). Regions consume --wsd-* directly — the legacy --ws-* /
+ * --surface-* tokens stay untouched for areas that have not migrated yet.
+ */
+
+.web-client {
+  --wsd-bg: #eef1f2;
+  --wsd-rail: #e3e8ea;
+  --wsd-panel: #ffffff;
+  --wsd-raised: #f2f5f6;
+  --wsd-hover: #e9eef0;
+  --wsd-border: #dfe5e8;
+  --wsd-text: #22262b;
+  --wsd-text-muted: #626a72;
+  --wsd-text-dim: #9099a1;
+  /* Day accent: the deeper sibling of the night brand green — same hue, but
+   * small accent-colored text stays legible on white surfaces. Filled
+   * controls (share bar, toggles, sliders) use the vivid KAAK green instead:
+   * blocks carry color fine, small text does not. */
+  --wsd-accent: #4f9e0c;
+  --wsd-accent-hover: #468f0a;
+  --wsd-accent-fill: #69c000;
+  --wsd-accent-fill-hover: #7ad50a;
+  --wsd-accent-soft: rgba(108, 191, 0, .14);
+  --wsd-danger: #d24d4d;
+  /* Shared modal veil; night keeps the same neutral dark. */
+  --wsd-backdrop: rgba(12, 14, 16, .52);
+  --wsd-radius: 9px;
+  --wsd-font: "PingFang SC", "Microsoft YaHei New", 微软雅黑, "Microsoft Yahei", "Microsoft JhengHei", 宋体, SimSun, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.web-client[data-ws-skin="builtin.dark"] {
+  --wsd-bg: #17181b;
+  --wsd-rail: #141518;
+  --wsd-panel: #1d1e22;
+  --wsd-raised: #292a2f;
+  --wsd-hover: #303137;
+  --wsd-border: #303136;
+  --wsd-text: #f0f1f3;
+  --wsd-text-muted: #a0a2a8;
+  --wsd-text-dim: #777a82;
+  --wsd-accent: #6cbf00;
+  --wsd-accent-hover: #7ac51a;
+  --wsd-accent-fill: #6cbf00;
+  --wsd-accent-fill-hover: #7ac51a;
+  --wsd-accent-soft: rgba(108, 191, 0, .18);
+  --wsd-danger: #e36b6b;
+  --wsd-backdrop: rgba(12, 14, 16, .52);
+}
+
+/* Typography: the token stack is the app-wide font source. */
+.web-client {
+  font-family: var(--wsd-font);
+}
+
+/* Scrollbar colors live here (moved out of the builtin skins with the
+ * workspace re-theme); scrollbar-color inherits to every descendant. */
+.web-client {
+  scrollbar-color: var(--wsd-border) transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--wsd-border);
+  border-color: transparent;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--wsd-hover);
+}

@@ -1,0 +1,904 @@
+@media (min-width: 741px) and (max-width: 980px) {
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .member-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 980px) {
+  .app-shell {
+    display: grid;
+  }
+  .workspace {
+    min-height: 0;
+  }
+  .member-panel {
+    border-left: 0;
+  }
+  .member-tree {
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 740px) {
+  .app-shell {
+    display: grid;
+  }
+  .app-shell .room-hero h1 {
+    font-size: 27.5px;
+  }
+  .app-shell .room-hero p {
+    font-size: 13.75px;
+  }
+  .app-shell .section-heading h2 {
+    font-size: 21.25px;
+  }
+  .app-shell .message-bubble,
+  .app-shell .message-composer :is(input, textarea) {
+    font-size: 13.75px;
+  }
+  .app-shell .mic-mode-switch button {
+    font-size: 11.25px;
+  }
+  .settings-modal .settings-content {
+    padding: 24px 20px;
+  }
+  .settings-modal .settings-header h2 {
+    font-size: 32px;
+  }
+}
+
+/* Keep the connected workspace sized to the browser viewport and let the
+   workspace and member tree own their scroll areas when the window shrinks. */
+
+html[data-ws-route="webclient"] body {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.web-client {
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100dvh;
+}
+
+.web-client {
+  overflow: hidden;
+}
+
+.join-page {
+  overflow-y: auto;
+}
+
+.app-shell {
+  grid-template-columns: 68px 318px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100dvh;
+}
+
+/* Shell-level banner layer (reconnect, degradations, pokes): floats above
+ * the shell instead of occupying a grid row, so banners never push the
+ * workspace header or panes down; pointer-events pass through the gaps. */
+.voice-banners {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  left: 0;
+  right: 0;
+  z-index: var(--ws-z-dropdown);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.voice-banners > * {
+  pointer-events: auto;
+  margin: 0;
+}
+
+.workspace {
+  grid-column: 3;
+  grid-row: 2;
+  min-height: 0;
+  height: 100%;
+}
+
+.workspace-scroll {
+  min-height: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.member-panel {
+  grid-column: 2;
+  grid-row: 2;
+  border-right: 1px solid #eef2f0;
+  border-left: 0;
+}
+
+.voice-avatar.speaking {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wsd-accent) 55%, transparent), 0 0 14px color-mix(in srgb, var(--wsd-accent) 35%, transparent);
+}
+
+.chat-panel {
+  min-height: 0;
+}
+
+.message-list {
+  min-height: clamp(150px, 20dvh, 220px);
+  max-height: min(360px, 42dvh);
+}
+
+.workspace-content {
+  padding-bottom: 64px;
+}
+
+@media (max-width: 980px) {
+  .app-shell {
+    grid-template-columns: 68px minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) minmax(210px, 35dvh);
+  }
+  .workspace {
+    grid-column: 2;
+    grid-row: 2;
+    height: auto;
+  }
+  .member-panel {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: flex;
+    border-top: 1px solid #eef2f0;
+    border-right: 0;
+    padding: 16px 18px;
+  }
+}
+
+@media (max-width: 740px) {
+  .join-header {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  .header-tools {
+    min-width: 0;
+    flex: 0 1 auto;
+    flex-wrap: nowrap;
+  }
+  .app-shell {
+    grid-template-rows: minmax(0, 1fr) 220px;
+  }
+}
+
+/* Desktop audio controls live in the member rail so the workspace header
+   stays focused on navigation. Mobile keeps its existing controls below the
+   voice cards and in the More panel. */
+
+.header-tools {
+  align-items: center;
+}
+
+.header-action,
+.round-icon {
+  line-height: 0;
+}
+
+.guide-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 10px;
+  color: var(--wsd-accent);
+  background: var(--wsd-accent-soft);
+  border: 1px solid color-mix(in srgb, var(--wsd-accent) 28%, transparent);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.guide-button:hover {
+  color: #fff;
+  background: var(--wsd-accent);
+  border-color: var(--wsd-accent);
+}
+
+.workspace-actions {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.workspace-actions .header-action {
+  flex: 0 0 34px;
+  padding: 0;
+  line-height: 0;
+}
+
+.workspace-actions .header-action .ui-icon {
+  margin: 0;
+}
+
+.desktop-audio-dock {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  flex: 0 0 auto;
+  min-width: 0;
+  margin-top: 12px;
+  padding: 13px 12px 10px;
+  color: var(--wsd-text);
+  background: var(--wsd-panel);
+  border: 1px solid var(--wsd-border);
+  border-radius: 17px;
+  box-shadow: none;
+}
+
+/* Dock heading: live dot + channel name + the voice-status trigger slot +
+ * the round power button (KAAK's four-column heading). */
+.desktop-audio-dock-heading {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) 28px 28px;
+  align-items: center;
+  gap: 2px 5px;
+  min-width: 0;
+  min-height: 22px;
+}
+
+.desktop-audio-dock-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--wsd-accent);
+  border-radius: 50%;
+}
+
+.desktop-audio-dock-heading strong {
+  overflow: hidden;
+  color: var(--wsd-text);
+  font-size: 13px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.desktop-audio-dock-power {
+  display: grid;
+  place-items: center;
+  width: 25px;
+  min-width: 25px;
+  height: 25px;
+  min-height: 25px;
+  padding: 0;
+  color: var(--wsd-danger);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.desktop-audio-dock-power:hover,
+.desktop-audio-dock-power:focus-visible {
+  color: #ff8498;
+  background: #3a292b;
+}
+
+/* Voice-status trigger inside the dock: transparent round with an accent
+ * waveform glyph drawn by ::before (KAAK); its panel opens upward. */
+.desktop-audio-dock .performance-trigger {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  overflow: hidden;
+  color: var(--wsd-accent);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  font-size: 0;
+}
+
+.desktop-audio-dock .performance-trigger > * {
+  display: none;
+}
+
+.desktop-audio-dock .performance-trigger::before {
+  content: "";
+  display: block;
+  width: 17px;
+  height: 14px;
+  background:
+    linear-gradient(currentColor, currentColor) 0 100% / 3px 4px,
+    linear-gradient(currentColor, currentColor) 5px 100% / 3px 7px,
+    linear-gradient(currentColor, currentColor) 10px 100% / 3px 10px,
+    linear-gradient(currentColor, currentColor) 15px 100% / 3px 14px;
+  background-repeat: no-repeat;
+}
+
+.desktop-audio-dock .performance-trigger:hover,
+.desktop-audio-dock .performance-trigger:focus-visible,
+.desktop-audio-dock .performance-trigger[aria-expanded="true"] {
+  color: var(--wsd-accent-hover);
+  background: var(--wsd-accent-soft);
+  transform: translateY(-1px);
+}
+
+.desktop-audio-dock .performance-trigger:focus-visible {
+  outline: 2px solid var(--wsd-accent);
+  outline-offset: 2px;
+}
+
+.desktop-audio-dock .performance-panel {
+  top: auto;
+  right: auto;
+  bottom: calc(100% + 9px);
+  left: 0;
+  width: min(360px, calc(100vw - 108px));
+  max-height: min(70dvh, 560px);
+  overflow: auto;
+}
+
+/* Dock action area, KAAK layout: row 1 = full-width share bar (with the
+ * embedded settings gear) + the accompaniment button; row 2 = labelled audio
+ * settings + noise quick toggle + microphone + output (28×23 transparent
+ * controls; muted/off states go red with a slash line). */
+.desktop-audio-dock-share-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 37px;
+  gap: 6px;
+}
+
+.desktop-audio-dock-share {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  background: var(--wsd-accent-fill);
+  border-radius: 9px;
+}
+
+.desktop-audio-dock-share:not(.is-stop):hover {
+  background: var(--wsd-accent-fill-hover);
+}
+
+.desktop-audio-dock-share.is-stop {
+  background: var(--wsd-danger);
+}
+
+.desktop-audio-dock-share.is-stop:hover {
+  background: color-mix(in srgb, var(--wsd-danger) 85%, #fff);
+}
+
+.desktop-audio-dock-share-main {
+  display: inline-flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 29px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 9px 0 0 9px;
+  color: #fff;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.desktop-audio-dock-share-main:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+.desktop-audio-dock-share-gear {
+  display: grid;
+  place-items: center;
+  flex: 0 0 26px;
+  border: 0;
+  border-left: 1px solid rgb(255 255 255 / .3);
+  border-radius: 0 9px 9px 0;
+  color: #fff;
+  background: transparent;
+  cursor: pointer;
+}
+
+.desktop-audio-dock-share-gear:hover {
+  background: rgb(255 255 255 / .16);
+}
+
+.desktop-audio-dock-accompaniment {
+  display: grid;
+  place-items: center;
+  width: 37px;
+  min-width: 37px;
+  height: 29px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  background: var(--wsd-accent-fill);
+  cursor: pointer;
+}
+
+.desktop-audio-dock-accompaniment:hover,
+.desktop-audio-dock-accompaniment:focus-visible {
+  background: var(--wsd-accent-fill-hover);
+}
+
+.desktop-audio-dock-accompaniment.active {
+  background: var(--wsd-accent-hover);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 40%, transparent);
+}
+
+.desktop-audio-dock-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px 28px 36px;
+  gap: 6px;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid var(--wsd-border);
+}
+
+.desktop-audio-dock-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 28px;
+  min-width: 28px;
+  height: 23px;
+  min-height: 23px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  color: var(--wsd-text-dim);
+  background: transparent;
+  cursor: pointer;
+}
+
+.desktop-audio-dock-control:hover,
+.desktop-audio-dock-control:focus-visible {
+  color: var(--wsd-text);
+  background: var(--wsd-hover);
+  outline: none;
+}
+
+.desktop-audio-dock-noise[aria-pressed="true"] {
+  color: #fff;
+  background: var(--wsd-accent-fill);
+}
+
+.desktop-audio-dock-noise[aria-pressed="true"]:hover {
+  background: var(--wsd-accent-fill-hover);
+}
+
+.desktop-audio-dock-control[data-muted="true"],
+.desktop-audio-dock-control[data-off="true"] {
+  color: var(--wsd-danger);
+}
+
+.desktop-audio-dock-control[data-muted="true"]::after,
+.desktop-audio-dock-control[data-off="true"]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 21px;
+  height: 1.5px;
+  background: var(--wsd-danger);
+  transform: translate(-50%, -50%) rotate(-48deg);
+}
+
+.desktop-audio-dock-settings {
+  justify-content: flex-start;
+  gap: 8px;
+  width: auto;
+  min-width: 0;
+  height: auto;
+  padding: 0 7px;
+  color: var(--wsd-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.desktop-audio-dock-settings span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-hint {
+  margin: -1px 0 19px;
+  color: #8b9994;
+  font-size: 11px;
+}
+
+@media (max-width: 740px) {
+  .header-tools {
+    gap: 7px;
+  }
+  .header-note,
+   .guide-button span {
+    display: none;
+  }
+  .guide-button {
+    width: 32px;
+    justify-content: center;
+    padding: 0;
+  }
+}
+
+/* The outer conversation title row is ≥981 docked-column furniture. */
+.chat-conversation-heading {
+  display: none;
+}
+
+.chat-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  margin-top: 18px;
+  overflow-x: auto;
+  padding-bottom: 3px;
+}
+
+.chat-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  color: var(--wsd-text-muted);
+  background: var(--wsd-raised);
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.chat-tabs button:hover {
+  color: var(--wsd-accent);
+  background: var(--wsd-accent-soft);
+}
+
+.chat-tabs button.active {
+  color: var(--wsd-accent);
+  background: color-mix(in srgb, var(--wsd-accent) 20%, transparent);
+  border-color: color-mix(in srgb, var(--wsd-accent) 32%, transparent);
+  font-weight: 700;
+}
+
+.event-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 10px;
+  color: var(--wsd-text-muted);
+  border-bottom: 1px solid var(--wsd-border);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.event-row time {
+  flex: 0 0 auto;
+  color: var(--wsd-text-dim);
+  font-size: 10px;
+}
+
+.member-panel-heading {
+  align-items: flex-end;
+}
+
+.status-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  color: var(--wsd-text-muted);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
+  border-radius: 7px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.status-button:hover,
+.status-button.active {
+  color: color-mix(in srgb, var(--ws-warning) 72%, var(--wsd-text));
+  background: color-mix(in srgb, var(--ws-warning) 12%, var(--wsd-panel));
+  border-color: color-mix(in srgb, var(--ws-warning) 35%, transparent);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--wsd-accent);
+}
+
+.status-button.active .status-dot {
+  background: var(--ws-warning);
+}
+
+.member-row {
+  position: relative;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border-radius: 9px;
+  transition: background .16s ease, box-shadow .16s ease;
+}
+
+.member-row:hover,
+.member-row:focus-within {
+  background: var(--wsd-hover);
+}
+
+.member-context-menu {
+  position: fixed;
+  z-index: var(--ws-z-menu);
+  display: grid;
+  min-width: 236px;
+  gap: 3px;
+  padding: 8px;
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
+  border-radius: 11px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, .18);
+}
+
+.member-context-menu strong {
+  padding: 4px 8px 7px;
+  color: var(--wsd-text);
+  font-size: 13px;
+}
+
+.member-context-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 7px 9px;
+  color: var(--wsd-text-muted);
+  background: transparent;
+  border-radius: 6px;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.member-context-menu button:hover {
+  color: var(--wsd-text);
+  background: var(--wsd-hover);
+}
+
+.member-menu-submenu {
+  position: relative;
+}
+
+.member-menu-submenu-trigger {
+  width: 100%;
+}
+
+.member-menu-submenu-arrow {
+  margin-left: auto;
+}
+
+.member-submenu-panel {
+  position: absolute;
+  z-index: 1;
+  top: -8px;
+  left: calc(100% + 6px);
+  display: grid;
+  min-width: 220px;
+  max-height: min(420px, calc(100vh - 24px));
+  gap: 3px;
+  padding: 8px;
+  overflow-y: auto;
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
+  border-radius: 11px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, .18);
+}
+
+.member-submenu-panel button {
+  width: 100%;
+  min-width: 0;
+}
+
+.member-submenu-panel button:disabled {
+  opacity: .55;
+  cursor: default;
+}
+
+.member-submenu-panel button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-submenu-panel button small {
+  margin-left: auto;
+  color: var(--wsd-text-dim);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.member-submenu-empty {
+  display: block;
+  padding: 8px;
+  color: var(--wsd-text-dim);
+  font-size: 11px;
+}
+
+.menu-volume {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  color: var(--wsd-text-muted);
+  border-block: 1px solid var(--wsd-border);
+  font-size: 10px;
+}
+
+.menu-volume-value {
+  justify-self: end;
+  color: var(--wsd-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.menu-volume input {
+  width: 100%;
+  height: 4px;
+  appearance: none;
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.menu-volume input::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  appearance: none;
+  border: 2px solid var(--wsd-accent-fill);
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+}
+
+.menu-volume input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--wsd-accent-fill);
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+}
+
+/* Server context menu styles live in ServerContextMenu.vue (scoped to the
+ * component itself): it renders from two hosts and teleports to the app root, so host
+ * :deep() rules can neither reach it nor survive decorated ancestors. */
+
+@media (max-width: 740px) {
+  /* Touch: a thicker track and a thumb near the 24px hit-target guidance. */
+  .menu-volume input {
+    height: 8px;
+  }
+  .menu-volume input::-webkit-slider-thumb,
+  .menu-volume input::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.poke-banner {
+  position: fixed;
+  z-index: var(--ws-z-toast);
+  top: 82px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: min(380px, calc(100% - 48px));
+  padding: 10px 11px;
+  color: #52645c;
+  background: #fffdf6;
+  border: 1px solid #f0dfbd;
+  border-radius: 9px;
+  box-shadow: 0 8px 22px rgba(88, 65, 28, .12);
+  font-size: 12px;
+}
+
+.poke-banner > .ui-icon {
+  color: #d2973d;
+}
+
+.poke-banner span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.poke-banner strong {
+  color: #8f6532;
+}
+
+.poke-banner small {
+  font-size: inherit;
+}
+
+.poke-banner button {
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  color: #9b8a6e;
+  background: transparent;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.poke-banner button:hover {
+  color: #735020;
+  background: #f9eed9;
+}
+
+.audio-diagnostic,
+.audio-level-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  color: var(--wsd-text-muted);
+  font-size: 11px;
+}
+
+.audio-diagnostic strong,
+.audio-level-row strong {
+  color: var(--wsd-text);
+  font-size: 11px;
+}
+
+.permission-denied {
+  color: var(--wsd-danger) !important;
+}
+
+.permission-granted {
+  color: var(--wsd-accent) !important;
+}
+
+.audio-level-track {
+  height: 7px;
+  margin: 7px 0 17px;
+  overflow: hidden;
+  background: #e8efec;
+  border-radius: 999px;
+}
+
+.audio-level-track i {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  background: linear-gradient(90deg, var(--wsd-accent), var(--wsd-accent-fill));
+  border-radius: inherit;
+  transition: width .08s linear;
+}
+
+.test-audio {
+  display: block;
+  width: 100%;
+  height: 34px;
+  margin-top: 11px;
+}
+

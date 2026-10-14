@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, expect, test, vi } from "vitest";
 
@@ -21,12 +21,28 @@ function renderRoutes(initialPath: string) {
   );
 }
 
+/** jsdom 没有 matchMedia；WebClient 视图用 740 断点驱动移动态。 */
+function stubMatchMedia(): void {
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener() {},
+    removeListener() {},
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent: () => false,
+  }));
+}
+
 test("默认路由渲染 WebClient 壳：皮肤根锚点 + data-ws-page=home + data-ws-route=webclient", async () => {
+  stubMatchMedia();
   renderRoutes("/");
-  const root = await screen.findByText("WebSpeak");
-  expect(root).toBeInTheDocument();
-  const shell = document.querySelector(".web-client.ws-skin-root");
-  expect(shell).not.toBeNull();
+  const shell = await waitFor(() => {
+    const element = document.querySelector(".web-client.ws-skin-root");
+    expect(element).not.toBeNull();
+    return element;
+  });
   expect(shell?.getAttribute("data-ws-page")).toBe("home");
   // 挂载后补的 applyTheme 会把内置皮肤 id 钉到根元素（内置皮肤 CSS 的作用域锚点）。
   expect(shell?.getAttribute("data-ws-skin")).toMatch(/^builtin\.(light|dark)$/);
@@ -34,8 +50,9 @@ test("默认路由渲染 WebClient 壳：皮肤根锚点 + data-ws-page=home + d
 });
 
 test("/join 与 / 同壳", async () => {
+  stubMatchMedia();
   renderRoutes("/join");
-  expect(await screen.findByText("WebSpeak")).toBeInTheDocument();
+  await waitFor(() => expect(document.querySelector(".web-client.ws-skin-root")).not.toBeNull());
 });
 
 test("/download 渲染 DownloadView 壳并标记 data-ws-route=download", async () => {

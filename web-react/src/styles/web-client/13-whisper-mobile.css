@@ -1,0 +1,413 @@
+/* M007 whisper target controls and M008 mobile navigation. */
+
+.whisper-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 12px 14px;
+  color: var(--wsd-text);
+  border: 1px solid color-mix(in srgb, var(--wsd-accent) 26%, transparent);
+  border-radius: 10px;
+  background: var(--wsd-accent-soft);
+}
+
+.whisper-strip-copy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.whisper-strip-copy strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--wsd-accent);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.whisper-strip-copy span {
+  overflow: hidden;
+  color: var(--wsd-text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.whisper-ptt-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 12px;
+  color: #fff;
+  background: var(--wsd-accent-fill);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+
+.whisper-ptt-button.active {
+  background: var(--wsd-accent-hover);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--wsd-accent) 20%, transparent);
+}
+
+.mobile-nav,
+.mobile-more-panel {
+  display: none;
+}
+
+.mobile-section-hidden {
+  display: block;
+}
+
+@media (min-width: 741px) {
+  .app-shell .mobile-section-hidden {
+    display: block;
+  }
+}
+
+@media (max-width: 740px) {
+  .app-shell {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    max-height: none;
+    padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+    overflow: visible;
+  }
+  .app-shell .workspace {
+    display: flex;
+    height: calc(100dvh - 61px);
+  }
+  .app-shell .workspace-scroll {
+    flex: 1;
+  }
+  .app-shell .mobile-section-hidden {
+    display: none;
+  }
+  .app-shell.mobile-view-more .workspace {
+    display: none;
+  }
+  .app-shell .member-panel {
+    display: none !important;
+    order: 2;
+    width: 100%;
+    max-height: calc(100dvh - 142px);
+    min-height: 235px;
+    padding: 18px 15px 24px;
+    border-top: 1px solid var(--border);
+    border-right: 0;
+    overflow: hidden;
+  }
+  .mobile-more-panel {
+    display: grid;
+    gap: 10px;
+    width: min(100% - 30px, 650px);
+    margin: 26px auto 0;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--surface-1);
+    box-shadow: 0 7px 18px color-mix(in srgb, var(--text-primary) 8%, transparent);
+  }
+  .mobile-more-panel h2 {
+    margin: 0 0 8px;
+    color: var(--text-primary);
+    font-size: 24px;
+  }
+  .mobile-more-panel .more-group-label {
+    margin: 10px 0 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  /* The exit action must stay visually and spatially separated from the
+     appearance group: the language menu overlays this area while open, and a
+     stray click must never land on the disconnect button. */
+  .mobile-more-panel .more-panel-separator {
+    height: 1px;
+    margin: 6px 0;
+    background: var(--border);
+  }
+  .mobile-more-panel button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 46px;
+    padding: 0 12px;
+    color: var(--text-primary);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .mobile-more-panel button:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .mobile-more-panel button.danger {
+    color: var(--danger);
+  }
+  .mobile-nav {
+    /* Fixed bottom tab bar; the shell reserves its height via the 74px
+     * padding-bottom so content never slides underneath it. */
+    position: fixed;
+    z-index: var(--ws-z-header);
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    min-height: 68px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+    background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -7px 20px color-mix(in srgb, var(--text-primary) 8%, transparent);
+    backdrop-filter: blur(14px);
+  }
+  .mobile-nav button {
+    display: grid;
+    place-items: center;
+    gap: 3px;
+    min-width: 0;
+    color: var(--text-muted);
+    background: transparent;
+    border-radius: 8px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .mobile-nav button.active {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    font-weight: 700;
+  }
+  .mobile-nav button span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .whisper-strip {
+    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .whisper-strip-copy {
+    width: 100%;
+    flex: 1 0 100%;
+  }
+  .whisper-ptt-button {
+    flex: 1;
+    min-height: 46px;
+  }
+  .whisper-strip > .text-button {
+    min-height: 38px;
+  }
+}
+
+/* Keep the desktop join card comfortable without making the welcome page
+   taller than the browser. Smaller viewports can scroll inside the card. */
+
+@media (min-width: 741px) {
+  .join-header {
+    min-height: 72px;
+  }
+  .join-content {
+    padding: 28px 0 36px;
+  }
+  .join-card {
+    max-height: calc(100dvh - 190px);
+    overflow-y: auto;
+  }
+  .join-footer {
+    min-height: 54px;
+  }
+}
+
+@media (max-width: 740px) {
+  .join-card {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+/* The document itself never becomes the scroll surface. Each view owns its
+   content scroll area so headers, controls and mobile navigation stay fixed. */
+
+html[data-ws-route="webclient"],
+html[data-ws-route="webclient"] body,
+html[data-ws-route="webclient"] #app {
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.join-page {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.join-content {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Desktop zoom compensation. main.ts sets --ui-scale (>1 only on large
+   viewports) and App.vue applies zoom:var(--ui-scale) on #app. html/body stay
+   pinned to the real viewport (100dvh) while the zoomed roots divide their
+   height by the scale so the rendered result lands on exactly one viewport.
+   Without this a 2K/4K viewport would render a 1.5x-tall shell, clipping the
+   bottom of the workspace and leaving blank space under the control dock.
+   Non-zero fixed offsets (toast, poke banner) are divided back to CSS pixels
+   because zoom also scales fixed coordinates against the viewport. */
+
+@media (min-width: 851px) {
+  html[data-ws-route="webclient"],
+  html[data-ws-route="webclient"] body {
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+  html[data-ws-route="webclient"] #app,
+  .web-client,
+  .join-page,
+  .app-shell {
+    height: calc(100dvh / var(--ui-scale));
+    min-height: 0;
+    max-height: calc(100dvh / var(--ui-scale));
+  }
+  .toast {
+    right: calc(24px / var(--ui-scale));
+    bottom: calc(24px / var(--ui-scale));
+  }
+  .poke-banner {
+    top: calc(82px / var(--ui-scale));
+    right: calc(24px / var(--ui-scale));
+  }
+}
+
+@media (max-width: 740px) {
+  .app-shell {
+    min-height: 0;
+  }
+  .app-shell .workspace {
+    height: auto;
+    flex: 1 1 auto;
+  }
+  .app-shell.mobile-view-channels .workspace {
+    display: none;
+  }
+  .mobile-more-panel {
+    min-height: 0;
+    margin-bottom: 0;
+  }
+}
+
+/* Scroll geometry is shared; scrollbar colors come from the --wsd-* tokens (00-tokens.css). */
+
+.web-client,
+.web-client * {
+  scrollbar-width: thin;
+}
+
+.web-client *::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.web-client *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.web-client *::-webkit-scrollbar-thumb {
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 999px;
+}
+
+.web-client *::-webkit-scrollbar-thumb:hover {
+  background-clip: padding-box;
+  border-width: 1px;
+}
+
+/* Mobile interaction pass: keep the browser viewport fixed and give each
+   mobile surface its own touch-friendly scroll area. */
+
+.mobile-voice-controls,
+.voice-member-action,
+.member-action-button,
+.member-menu-backdrop {
+  display: none;
+}
+
+.microphone-header-toggle.muted {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.microphone-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+}
+
+.microphone-control .settings-label {
+  margin-bottom: 4px;
+}
+
+.microphone-control .settings-hint {
+  max-width: 390px;
+  margin: 0;
+}
+
+.microphone-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  flex: 0 0 auto;
+  padding: 0 12px;
+  color: #fff;
+  background: var(--wsd-accent-fill);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.microphone-toggle.muted {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 13%, var(--surface-1));
+}
+
+.member-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.member-menu-close {
+  display: none;
+}
+

@@ -1,0 +1,371 @@
+/*
+ * 组件自带样式（旧 SFC scoped 块的平移）：语言切换器（LanguageSwitcher.vue）、
+ * 手机门（MobileGate.vue）、服务器右键菜单（ServerContextMenu.vue，teleport 进 .web-client 根）。
+ * 类名逐字保留——皮肤与 data-ws-part 钩子依赖这些结构。旧 admin-root 暗色覆写不随迁
+ * （admin 有自己的切换器样式；web-client 暗色走 --wsd-* 翻转）。
+ */
+
+/* —— LanguageSwitcher —— */
+.web-client .language-switcher {
+  position: relative;
+  z-index: var(--ws-z-dropdown);
+  flex: 0 0 auto;
+  /* Token surfaces with day fallbacks: the client flips with the skin
+   * attribute; admin (no --wsd-* scope) keeps the day values and its own
+   * [data-theme] dark overrides below. */
+  color: var(--wsd-accent, #4f9e0c);
+  font-family: inherit;
+}
+
+.web-client .language-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 70px;
+  min-height: 32px;
+  padding: 0 9px;
+  color: var(--wsd-accent, #4f9e0c);
+  background: color-mix(in srgb, var(--wsd-accent, #4f9e0c) 12%, var(--wsd-panel, #fff));
+  border: 1px solid color-mix(in srgb, var(--wsd-accent, #4f9e0c) 28%, var(--wsd-border, #dfe5e8));
+  border-radius: 8px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: color .16s, background .16s, border-color .16s, box-shadow .16s;
+}
+
+.web-client .language-trigger:hover,
+.web-client .language-switcher.open .language-trigger {
+  color: #fff;
+  background: var(--wsd-accent, #4f9e0c);
+  border-color: var(--wsd-accent, #4f9e0c);
+  box-shadow: 0 7px 16px color-mix(in srgb, var(--wsd-accent, #4f9e0c) 18%, transparent);
+}
+
+.web-client .language-trigger .ui-icon {
+  margin-left: auto;
+  transition: transform .16s;
+}
+
+.web-client .language-switcher.open .language-trigger .ui-icon {
+  transform: rotate(180deg);
+}
+
+.web-client .language-current-flag,
+.web-client .language-option-flag {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  line-height: 1;
+}
+
+.web-client .language-current-flag {
+  font-size: 15px;
+}
+
+.web-client .language-current-code {
+  letter-spacing: .02em;
+}
+
+.web-client .language-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(38px, max-content);
+  align-items: start;
+  align-content: start;
+  gap: 3px;
+  width: min(360px, calc(100vw - 16px));
+  height: auto;
+  max-height: none;
+  padding: 7px;
+  overflow: visible;
+  background: var(--wsd-panel, #fff);
+  border: 1px solid var(--wsd-border, #e0e8d2);
+  border-radius: 13px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, .18), 0 3px 8px rgba(0, 0, 0, .07);
+  animation: language-menu-in .14s ease-out;
+}
+
+.web-client .language-option {
+  display: flex;
+  align-items: center;
+  align-self: start;
+  min-width: 0;
+  gap: 8px;
+  min-height: 38px;
+  padding: 6px 8px;
+  color: var(--wsd-text, #344540);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: color .14s, background .14s, border-color .14s;
+}
+
+.web-client .language-option:hover,
+.web-client .language-option:focus-visible,
+.web-client .language-option.selected {
+  color: var(--wsd-accent, #4f9e0c);
+  background: color-mix(in srgb, var(--wsd-accent, #4f9e0c) 12%, var(--wsd-panel, #fff));
+  border-color: color-mix(in srgb, var(--wsd-accent, #4f9e0c) 28%, var(--wsd-border, #dfe5e8));
+}
+
+.web-client .language-option-flag {
+  flex: 0 0 auto;
+  font-size: 17px;
+}
+
+.web-client .language-option-copy {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+  flex: 1;
+  gap: 8px;
+}
+
+.web-client .language-option strong,
+.web-client .language-option small {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.web-client .language-option strong {
+  flex: 0 0 auto;
+  font-size: 12px;
+}
+
+.web-client .language-option small {
+  flex: 0 0 auto;
+  color: var(--wsd-text-dim, #91a19c);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.web-client .language-option > .ui-icon {
+  flex: 0 0 auto;
+}
+
+@keyframes language-menu-in {
+  from { opacity: 0; transform: translateY(-4px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Rail tile variant: the trigger turns into a 58px rail tile; the dropdown
+   keeps its light surface and opens to the right of the rail. */
+.web-client .language-switcher.tile .language-trigger {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  min-width: 58px;
+  height: 58px;
+  min-height: 58px;
+  padding: 0;
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border: 2px solid transparent;
+  border-radius: 18px;
+  box-shadow: none;
+}
+
+.web-client .language-switcher.tile .language-trigger:hover,
+.web-client .language-switcher.tile.open .language-trigger {
+  color: var(--wsd-text);
+  background: var(--wsd-hover);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.web-client .language-switcher.tile .language-current-flag {
+  font-size: 22px;
+}
+
+.web-client .language-switcher.tile .language-dropdown {
+  right: auto;
+  left: 0;
+}
+
+@media (max-width: 520px) {
+  .web-client .language-trigger {
+    min-width: 62px;
+    min-height: 30px;
+    padding-inline: 7px;
+  }
+
+  .web-client .language-dropdown {
+    width: min(360px, calc(100vw - 16px));
+  }
+}
+
+/* —— MobileGate —— */
+.web-client .mobile-gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(420px, 68vh, 720px);
+  padding: 18px 4px;
+}
+
+.web-client .mobile-gate-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: min(430px, 100%);
+  padding: 26px 22px;
+  text-align: center;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+
+.web-client .mobile-gate-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: 16px;
+}
+
+.web-client .mobile-gate-card h1 {
+  margin: 0;
+  font-size: 19px;
+  letter-spacing: -.01em;
+}
+
+.web-client .mobile-gate-copy {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.web-client .mobile-gate-actions {
+  display: grid;
+  gap: 9px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.web-client .mobile-gate-primary,
+.web-client .mobile-gate-continue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.web-client .mobile-gate-primary {
+  color: #fff;
+  background: var(--accent);
+  text-decoration: none;
+}
+
+.web-client .mobile-gate-continue {
+  color: var(--text-primary);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+
+.web-client .mobile-gate-hint {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+/* —— ServerContextMenu（teleport 到 .web-client，选择器无需 .web-client 前缀也安全；
+      仍加前缀保持与其余分片同构。z-index 以阶梯 token 为值、字面量为回退，因为
+      菜单在 .web-client 作用域内，回退仅防 token 缺失。 —— */
+.web-client .server-context-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--ws-z-menu-mask, 300);
+  background: rgba(13, 29, 26, .38);
+  backdrop-filter: blur(2px);
+}
+
+.web-client .server-context-menu {
+  position: fixed;
+  z-index: var(--ws-z-menu, 310);
+  display: grid;
+  /* Merged onto the member-menu spec (three-round alignment): one raised
+   * token surface serves day and night with no per-theme overrides. */
+  min-width: 236px;
+  gap: 3px;
+  padding: 8px;
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
+  border-radius: 11px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, .18);
+}
+
+.web-client .server-context-menu-title {
+  padding: 4px 8px 7px;
+  overflow: hidden;
+  color: var(--wsd-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.web-client .server-context-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 7px 9px;
+  color: var(--wsd-text-muted);
+  background: transparent;
+  border-radius: 6px;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.web-client .server-context-menu button:hover {
+  color: var(--wsd-text);
+  background: var(--wsd-hover);
+}
+
+.web-client .server-context-menu button.danger {
+  color: var(--wsd-danger);
+}
+
+.web-client .server-context-menu button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 740px) {
+  .web-client .server-context-menu {
+    left: 12px !important;
+    right: 12px;
+    top: auto !important;
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+    min-width: 0;
+    max-height: calc(100svh - 100px);
+    padding: 12px;
+    border-radius: 18px;
+  }
+  .web-client .server-context-menu button {
+    min-height: 42px;
+    font-size: 13px;
+  }
+}

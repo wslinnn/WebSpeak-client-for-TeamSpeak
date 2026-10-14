@@ -1,0 +1,58 @@
+.reconnect-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 0;
+  width: min(950px, calc(100% - 64px));
+  padding: 12px 16px;
+  color: #6c5a2c;
+  border: 1px solid #f0dfae;
+  border-radius: 10px;
+  background: #fff9e8;
+}
+
+.reconnect-banner.failed {
+  color: #8f4540;
+  border-color: #f2d1cd;
+  background: #fff2f1;
+}
+
+.reconnect-banner.degraded {
+  color: #7a4d1d;
+  border-color: #f3d9a9;
+  background: #fff7ec;
+}
+
+/* 降级/告警级提示（如音频链路降级） */
+
+.reconnect-copy {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.reconnect-copy strong {
+  font-size: 13px;
+}
+
+.reconnect-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.reconnect-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+
+.reconnect-actions .secondary-button {
+  min-height: 34px;
+  padding-inline: 13px;
+}
+

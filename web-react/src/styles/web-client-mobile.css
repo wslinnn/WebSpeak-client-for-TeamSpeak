@@ -1,0 +1,203 @@
+/* Mobile layout owns its visible height; navigation occupies an actual flex row. */
+@media (max-width: 740px) {
+  html[data-ws-route="webclient"],
+  html[data-ws-route="webclient"] body,
+  html[data-ws-route="webclient"] #root {
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+  }
+  .web-client {
+    position: relative;
+    top: var(--ws-viewport-top, 0px);
+    height: var(--ws-viewport-height, 100dvh);
+    min-height: 0;
+    max-height: var(--ws-viewport-height, 100dvh);
+    --mobile-safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .web-client.keyboard-open { --mobile-safe-bottom: 0px; }
+
+  .join-page,
+  .app-shell {
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+  }
+  .app-shell {
+    padding-bottom: 0;
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  .app-shell .workspace {
+    flex: 1 1 0;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
+  .mobile-nav {
+    position: relative;
+    order: 3;
+    z-index: var(--ws-z-raised);
+    flex: 0 0 auto;
+    min-height: 68px;
+    padding: 6px 8px calc(6px + var(--mobile-safe-bottom));
+  }
+  .mobile-more-panel {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 18px;
+    overscroll-behavior: contain;
+  }
+  .mobile-more-panel button { flex-shrink: 0; }
+  .mobile-member-controls { display: flex; flex: 0 0 auto; align-items: stretch; gap: 8px; margin-top: 10px; padding: 8px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 14px; }
+  .mobile-member-controls .mobile-voice-toggle { flex: 1 1 0; min-height: 50px; font-size: 13px; }
+  .mobile-member-leave { flex: 0 0 42px; width: 42px; min-height: 42px; align-self: center; padding: 0; color: var(--danger); }
+  .mobile-voice-controls .mobile-voice-toggle { flex: 1 1 0; min-height: 44px; }
+  .mobile-voice-controls .mobile-voice-leave { flex: 0 0 42px; width: 42px; min-height: 44px; padding: 0; color: var(--danger); }
+  .app-shell .member-panel.mobile-section-visible {
+    padding-top: calc(18px + env(safe-area-inset-top, 0px));
+  }
+  .app-shell.mobile-view-chat .workspace-content { padding-bottom: 0; }
+  .app-shell.mobile-view-chat .chat-heading { flex-wrap: wrap; gap: 6px; }
+  .app-shell.mobile-view-chat .message-composer { margin-bottom: 8px; }
+  .chat-status { flex-shrink: 0; margin: 0 0 8px; }
+  .message-body, .message-meta { min-width: 0; }
+  .message-meta strong { overflow-wrap: anywhere; }
+
+  .join-page .join-header {
+    position: relative;
+    flex: 0 0 auto;
+    min-height: 0;
+    gap: 0;
+    top: auto;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-right, 0px)) 10px max(14px, env(safe-area-inset-left, 0px));
+  }
+  /* ≤740 keeps the language/skin switchers inline in the header (拍板：高频
+     入口常驻)；download/admin and the gateway note collapse behind the
+     「更多」 trigger, whose panel reuses the same link parts. The brand row
+     must stop claiming a full line (18-artwork's old own-row promise) or the
+     header wraps. */
+  .join-page .join-header {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  .join-page .brand-lockup {
+    flex: 0 1 auto;
+  }
+  /* Cluster the switchers against the 「更多」 button instead of letting
+     space-between split the leftover width into two large gaps. */
+  .join-page .header-tools {
+    margin-left: auto;
+  }
+  .join-page .header-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    min-height: 34px;
+    padding: 0;
+    color: var(--wsd-accent);
+    background: var(--wsd-accent-soft);
+    border: 1px solid color-mix(in srgb, var(--wsd-accent) 28%, transparent);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .join-page .brand-lockup small {
+    display: none;
+  }
+  .join-page .header-tools {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  .join-page .header-note,
+  .join-page .header-tools > .header-links {
+    display: none;
+  }
+  .join-page .header-links.open {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: max(14px, env(safe-area-inset-right, 0px));
+    z-index: var(--ws-z-menu);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    min-width: 200px;
+    padding: 12px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 18px 44px rgba(9, 28, 24, .18);
+  }
+  .join-page .header-links.open .guide-button {
+    display: inline-flex;
+    width: 100%;
+    justify-content: flex-start;
+    padding: 0 12px;
+  }
+  .join-page .header-links.open .guide-button span {
+    display: inline;
+  }
+  .join-page .header-tools-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: var(--ws-z-menu-mask);
+    padding: 0;
+    background: transparent;
+    border: 0;
+    cursor: default;
+  }
+  .join-page .join-content {
+    flex: 1 1 0;
+    min-height: 0;
+    padding-top: 16px;
+    padding-bottom: 20px;
+    overscroll-behavior: contain;
+    scroll-padding-block: 16px;
+  }
+  .join-page .join-card { order: -1; flex-shrink: 0; }
+  .join-page .join-copy { flex-shrink: 0; padding-top: 0; }
+  .join-page .join-copy h1 { font-size: clamp(30px, 9vw, 40px); }
+  .join-page .join-footer {
+    flex: 0 0 auto;
+    padding-bottom: calc(10px + var(--mobile-safe-bottom));
+  }
+
+  /* A 16px editing font avoids iOS focus zoom without disabling user zoom.
+     裸元素选择器在 Vue 靠 scoped [data-v] 限域；React 版普通 CSS 必须 data-ws-route 门控，
+     否则会泄漏到 admin/download 路由。 */
+  html[data-ws-route="webclient"] input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+  html[data-ws-route="webclient"] textarea,
+  html[data-ws-route="webclient"] select { font-size: 16px; }
+  html[data-ws-route="webclient"] button,
+  html[data-ws-route="webclient"] a { touch-action: manipulation; }
+  .workspace-actions .header-action,
+  .member-action-button,
+  .member-menu-close,
+  .send-button,
+  .status-button,
+  .chat-tabs button { min-height: 44px; min-width: 44px; }
+  .chat-tabs button { max-width: 70vw; overflow: hidden; text-overflow: ellipsis; }
+
+  .modal-backdrop, .member-menu-backdrop {
+    top: var(--ws-viewport-top, 0px);
+    bottom: auto;
+    height: var(--ws-viewport-height, 100dvh);
+  }
+  .settings-modal, .identity-import-modal {
+    max-height: calc(var(--ws-viewport-height, 100dvh) - env(safe-area-inset-top, 0px) - 8px);
+  }
+  .member-context-menu {
+    top: auto !important;
+    bottom: calc(100dvh - var(--ws-viewport-height, 100dvh) - var(--ws-viewport-top, 0px) + 12px + var(--mobile-safe-bottom)) !important;
+    max-height: calc(var(--ws-viewport-height, 100dvh) - env(safe-area-inset-top, 0px) - 24px);
+  }
+  .keyboard-open .chat-heading, .keyboard-open .join-footer { display: none; }
+  .keyboard-open .mobile-nav { min-height: 52px; padding-block: 4px; }
+  .keyboard-open .mobile-nav button { min-height: 44px; }
+  .keyboard-open .identity-import-textarea { min-height: 90px; }
+}
