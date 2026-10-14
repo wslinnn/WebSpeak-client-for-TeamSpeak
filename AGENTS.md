@@ -57,7 +57,7 @@ npm --prefix web ci --no-audit --no-fund
 
 ## 其他注意事项
 
-- Node.js ≥ 22.5（CI 用 22.22.2）；后端 TypeScript strict + NodeNext + ES2022。本机若为 Node 24（ABI 137），`@discordjs/opus` 0.10.0 无对应预编译包（上游 404）且本机无 Python 编译不了——`prebuild/node-v127-*` 下的 N-API v3 二进制跨 ABI 兼容，复制到 `node-v137-*` 目录即可（voice-bridge 测试报 `Cannot find module ... opus.node` 时即此坑）。
+- Node.js ≥ 22.5（CI 用 22.22.2）；后端 TypeScript strict + NodeNext + ES2022。
 - Git 远端：`origin` = wslinnn 仓库（默认推送目标），`upstream` = EchoSixHIYA 上游仓库。
 - 多个 commit 共享同一文件时的拆分手法：先备份各文件终态，逐 commit 剥离后置 hunks，每个中间态过类型检查与定向测试后再提交，全部完成后终态与备份逐字节比对——保证每个中间提交可构建、可 bisect。
 - 阶段 1 性能基线（改这些区域前先理解）：目录广播必须是 delta（`session-events.ts` 的 publishDelta），全量 `channelList` 只在连接/重连后发一次；头像走 capability URL（`avatar-service.ts` 的 HMAC aid + 内容 hash 版本化，WS 只推 `avatarSnapshot`/`avatarUpdate` 小消息，字节经 `GET /avatars/:aid` 由浏览器 HTTP 缓存吸收——URL 稳定性是缓存命中的前提，勿加时效签名；缓存只存正项、`avatar-cache.ts` 共享 LRU 128 条），不在频道树/成员里内联；网关两个 Opus 编码器经 `createVoiceEncoder()` 钉参（24kbps + VOIP + FEC/期望丢包 10%）；WebRTC pacer 空闲 200ms 停表、入帧即恢复（禁止逐帧门控）。
