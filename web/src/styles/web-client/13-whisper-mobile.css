@@ -6,10 +6,10 @@
   gap: 12px;
   margin-top: 18px;
   padding: 12px 14px;
-  color: #52645e;
-  border: 1px solid #d6ebe5;
+  color: var(--wsd-text);
+  border: 1px solid color-mix(in srgb, var(--wsd-accent) 26%, transparent);
   border-radius: 10px;
-  background: #eef8f5;
+  background: var(--wsd-accent-soft);
 }
 
 :deep(.whisper-strip-copy) {

@@ -395,7 +395,7 @@
 :deep(.dock-switch-row input:focus-visible),
 :deep(.mobile-noise-toggle input:focus-visible),
 :deep(.desktop-notification-toggle input:focus-visible) {
-  outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline: 2px solid var(--wsd-accent);
   outline-offset: 2px;
 }
 

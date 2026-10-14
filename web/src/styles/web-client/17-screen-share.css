@@ -125,7 +125,7 @@
 }
 
 :deep(.screen-share-stop-button:focus-visible) {
-  outline: 3px solid color-mix(in srgb, var(--danger) 42%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--danger) 55%, transparent);
   outline-offset: 2px;
 }
 
@@ -245,8 +245,8 @@
 }
 
 :deep(.screen-share-settings-fields select:focus-visible) {
-  outline: 2px solid color-mix(in srgb, var(--accent) 48%, transparent);
-  outline-offset: 1px;
+  outline: 2px solid var(--wsd-accent);
+  outline-offset: 2px;
 }
 
 :deep(.screen-share-settings-note) {

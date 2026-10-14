@@ -133,3 +133,47 @@
 .web-client[data-ws-skin="builtin.dark"] :deep(.message-composer :is(input, textarea)::placeholder) {
   color: var(--wsd-text-dim);
 }
+
+/* Status banners: day keeps the pale paper cards; night re-themes them to
+ * dimmed semantic tints over the panel color (warn amber / danger red). */
+.web-client[data-ws-skin="builtin.dark"] :deep(.reconnect-banner) {
+  color: var(--ws-warning);
+  border-color: color-mix(in srgb, var(--ws-warning) 35%, transparent);
+  background: color-mix(in srgb, var(--ws-warning) 10%, var(--wsd-panel));
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.reconnect-banner.failed) {
+  color: var(--ws-danger);
+  border-color: color-mix(in srgb, var(--ws-danger) 35%, transparent);
+  background: color-mix(in srgb, var(--ws-danger) 10%, var(--wsd-panel));
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.reconnect-banner.degraded) {
+  color: var(--ws-warning);
+  border-color: color-mix(in srgb, var(--ws-warning) 30%, transparent);
+  background: color-mix(in srgb, var(--ws-warning) 8%, var(--wsd-panel));
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.poke-banner) {
+  color: var(--wsd-text-muted);
+  border-color: color-mix(in srgb, var(--ws-warning) 32%, transparent);
+  background: color-mix(in srgb, var(--ws-warning) 9%, var(--wsd-panel));
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .32);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.poke-banner > .ui-icon) {
+  color: var(--ws-warning);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.poke-banner strong) {
+  color: color-mix(in srgb, var(--ws-warning) 80%, #fff);
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.poke-banner button) {
+  color: color-mix(in srgb, var(--ws-warning) 55%, var(--wsd-text-muted));
+}
+
+.web-client[data-ws-skin="builtin.dark"] :deep(.poke-banner button:hover) {
+  color: var(--ws-warning);
+  background: color-mix(in srgb, var(--ws-warning) 14%, transparent);
+}

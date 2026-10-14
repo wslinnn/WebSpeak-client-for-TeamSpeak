@@ -149,7 +149,7 @@
 :deep(.member-channel-heading:hover),
 :deep(.member-channel-group.current .member-channel-heading) {
   color: var(--wsd-accent);
-  background: #eef6db;
+  background: var(--wsd-accent-soft);
 }
 
 :deep(.member-channel-heading span) {
@@ -183,7 +183,7 @@
 :deep(.member-channel-fold:hover),
 :deep(.member-channel-group.current .member-channel-fold) {
   color: var(--wsd-accent);
-  background: #eef6db;
+  background: var(--wsd-accent-soft);
 }
 
 :deep(.member-channel-fold .ui-icon) {

@@ -191,8 +191,8 @@
   min-height: 30px;
   padding: 0 10px;
   color: var(--wsd-accent);
-  background: #eef6db;
-  border: 1px solid #d9e9bd;
+  background: var(--wsd-accent-soft);
+  border: 1px solid color-mix(in srgb, var(--wsd-accent) 28%, transparent);
   border-radius: 8px;
   font-size: 12px;
   font-weight: 700;
@@ -568,13 +568,13 @@
 
 :deep(.chat-tabs button:hover) {
   color: var(--wsd-accent);
-  background: #eef6db;
+  background: var(--wsd-accent-soft);
 }
 
 :deep(.chat-tabs button.active) {
   color: var(--wsd-accent);
-  background: #eaf5d5;
-  border-color: #d3e8b5;
+  background: color-mix(in srgb, var(--wsd-accent) 20%, transparent);
+  border-color: color-mix(in srgb, var(--wsd-accent) 32%, transparent);
   font-weight: 700;
 }
 

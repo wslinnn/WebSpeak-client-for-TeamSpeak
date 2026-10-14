@@ -129,22 +129,24 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
   position: fixed;
   z-index: var(--ws-z-menu, 310);
   display: grid;
-  min-width: 210px;
+  /* Merged onto the member-menu spec (three-round alignment): one raised
+   * token surface serves day and night with no per-theme overrides. */
+  min-width: 236px;
   gap: 3px;
   padding: 8px;
-  background: #fff;
-  border: 1px solid #e0eae6;
-  border-radius: 10px;
-  box-shadow: 0 14px 35px rgba(20, 50, 44, .16);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
+  border-radius: 11px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, .18);
 }
 
 .server-context-menu-title {
   padding: 4px 8px 7px;
   overflow: hidden;
-  color: #2a3934;
+  color: var(--wsd-text);
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .server-context-menu button {
@@ -152,22 +154,22 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
   align-items: center;
   gap: 8px;
   min-height: 34px;
-  padding: 0 8px;
-  color: #3c4a45;
+  padding: 7px 9px;
+  color: var(--wsd-text-muted);
   background: transparent;
-  border-radius: 7px;
+  border-radius: 6px;
   font-size: 12px;
   text-align: left;
   cursor: pointer;
 }
 
 .server-context-menu button:hover {
-  color: var(--wsd-accent);
-  background: #eef6db;
+  color: var(--wsd-text);
+  background: var(--wsd-hover);
 }
 
 .server-context-menu button.danger {
-  color: #a64038;
+  color: var(--wsd-danger);
 }
 
 .server-context-menu button span {
