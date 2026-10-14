@@ -259,6 +259,8 @@ localStorage（`webspeak:` 前缀零例外，2026-10-14 扫描实测 18 键）�
 原则（报告 20 §1）：无测试/运行时背书且能判定为存量缺陷的行为不迁。初版只有「已知脆弱区」与方法，尚无实锤怪癖——诚实留空：
 - 已知脆弱区（迁移时刻意按正确语义重写，不照抄）：① CSS 级联死规则与特异性战争区（dock-menus/workspace-relayout 的多轮补丁）；② `.voice-card > span` 类「直接子级通用规则压过新子元素」结构（五轮破案史的根因模式）；③ 首页 join 卡条件 notice 的互斥同位渲染（六条件依次 if 的脆弱结构）。
 - 分诊方法：平价验收遇怪行为 → 查 §0 三类证据 → 有据=照做；无据+可判定缺陷 → 登记于此并按正确行为实现。
+- 已登记不随迁（Phase 4 起）：
+  1. **Download 页语言切换不持久化**（旧 DownloadView.vue 的 language 是本地 ref，只有 WebClient.vue:1452 与 AdminView.vue:576 写 `webspeak:language`）。不随迁理由：同一切换器在首页持久、在下载页丢失是实现接线差异而非有意行为。新版 React `I18nProvider` 全局持有一份语言状态并在切换时统一持久化。
 
 ## 20. 测试基建复用清单（characterization 直接蓝本）
 - 可整体搬运（零框架依赖）：`TestSocket`（voice-session.test.mjs:10-23）、`TestPeer`（:130-163）、`AudioContextStub` 家族（:76-121）、`AudioDecoderStub/RecorderStub/AudioSourceStub/AudioNodeStub/TestTrack/TestAudioElement`、`receiveAudio/decodedChunk`、`replaceGlobal` + before/after 强清理模式、`controlRequestTimers`（只拦 8s/15s 两常量）、screen-share 的 `Peer` stub 与 `confirmStart` 模式。

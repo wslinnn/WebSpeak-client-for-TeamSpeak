@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { ErrorBoundary } from "./components/app/error-boundary";
 import { ConfirmDialogHost } from "./components/app/confirm-host";
+import { I18nProvider } from "./components/app/i18n-provider";
 import { RouteEffect } from "./components/app/route-effect";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -31,11 +32,13 @@ export function AppRoutes() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-      <ConfirmDialogHost />
-      <Toaster />
+      <I18nProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+        <ConfirmDialogHost />
+        <Toaster />
+      </I18nProvider>
     </ErrorBoundary>
   );
 }

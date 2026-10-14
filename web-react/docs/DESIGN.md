@@ -20,6 +20,7 @@ shadcn 中立 token（`--background/--foreground/--card/--popover/--primary/--se
 | `text-md` | 14px | 1.5 | 控件/表单标签（shadcn 组件内 text-sm 语义在六级下=11px，注意取舍） |
 | `text-lg` | 16px | 1.5 | 区块标题、移动端输入（=输入防护值） |
 | `text-xl` | 18px | 1.45 | 页面级标题 |
+| `text-2xl`（展示级） | 28px | 1.2 | 仅页面主标题（hero），不进正文六级 |
 
 - 禁裸字号：`text-[13px]` 形态被拦；六级之外确需例外，先改 index.css 再用。
 - **16px 输入防护**（SPEC §13 平价）：≤740 视口下 `input/textarea/select` 全局 16px（`!important` 压过组件字号类，这是规则的目的——防 iOS 聚焦缩放）。全局规则覆盖不到的编辑面（contenteditable 等）用 `text-mobile-input-safe` utility。

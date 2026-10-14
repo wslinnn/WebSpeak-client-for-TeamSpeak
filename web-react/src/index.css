@@ -70,6 +70,9 @@
     --text-lg--line-height: 1.5;
     --text-xl: 1.125rem;
     --text-xl--line-height: 1.45;
+    /* 展示级：仅页面主标题（hero）使用，不进正文六级 */
+    --text-2xl: 1.75rem;
+    --text-2xl--line-height: 1.2;
 }
 
 :root {
