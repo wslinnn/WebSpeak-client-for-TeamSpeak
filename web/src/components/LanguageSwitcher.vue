@@ -299,30 +299,30 @@ onUnmounted(() => {
 
 :global(html[data-theme="dark"] .admin-root) .language-trigger,
 :global(:root[data-theme="dark"] .admin-root) .language-trigger {
-  color: #a9d9d1;
-  background: #203531;
-  border-color: #38564f;
+  color: #a3d163;
+  background: #26331b;
+  border-color: #3e5230;
 }
 
 :global(html[data-theme="dark"] .admin-root) .language-trigger:hover,
 :global(html[data-theme="dark"] .admin-root) .language-switcher.open .language-trigger,
 :global(:root[data-theme="dark"] .admin-root) .language-trigger:hover,
 :global(:root[data-theme="dark"] .admin-root) .language-switcher.open .language-trigger {
-  color: #10201d;
-  background: #69d2c7;
-  border-color: #69d2c7;
+  color: #14230a;
+  background: #6cbf00;
+  border-color: #6cbf00;
 }
 
 :global(html[data-theme="dark"] .admin-root) .language-dropdown,
 :global(:root[data-theme="dark"] .admin-root) .language-dropdown {
-  background: #172321;
-  border-color: #30413d;
+  background: #1a2315;
+  border-color: #31402b;
   box-shadow: 0 16px 36px rgba(0, 0, 0, .32);
 }
 
 :global(html[data-theme="dark"] .admin-root) .language-option,
 :global(:root[data-theme="dark"] .admin-root) .language-option {
-  color: #d7e7e3;
+  color: #dbe7cf;
 }
 
 :global(html[data-theme="dark"] .admin-root) .language-option:hover,
@@ -331,9 +331,9 @@ onUnmounted(() => {
 :global(:root[data-theme="dark"] .admin-root) .language-option:hover,
 :global(:root[data-theme="dark"] .admin-root) .language-option:focus-visible,
 :global(:root[data-theme="dark"] .admin-root) .language-option.selected {
-  color: #69d2c7;
-  background: #203531;
-  border-color: #38564f;
+  color: #a3d163;
+  background: #26331b;
+  border-color: #3e5230;
 }
 
 /* Rail tile variant: the trigger turns into a 58px rail tile; the dropdown

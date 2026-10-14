@@ -99,9 +99,9 @@
     width: 34px;
     min-height: 34px;
     padding: 0;
-    color: #006a64;
-    background: #edf7f4;
-    border: 1px solid #d7ebe6;
+    color: var(--wsd-accent);
+    background: var(--wsd-accent-soft);
+    border: 1px solid color-mix(in srgb, var(--wsd-accent) 28%, transparent);
     border-radius: 8px;
     cursor: pointer;
   }

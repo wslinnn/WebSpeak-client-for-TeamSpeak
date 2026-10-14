@@ -39,7 +39,7 @@
 }
 
 :deep(.operation-card header>strong) {
-  color: #087d74;
+  color: var(--admin-accent);
   font-size: 22px;
 }
 
@@ -155,7 +155,7 @@
 }
 
 :deep(.text-link) {
-  color: #087d74;
+  color: var(--admin-accent);
   font-size: 10px;
   font-weight: 700;
   text-decoration: none;

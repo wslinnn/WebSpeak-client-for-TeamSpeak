@@ -117,5 +117,5 @@ const moreOpen = ref(false);
 .brand-lockup > div { min-width: 0; }
 .brand-mark { flex: 0 0 auto; }
 .brand-lockup strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.header-note .tiny-dot { display: inline-block; flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: #65d879; box-shadow: 0 0 0 4px rgba(101, 216, 121, .14); }
+.header-note .tiny-dot { display: inline-block; flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: var(--wsd-accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--wsd-accent) 14%, transparent); }
 </style>

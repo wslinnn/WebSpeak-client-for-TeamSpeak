@@ -234,8 +234,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 30px;
-  color: #eafffa;
-  background: linear-gradient(135deg,#07524c,#087d74);
+  color: #f2fced;
+  background: linear-gradient(135deg,#2f6f0a,#4f9e0c);
   border-radius: 16px;
 }
 
@@ -298,7 +298,7 @@
   place-items: center;
   width: 35px;
   height: 35px;
-  color: #087d74;
+  color: var(--admin-accent);
   background: #e9f5f2;
   border-radius: 9px;
 }
@@ -348,7 +348,7 @@
 }
 
 :deep(.overview-card header a) {
-  color: #087d74;
+  color: var(--admin-accent);
   font-size: 11px;
   font-weight: 700;
   text-decoration: none;
@@ -401,7 +401,7 @@
   place-items: center;
   width: 27px;
   height: 27px;
-  color: #087d74;
+  color: var(--admin-accent);
   background: #dff1ed;
   border-radius: 8px;
 }

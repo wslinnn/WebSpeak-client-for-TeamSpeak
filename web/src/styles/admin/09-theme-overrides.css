@@ -8,8 +8,8 @@
   --admin-text: #20302c;
   --admin-muted: #657873;
   --admin-border: #dfe8e5;
-  --admin-accent: #087d74;
-  --admin-accent-soft: #e4f3ef;
+  --admin-accent: #4f9e0c;
+  --admin-accent-soft: #eef6db;
   color: var(--admin-text);
   background: var(--admin-page);
 }
@@ -22,8 +22,8 @@
   --admin-text: #e8f3f0;
   --admin-muted: #b6c8c2;
   --admin-border: #3a514b;
-  --admin-accent: #79ddd1;
-  --admin-accent-soft: #1b3935;
+  --admin-accent: #6cbf00;
+  --admin-accent-soft: rgba(108, 191, 0, .18);
 }
 
 @media (prefers-color-scheme:dark) {
@@ -35,8 +35,8 @@
     --admin-text: #e8f3f0;
     --admin-muted: #b6c8c2;
     --admin-border: #3a514b;
-    --admin-accent: #79ddd1;
-    --admin-accent-soft: #1b3935;
+    --admin-accent: #6cbf00;
+    --admin-accent-soft: rgba(108, 191, 0, .18);
   }
 }
 
@@ -181,7 +181,7 @@
 .admin-root :deep(.password-actions button.active),
 .admin-root :deep(.primary-button) {
   color: #fff;
-  background: #087d74;
+  background: var(--admin-accent);
 }
 
 .admin-root :deep(.password-actions button.danger),
