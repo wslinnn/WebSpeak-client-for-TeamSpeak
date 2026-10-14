@@ -49,28 +49,28 @@
             :placeholder="t('favoriteDisplayNamePlaceholder')"
           /></div>
         </label>
-        <label
-          class="field-label"
-          data-ws-part="favorite-server.field-label"
-          for="favorite-address"
-        ><span>{{ t("serverAddress") }}</span>
-          <div
-            class="field-wrap"
-            data-ws-part="favorite-server.field"
-          ><Icon
-            name="server"
-            :size="16" /><input
-            id="favorite-address"
-            v-model="address"
-            autocomplete="url"
-            inputmode="url"
-            autocapitalize="none"
-            autocorrect="off"
-            :spellcheck="false"
-            required
-          /></div>
-        </label>
         <div class="favorite-server-columns">
+          <label
+            class="field-label"
+            data-ws-part="favorite-server.field-label"
+            for="favorite-address"
+          ><span>{{ t("serverAddress") }}</span>
+            <div
+              class="field-wrap"
+              data-ws-part="favorite-server.field"
+            ><Icon
+              name="server"
+              :size="16" /><input
+              id="favorite-address"
+              v-model="address"
+              autocomplete="url"
+              inputmode="url"
+              autocapitalize="none"
+              autocorrect="off"
+              :spellcheck="false"
+              required
+            /></div>
+          </label>
           <label
             class="field-label"
             data-ws-part="favorite-server.field-label"
@@ -90,40 +90,7 @@
               required
             /></div>
           </label>
-          <label
-            class="field-label"
-            data-ws-part="favorite-server.field-label"
-            for="favorite-nickname"
-          ><span>{{ t("nickname") }} <span>{{ t("optional") }}</span></span>
-            <div
-              class="field-wrap"
-              data-ws-part="favorite-server.field"
-            ><Icon
-              name="users"
-              :size="16" /><input
-              id="favorite-nickname"
-              v-model="nickname"
-              maxlength="30"
-              autocomplete="nickname"
-            /></div>
-          </label>
         </div>
-        <label
-          class="field-label"
-          data-ws-part="favorite-server.field-label"
-          for="favorite-channel"
-        ><span>{{ t("targetChannel") }} <span>{{ t("optional") }}</span></span>
-          <div
-            class="field-wrap"
-            data-ws-part="favorite-server.field"
-          ><Icon
-            name="hash"
-            :size="16" /><input
-            id="favorite-channel"
-            v-model="channel"
-            :placeholder="t('emptyDefault')"
-          /></div>
-        </label>
         <label
           class="field-label"
           data-ws-part="favorite-server.field-label"
@@ -140,6 +107,40 @@
             type="password"
             autocomplete="new-password"
             :placeholder="t('optionalPassword')"
+          /></div>
+        </label>
+        <label
+          class="field-label"
+          data-ws-part="favorite-server.field-label"
+          for="favorite-nickname"
+        ><span>{{ t("nickname") }}</span>
+          <div
+            class="field-wrap"
+            data-ws-part="favorite-server.field"
+          ><Icon
+            name="users"
+            :size="16" /><input
+            id="favorite-nickname"
+            v-model="nickname"
+            maxlength="30"
+            autocomplete="nickname"
+            required
+          /></div>
+        </label>
+        <label
+          class="field-label"
+          data-ws-part="favorite-server.field-label"
+          for="favorite-channel"
+        ><span>{{ t("targetChannel") }} <span>{{ t("optional") }}</span></span>
+          <div
+            class="field-wrap"
+            data-ws-part="favorite-server.field"
+          ><Icon
+            name="hash"
+            :size="16" /><input
+            id="favorite-channel"
+            v-model="channel"
+            :placeholder="t('emptyDefault')"
           /></div>
         </label>
         <p class="favorite-server-hint">{{ t("favoritePasswordHint") }}</p>
@@ -162,7 +163,7 @@
             type="submit"
             class="primary-button"
             data-ws-part="favorite-server.submit"
-            :disabled="!address.trim() || !port.trim()"
+            :disabled="!address.trim() || !port.trim() || !nickname.trim()"
           >{{ t("saveFavorite") }}</button>
         </footer>
       </form>
@@ -224,7 +225,7 @@ const duplicateFavorite = computed(() => {
 });
 
 function submit(): void {
-  if (!address.value.trim() || !port.value.trim()) return;
+  if (!address.value.trim() || !port.value.trim() || !nickname.value.trim()) return;
   emit("save", {
     label: label.value.trim(),
     address: address.value.trim(),

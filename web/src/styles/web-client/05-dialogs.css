@@ -40,8 +40,15 @@
 
 :deep(.favorite-server-columns) {
   display: grid;
-  grid-template-columns: 110px 1fr;
+  grid-template-columns: minmax(0, 1fr) 110px;
+  align-items: start;
   gap: 10px;
+}
+
+/* The form-flow rhythm rule (.field-label:not(:first-child) margin) leaks a
+ * 6px stagger into the grid pair; the columns' own gap owns the spacing. */
+:deep(.favorite-server-columns .field-label) {
+  margin-top: 0;
 }
 
 :deep(.favorite-server-actions) {
