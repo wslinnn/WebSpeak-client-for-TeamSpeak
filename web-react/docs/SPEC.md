@@ -1,6 +1,6 @@
 # WebSpeak 前端行为规格（React 重构基线）
 
-> 版本：2026-10-14（Phase 0 产出）
+> 版本：2026-10-14（Phase 0 产出；同日第二增量完成 §18 全部采证并新增 8 个 characterization 测试）
 > 事实源与可信度：本文只收录三类证据——① 既有测试断言（带 file:line）；② 运行时解析器/校验器代码（带 file:line）；③ 三份主题笔记（CLAUDE.md / .agents/notes/voice.md / decisions.md）中经代码或测试印证的条款。**代码注释与历史文档不作为依据**；与代码冲突处以代码为准并回写本文。
 > 用法：Phase 4 每页迁移的平价验收清单以本文对应章节为准；行为改动先改本文（spec 先行）。
 
@@ -90,7 +90,7 @@
 ### 5.4 WebRTC 播放与说话指示
 - 元素池：每槽隐藏 `<audio>` 直连远端流；**ontrack 一律 `new MediaStream([event.track])` 逐轨自建流，禁止 attach `event.streams[0]`**（voice.md 三层坑③铁律；测试基建注释同样钉死 :193-195）。
 - 音量：master ≤0 → muted；成员+总音量 ≤100% 走 `element.volume`（钳 1）；**>100% 走惰性增益管道，flowed 门控**（收到首个 RTP 包才建管道，之前钳在元素，:1878-1903——毒 context/预流动两层坑的防回归断言）。
-- 说话指示：`receiver.getStats().packetsReceived` 增量驱动；测试钉死 **400ms 无新标记过期 / 800ms hangover / 2s 沉默清除**（:1905-1943，mock 时钟）。⚠️ 与 voice.md 记载的「150ms 轮询+1.2s hangover」存在口径差（可能是不同层），迁移时以测试为准并核对实现 → 列入 §18 待采证。
+- 说话指示是**三层模型**（口径冲突已采证解决；voice-session:1905-1943 与 speaking-state.ts、webrtc-playback.ts:60-63 互证）：① 播放层每槽 **150ms 轮询** `receiver.getStats().packetsReceived` 增量刷新 `lastAudioAt`，槽活跃判定 = 距最后音频 **<1200ms hangover**；② `onSlotActivity` → `speaking-state`：active 时 `markSpeaking` 刷新每客户端 **360ms 防闪烁 hold**，无新标记 360ms 即熄灭（clearSpeaking 立即生效）；③ 兼容路径自己的徽标 = 麦克风电平表 RMS ≥ voxThreshold（§5.8）。三层各司其职，迁移时不可合并成单层。
 - autoplay 被挡 → pointerdown/keydown 重试，合并并发手势为一次 in-flight play；旧会话 retry 回调对新会话无效（:1591-1636）。
 - WebRTC pacer 空闲 200ms 停表、入帧即恢复（禁止逐帧门控，voice.md）。
 
@@ -110,8 +110,10 @@
 - 设备消失 → 走正常切换事务重建（默认设备失败保留原偏好并报错）（:2607-2648）。
 - 切麦 pending 期间改降噪 → 以实际拿到的设备提交（:2467-2482）；pending/失败期间兼容 PCM 不断流（:2492-2550）。
 
-### 5.8 电平表
+### 5.8 电平表、静噪与通知音
 - 512 样本 analyser、**50ms 轮询**、增益换算、封顶 1；读失败只停表清零（`micLevel=0`），会话不死（:1480-1494）。
+- `voxThreshold`（默认 0.008，钳 [0.001, 0.08]，IndexedDB 偏好持久化）：兼容路径**自己**的说话徽标静噪门控——`rms ≥ voxThreshold && !muted && track.enabled → markSpeaking(self)`，否则清（useVoiceWebSocket.ts:267, :330, :436）。
+- 通知音（`playNotification`，useVoiceWebSocket.ts:961-988）：五种双音 connected 660/880 · disconnected 440/330 · poke 740/980 · private 600/760 · reconnectFailed 300/220（Hz）；增益峰值 = `notificationVolume × effectiveOutputVolume × 0.12`，0.2s 指数包络；输出静音/零音量/context 挂起时跳过；best-effort 永不影响会话。`notificationVolume` 默认 0.5、钳 [0,1]、持久化。poke 横幅最多显示 3 条、9s 自动消失（WebClient.vue:1598, :1630-1633）。
 
 ## 6. 性能诊断面板
 - 仅面板打开时轮询，**间隔恰 2000ms**，打开立即探测一次；`sample()` 探针 = `audioStatsProbe{sequence}` + peer.getStats 结合。
@@ -121,7 +123,9 @@
 
 ## 7. 屏幕共享
 - 开流程：`screenShareStart{requestId,name?,audio?}` → `screenShareStarted{stream,owner?}`（requestId 不匹配=过期自动 stop）；观看端 `screenShareJoined` → viewer peer；信令 `screenShareSignal`（offer/answer/iceCandidate/close）。
-- 分辨率缩放：`scaleResolutionDownBy = 1920/maxWidth`（:104-119，screen-share.test.ts）；UI 预设提交 `[withVideo, {maxWidth, maxHeight, maxFrameRate}]` 并持久化帧率（screen-share-ui.test.mjs:76-82；**视频码率默认值无测试锁定 → 待采证**）。
+- 分辨率缩放：`scaleResolutionDownBy = 1920/maxWidth`（:104-119，screen-share.test.ts）。
+- 共享设置三预设（characterization 已钉，screen-share-ui.test.mjs）：分辨率 source/720p/1080p（**默认 1080p**）、帧率 [5,10,15,24,30,60]（**默认 15**）、码率 auto/1.5/3/5/8/12 Mbps（**默认 auto=不限**）；`startWithSettings` 提交 `[true, {maxWidth?, maxHeight?, maxFrameRate, maxBitrate?}]` 并把三项持久化到 `webspeak:screen-share-resolution/-framerate/-bitrate`；损坏存储值回退默认。
+- 播放端 `<video>` 是独立输出端点：跟随所选输出设备 `setSinkId`（失败静默回退默认）；观看者头像列表显示最后 5 位（useWebClientScreenShare.ts:81, :155-165）。
 - 无视频轨的捕获结果全 track stop；ICE 配置每控制器独立。
 - 属主匹配：已知 ownerClientId/ownerPeerId 绝不按昵称回退（防同昵称串流）；legacy `ownerPeerId="unknown"` 才按昵称（screen-share-ui.test.mjs:64-74）。
 - 播放器：video 绑定显式元素回调、换元素重绑并清旧元素、presentation 清理不停 owner track；全屏需非空 player、移除只退出自己的全屏；音量同步。
@@ -148,7 +152,7 @@
 - 内置亮/暗双皮肤（`builtin.light`/`builtin.dark`）以主题形式保留；激活=设 `data-theme`+`data-ws-skin`+注入 `<style>`；退役 id（community.illusia-voice）继续拒绝。
 - 生命周期（skin-lifecycle.test.mjs）：**持久化只属于最后被选中的皮肤**（输掉竞态不写）；迟到失败不回退新选择；AbortSignal 贯穿；本地读取/目录/包下载各有 deadline（统一 TimeoutError，迟到结果不安装）；目录失败本地已装包仍可用；目录永不响应首绘不阻塞（skinReady=true、builtin.light）；持久化自定义选择包挂起 → 首绘回退但**保留**选择键供重试；手动选择胜过未完成初始化；实例默认皮肤不得覆盖用户主题偏好、不写 `webspeak:skin-choice`；DOM 安装失败 revoke 候选资产 URL 并回退。
 - 公开目录：始终含两个内建且排最前；仅暴露 enabled；无效/禁用 default 回退 builtin.light；旧目录响应不能覆盖新响应。
-- 主题切换与自定义皮肤互斥（`preserveCustomSkins`）——测试仅一条间接断言（实例默认不覆盖 system 主题），**机制本体待采证**：迁移时从 theme.ts/usePublicSkin.ts 源码提取并补 characterization 测试。
+- 主题切换与自定义皮肤互斥（**已采证 + characterization 测试钉死**，theme.ts:50-55）：`applyTheme` 遍历 `.ws-skin-root`，`preserveCustomSkins:true` 时跳过非内置皮肤的 `data-ws-skin` 改写。调用点语义：用户选内置皮肤 → 不 preserve（外观交回内置）；选自定义皮肤 → preserve（否则切主题会把自定义打回内置，usePublicSkin.ts:63）；**系统主题跟随监听器恒 preserve**（OS 翻转夜间模式不得偷走自定义皮肤，theme.ts:90）；`reset()` 不 preserve（重置回内置）。皮肤包字节级上限（skin-pack.ts:11-15）：包 20MB / CSS 512KB / content 256KB / 单图 16MB / 单字体 4MB；可选淡出部件白名单 11 项（skin-pack.ts:33-45，`voice.member.live-indicator` 等交互控件不在册）。
 - skin-pack 编译契约（.wskin 运行时若按期迁移则继续成立；扫描测试 TSX 化）：`:root`→`.ws-skin-root[data-ws-skin="<id>"]` 前缀；keyframes/font-family 加 `ws-<id>-` 命名空间；资源→`wskin-asset:`→blob:；自定义属性必须 `--skin-` 前缀；**布局属性拒绝清单**（display/position/inset/z-index/padding/transform/font-size/line-height/white-space/text-transform/后代选择器 display/变量间接 display/all:unset）；控件隐藏仅限 OPTIONAL_VISUAL_PARTS 白名单；外部资源拒绝（`SKIN_EXTERNAL_RESOURCE`）。字节级资源上限（20MB 包/512KB CSS 等）在 skin-pack.ts 源码、无测试锁定 → 待采证。
 - admin 视图/组件不得含 `ws-skin-root`/`data-ws-page=`（契约测试钉死）。
 - 皮肤/语言切换器：桌面 rail 58×58 tile 变体、下拉 fixed 贴瓦片右侧（rail 是 overflow 裁剪容器）；移动首页**常驻 header 行**（decisions.md）；下拉钳制必须四边含裁剪祖先（`overflow-y≠visible ⇒ overflow-x 连带非 visible`，视口∩祖先取最紧，decisions.md）。
@@ -169,7 +173,9 @@
 - 运营页：旧 refresh 响应/失败不得覆盖新快照或清新 spinner；离开管理区块丢弃 pending 读、返回重新拉取；卸载后迟到登录不导航、迟到备份不下载。
 - 皮肤管理：mutation 串行化（重复点击只发一次）；失败回滚到最后已保存 default；loadSkinCatalog 挂起期间的默认皮肤编辑保留。
 - 登出：失败保留认证态与草稿；成功 → login + 清 csrfToken/私有状态 + 路由 /admin/login。
-- **待采证**：`mustChangePassword=true` → 改密屏的完整迁移与提交流程、登录失败分支 UI 细节——无测试锁定，迁移时从 AdminView.vue:503-525 提取。
+- 强制改密流（**已采证 + characterization 测试钉死**，AdminView.vue:503-506, :513-544）：`session.mustChangePassword=true` → screen=change-password + 路由 `/admin/change-password`，**不加载管理数据**；登录结果 mustChangePassword=true 同样迁移且密码字段照常清空；改密本地校验先行（<12 位 / 两次不一致，不发请求），提交 body `{newPassword}` 恰一次，成功后清字段 + screen=admin + 路由 `/admin` + 加载管理数据。
+- 登录失败（INVALID_PASSWORD 等）：保持 login 屏、submitting 复位、csrfToken 不变、错误可见。
+- `GET /api/admin/diagnostics/report` 由「运营」页以**普通链接**直下（AdminOperations.vue:91，无 admin-api 封装）；`GET /status` 前端无消费者——重构默认不对齐这两个端点的 UI 封装。
 - 布局：`admin-shell` grid `236px|1fr`、html/body 钉 100dvh、admin-main 唯一滚动容器；≤850 转单列+顶部 nav 条（44px 触达）；三态 UI 见 §17.4。
 
 ## 13. 移动端
@@ -241,14 +247,13 @@ localStorage（`webspeak:` 前缀零例外，2026-10-14 扫描实测 18 键）�
 ### 17.5 直播中胶囊
 红底白字 toggle（`--wsd-danger`+呼吸点，min-height 26px/11px）：他人卡=观看 toggle，自卡纯状态；停止共享唯一入口在音频坞绿条（decisions.md）。
 
-## 18. 测试未锁定区域（迁移时先从实现源码提取并补 characterization 测试）
-1. 说话指示时序口径（测试 400/800/2000ms vs voice.md 150ms/1.2s/360ms——以测试为准，核对 useVoiceWebSocket 与 webrtc-playback 两层）。
-2. 屏幕共享视频码率默认值与持久化（帧率有测试，码率无）。
-3. `mustChangePassword` 改密屏完整流程与登录失败分支 UI。
-4. `preserveCustomSkins` 互斥机制本体。
-5. 皮肤包字节级上限数值（skin-pack.ts 常量）。
-6. `voxThreshold`（静噪快开）/`notificationVolume` 的实际生效路径。
-7. admin `GET /status`、`GET /diagnostics/report` 端点（服务端存在、前端未封装——按需对齐）。
+## 18. 采证状态
+原七项待采证（2026-10-14 第二增量）**全部解决**，事实已并入正文并新增 8 个 characterization 测试钉死（skin-lifecycle.test.mjs +1 主题互斥、admin-view.test.mjs +4 强制改密/登录失败、screen-share-ui.test.mjs +3 共享三预设/码率/损坏回退）：
+说话指示三层模型（§5.4）· 静噪与通知音（§5.8）· 共享三预设与码率（§7）· 主题互斥与皮肤包上限（§10）· 强制改密流与登录失败（§12）。
+
+仍开放的采证项（随迁移推进补充）：
+1. 真浏览器布局快照（首页/下载/管理台静态页可无后端截取；进房态需真实 TS 服务器，见报告 20 Phase 0）。
+2. 新冠点随手登记：迁移中发现任何「测试+代码都无法解释行为来源」的点，先进本节再采证。
 
 ## 19. 怪癖不随迁清单（初版；Phase 4 分诊持续补充）
 原则（报告 20 §1）：无测试/运行时背书且能判定为存量缺陷的行为不迁。初版只有「已知脆弱区」与方法，尚无实锤怪癖——诚实留空：

@@ -10,8 +10,9 @@ before(async () => {
   ({ useWebClientScreenShare } = await vite.ssrLoadModule("/src/composables/useWebClientScreenShare.ts"));
 });
 after(async () => { await vite?.close(); });
-function mount(t, initialStream = null) {
+function mount(t, initialStream = null, storageSeed = null) {
   const listeners = new Set(), starts = [], storage = new Map(); let exits = 0, ui;
+  if (storageSeed) for (const [key, value] of Object.entries(storageSeed)) storage.set(key, value);
   class Element {}
   class Video extends Element { srcObject = null; volume = 1; plays = 0; async play() { this.plays++; } }
   const doc = { fullscreenElement: null, addEventListener: (_event, fn) => listeners.add(fn), removeEventListener: (_event, fn) => listeners.delete(fn), async exitFullscreen() { exits++; doc.fullscreenElement = null; for (const fn of listeners) fn(); } };
@@ -78,5 +79,50 @@ test("share settings submit the selected resolution and frame rate", async t => 
   try { f.ui.settingsOpen.value = true; f.ui.resolutionPreset.value = "720p"; f.ui.frameRate.value = 30; await f.ui.startWithSettings();
     assert.deepEqual(f.starts, [[true, { maxWidth: 1280, maxHeight: 720, maxFrameRate: 30 }]]);
     assert.equal(f.ui.settingsOpen.value, false); assert.equal(f.storage.get("webspeak:screen-share-framerate"), "30");
+  } finally { f.app.unmount(); }
+});
+
+test("share settings default to 1080p, 15 fps and auto bitrate, persisting all three", async t => {
+  const f = mount(t);
+  try {
+    assert.equal(f.ui.resolutionPreset.value, "1080p");
+    assert.equal(f.ui.frameRate.value, 15);
+    assert.equal(f.ui.bitratePreset.value, "auto");
+    f.ui.settingsOpen.value = true;
+    await f.ui.startWithSettings();
+    assert.deepEqual(f.starts, [[true, { maxWidth: 1920, maxHeight: 1080, maxFrameRate: 15 }]]);
+    assert.equal(f.storage.get("webspeak:screen-share-resolution"), "1080p");
+    assert.equal(f.storage.get("webspeak:screen-share-framerate"), "15");
+    assert.equal(f.storage.get("webspeak:screen-share-bitrate"), "auto");
+  } finally { f.app.unmount(); }
+});
+
+test("a bitrate preset caps the encoder and stored presets are restored", async t => {
+  const f = mount(t, null, {
+    "webspeak:screen-share-resolution": "720p",
+    "webspeak:screen-share-framerate": "30",
+    "webspeak:screen-share-bitrate": "8",
+  });
+  try {
+    assert.equal(f.ui.resolutionPreset.value, "720p");
+    assert.equal(f.ui.frameRate.value, 30);
+    assert.equal(f.ui.bitratePreset.value, "8");
+    f.ui.settingsOpen.value = true;
+    await f.ui.startWithSettings();
+    assert.deepEqual(f.starts, [[true, { maxWidth: 1280, maxHeight: 720, maxFrameRate: 30, maxBitrate: 8_000_000 }]]);
+    assert.equal(f.storage.get("webspeak:screen-share-bitrate"), "8");
+  } finally { f.app.unmount(); }
+});
+
+test("corrupt stored share settings fall back to the defaults", async t => {
+  const f = mount(t, null, {
+    "webspeak:screen-share-resolution": "480p",
+    "webspeak:screen-share-framerate": "999",
+    "webspeak:screen-share-bitrate": "99",
+  });
+  try {
+    assert.equal(f.ui.resolutionPreset.value, "1080p");
+    assert.equal(f.ui.frameRate.value, 15);
+    assert.equal(f.ui.bitratePreset.value, "auto");
   } finally { f.app.unmount(); }
 });

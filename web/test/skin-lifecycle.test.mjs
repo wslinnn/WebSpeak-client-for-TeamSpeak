@@ -236,3 +236,14 @@ test("a failed DOM installation releases the candidate's compiled asset URLs", a
     assert.equal(runtime.getStoredSkinId(), "builtin.light");
   } finally { URL.revokeObjectURL = original; }
 });
+
+test("theme switches keep an active custom skin only when preservation is requested", async () => {
+  const theme = await vite.ssrLoadModule("/src/services/theme.ts");
+  root.dataset.wsSkin = "sample.custom";
+  theme.saveTheme("dark", { preserveCustomSkins: true });
+  assert.equal(root.dataset.wsSkin, "sample.custom", "a custom skin owns the data-ws-skin namespace across theme flips");
+  assert.equal(document.documentElement.dataset.theme, "dark");
+  assert.equal(storage.get("webspeak:theme"), "dark");
+  theme.saveTheme("light");
+  assert.equal(root.dataset.wsSkin, "builtin.light", "an unpreserved switch hands appearance back to the builtin skin");
+});

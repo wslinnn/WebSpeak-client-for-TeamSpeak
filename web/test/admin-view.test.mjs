@@ -379,3 +379,76 @@ test("a settings response cannot overwrite a newer probe completed during the sa
   assert.equal(serverModel.serverForm.lastTestLatencyMs, 10);
 });
 
+test("a forced password change routes to the change-password screen without loading admin data", async () => {
+  let overviewLoaded = false;
+  handler = path => {
+    if (path === "/session") return Promise.resolve(json({ authenticated: true, mustChangePassword: true, csrfToken: "forced-csrf" }));
+    if (path === "/overview") overviewLoaded = true;
+    return Promise.resolve(json(defaults(path)));
+  };
+  await mount("/admin");
+  assert.equal(state.screen, "change-password");
+  assert.equal(state.csrfToken, "forced-csrf");
+  assert.equal(router.currentRoute.value.path, "/admin/change-password");
+  assert.equal(overviewLoaded, false);
+});
+
+test("a login that requires a password change lands on the change-password screen", async () => {
+  handler = path => Promise.resolve(json(path === "/session" ? { authenticated: false } : defaults(path)));
+  await mount("/admin/login");
+  let submissions = 0;
+  handler = path => {
+    if (path === "/session") return Promise.resolve(json({ authenticated: false }));
+    if (path === "/login") { submissions++; return Promise.resolve(json({ ok: true, mustChangePassword: true, csrfToken: "pending-csrf" })); }
+    return Promise.resolve(json(defaults(path)));
+  };
+  await state.login();
+  assert.equal(state.screen, "change-password");
+  assert.equal(state.csrfToken, "pending-csrf");
+  assert.equal(state.loginPassword, "", "the password field clears even when a change is still forced");
+  assert.equal(router.currentRoute.value.path, "/admin/change-password");
+  assert.equal(submissions, 1);
+});
+
+test("change-password validates locally, then submits once and enters the console", async () => {
+  handler = path => Promise.resolve(json(path === "/session" ? { authenticated: true, mustChangePassword: true, csrfToken: "forced-csrf" } : defaults(path)));
+  await mount("/admin");
+  let submissions = 0;
+  state.newPassword = "short";
+  await state.changePassword();
+  assert.ok(state.errorMessage);
+  assert.equal(submissions, 0, "a too-short password is rejected locally");
+  state.newPassword = "first-long-test-password";
+  state.confirmNewPassword = "second-long-test-password";
+  await state.changePassword();
+  assert.ok(state.errorMessage);
+  assert.equal(submissions, 0, "a confirmation mismatch is rejected locally");
+  let submittedBody = null;
+  handler = (path, init) => {
+    if (path === "/session") return Promise.resolve(json({ authenticated: true, mustChangePassword: false, csrfToken: "rotated-csrf" }));
+    if (path === "/change-password") { submissions++; submittedBody = JSON.parse(init.body); return Promise.resolve(json({ ok: true })); }
+    return Promise.resolve(json(defaults(path)));
+  };
+  state.newPassword = "final-long-test-password";
+  state.confirmNewPassword = "final-long-test-password";
+  await state.changePassword();
+  assert.equal(submissions, 1);
+  assert.deepEqual(submittedBody, { newPassword: "final-long-test-password" });
+  assert.equal(state.newPassword, "");
+  assert.equal(state.confirmNewPassword, "");
+  assert.equal(state.screen, "admin");
+  assert.equal(router.currentRoute.value.path, "/admin");
+});
+
+test("a rejected login keeps the login screen and reports the failure", async () => {
+  handler = path => Promise.resolve(json(path === "/session" ? { authenticated: false } : defaults(path)));
+  await mount("/admin/login");
+  handler = path => Promise.resolve(json(path === "/session" ? { authenticated: false }
+    : path === "/login" ? json({ code: "INVALID_PASSWORD" }, 401) : { authenticated: false }));
+  await state.login();
+  assert.equal(state.screen, "login");
+  assert.equal(state.submitting, false);
+  assert.equal(state.csrfToken, "");
+  assert.ok(state.errorMessage);
+});
+
