@@ -50,11 +50,15 @@
 /* The device-setup entry sits between full-height form fields, so it rides on
  * the compact tap-target size (36px) instead of the identity-action pill it
  * would otherwise inherit; without this it renders as an 80px pill wedged
- * between two large inputs. Scoped to the part hook so the shared
- * .identity-action-button sizing keeps serving the identity row. */
-:deep([data-ws-part="home.device-setup.open"]) {
+ * between two large inputs. The direct-child part hook outranks the shared
+ * .identity-action-button base (09) and the ≤420 flex-basis rule (18) — the
+ * column wrapper turns any flex-basis into a fixed height, so flex must be
+ * zeroed here too. */
+:deep(.device-setup > [data-ws-part="home.device-setup.open"]) {
   display: flex;
   width: 100%;
+  min-width: 0;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   gap: 8px;
