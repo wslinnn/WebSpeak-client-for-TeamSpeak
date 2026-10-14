@@ -156,13 +156,13 @@
 }
 
 :deep(.voice-status-summary[data-health="active"] > i) {
-  background: #22a777;
-  box-shadow: 0 0 0 3px color-mix(in srgb, #22a777 16%, transparent);
+  background: var(--wsd-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wsd-accent) 16%, transparent);
 }
 
 :deep(.voice-status-summary[data-health="warning"] > i) {
-  background: #dc8b24;
-  box-shadow: 0 0 0 3px color-mix(in srgb, #dc8b24 16%, transparent);
+  background: var(--ws-warning);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ws-warning) 16%, transparent);
 }
 
 :deep(.voice-status-summary[data-health="connecting"]),

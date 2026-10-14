@@ -4,7 +4,7 @@
   overflow: hidden;
   padding: 30px 34px;
   border-radius: 16px;
-  background: linear-gradient(110deg, #e3f4f1, #f8fbfa 68%, #fff);
+  background: linear-gradient(110deg, color-mix(in srgb, var(--wsd-accent) 9%, var(--wsd-panel)), var(--wsd-panel) 68%, var(--wsd-panel));
 }
 
 .room-hero h1 {
@@ -12,7 +12,7 @@
   align-items: center;
   gap: 8px;
   margin: 16px 0 7px;
-  color: #18302c;
+  color: var(--wsd-text);
   font-size: 26px;
   letter-spacing: -.05em;
 }
@@ -24,7 +24,7 @@
 .room-hero p {
   max-width: 470px;
   margin: 0;
-  color: #64817a;
+  color: var(--wsd-text-muted);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -147,9 +147,9 @@
   place-items: center;
   width: 24px;
   height: 24px;
-  color: #78908b;
-  background: #fff;
-  border: 1px solid #e0eae6;
+  color: var(--wsd-text-muted);
+  background: var(--wsd-panel);
+  border: 1px solid var(--wsd-border);
   border-radius: 50%;
 }
 
@@ -175,7 +175,7 @@
 
 :deep(.voice-card > span) {
   margin-top: 5px;
-  color: #91a09a;
+  color: var(--wsd-text-dim);
   font-size: 10px;
 }
 
@@ -189,8 +189,8 @@
   gap: 11px;
   margin-top: 17px;
   padding: 18px;
-  color: #83908c;
-  border: 1px dashed #dce6e2;
+  color: var(--wsd-text-muted);
+  border: 1px dashed color-mix(in srgb, var(--wsd-text) 22%, transparent);
   border-radius: 12px;
   font-size: 11px;
 }
@@ -202,7 +202,7 @@
 }
 
 :deep(.voice-empty strong) {
-  color: #4c5e58;
+  color: var(--wsd-text);
 }
 
 :deep(.voice-empty span:last-child) {
@@ -249,8 +249,8 @@
   width: 48px;
   height: 48px;
   margin-bottom: 11px;
-  color: #6fa8a2;
-  background: #e5f3f1;
+  color: var(--wsd-accent);
+  background: var(--wsd-accent-soft);
   border-radius: 14px;
 }
 
@@ -358,7 +358,7 @@
 /* Remaining-characters hint, shown only near the cap. */
 :deep(.composer-count) {
   flex: 0 0 auto;
-  color: #a1ada9;
+  color: var(--wsd-text-dim);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
@@ -373,8 +373,8 @@
   width: 32px;
   height: 32px;
   flex: 0 0 auto;
-  color: #fff;
-  background: var(--wsd-accent);
+  color: #142010;
+  background: var(--wsd-accent-fill);
   border-radius: 50%;
   cursor: pointer;
 }
@@ -387,7 +387,7 @@
 .mic-mode-switch {
   display: flex;
   padding: 3px;
-  background: #eef3f1;
+  background: var(--wsd-raised);
   border-radius: 8px;
 }
 
@@ -396,7 +396,7 @@
   align-items: center;
   gap: 5px;
   padding: 7px 9px;
-  color: #8b9894;
+  color: var(--wsd-text-muted);
   background: transparent;
   border-radius: 6px;
   font-size: 10px;
@@ -405,7 +405,7 @@
 
 .mic-mode-switch button.active {
   color: var(--wsd-accent);
-  background: #fff;
+  background: var(--wsd-panel);
   box-shadow: 0 2px 5px rgba(21,54,48,.08);
   font-weight: 700;
 }
@@ -568,7 +568,7 @@
   display: block;
   overflow: hidden;
   padding: 0;
-  color: #34423d;
+  color: var(--wsd-text);
   background: transparent;
   border-radius: 4px;
   text-align: left;
@@ -592,7 +592,7 @@
 :deep(.member-volume) {
   align-items: center;
   gap: 5px;
-  color: #a1afaa;
+  color: var(--wsd-text-dim);
   width: 96px;
 }
 
@@ -639,12 +639,12 @@
 
 :deep(.member-empty) {
   margin-top: 22px;
-  color: #98a49f;
+  color: var(--wsd-text-dim);
   font-size: 10px;
   text-align: center;
 }
 
 .member-panel-tip .ui-icon {
-  color: #5e9e96;
+  color: var(--wsd-accent);
 }
 

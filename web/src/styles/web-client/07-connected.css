@@ -35,7 +35,7 @@
 
 :deep(.identity-options) {
   margin-top: 14px;
-  color: #677872;
+  color: var(--wsd-text-muted);
   font-size: 11px;
 }
 
@@ -70,14 +70,14 @@
 
 :deep(.device-setup-hint) {
   margin: 0;
-  color: #677872;
+  color: var(--wsd-text-muted);
   font-size: 11px;
   line-height: 1.5;
 }
 
 /* Mic permission badge states. */
 :deep(.device-setup-hint.ok) {
-  color: #2c7a51;
+  color: var(--wsd-accent);
 }
 
 :deep(.device-setup-hint.denied) {
@@ -88,7 +88,7 @@
   justify-self: center;
   min-height: 32px;
   padding: 0 10px;
-  color: #6b7d77;
+  color: var(--wsd-text-muted);
   background: transparent;
   font-size: 11px;
   cursor: pointer;
@@ -117,7 +117,7 @@
 
 :deep(.member-channel-group) {
   padding: 8px 0 14px;
-  border-bottom: 1px solid #e7eeeb;
+  border-bottom: 1px solid var(--wsd-border);
 }
 
 :deep(.member-channel-group + .member-channel-group) {
@@ -166,7 +166,7 @@
 }
 
 :deep(.member-channel-heading small) {
-  color: #94a29d;
+  color: var(--wsd-text-dim);
   font-size: 10px;
 }
 
@@ -177,7 +177,7 @@
   width: 24px;
   height: 24px;
   padding: 0;
-  color: #94a29d;
+  color: var(--wsd-text-dim);
   background: transparent;
   border-radius: 6px;
   cursor: pointer;
@@ -241,7 +241,7 @@
 
 :deep(.channel-no-members) {
   margin: 7px 4px 0 31px;
-  color: #a0ada8;
+  color: var(--wsd-text-dim);
   font-size: 10px;
 }
 
@@ -263,11 +263,11 @@
   min-height: 40px;
   margin-bottom: 19px;
   padding: 0 13px;
-  color: #394742;
-  border: 1px solid #e0eae6;
+  color: var(--wsd-text);
+  border: 1px solid var(--wsd-border);
   border-radius: 12px;
   outline: none;
-  background: #f4f7f6;
+  background: var(--wsd-raised);
   font-size: 11px;
   cursor: pointer;
 }
@@ -284,7 +284,7 @@
 
 :deep(.settings-error) {
   margin: -9px 0 15px;
-  color: #b14e47;
+  color: var(--wsd-danger);
   font-size: 10px;
   line-height: 1.5;
 }

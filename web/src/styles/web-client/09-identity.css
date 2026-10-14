@@ -3,7 +3,7 @@
   align-items: flex-start;
   gap: 9px;
   margin-top: 8px;
-  color: #465650;
+  color: var(--wsd-text);
   cursor: pointer;
 }
 
@@ -27,14 +27,14 @@
 
 :deep(.remember-identity small) {
   margin-top: 3px;
-  color: #8b9994;
+  color: var(--wsd-text-dim);
   font-size: 10px;
   line-height: 1.4;
 }
 
 :deep(.identity-warning) {
   margin: 8px 0 0;
-  color: #9a6a32;
+  color: var(--ws-warning);
   font-size: 10px;
   line-height: 1.45;
 }
@@ -288,7 +288,7 @@
 
 .clear-local-button {
   padding: 0;
-  color: #85928d;
+  color: var(--wsd-text-muted);
   background: transparent;
   border: 0;
   font-size: 10px;
@@ -296,7 +296,7 @@
 }
 
 .clear-local-button:hover {
-  color: #b14e47;
+  color: var(--wsd-danger);
   text-decoration: underline;
 }
 

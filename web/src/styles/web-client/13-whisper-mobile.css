@@ -31,7 +31,7 @@
 
 :deep(.whisper-strip-copy span) {
   overflow: hidden;
-  color: #71837d;
+  color: var(--wsd-text-muted);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -55,8 +55,8 @@
 }
 
 :deep(.whisper-ptt-button.active) {
-  background: #2f9d5c;
-  box-shadow: 0 0 0 4px rgba(47,157,92,.16);
+  background: var(--wsd-accent-hover);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--wsd-accent) 20%, transparent);
 }
 
 .mobile-nav,

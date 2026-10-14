@@ -272,7 +272,7 @@
   height: 25px;
   min-height: 25px;
   padding: 0;
-  color: #ff4c49;
+  color: var(--wsd-danger);
   background: transparent;
   border: 0;
   border-radius: 50%;
@@ -366,11 +366,11 @@
 }
 
 :deep(.desktop-audio-dock-share.is-stop) {
-  background: #9f3845;
+  background: var(--wsd-danger);
 }
 
 :deep(.desktop-audio-dock-share.is-stop:hover) {
-  background: #b74654;
+  background: color-mix(in srgb, var(--wsd-danger) 85%, #fff);
 }
 
 :deep(.desktop-audio-dock-share-main) {
@@ -482,7 +482,7 @@
 
 :deep(.desktop-audio-dock-control[data-muted="true"]),
 :deep(.desktop-audio-dock-control[data-off="true"]) {
-  color: #ed6868;
+  color: var(--wsd-danger);
 }
 
 :deep(.desktop-audio-dock-control[data-muted="true"])::after,
@@ -493,7 +493,7 @@
   top: 50%;
   width: 21px;
   height: 1.5px;
-  background: #ed6868;
+  background: var(--wsd-danger);
   transform: translate(-50%, -50%) rotate(-48deg);
 }
 
@@ -583,15 +583,15 @@
   align-items: baseline;
   gap: 12px;
   padding: 9px 10px;
-  color: #65746e;
-  border-bottom: 1px solid #edf2f0;
+  color: var(--wsd-text-muted);
+  border-bottom: 1px solid var(--wsd-border);
   font-size: 12px;
   line-height: 1.45;
 }
 
 :deep(.event-row time) {
   flex: 0 0 auto;
-  color: #99a6a1;
+  color: var(--wsd-text-dim);
   font-size: 10px;
 }
 
@@ -604,9 +604,9 @@
   align-items: center;
   gap: 6px;
   padding: 6px 8px;
-  color: #5f746c;
-  background: #f2f7f5;
-  border: 1px solid #e0ebe7;
+  color: var(--wsd-text-muted);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
   border-radius: 7px;
   font-size: 11px;
   cursor: pointer;
@@ -614,20 +614,20 @@
 
 :deep(.status-button:hover),
 :deep(.status-button.active) {
-  color: #8c653a;
-  background: #fcf3e7;
-  border-color: #f0dcc0;
+  color: color-mix(in srgb, var(--ws-warning) 72%, var(--wsd-text));
+  background: color-mix(in srgb, var(--ws-warning) 12%, var(--wsd-panel));
+  border-color: color-mix(in srgb, var(--ws-warning) 35%, transparent);
 }
 
 :deep(.status-dot) {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #66d27a;
+  background: var(--wsd-accent);
 }
 
 :deep(.status-button.active .status-dot) {
-  background: #e0a34d;
+  background: var(--ws-warning);
 }
 
 :deep(.member-row) {
@@ -875,7 +875,7 @@
 }
 
 :deep(.permission-granted) {
-  color: #2d8547 !important;
+  color: var(--wsd-accent) !important;
 }
 
 :deep(.audio-level-track) {

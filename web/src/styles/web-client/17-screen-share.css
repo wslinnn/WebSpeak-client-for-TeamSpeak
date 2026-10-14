@@ -438,8 +438,8 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #65e48b;
-  box-shadow: 0 0 0 4px rgba(101,228,139,.18);
+  background: var(--wsd-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--wsd-accent) 18%, transparent);
   animation: screen-share-live-dot 1.2s ease-in-out infinite;
 }
 

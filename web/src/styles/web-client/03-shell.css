@@ -29,8 +29,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #85928e;
-  background: #eef3f1;
+  color: var(--wsd-text-muted);
+  background: var(--wsd-raised);
   border-radius: 8px;
 }
 
@@ -41,13 +41,13 @@
   border: 0;
   outline: none;
   background: transparent;
-  color: #40504b;
+  color: var(--wsd-text);
   font-size: 11px;
 }
 
 .channel-search input::placeholder,
 :deep(.member-search input::placeholder) {
-  color: #9ba6a3;
+  color: var(--wsd-text-dim);
 }
 
 :deep(.empty-icon) {
@@ -56,8 +56,8 @@
   width: 34px;
   height: 34px;
   margin: 0 auto 9px;
-  color: #6aa9a3;
-  background: #e2f2ef;
+  color: var(--wsd-accent);
+  background: var(--wsd-accent-soft);
   border-radius: 10px;
 }
 
@@ -98,8 +98,8 @@
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  color: #52615d;
-  background: #f1f4f3;
+  color: var(--wsd-text-muted);
+  background: var(--wsd-raised);
   border: 1px solid transparent;
   font-size: 12px;
   font-weight: 700;
@@ -243,13 +243,13 @@
 .favorite-server-chip:hover {
   border-radius: 7px;
   transform: scale(1.05);
-  background: #e3ebe8;
+  background: var(--wsd-hover);
 }
 
 .favorite-server-chip.active {
   color: #ffffff;
-  background: #277970;
-  box-shadow: inset 3px 0 0 #1d5b54;
+  background: var(--wsd-accent);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--wsd-accent) 72%, #000);
 }
 
 .favorite-server-chip:disabled {
@@ -267,15 +267,15 @@
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  color: #87958f;
+  color: var(--wsd-text-muted);
   background: transparent;
-  border: 1px dashed #cfe0da;
+  border: 1px dashed color-mix(in srgb, var(--wsd-text) 26%, transparent);
   cursor: pointer;
 }
 
 .favorite-server-strip .favorite-server-add:hover {
-  color: #277970;
-  background: #eef8f5;
+  color: var(--wsd-accent);
+  background: var(--wsd-accent-soft);
 }
 
 /* Lives in the shell banners layer (like the reconnect cards), so a mobile
