@@ -59,6 +59,14 @@
 28. **toast 换 sonner、window.confirm 保留**：旧 2800ms 自绘 toast div 退役（P4-2 admin 同规）；clearBrowserData 的确认弹窗保留 window.confirm（DECISIONS #16/#24 同一纪律，Promise 化替换统一留 Phase 5）。
 29. **输入区焦点指示只留外层框**（走查用户拍板）：`.web-client input:focus-visible` 的 outline 与 `.field-wrap:focus-within` ring 叠成双框——旧版两条同特异性 (0,2,1) 且 12 分片后导入必胜，02 分片里 `.field-wrap input` 的 outline:none 从未真正生效（「同特异性后导入必胜」死规则的又一实例，模式同 SPEC §19-2）。修法：`.field-wrap input:focus-visible` 以 (0,3,1) 显式豁免，按钮/链接/裸 textarea（无外层框者）保留 focus-visible 作键盘可达性指示。
 
+## 2026-10-14 · P4-4a 进房投影逻辑层取舍
+
+30. **投影层纯函数化**：useWebClientChannels 的树构建/当前频道/过滤/耳语目标从 Vue computed 改为 `web-client/channel-tree.ts` 纯函数（视图订阅 store 后 useMemo 调用），选台缺省补齐（旧 watch(channelTree)）返回增量或 null 由视图落地。折叠记忆（useChannelFold）的 watch(serverKey) 显式化为 `sync(key)` 由视图 effect 调用。
+31. **聊天页签权威归 home store**：P4-3a 已把 chatTab 放进 HomeStore（selectChannel 乐观补位写它），chat-controller 不再自持页签状态——读写都走 home store，单一权威避免双源漂移；其余聊天状态（草稿/私聊会话/发送中/错误）在 chat store，按 `epoch:tab:conversationKey` 目的地键隔离草稿/在途/错误。
+32. **滚动容器切面化**：旧 listElement Vue ref 改为 `getList()` 切面（视图传 HTMLElement、测试传桩对象），滚动跟随（followingLatest/scrollGeneration）留在控制器、DOM 操作经切面；移动分段/视口高度变化的 scrollIfFollowing 钩子由视图 effect 调用（旧 watch 平价）。
+33. **聊天历史装载触发面**：旧 watch([connected, sessionEpoch, serverKey]) 三源在 React 侧收敛为三处 store 订阅各触发 + 幂等 identity 去重（`connected:epoch:serverKey`）；控制器直接 setState 会话 store 合并历史（快照替换语义，Phase 2 红线）。
+34. **members 拖拽 DOM 操作不进 store**：pointer capture 与 elementFromPoint 命中留在控制器闭包，store 只收 draggedMember/dragOverChannelId 两个渲染字段；prompt（poke/away 留言）经 Options 注入保测试性（生产默认 window.prompt，替换留 Phase 5，与 #16/#24/#28 同纪律）。
+
 ## 待办决策（无）
 
 （Phase 4 迁移过程中新产生的取舍记此处，格式：日期 · 决策 · 理由 · 影响面）
