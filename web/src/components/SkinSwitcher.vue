@@ -42,6 +42,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import Icon from "./Icon.vue";
+import { placeDropdownBesideTile, placeDropdownClamped } from "../services/dropdown-place.js";
 
 export interface SkinOption {
   value: string;
@@ -84,30 +85,22 @@ function onDocumentPointerDown(event: PointerEvent) {
 }
 
 // Tile mode lives in the server rail, whose overflow clips absolutely
-// positioned menus: place the dropdown fixed beside the tile instead.
-function placeTileDropdown(): void {
-  if (!props.tile) return;
+// positioned menus: the dropdown goes fixed beside the tile. Inline mode
+// (join header, mobile panel) clamps into the viewport instead — a trigger
+// at the screen edge otherwise pushes the right-anchored menu off-screen.
+function placeDropdown(): void {
   const rootEl = root.value;
   const dropdownEl = dropdown.value;
   if (!rootEl || !dropdownEl) return;
-  const rootRect = rootEl.getBoundingClientRect();
-  const width = dropdownEl.offsetWidth;
-  const height = dropdownEl.offsetHeight;
-  let left = rootRect.right + 8;
-  if (left + width > window.innerWidth - 8) left = Math.max(8, rootRect.left - width - 8);
-  let top = rootRect.top;
-  if (top + height > window.innerHeight - 8) top = Math.max(8, window.innerHeight - 8 - height);
-  dropdownEl.style.position = "fixed";
-  dropdownEl.style.left = `${left}px`;
-  dropdownEl.style.top = `${top}px`;
-  dropdownEl.style.right = "auto";
+  if (props.tile) placeDropdownBesideTile(rootEl, dropdownEl);
+  else placeDropdownClamped(rootEl, dropdownEl);
 }
 
 watch(open, (isOpen) => {
-  if (isOpen) void nextTick(placeTileDropdown);
+  if (isOpen) void nextTick(placeDropdown);
 });
 function onWindowResize(): void {
-  if (open.value) placeTileDropdown();
+  if (open.value) placeDropdown();
 }
 
 onMounted(() => {
