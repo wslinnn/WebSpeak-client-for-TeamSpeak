@@ -76,7 +76,22 @@
   }
   /* ≤740 keeps the language/skin switchers inline in the header (拍板：高频
      入口常驻)；download/admin and the gateway note collapse behind the
-     「更多」 trigger, whose panel reuses the same link parts. */
+     「更多」 trigger, whose panel reuses the same link parts. The brand row
+     must stop claiming a full line (18-artwork's old own-row promise) or the
+     header wraps. */
+  .join-page .join-header {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+  .join-page :deep(.brand-lockup) {
+    flex: 0 1 auto;
+  }
+  /* Cluster the switchers against the 「更多」 button instead of letting
+     space-between split the leftover width into two large gaps. */
+  .join-page :deep(.header-tools) {
+    margin-left: auto;
+  }
   .join-page :deep(.header-more) {
     display: inline-flex;
     align-items: center;
