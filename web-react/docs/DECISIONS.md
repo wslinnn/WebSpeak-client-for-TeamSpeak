@@ -36,6 +36,15 @@
 9. **门禁存量豁免清单**（`eslint.config.js`，Phase 4 拆解后必须清空）：skin-pack.ts / screen-share.ts / session-controller.ts。
 10. **规格测试分波移植（已完成 4 波，web-react 共 219 用例全绿）**：会话生命周期/命令世代/重连预算/目录增量与头像/命令超时/设备切换与枚举回退/处理开关回滚/麦克风权限代际/伴奏取消与失败隔离/试听表/播放解码与槽位轮询/说话灯泡/WebRTC 协商与回退/音频探测作用域/麦克风试听/屏幕共享/存储命名空间/皮肤包导入/协议解析。**以下测试留旧套件、Phase 4 以 RTL+新钩子重钉**：chat ack 视图分组、channel tree、audio controls（含伴奏错误文案五语言）、performance 面板轮询、voice-server-switch 横幅、admin-api.integration（切包后把 import 指向新副本）。皮肤包 5 个锚定旧 web-client.css/Vue 源的基线测试留旧套件，Phase 3/4 按新样式基线重钉。
 
+## 2026-10-14 · P4-2 管理台移植取舍
+
+16. **架构：三领域控制器 + orchestrator，全部 zustand/vanilla**（`src/admin/*-controller.ts`）：server-settings/operations/skins 逐行平价旧 composable（合并基线、探针作废、mutation 串行），Vue 的 flush:sync watch 显式化为 `setField/setSecretField`；orchestrator 持会话状态机与 401 双轨，经 `bind()` 注入当次渲染的 navigate/路径/语言（React 视图层职责）。22 条 characterization（web/test/admin-view.test.mjs）平移为 `admin-controller.test.ts` 23 用例，直接实例化控制器（旧的无头 Vue 挂载不再需要）。window.confirm 保留在控制器（平价；Promise 化确认弹窗的替换留 Phase 5 打磨项）。
+17. **admin 语言复用全局 I18nProvider**：旧版 AdminView 有独立 language 实例但写同一个 `webspeak:language` 键；新版一份语言状态驱动 web-client 与 admin 两套字典（`createAdminMessages(language)` 纯函数层，i18n/admin-messages.ts）。
+18. **site-copy 移入 `src/shared/`**：前端三处依赖 DEFAULT_WELCOME_TEXTS/SiteLanguage，后端仅 admin-service 一处引用——按共享归属移入白名单目录，旧路径留再导出 shim（冻结的 Vue 侧零改动）。
+19. **admin.css 平移 + `:deep` 剥除**：13 分片 3379 行拷入 web-react/src/styles/，剥掉 542 处 Vue scoped 的 `:deep()` 包装，其余字节不动；全局导入安全（唯一文档级规则是与 index.css 同值的 `:root` z 阶梯；其余类名 admin 专属）。视图类名与结构保留 → 视觉平价。
+20. **React 视图层约束落点**：`admin-view.tsx` 的控制器创建只用 useState 初始化器 + `bind()` 注入闭包——react-hooks v7 的 refs 规则按词法扫描组件体，ref 传递/解引用都会被拦；绑定式注入同样满足「控制器只创建一次」。
+21. **管理台模态红线对齐**：WebRTC 端口提示弹窗改为只经按钮/背景点击显式目标关闭（旧版 backdrop click.self 关闭与「模态不响应 backdrop」红线冲突，按红线收口）。
+
 ## 待办决策（无）
 
 （Phase 4 迁移过程中新产生的取舍记此处，格式：日期 · 决策 · 理由 · 影响面）

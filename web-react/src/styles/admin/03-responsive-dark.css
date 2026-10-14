@@ -1,0 +1,163 @@
+@media (max-width:850px) {
+  .admin-shell {
+    display: block;
+  }
+  .admin-sidebar {
+    flex-direction: row;
+  }
+  .admin-sidebar nav {
+    display: flex;
+    margin-left: auto;
+  }
+  .admin-sidebar nav a {
+    font-size: 0;
+  }
+  .admin-sidebar nav a .ui-icon {
+    width: 20px;
+    height: 20px;
+  }
+  .sidebar-bottom {
+    margin: 0 0 0 8px;
+  }
+  .settings-grid,
+  .overview-columns {
+    grid-template-columns: 1fr;
+  }
+  .page-content {
+    width: min(100% - 28px,700px);
+    padding-top: 24px;
+  }
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+  .hero-status {
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .hero-status p {
+    max-width: 75%;
+  }
+}
+
+@media (max-width:520px) {
+  .setup-card,
+  .login-card {
+    padding: 25px 20px;
+    border-radius: 15px;
+  }
+  .admin-topbar>div:last-child {
+    font-size: 0;
+  }
+  .page-heading {
+    gap: 15px;
+  }
+  .page-heading .primary-button {
+    padding-inline: 12px;
+  }
+  .settings-card,
+  .readonly-card,
+  .overview-card {
+    padding: 18px;
+  }
+  .readonly-card dl,
+  .overview-card dl {
+    grid-template-columns: 1fr;
+  }
+  .password-row {
+    grid-template-columns: 1fr;
+  }
+  .password-actions {
+    padding: 0;
+  }
+  .hero-status {
+    padding: 23px;
+  }
+  .status-badge {
+    display: none;
+  }
+}
+
+.security-note {
+  margin: 18px 0 0;
+  color: #879590;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .admin-root),
+:global(html[data-ws-route="admin"][data-theme="dark"] .login-page),
+:global(html[data-ws-route="admin"][data-theme="dark"] .auth-panel) {
+  color: #e8f3f0;
+  background: #101918;
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .admin-topbar),
+:global(html[data-ws-route="admin"][data-theme="dark"] .setup-card),
+:global(html[data-ws-route="admin"][data-theme="dark"] .login-card),
+:global(html[data-ws-route="admin"][data-theme="dark"] .settings-card),
+:global(html[data-ws-route="admin"][data-theme="dark"] .readonly-card),
+:global(html[data-ws-route="admin"][data-theme="dark"] .overview-card),
+:global(html[data-ws-route="admin"][data-theme="dark"] input),
+:global(html[data-ws-route="admin"][data-theme="dark"] textarea) {
+  color: #e8f3f0;
+  background: #172321;
+  border-color: #30413d;
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .admin-topbar),
+:global(html[data-ws-route="admin"][data-theme="dark"] .settings-card),
+:global(html[data-ws-route="admin"][data-theme="dark"] .readonly-card),
+:global(html[data-ws-route="admin"][data-theme="dark"] .overview-card) {
+  border-color: #30413d;
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .admin-topbar h1),
+:global(html[data-ws-route="admin"][data-theme="dark"] .page-heading h2),
+:global(html[data-ws-route="admin"][data-theme="dark"] .settings-card h3),
+:global(html[data-ws-route="admin"][data-theme="dark"] .readonly-card h3),
+:global(html[data-ws-route="admin"][data-theme="dark"] .overview-card h3),
+:global(html[data-ws-route="admin"][data-theme="dark"] .login-card h1) {
+  color: #e8f3f0;
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .page-heading p),
+:global(html[data-ws-route="admin"][data-theme="dark"] .admin-topbar small),
+:global(html[data-ws-route="admin"][data-theme="dark"] label > span) {
+  color: #9bb0aa;
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .metric-grid article),
+:global(html[data-ws-route="admin"][data-theme="dark"] .readonly-card dl div),
+:global(html[data-ws-route="admin"][data-theme="dark"] .overview-card dl div),
+:global(html[data-ws-route="admin"][data-theme="dark"] .event-list li) {
+  background: #202f2c;
+  border-color: #30413d;
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .admin-topbar button),
+:global(html[data-ws-route="admin"][data-theme="dark"] .admin-topbar .language-select),
+:global(html[data-ws-route="admin"][data-theme="dark"] .language-link),
+:global(html[data-ws-route="admin"][data-theme="dark"] .home-link) {
+  color: #a9d9d1;
+  background: #203531;
+  border-color: #38564f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(html[data-ws-route="admin"][data-theme="system"] .admin-root),
+  :global(html[data-ws-route="admin"][data-theme="system"] .login-page),
+  :global(html[data-ws-route="admin"][data-theme="system"] .auth-panel) {
+    color: #e8f3f0;
+    background: #101918;
+  }
+  :global(html[data-ws-route="admin"][data-theme="system"] .admin-topbar),
+  :global(html[data-ws-route="admin"][data-theme="system"] .setup-card),
+  :global(html[data-ws-route="admin"][data-theme="system"] .login-card),
+  :global(html[data-ws-route="admin"][data-theme="system"] .settings-card),
+  :global(html[data-ws-route="admin"][data-theme="system"] .readonly-card),
+  :global(html[data-ws-route="admin"][data-theme="system"] .overview-card) {
+    background: #172321;
+    border-color: #30413d;
+  }
+}
+

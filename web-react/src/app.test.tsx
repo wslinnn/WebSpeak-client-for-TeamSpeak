@@ -50,10 +50,16 @@ test("/download 渲染 DownloadView 壳并标记 data-ws-route=download", async 
   await waitFor(() => expect(document.documentElement.dataset.wsRoute).toBe("download"));
 });
 
-test("/admin/* 渲染 AdminView 壳：无皮肤根、data-ws-route=admin", async () => {
+test("/admin/* 渲染管理台（未认证 → login 屏）：无皮肤根、data-ws-route=admin", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ authenticated: false }), { status: 200 })));
   renderRoutes("/admin/login");
-  expect(await screen.findByText("Admin")).toBeInTheDocument();
-  expect(document.querySelector(".app-shell")).not.toBeNull();
+  const shell = await waitFor(() => {
+    const element = document.querySelector(".admin-root .login-page");
+    expect(element).not.toBeNull();
+    return element;
+  }, { timeout: 5000 });
+  expect(shell).toBeInTheDocument();
   expect(document.querySelector(".ws-skin-root")).toBeNull();
+  expect(document.querySelector("[data-ws-page]")).toBeNull();
   await waitFor(() => expect(document.documentElement.dataset.wsRoute).toBe("admin"));
 });

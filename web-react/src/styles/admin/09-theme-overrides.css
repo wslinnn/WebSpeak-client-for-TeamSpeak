@@ -1,0 +1,222 @@
+/* One palette is shared by explicit dark mode and system dark mode. */
+
+.admin-root {
+  --admin-page: #f4f8f6;
+  --admin-surface: #fff;
+  --admin-raised: #f6f9f8;
+  --admin-field: #fff;
+  --admin-text: #20302c;
+  --admin-muted: #657873;
+  --admin-border: #dfe8e5;
+  --admin-accent: #4f9e0c;
+  --admin-accent-soft: #eef6db;
+  color: var(--admin-text);
+  background: var(--admin-page);
+}
+
+:global(html[data-ws-route="admin"][data-theme="dark"] .admin-root) {
+  --admin-page: #101918;
+  --admin-surface: #172321;
+  --admin-raised: #202f2c;
+  --admin-field: #111d1b;
+  --admin-text: #e8f3f0;
+  --admin-muted: #b6c8c2;
+  --admin-border: #3a514b;
+  --admin-accent: #6cbf00;
+  --admin-accent-soft: rgba(108, 191, 0, .18);
+}
+
+@media (prefers-color-scheme:dark) {
+  :global(html[data-ws-route="admin"][data-theme="system"] .admin-root) {
+    --admin-page: #101918;
+    --admin-surface: #172321;
+    --admin-raised: #202f2c;
+    --admin-field: #111d1b;
+    --admin-text: #e8f3f0;
+    --admin-muted: #b6c8c2;
+    --admin-border: #3a514b;
+    --admin-accent: #6cbf00;
+    --admin-accent-soft: rgba(108, 191, 0, .18);
+  }
+}
+
+.admin-root .admin-main {
+  color: var(--admin-text);
+  background: var(--admin-page);
+}
+
+.admin-root .admin-topbar,
+.admin-root .settings-card,
+.admin-root .readonly-card,
+.admin-root .overview-card,
+.admin-root .operation-card,
+.admin-root .metric-grid article,
+.admin-root .setup-card,
+.admin-root .login-card {
+  color: var(--admin-text);
+  background: var(--admin-surface);
+  border-color: var(--admin-border);
+}
+
+.admin-root .settings-card h3,
+.admin-root .settings-card h4,
+.admin-root .readonly-card h3,
+.admin-root .overview-card h3,
+.admin-root .operation-card h3,
+.admin-root .page-heading h2,
+.admin-root .admin-topbar h1,
+.admin-root .settings-card label>span,
+.admin-root .settings-card legend,
+.admin-root .settings-card .choice strong {
+  color: var(--admin-text);
+}
+
+.admin-root .page-heading p,
+.admin-root .admin-topbar small,
+.admin-root .settings-card .card-help,
+.admin-root .settings-card .field-help,
+.admin-root .settings-card .choice small,
+.admin-root .settings-card .welcome-editor-heading>small,
+.admin-root .settings-card .port-fields-heading small,
+.admin-root .readonly-card dt,
+.admin-root .overview-card dt,
+.admin-root .metric-grid small,
+.admin-root .metric-grid em,
+.admin-root .overview-card header p,
+.admin-root .operation-card header p {
+  color: var(--admin-muted);
+}
+
+.admin-root input:not([type="checkbox"]):not([type="radio"]),
+.admin-root textarea,
+.admin-root select {
+  color: var(--admin-text);
+  background: var(--admin-field);
+  border-color: var(--admin-border);
+}
+
+.admin-root input::placeholder,
+.admin-root textarea::placeholder {
+  color: var(--admin-muted);
+  opacity: 1;
+}
+
+.admin-root input:disabled,
+.admin-root textarea:disabled,
+.admin-root select:disabled {
+  color: var(--admin-muted);
+  background: var(--admin-raised);
+  border-color: var(--admin-border);
+  opacity: 1;
+}
+
+.admin-root input[type="checkbox"],
+.admin-root input[type="radio"] {
+  accent-color: var(--admin-accent);
+}
+
+.admin-root .settings-card .choice {
+  color: var(--admin-text);
+  background: var(--admin-raised);
+  border-color: var(--admin-border);
+}
+
+.admin-root .settings-card .choice.selected {
+  background: color-mix(in srgb,var(--admin-accent) 10%,var(--admin-surface));
+  border-color: color-mix(in srgb,var(--admin-accent) 48%,var(--admin-border));
+}
+
+.admin-root .welcome-editor,
+.admin-root .webrtc-port-fields,
+.admin-root .readonly-card dl div,
+.admin-root .overview-card dl div,
+.admin-root .event-list li,
+.admin-root .connection-row,
+.admin-root .connection-history-heading,
+.admin-root .diagnostic-list div,
+.admin-root .log-row,
+.admin-root .invite-row {
+  color: var(--admin-text);
+  background: var(--admin-raised);
+  border-color: var(--admin-border);
+}
+
+.admin-root .welcome-editor select,
+.admin-root .welcome-editor textarea {
+  color: var(--admin-text);
+  background: var(--admin-field);
+  border-color: var(--admin-border);
+}
+
+.admin-root .welcome-editor-heading>small,
+.admin-root .port-fields-heading small,
+.admin-root .field-help,
+.admin-root .target-runtime-facts dt,
+.admin-root .connection-person small,
+.admin-root .connection-detail small,
+.admin-root .connection-history-heading small,
+.admin-root .diagnostic-list dt,
+.admin-root .log-row small,
+.admin-root .invite-row small {
+  color: var(--admin-muted);
+}
+
+.admin-root .settings-subsection {
+  color: var(--admin-text);
+  background: var(--admin-raised);
+  border-color: var(--admin-border);
+}
+
+.admin-root .target-runtime-facts>div,
+.admin-root .settings-subsection .choice {
+  background: var(--admin-surface);
+  border-color: var(--admin-border);
+}
+
+.admin-root .password-actions button {
+  color: var(--admin-accent);
+  background: var(--admin-accent-soft);
+}
+
+.admin-root .password-actions button.active,
+.admin-root .primary-button {
+  color: #fff;
+  background: var(--admin-accent);
+}
+
+.admin-root .password-actions button.danger,
+.admin-root .danger-button,
+.admin-root .text-danger {
+  color: #d66d65;
+  background: color-mix(in srgb,#d66d65 12%,var(--admin-surface));
+  border-color: color-mix(in srgb,#d66d65 30%,var(--admin-border));
+}
+
+.admin-root .secondary-button,
+.admin-root .admin-topbar button,
+.admin-root .admin-topbar .language-select,
+.admin-root .home-link {
+  color: var(--admin-accent);
+  background: var(--admin-accent-soft);
+  border-color: var(--admin-border);
+}
+
+.admin-root .settings-accordion-header>.ui-icon {
+  color: var(--admin-muted);
+}
+
+.admin-root .settings-summary-chip {
+  color: var(--admin-muted);
+  background: var(--admin-raised);
+  border-color: var(--admin-border);
+}
+
+.admin-root .admin-sidebar nav a {
+  color: #c2d8d3;
+}
+
+.admin-root .admin-sidebar nav a.active {
+  color: #eafffb;
+  background: #0d615a;
+}
+
