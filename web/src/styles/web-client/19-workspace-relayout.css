@@ -146,7 +146,7 @@
     padding: 0;
     color: var(--wsd-text-muted);
     background: transparent;
-    border: 1px solid var(--wsd-border);
+    border: none;
     border-radius: 7px;
     cursor: pointer;
   }
@@ -239,7 +239,9 @@
   .workspace-header {
     min-height: 46px;
     padding: 0 12px;
-    background: var(--wsd-panel);
+    /* Stage color: the room bar shares the stage surface (KAAK stage heading
+     * has zero delta against it), not the panel tone. */
+    background: var(--wsd-bg);
     border-bottom: 1px solid var(--wsd-border);
   }
 
@@ -314,12 +316,12 @@
     display: grid;
     flex: 0 0 auto;
     place-items: center;
-    width: 28px;
-    height: 28px;
+    width: 36px;
+    height: 36px;
     padding: 0;
     color: var(--wsd-text-muted);
     background: transparent;
-    border-radius: 7px;
+    border-radius: 9px;
   }
 
   :deep(.chat-collapse:hover),
@@ -369,6 +371,7 @@
     color: #102016;
     background: var(--wsd-accent-fill);
     border-radius: 9px;
+    box-shadow: 0 5px 14px color-mix(in srgb, var(--wsd-accent-fill) 32%, transparent);
   }
 
   .chat-reopen:hover,
@@ -734,7 +737,7 @@
     grid-row: 1;
     width: 100%;
     min-height: 0;
-    margin: 0 0 6px;
+    margin: 0 0 11px;
     padding: 10px;
   }
 
@@ -866,7 +869,7 @@
     gap: 17px;
     min-height: 0;
     max-height: none;
-    padding: 15px 14px 14px;
+    padding: 15px 18px 14px;
   }
 
   :deep(.app-shell > .chat-panel .message-row) {

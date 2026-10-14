@@ -91,6 +91,7 @@
 :deep(.voice-card:hover) {
   z-index: 3;
   transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--wsd-text) 24%, transparent);
   box-shadow: 0 11px 24px rgba(20,58,51,.08);
 }
 
@@ -168,7 +169,7 @@
 }
 
 :deep(.voice-card > strong) {
-  color: #2c3935;
+  color: var(--wsd-text);
   font-size: 12px;
 }
 
@@ -426,7 +427,7 @@
 :deep(.member-panel) {
   min-width: 0;
   padding: 26px 16px;
-  color: #2c3935;
+  color: var(--wsd-text);
   background: #fbfcfc;
   border-left: 1px solid #eef2f0;
   /* A full roster scrolls instead of clipping: overflow hidden here once hid
@@ -608,7 +609,7 @@
   width: 45px;
   height: 4px;
   appearance: none;
-  border-radius: 99px;
+  border-radius: 999px;
   outline: none;
   cursor: pointer;
 }

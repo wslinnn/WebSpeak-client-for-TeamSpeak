@@ -389,3 +389,14 @@
   color: #60746e;
 }
 
+/* Same exemption net the public client carries (04-room): decorative
+ * animation never runs for reduced-motion users. */
+@media (prefers-reduced-motion: reduce) {
+  .admin-root *,
+  .admin-root *::before,
+  .admin-root *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+

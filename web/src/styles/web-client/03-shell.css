@@ -6,34 +6,6 @@
   background: #fff;
 }
 
-.rail-button:hover,
-.rail-button.active {
-  color: #006a64;
-  background: #dcefeb;
-}
-
-.rail-button.active::before {
-  position: absolute;
-  left: -9px;
-  top: 11px;
-  width: 3px;
-  height: 27px;
-  border-radius: 0 3px 3px 0;
-  background: #006a64;
-  content: "";
-}
-
-.server-avatar {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 auto;
-  color: #006a64;
-  background: #d8f0ed;
-  border-radius: 10px;
-}
-
 :deep(.round-icon) {
   display: grid;
   place-items: center;
@@ -78,15 +50,6 @@
   color: #9ba6a3;
 }
 
-.channel-entry.selected {
-  color: #006a64;
-  background: #dcefeb;
-}
-
-.channel-entry.selected .channel-entry-copy span {
-  color: #4c9690;
-}
-
 :deep(.empty-icon) {
   display: grid;
   place-items: center;
@@ -96,10 +59,6 @@
   color: #6aa9a3;
   background: #e2f2ef;
   border-radius: 10px;
-}
-
-.quick-action .ui-icon:last-child {
-  color: #a6b2ae;
 }
 
 .workspace {
@@ -168,7 +127,7 @@
 @media (min-width: 741px) {
   .favorite-server-rail {
     position: relative;
-    z-index: 12;
+    z-index: var(--ws-z-raised);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -372,18 +331,10 @@
   color: #98a39f;
 }
 
+/* Kept for the template span; display:none is load-bearing, the rest of the
+ * old teal dressing is retired with the dead-selector batch. */
 .mobile-brand {
   display: none;
-  color: #006a64;
-  font-size: 17px;
-  font-weight: 800;
-  letter-spacing: -.06em;
-}
-
-.mobile-brand em {
-  color: #293632;
-  font-style: normal;
-  font-weight: 500;
 }
 
 .workspace-actions,
@@ -393,8 +344,7 @@
   gap: 8px;
 }
 
-.header-action,
-.dock-icon {
+.header-action {
   display: grid;
   place-items: center;
   color: #75847f;
@@ -409,8 +359,7 @@
   height: 32px;
 }
 
-.header-action:hover,
-.dock-icon:hover {
+.header-action:hover {
   color: var(--wsd-accent);
   background: var(--wsd-accent-soft);
 }

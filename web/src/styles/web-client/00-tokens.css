@@ -26,6 +26,8 @@
   --wsd-accent-fill-hover: #7ad50a;
   --wsd-accent-soft: rgba(108, 191, 0, .14);
   --wsd-danger: #d24d4d;
+  /* Shared modal veil; night keeps the same neutral dark. */
+  --wsd-backdrop: rgba(12, 14, 16, .52);
   --wsd-radius: 9px;
   --wsd-font: "PingFang SC", "Microsoft YaHei New", 微软雅黑, "Microsoft Yahei", "Microsoft JhengHei", 宋体, SimSun, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
@@ -46,6 +48,7 @@
   --wsd-accent-fill-hover: #7ac51a;
   --wsd-accent-soft: rgba(108, 191, 0, .18);
   --wsd-danger: #e36b6b;
+  --wsd-backdrop: rgba(12, 14, 16, .52);
 }
 
 /* Typography: the token stack is the app-wide font source. */

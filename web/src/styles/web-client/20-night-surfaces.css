@@ -12,7 +12,7 @@
 }
 
 .web-client[data-ws-skin="builtin.dark"] .workspace-header {
-  background: var(--wsd-panel);
+  background: var(--wsd-bg);
   border-bottom-color: var(--wsd-border);
 }
 

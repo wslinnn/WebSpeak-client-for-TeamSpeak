@@ -107,7 +107,9 @@
 }
 
 :deep(.settings-modal .settings-header h2) {
-  font-size: 27.5px;
+  /* Audio-settings dialog title at its decision value (the 27.5px here used
+   * to out-specify the 32px in 05 and silently win). */
+  font-size: 32px;
 }
 
 :deep(.settings-modal .settings-section h3) {
