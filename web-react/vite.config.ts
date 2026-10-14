@@ -9,8 +9,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
-      // 跨根依赖唯一白名单：协议类型与运行时校验器（docs/SPEC.md §14）。
+      // 跨根依赖唯一白名单：协议类型/校验器（@shared）与目标解析纯逻辑（@domain），见 docs/SPEC.md §14。
       "@shared": fileURLToPath(new URL("../src/shared", import.meta.url)),
+      "@domain": fileURLToPath(new URL("../src/domain", import.meta.url)),
     },
   },
   server: {

@@ -4,7 +4,7 @@
     "target": "es2023",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "esnext",
-    "types": ["vite/client"],
+    "types": ["vite/client", "node"],
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
 
@@ -17,10 +17,11 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Paths: @ = 本应用源码；@shared = 仓库根 src/shared（跨根依赖唯一白名单，见 docs/SPEC.md §14） */
+    /* Paths: @ = 本应用源码；@shared/@domain = 仓库根 src/shared、src/domain（跨根依赖仅此白名单，见 docs/SPEC.md §14） */
     "paths": {
       "@/*": ["./src/*"],
-      "@shared/*": ["../src/shared/*"]
+      "@shared/*": ["../src/shared/*"],
+      "@domain/*": ["../src/domain/*"]
     },
 
     /* Strictness (ZCode report §3.4's four key options and hardening) */

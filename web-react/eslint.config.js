@@ -36,11 +36,24 @@ export default tseslint.config(
     files: ["src/**/*.{ts,tsx}"],
     rules: {
       "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
+      // 下划线前缀 = 有意弃用（解构剔除字段、未消费的回调参数）。
+      "@typescript-eslint/no-unused-vars": ["error", {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
+      }],
     },
   },
   {
     // 400 行豁免：i18n 字典、测试、shadcn 生成代码（已整体 ignores）。
     files: ["src/i18n/**", "src/**/*.test.*"],
+    rules: { "max-lines": "off" },
+  },
+  {
+    // 存量平移巨石豁免（Phase 4 拆解后此清单必须清空；新代码不得进清单）。
+    // skin-pack：导入校验+级联+资产三职责待拆；screen-share：信令/协商/状态待拆；
+    // session-controller：useVoiceWebSocket 的行为级等价平移，待 React 视图层落地后拆分。
+    files: ["src/services/skin-pack.ts", "src/voice/screen-share.ts", "src/voice/session-controller.ts"],
     rules: { "max-lines": "off" },
   },
   {
