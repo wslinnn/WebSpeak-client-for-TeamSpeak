@@ -121,9 +121,11 @@ test("public skin and language selectors keep readable light surfaces in dark mo
     readFile(new URL("../skins/builtin/dark/skin.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(skinSwitcher, /\.skin-trigger\s*\{[^}]*background:\s*rgba\(250,\s*254,\s*255/i);
+  // The selectors keep near-white light surfaces under the dark skin; batch
+  // 19-① re-tinted them teal→green without changing the lightness contract.
+  assert.match(skinSwitcher, /\.skin-trigger\s*\{[^}]*background:\s*rgba\(253,\s*255,\s*248/i);
   assert.match(skinSwitcher, /\.skin-dropdown\s*\{[^}]*background:\s*linear-gradient/i);
-  assert.match(skinSwitcher, /\.skin-option\s*\{[^}]*color:\s*#123849/i);
+  assert.match(skinSwitcher, /\.skin-option\s*\{[^}]*color:\s*#2a3322/i);
   assert.match(languageSwitcher, /\.language-dropdown\s*\{[^}]*background:\s*#fff/i);
   assert.doesNotMatch(darkSkin, /\.language-switcher\s+\.language-(?:trigger|dropdown|option)/);
 });

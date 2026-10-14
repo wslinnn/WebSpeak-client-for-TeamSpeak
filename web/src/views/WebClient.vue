@@ -1788,7 +1788,7 @@ function avatarInitial(name: string) {
 
 const avatarColors = ["#9edbd4", "#b9d4c5", "#e8c6a8", "#c5c7e8", "#edd2d4", "#c8d9e9", "#e4d3b8"];
 function avatarStyle(name: string, isSelf = false, avatar = "") {
-  const fallback = isSelf ? "linear-gradient(135deg, #006a64, #2e9f96)" : "";
+  const fallback = isSelf ? "linear-gradient(135deg, #4f9e0c, #7ad50a)" : "";
   let hash = 0;
   for (let index = 0; index < name.length; index++) hash = name.charCodeAt(index) + ((hash << 5) - hash);
   return {

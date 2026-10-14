@@ -490,7 +490,7 @@
 :deep(.screen-share-player-controls input) {
   width: 102px;
   height: 4px;
-  accent-color: #69d2c7;
+  accent-color: var(--wsd-accent);
   cursor: pointer;
 }
 

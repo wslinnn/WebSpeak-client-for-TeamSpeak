@@ -24,7 +24,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #006a64;
+  color: var(--wsd-accent);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -45,7 +45,7 @@
   min-height: 36px;
   padding: 0 12px;
   color: #fff;
-  background: #006a64;
+  background: var(--wsd-accent-fill);
   border-radius: 8px;
   font-size: 12px;
   font-weight: 700;
@@ -388,7 +388,7 @@
   flex: 0 0 auto;
   padding: 0 12px;
   color: #fff;
-  background: var(--accent);
+  background: var(--wsd-accent-fill);
   border-radius: 8px;
   font-size: 12px;
   font-weight: 700;

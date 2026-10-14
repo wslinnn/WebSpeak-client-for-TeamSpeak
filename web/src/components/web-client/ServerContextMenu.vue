@@ -162,8 +162,8 @@ onUnmounted(() => window.removeEventListener("keydown", onKeydown));
 }
 
 .server-context-menu button:hover {
-  color: #006a64;
-  background: #e5f3f0;
+  color: var(--wsd-accent);
+  background: #eef6db;
 }
 
 .server-context-menu button.danger {

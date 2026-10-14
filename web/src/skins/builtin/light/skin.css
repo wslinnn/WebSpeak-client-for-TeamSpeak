@@ -6,8 +6,10 @@
   --ws-surface-2: #f1f6f4;
   --ws-text: #192120;
   --ws-text-muted: #71807c;
-  --ws-accent: #006a64;
-  --ws-success: #65d879;
+  /* Single-green brand (KAAK alignment): the legacy --ws-accent root adopts
+   * the workspace day accent so every unmigrated consumer shares one hue. */
+  --ws-accent: #4f9e0c;
+  --ws-success: var(--ws-accent);
   --ws-warning: #c89143;
   --ws-danger: #c95a54;
   --ws-border: #e4ece9;

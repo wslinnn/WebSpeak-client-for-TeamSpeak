@@ -95,7 +95,7 @@
 }
 
 :deep(.cancel-connect-button:hover) {
-  color: #006a64;
+  color: var(--wsd-accent);
   text-decoration: underline;
 }
 
@@ -148,8 +148,8 @@
 
 :deep(.member-channel-heading:hover),
 :deep(.member-channel-group.current .member-channel-heading) {
-  color: #006a64;
-  background: #e5f3f0;
+  color: var(--wsd-accent);
+  background: #eef6db;
 }
 
 :deep(.member-channel-heading span) {
@@ -182,8 +182,8 @@
 
 :deep(.member-channel-fold:hover),
 :deep(.member-channel-group.current .member-channel-fold) {
-  color: #006a64;
-  background: #e5f3f0;
+  color: var(--wsd-accent);
+  background: #eef6db;
 }
 
 :deep(.member-channel-fold .ui-icon) {
@@ -224,7 +224,7 @@
 }
 
 :deep(.member-channel-group.current .member-channel-heading small) {
-  color: #4d9a92;
+  color: var(--wsd-text-muted);
 }
 
 :deep(.member-channel-group .member-list) {

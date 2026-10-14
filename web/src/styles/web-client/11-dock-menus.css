@@ -120,7 +120,7 @@
 }
 
 :deep(.voice-avatar.speaking) {
-  box-shadow: 0 0 0 3px #90f691, 0 0 14px rgba(144,246,145,.48);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wsd-accent) 55%, transparent), 0 0 14px color-mix(in srgb, var(--wsd-accent) 35%, transparent);
 }
 
 .chat-panel {
@@ -190,9 +190,9 @@
   gap: 6px;
   min-height: 30px;
   padding: 0 10px;
-  color: #006a64;
-  background: #edf7f4;
-  border: 1px solid #d7ebe6;
+  color: var(--wsd-accent);
+  background: #eef6db;
+  border: 1px solid #d9e9bd;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 700;
@@ -202,8 +202,8 @@
 
 :deep(.guide-button:hover) {
   color: #fff;
-  background: #006a64;
-  border-color: #006a64;
+  background: var(--wsd-accent);
+  border-color: var(--wsd-accent);
 }
 
 .workspace-actions {
@@ -433,8 +433,8 @@
 }
 
 :deep(.desktop-audio-dock-accompaniment.active) {
-  background: #477f00;
-  box-shadow: inset 0 0 0 1px #9be031;
+  background: var(--wsd-accent-hover);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 40%, transparent);
 }
 
 :deep(.desktop-audio-dock-controls) {
@@ -567,14 +567,14 @@
 }
 
 :deep(.chat-tabs button:hover) {
-  color: #006a64;
-  background: #e8f4f1;
+  color: var(--wsd-accent);
+  background: #eef6db;
 }
 
 :deep(.chat-tabs button.active) {
-  color: #006a64;
-  background: #dff1ed;
-  border-color: #c9e5df;
+  color: var(--wsd-accent);
+  background: #eaf5d5;
+  border-color: #d3e8b5;
   font-weight: 700;
 }
 
@@ -758,7 +758,7 @@
 
 :deep(.menu-volume input) {
   width: 100%;
-  height: 5px;
+  height: 4px;
   appearance: none;
   border-radius: 99px;
   outline: none;
@@ -860,13 +860,13 @@
   justify-content: space-between;
   gap: 12px;
   margin-top: 10px;
-  color: #7b8a85;
+  color: var(--wsd-text-muted);
   font-size: 11px;
 }
 
 :deep(.audio-diagnostic strong),
 :deep(.audio-level-row strong) {
-  color: #3c625b;
+  color: var(--wsd-text);
   font-size: 11px;
 }
 

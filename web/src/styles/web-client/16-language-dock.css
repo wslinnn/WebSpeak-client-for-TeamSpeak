@@ -263,7 +263,7 @@
 
 :deep(.dock-slider) {
   width: 100%;
-  height: 5px;
+  height: 4px;
   margin: 11px 0 1px;
   appearance: none;
   border-radius: 999px;
@@ -275,7 +275,7 @@
   width: 16px;
   height: 16px;
   appearance: none;
-  border: 2px solid var(--wsd-accent);
+  border: 2px solid var(--wsd-accent-fill);
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 2px 4px color-mix(in srgb, var(--text-primary) 14%, transparent);
@@ -285,7 +285,7 @@
 :deep(.dock-slider::-moz-range-thumb) {
   width: 16px;
   height: 16px;
-  border: 2px solid var(--wsd-accent);
+  border: 2px solid var(--wsd-accent-fill);
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 2px 4px color-mix(in srgb, var(--text-primary) 14%, transparent);
@@ -381,8 +381,8 @@
 :deep(.dock-switch-row input:checked),
 :deep(.mobile-noise-toggle input:checked),
 :deep(.desktop-notification-toggle input:checked) {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 72%, var(--surface-2));
+  border-color: var(--wsd-accent-fill);
+  background: var(--wsd-accent-fill);
 }
 
 :deep(.dock-switch-row input:checked::before),

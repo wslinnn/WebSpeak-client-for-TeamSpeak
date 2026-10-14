@@ -48,8 +48,8 @@
 }
 
 :deep(.round-icon:hover) {
-  color: #006a64;
-  background: #e4efec;
+  color: var(--wsd-accent);
+  background: #eef6db;
 }
 
 .channel-search,
@@ -411,8 +411,8 @@
 
 .header-action:hover,
 .dock-icon:hover {
-  color: #006a64;
-  background: #edf5f2;
+  color: var(--wsd-accent);
+  background: #eef6db;
 }
 
 

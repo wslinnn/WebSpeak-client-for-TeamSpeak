@@ -154,7 +154,7 @@ onUnmounted(() => {
   position: relative;
   z-index: var(--ws-z-dropdown);
   flex: 0 0 auto;
-  color: #006a64;
+  color: #4f9e0c;
   font-family: inherit;
 }
 
@@ -165,9 +165,9 @@ onUnmounted(() => {
   min-width: 70px;
   min-height: 32px;
   padding: 0 9px;
-  color: #006a64;
-  background: #e2f2ef;
-  border: 1px solid #c8e6e1;
+  color: #4f9e0c;
+  background: #eef6db;
+  border: 1px solid #d9e9bd;
   border-radius: 8px;
   font: inherit;
   font-size: 11px;
@@ -179,9 +179,9 @@ onUnmounted(() => {
 .language-trigger:hover,
 .language-switcher.open .language-trigger {
   color: #fff;
-  background: #006a64;
-  border-color: #006a64;
-  box-shadow: 0 7px 16px rgba(0, 106, 100, .16);
+  background: #4f9e0c;
+  border-color: #4f9e0c;
+  box-shadow: 0 7px 16px rgba(79, 158, 12, .18);
 }
 
 .language-trigger .ui-icon {
@@ -223,9 +223,9 @@ onUnmounted(() => {
   padding: 7px;
   overflow: visible;
   background: #fff;
-  border: 1px solid #dce9e5;
+  border: 1px solid #e0e8d2;
   border-radius: 13px;
-  box-shadow: 0 16px 36px rgba(23, 60, 54, .18), 0 3px 8px rgba(23, 60, 54, .06);
+  box-shadow: 0 16px 36px rgba(56, 82, 34, .16), 0 3px 8px rgba(56, 82, 34, .06);
   animation: language-menu-in .14s ease-out;
 }
 
@@ -250,9 +250,9 @@ onUnmounted(() => {
 .language-option:hover,
 .language-option:focus-visible,
 .language-option.selected {
-  color: #006a64;
-  background: #edf8f5;
-  border-color: #d4eee8;
+  color: #4f9e0c;
+  background: #eef6db;
+  border-color: #d9e9bd;
 }
 
 .language-option-flag {

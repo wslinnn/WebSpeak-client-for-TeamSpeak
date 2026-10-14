@@ -18,7 +18,7 @@
 }
 
 .room-hero h1 .ui-icon {
-  color: #006a64;
+  color: var(--wsd-accent);
 }
 
 .room-hero p {
@@ -95,8 +95,8 @@
 }
 
 :deep(.voice-card.speaking) {
-  border-color: #90f691;
-  box-shadow: 0 0 14px rgba(144,246,145,.35);
+  border-color: color-mix(in srgb, var(--wsd-accent) 55%, transparent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--wsd-accent) 30%, transparent);
 }
 
 /* Tile enter/leave: the reference's settle — fade plus a 10px lift and a
@@ -153,8 +153,8 @@
 }
 
 .voice-status.speaking {
-  color: #278c3b;
-  border-color: #90f691;
+  color: var(--wsd-accent);
+  border-color: color-mix(in srgb, var(--wsd-accent) 55%, transparent);
 }
 
 :deep(.voice-card > strong),
@@ -179,7 +179,7 @@
 }
 
 :deep(.voice-card.speaking > span) {
-  color: #278c3b;
+  color: var(--wsd-accent);
 }
 
 :deep(.voice-empty) {
@@ -219,7 +219,7 @@
 }
 
 :deep(.chat-heading h2 .ui-icon) {
-  color: #006a64;
+  color: var(--wsd-accent);
 }
 
 :deep(.message-list) {
@@ -403,19 +403,19 @@
 }
 
 .mic-mode-switch button.active {
-  color: #006a64;
+  color: var(--wsd-accent);
   background: #fff;
   box-shadow: 0 2px 5px rgba(21,54,48,.08);
   font-weight: 700;
 }
 
 .ptt-indicator.active {
-  color: #278c3b;
+  color: var(--wsd-accent);
 }
 
 .ptt-indicator.active span {
-  background: #65d879;
-  box-shadow: 0 0 0 4px rgba(101,216,121,.15);
+  background: var(--wsd-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--wsd-accent) 20%, transparent);
 }
 
 .dock-actions {
@@ -529,7 +529,7 @@
 }
 
 :deep(.member-avatar.speaking) {
-  box-shadow: 0 0 0 2px #90f691, 0 0 10px rgba(144,246,145,.35);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--wsd-accent) 55%, transparent), 0 0 10px color-mix(in srgb, var(--wsd-accent) 30%, transparent);
 }
 
 :deep(.member-presence) {
@@ -540,7 +540,7 @@
   height: 9px;
   border: 2px solid #fbfcfc;
   border-radius: 50%;
-  background: #65d879;
+  background: var(--wsd-accent);
 }
 
 :deep(.member-copy) {
@@ -579,7 +579,7 @@
 }
 
 :deep(.member-name-button:hover) {
-  color: #006a64;
+  color: var(--wsd-accent);
 }
 
 :deep(.member-copy span) {

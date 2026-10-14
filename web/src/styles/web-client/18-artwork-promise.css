@@ -156,7 +156,7 @@
   z-index: 3;
   flex: 0 0 auto;
   margin: 8px 0 0;
-  color: var(--muted, #64748b);
+  color: var(--wsd-text-muted);
   font-size: 12px;
   line-height: 1.5;
   overflow-wrap: anywhere;

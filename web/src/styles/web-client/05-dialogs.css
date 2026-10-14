@@ -150,9 +150,9 @@
 }
 
 .settings-nav-item.active {
-  color: #006a64;
-  background: #e2efec;
-  border-left-color: #006a64;
+  color: var(--wsd-accent);
+  background: #eef6db;
+  border-left-color: var(--wsd-accent);
   font-weight: 700;
 }
 
@@ -209,7 +209,7 @@
 }
 
 :deep(.settings-section h3 .ui-icon) {
-  color: #006a64;
+  color: var(--wsd-accent);
 }
 
 :deep(.settings-label) {
@@ -235,13 +235,13 @@
 }
 
 :deep(.settings-range-row strong) {
-  color: #006a64;
+  color: var(--wsd-accent);
   font-size: 10px;
 }
 
 :deep(.settings-range) {
   width: 100%;
-  height: 6px;
+  height: 4px;
   margin: 11px 0 20px;
   appearance: none;
   border-radius: 999px;
@@ -279,8 +279,8 @@
 
 :deep(.mic-test-header button) {
   padding: 6px 9px;
-  color: #006a64;
-  background: #e0f1ee;
+  color: var(--wsd-accent);
+  background: #eef6db;
   border-radius: 5px;
   font-size: 10px;
   cursor: pointer;
@@ -381,9 +381,9 @@
 
 :deep(.dialog-close:hover),
 :deep(.identity-import-close:hover) {
-  color: #006a64;
-  background: #e2f2ef;
-  border-color: #c8e6e1;
+  color: var(--wsd-accent);
+  background: #eef6db;
+  border-color: #d9e9bd;
 }
 
 .toast {

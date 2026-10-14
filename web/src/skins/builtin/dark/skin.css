@@ -6,8 +6,10 @@
   --ws-surface-2: #202f2c;
   --ws-text: #e8f3f0;
   --ws-text-muted: #9bb0aa;
-  --ws-accent: #69d2c7;
-  --ws-success: #78e489;
+  /* Night root follows the workspace night accent (fill and accent share
+   * the vivid green at night by design). */
+  --ws-accent: #6cbf00;
+  --ws-success: var(--ws-accent);
   --ws-warning: #e2b36c;
   --ws-danger: #ee8a82;
   --ws-border: #30413d;
