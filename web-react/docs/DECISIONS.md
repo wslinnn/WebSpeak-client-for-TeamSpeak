@@ -39,3 +39,11 @@
 ## 待办决策（无）
 
 （Phase 4 迁移过程中新产生的取舍记此处，格式：日期 · 决策 · 理由 · 影响面）
+
+## 2026-10-14 · Phase 3 设计系统与应用壳落地取舍
+
+11. **主题暗色同步**：Tailwind 的 `dark:` 变体钉在 `.dark` 类（`@custom-variant`），`services/theme.ts` 的 `applyTheme` 在维护 `data-theme` 的同一处切换 `.dark` 类——主题 DOM 契约仍只有 theme.ts 一个入口，React 侧响应式经 `subscribeTheme/getActiveTheme`（`hooks/use-theme.ts` 消费）。sonner 包装弃用 next-themes（依赖已卸载），改读 theme 服务。
+12. **生成组件的两处定制**（`components/ui/`，shadcn 生成后手改）：① z-50 一律映射 `--ws-z-*` 阶梯语义类（dialog/alert-dialog→modal-mask、dropdown/popover/select/tooltip→dropdown、context-menu→menu、sonner 内联 `var(--ws-z-toast)`）；② `DialogContent` 无条件吞掉 outside 交互——产品红线「模态只经按钮/Esc 关闭」下沉到组件层，调用方回调仅观察用。升级 shadcn 组件时这两处定制必须重放。
+13. **门禁增补**：`style={{ zIndex: <number> }}` 裸数值被拦（esquery 的 value regex 只对字符串生效，选择器须用 `raw` 属性匹配；负数字面量是 UnaryExpression 需单独一条）。门禁规则有效性自证持久化为 `src/test/gate-probes.test.ts`（ESLint 编程式 lintText：违规被拦 + 合法放行 + 豁免面核实）。
+14. **字号六级收编 Tailwind 命名空间**：`--text-xs/sm/base/md/lg/xl` = 10/11/13/14/16/18px（行高配对钉死），body 默认 13px（旧版紧凑排版平价）；shadcn 组件内的 `text-sm` 因此渲染为 11px——Phase 4 迁移页面时逐处核对视觉，不要按 shadcn 默认直觉调级。≤740 输入 16px 防护是全局 `!important` 兜底，逃生口 `text-mobile-input-safe`。
+15. **公开页皮肤锚点的临时桥**：Phase 4-7 皮肤运行时接线前，公开壳挂载后补 `applyTheme(getStoredTheme())`——内置皮肤 CSS 作用域钉在 `.ws-skin-root[data-ws-skin=…]`，挂载前根元素不存在。接线后此桥删除。
