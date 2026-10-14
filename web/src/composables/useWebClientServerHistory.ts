@@ -51,7 +51,10 @@ export function useWebClientServerHistory({
     const target = splitTeamSpeakTarget(entry.address);
     serverHost.value = target.address;
     serverPort.value = target.port;
-    if (entry.nickname && !nickname.value.trim()) nickname.value = entry.nickname;
+    // The saved entry is the whole context, nickname included — a stale
+    // nickname typed for another server must not leak into this connection
+    // (same rule as the in-voice chip switch).
+    if (entry.nickname) nickname.value = entry.nickname;
     // A tab restores its whole context: channel and (if stored) the password,
     // so one click reconnects exactly like last time.
     channel.value = entry.channel ?? "";
@@ -89,8 +92,10 @@ export function useWebClientServerHistory({
     showToast(t("removedFavoriteToast"));
   }
 
-  /** Dialog save: create or update a favorite by normalized address. An empty
-   *  password keeps an already-stored one. */
+  /** Dialog save: create or update a favorite by normalized address. The
+   *  dialog is authoritative: every field it shows replaces the stored one,
+   *  so a cleared channel or password removes it. Only the identity binding,
+   *  which the dialog does not expose, carries over. */
   async function upsertFavoriteServer(input: { label: string; address: string; port: string; nickname: string; channel: string; password?: string }): Promise<void> {
     const target = splitTeamSpeakTarget(`${input.address}:${input.port}`);
     const address = combineTeamSpeakTarget(target.address, target.port);
@@ -100,10 +105,10 @@ export function useWebClientServerHistory({
       id,
       label: input.label || address,
       address,
-      ...(input.nickname || existing?.nickname ? { nickname: input.nickname || existing?.nickname } : {}),
+      ...(input.nickname ? { nickname: input.nickname } : {}),
       ...(existing?.identityId ? { identityId: existing.identityId } : {}),
-      ...(input.channel || existing?.lastChannelHint ? { lastChannelHint: input.channel ? { name: input.channel } : existing?.lastChannelHint } : {}),
-      ...(input.password || existing?.password ? { password: input.password || existing?.password } : {}),
+      ...(input.channel ? { lastChannelHint: { name: input.channel } } : {}),
+      ...(input.password ? { password: input.password } : {}),
     };
     await saveFavorite(favorite);
     favoriteServers.value = existing

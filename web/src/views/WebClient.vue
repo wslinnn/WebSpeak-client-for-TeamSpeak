@@ -1244,12 +1244,28 @@ const favoriteServerDialogOpen = ref(false);
 const favoriteServerDialogInitial = ref<Partial<FavoriteServerDraft> | null>(null);
 // Without an explicit draft the "add" entries prefill from the join form, so
 // the common path ("I typed the address, now save it") is add-free typing.
+// When that address already has a favorite, its label/channel/password come
+// along too: the dialog is authoritative on save, so blanks must mean "the
+// user saw and cleared it", never "invisible wipe of stored values".
 function openFavoriteServerDialog(initial?: Partial<FavoriteServerDraft>): void {
-  favoriteServerDialogInitial.value = initial ?? {
-    ...(serverHost.value ? { address: serverHost.value } : {}),
-    ...(serverPort.value ? { port: serverPort.value } : {}),
-    ...(nickname.value ? { nickname: nickname.value } : {}),
-  };
+  favoriteServerDialogInitial.value = initial ?? (() => {
+    const prefill: Partial<FavoriteServerDraft> = {
+      ...(serverHost.value ? { address: serverHost.value } : {}),
+      ...(serverPort.value ? { port: serverPort.value } : {}),
+      ...(nickname.value ? { nickname: nickname.value } : {}),
+    };
+    if (prefill.address && prefill.port) {
+      const target = splitTeamSpeakTarget(`${prefill.address}:${prefill.port}`);
+      const id = combineTeamSpeakTarget(target.address, target.port).trim().toLocaleLowerCase();
+      const existing = favoriteServers.value.find((favorite) => favorite.id === id);
+      if (existing) {
+        prefill.label = prefill.label || existing.label;
+        prefill.channel = prefill.channel || existing.lastChannelHint?.name || "";
+        prefill.password = prefill.password || existing.password || "";
+      }
+    }
+    return prefill;
+  })();
   favoriteServerDialogOpen.value = true;
 }
 // Right-click / long-press on a favorite row: prefill the dialog with the
@@ -1271,6 +1287,18 @@ function closeFavoriteServerDialog(): void {
 }
 function saveFavoriteServerDraft(draft: FavoriteServerDraft): void {
   void upsertFavoriteServer(draft);
+  // The dialog edited the saved context: when it points at the form's current
+  // target, adopt the draft into the form so the next connect uses it — and
+  // the post-connect favorite sync (which persists the form back) does not
+  // silently revert the save to the stale form values.
+  const target = splitTeamSpeakTarget(`${draft.address}:${draft.port}`);
+  const draftTarget = combineTeamSpeakTarget(target.address, target.port).trim().toLocaleLowerCase();
+  if (draftTarget !== currentTarget.value.trim().toLocaleLowerCase()) return;
+  serverHost.value = target.address;
+  serverPort.value = target.port;
+  nickname.value = draft.nickname;
+  channel.value = draft.channel;
+  serverPassword.value = draft.password;
 }
 // In-voice server switching: the voice shell stays mounted while the switch is
 // in flight, so the user watches a status banner instead of a join-form flash.
