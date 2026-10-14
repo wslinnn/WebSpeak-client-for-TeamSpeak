@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SKIP_DIRECTORIES = new Set([
   "node_modules", "dist", "vendor", "data", "certs", "logs",
-  "web/dist", "web/node_modules", ".git", ".github",
+  "web/dist", "web/node_modules", "web-react", ".git", ".github",
 ]);
 
 function isSkipDirectory(name) {

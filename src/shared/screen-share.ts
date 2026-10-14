@@ -53,7 +53,9 @@ export function normalizeScreenShareIceServers(value?: readonly unknown[]): Scre
     if (seen.has(key)) continue;
     seen.add(key);
     normalized.push({
-      urls: uniqueUrls.length === 1 ? uniqueUrls[0] : uniqueUrls,
+      // The length check above guarantees index 0 exists; the annotation keeps
+      // strict index-checking consumers (web-react) honest about it.
+      urls: uniqueUrls.length === 1 ? uniqueUrls[0]! : uniqueUrls,
       ...(username !== undefined ? { username } : {}),
       ...(credential !== undefined ? { credential } : {}),
     });

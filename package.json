@@ -13,12 +13,17 @@
     "build": "tsc",
     "test": "node scripts/run-tests.mjs",
     "benchmark": "node --import tsx scripts/benchmark-audio.mjs",
-    "verify": "npm run lint && npm test && npm run build && npm run web:lint && npm run web:build",
+    "verify": "npm run lint && npm test && npm run build && npm run web:lint && npm run web:build && npm run web-react:ci",
     "start": "node dist/index.js",
     "web:dev": "cd web && npx vite --host",
     "web:build": "npm --prefix web run build",
     "lint": "eslint .",
-    "web:lint": "npm --prefix web run lint"
+    "web:lint": "npm --prefix web run lint",
+    "web-react:dev": "npm --prefix web-react run dev",
+    "web-react:build": "npm --prefix web-react run build",
+    "web-react:lint": "npm --prefix web-react run lint",
+    "web-react:test": "npm --prefix web-react run test",
+    "web-react:ci": "npm --prefix web-react run ci"
   },
   "dependencies": {
     "@discordjs/opus": "^0.10.0",
