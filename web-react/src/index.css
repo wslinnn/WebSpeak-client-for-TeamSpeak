@@ -2,22 +2,19 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
-/*
- ---break---
- */
+
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design token 唯一事实源（Phase 3 定稿；先行占位）。
- * 约定（web-react/docs/SPEC.md §17 + DECISIONS.md 门禁 §3.5-4）：
- * - 语义色/字号六级/间距/圆角在此以 @theme 定义，TSX 禁裸色值、裸字号、裸 z-index（ESLint 门禁）；
- * - 浮层层级沿用 --ws-z-* 阶梯：raised 10 / header 100 / dropdown 200 /
- *   menu-mask 300 / menu 310 / modal-mask 400 / toast 500，后续以语义 utility 暴露；
- * - 移动条款：safe-area token、44px 触控目标、16px 输入防护、h-dvh、reduced-motion 全局降级。
+ * Design token 唯一事实源（Phase 3 定稿，细节见 docs/DESIGN.md）。
+ * 约定：
+ * - 语义色/字号六级/间距/圆角以 @theme 定义，TSX 禁裸色值、裸字号、裸 z-index（ESLint 门禁）；
+ * - 浮层层级走 --ws-z-* 阶梯（raised 10 / header 100 / dropdown 200 / menu-mask 300 /
+ *   menu 310 / modal-mask 400 / toast 500），TSX 只用 z-raised…z-toast 语义 utility；
+ * - 移动条款：safe-area token、44px 触控目标、≤740 输入 16px 防 iOS 聚焦缩放、
+ *   prefers-reduced-motion 全局降级（KAAK 双环动画否决的豁免前提，勿删）。
  */
-/*
- ---break---
- */
+
 @theme inline {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;
@@ -59,10 +56,22 @@
     --radius-2xl: calc(var(--radius) * 1.8);
     --radius-3xl: calc(var(--radius) * 2.2);
     --radius-4xl: calc(var(--radius) * 2.6);
+
+    /* 字号六级（旧版紧凑排版的平价基线；行高按可读性配对钉死） */
+    --text-xs: 0.625rem;
+    --text-xs--line-height: 1.4;
+    --text-sm: 0.6875rem;
+    --text-sm--line-height: 1.45;
+    --text-base: 0.8125rem;
+    --text-base--line-height: 1.55;
+    --text-md: 0.875rem;
+    --text-md--line-height: 1.5;
+    --text-lg: 1rem;
+    --text-lg--line-height: 1.5;
+    --text-xl: 1.125rem;
+    --text-xl--line-height: 1.45;
 }
-/*
- ---break---
- */
+
 :root {
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
@@ -96,10 +105,24 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+
+    /* 浮层层级阶梯（值照抄旧版；isolation:isolate 容器内的局部 1/2/3 不在此列） */
+    --ws-z-raised: 10;
+    --ws-z-header: 100;
+    --ws-z-dropdown: 200;
+    --ws-z-menu-mask: 300;
+    --ws-z-menu: 310;
+    --ws-z-modal-mask: 400;
+    --ws-z-toast: 500;
+
+    /* 移动端安全区与缩放（ui-scale.ts 运行时覆写 inline 值） */
+    --ws-safe-top: env(safe-area-inset-top, 0px);
+    --ws-safe-bottom: env(safe-area-inset-bottom, 0px);
+    --ws-safe-left: env(safe-area-inset-left, 0px);
+    --ws-safe-right: env(safe-area-inset-right, 0px);
+    --ui-scale: 1;
 }
-/*
- ---break---
- */
+
 .dark {
     --background: oklch(0.145 0 0);
     --foreground: oklch(0.985 0 0);
@@ -133,17 +156,55 @@
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
 }
-/*
- ---break---
- */
+
+/* 浮层层级：TSX 只允许这些语义类（门禁禁 z-[...] 与裸数字 zIndex） */
+@utility z-raised { z-index: var(--ws-z-raised); }
+@utility z-header { z-index: var(--ws-z-header); }
+@utility z-dropdown { z-index: var(--ws-z-dropdown); }
+@utility z-menu-mask { z-index: var(--ws-z-menu-mask); }
+@utility z-menu { z-index: var(--ws-z-menu); }
+@utility z-modal-mask { z-index: var(--ws-z-modal-mask); }
+@utility z-toast { z-index: var(--ws-z-toast); }
+
+/* 安全区：移动端刘海/手势条回避 */
+@utility pt-safe { padding-top: var(--ws-safe-top); }
+@utility pb-safe { padding-bottom: var(--ws-safe-bottom); }
+@utility pl-safe { padding-left: var(--ws-safe-left); }
+@utility pr-safe { padding-right: var(--ws-safe-right); }
+
+/* 输入防护逃生口：全局 ≤740 规则覆盖不到的编辑面（contenteditable 等）用此类 */
+@utility text-mobile-input-safe { font-size: 1rem; }
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
   body {
-    @apply bg-background text-foreground;
-    }
+    @apply bg-background text-foreground text-base;
+  }
   html {
     @apply font-sans;
+  }
+  /* iOS 聚焦缩放防护：≤740 编辑元素一律 16px（旧版 web-client-mobile 平价；!important
+     压过组件字号类是本规则的目的，逃生口见 text-mobile-input-safe）。 */
+  @media (max-width: 740px) {
+    input, textarea, select {
+      font-size: 1rem !important;
     }
+  }
+}
+
+/* 全局降级 kill switch（旧版 web-client/04-room 与 admin/01-base-auth 同语义） */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* toast 层挂到阶梯顶（sonner 默认 z 远超阶梯，收编进 --ws-z-toast） */
+[data-sonner-toaster] {
+  z-index: var(--ws-z-toast);
 }

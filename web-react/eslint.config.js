@@ -93,6 +93,14 @@ export default tseslint.config(
           selector: "Literal[value=/\\bz-\\[/]",
           message: "禁裸 z-index：浮层层级只走 --ws-z-* 阶梯的语义类（raised/header/dropdown/menu-mask/menu/modal-mask/toast）。",
         },
+        {
+          selector: "Property[key.name='zIndex'] > Literal[raw=/^-?[0-9]/]",
+          message: "禁裸 zIndex 数值：style 对象里 z 层级用字符串 var(--ws-z-*)，或改用 z-raised…z-toast 语义类。",
+        },
+        {
+          selector: "Property[key.name='zIndex'] > UnaryExpression[argument.raw=/^[0-9]/]",
+          message: "禁裸 zIndex 数值（负数字面量）：style 对象里 z 层级用字符串 var(--ws-z-*)。",
+        },
       ],
     },
   },
