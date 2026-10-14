@@ -24,15 +24,40 @@
   z-index: 2;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  min-height: 17px;
-  padding: 3px 6px 3px 4px;
-  color: var(--wsd-accent);
-  font-size: 8px;
+  gap: 5px;
+  min-height: 26px;
+  padding: 0 12px 0 10px;
+  color: #fff;
+  border: 0;
+  border-radius: 999px;
+  background: var(--wsd-danger);
+  font-size: 11px;
   font-weight: 800;
   line-height: 1;
   white-space: nowrap;
   transform: translateX(50%);
+}
+
+/* Others' pills are watch toggles; the self card renders a plain span. */
+:deep(button.screen-share-live-indicator) {
+  cursor: pointer;
+}
+
+:deep(button.screen-share-live-indicator:hover) {
+  background: color-mix(in srgb, var(--wsd-danger) 86%, #fff);
+}
+
+:deep(button.screen-share-live-indicator:active) {
+  background: color-mix(in srgb, var(--wsd-danger) 90%, #000);
+}
+
+:deep(button.screen-share-live-indicator:focus-visible) {
+  outline: 2px solid color-mix(in srgb, #fff 65%, var(--wsd-danger));
+  outline-offset: 2px;
+}
+
+:deep(.screen-share-live-indicator.viewing) {
+  background: color-mix(in srgb, var(--wsd-danger) 68%, var(--wsd-panel));
 }
 
 :deep(.screen-share-live-indicator::before) {
@@ -51,7 +76,7 @@
   align-items: center;
   gap: 1px;
   height: 14px;
-  color: var(--wsd-accent);
+  color: currentColor;
 }
 
 :deep(.screen-share-wave i) {
@@ -102,65 +127,6 @@
 :deep(.screen-share-stop-button:focus-visible) {
   outline: 3px solid color-mix(in srgb, var(--danger) 42%, transparent);
   outline-offset: 2px;
-}
-
-:deep(.screen-share-card-actions) {
-  position: relative;
-  z-index: 3;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  width: 100%;
-  min-width: 0;
-  margin-top: 9px;
-  flex-wrap: wrap;
-}
-
-:deep(.screen-share-start-actions) {
-  display: inline-flex;
-  align-items: stretch;
-  justify-content: center;
-  gap: 4px;
-  width: 100%;
-  min-width: 0;
-}
-
-:deep(.screen-share-card-button) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  min-width: 0;
-  min-height: 25px;
-  max-width: 100%;
-  padding: 4px 7px;
-  overflow: hidden;
-  color: var(--accent);
-  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface-1));
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-:deep(.screen-share-card-button:hover) {
-  background: color-mix(in srgb, var(--accent) 15%, var(--surface-1));
-}
-
-:deep(.screen-share-card-button.live) {
-  color: #0e8c76;
-  background: color-mix(in srgb, #b6f0d5 55%, var(--surface-1));
-}
-
-:deep(.screen-share-card-button.viewing) {
-  color: #fff;
-  border-color: var(--accent);
-  background: var(--accent);
 }
 
 :deep(.screen-share-settings-button) {
@@ -572,10 +538,7 @@
 @media (max-width: 740px) {
   :deep(.screen-share-live-indicator) {
     top: 8px;
-    font-size: 7px;
-  }
-  :deep(.screen-share-card-button) {
-    font-size: 8px;
+    font-size: 10px;
   }
   :deep(.screen-share-player) {
     margin-top: 14px;

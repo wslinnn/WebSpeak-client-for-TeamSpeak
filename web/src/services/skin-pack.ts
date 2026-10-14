@@ -39,7 +39,6 @@ const OPTIONAL_VISUAL_PARTS = new Set([
   "download.card.head",
   "voice.activity-heading",
   "voice.member.avatar",
-  "voice.member.live-indicator",
   "voice.member-row.avatar",
   "voice.screen-player.viewer-avatar",
   "voice.screen-player.live",

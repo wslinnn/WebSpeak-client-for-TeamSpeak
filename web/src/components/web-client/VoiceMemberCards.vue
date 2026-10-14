@@ -49,10 +49,50 @@
           :style="avatarStyle(member.nickname, member.isSelf, member.avatar)"
           >{{ member.avatar ? "" : avatarInitial(member.nickname) }}</div
         >
+        <button
+          v-if="screenShareStreamForMember(member) && !member.isSelf"
+          type="button"
+          :class="[
+            'screen-share-live-indicator',
+            {
+              viewing:
+                screenShareViewingStreamId === screenShareStreamForMember(member)?.streamId,
+            },
+          ]"
+          data-ws-part="voice.member.live-indicator"
+          :data-ws-state="
+            screenShareViewingStreamId === screenShareStreamForMember(member)?.streamId
+              ? 'viewing'
+              : 'live'
+          "
+          :title="
+            screenShareViewingStreamId === screenShareStreamForMember(member)?.streamId
+              ? t('leaveScreenShare')
+              : t('watchScreenShare')
+          "
+          :aria-pressed="
+            screenShareViewingStreamId === screenShareStreamForMember(member)?.streamId
+          "
+          @click.stop="toggleScreenShareForMember(member)"
+          ><span
+            class="screen-share-wave"
+            aria-hidden="true"
+            ><i
+              v-for="bar in screenShareIndicatorBars"
+              :key="bar"
+              :style="{ height: `${bar}px` }"
+            ></i></span
+          ><span>{{
+            screenShareViewingStreamId === screenShareStreamForMember(member)?.streamId
+              ? t("watching")
+              : t("live")
+          }}</span></button
+        >
         <span
-          v-if="screenShareStreamForMember(member)"
+          v-else-if="screenShareStreamForMember(member)"
           class="screen-share-live-indicator"
           data-ws-part="voice.member.live-indicator"
+          data-ws-state="live"
           ><span
             class="screen-share-wave"
             aria-hidden="true"
@@ -70,36 +110,6 @@
       ><span data-ws-part="voice.member.status">{{
         isSpeaking(member) ? t("speaking") : member.isSelf ? t("connectedYou") : t("connected")
       }}</span>
-      <div
-        v-if="!member.isSelf && screenShareStreamForMember(member)"
-        class="screen-share-card-actions"
-        data-ws-part="voice.member.share-actions"
-      >
-        <button
-          type="button"
-          :class="[
-            'screen-share-card-button',
-            {
-              viewing: screenShareViewingStreamId === screenShareStreamForMember(member)?.streamId,
-            },
-          ]"
-          :data-ws-state="
-            screenShareViewingStreamId === screenShareStreamForMember(member)?.streamId
-              ? 'viewing'
-              : 'idle'
-          "
-          @click.stop="toggleScreenShareForMember(member)"
-          ><Icon
-            name="monitor"
-            :size="13"
-          />
-          {{
-            screenShareViewingStreamId === screenShareStreamForMember(member)?.streamId
-              ? t("watching")
-              : t("watchScreenShare")
-          }}</button
-        >
-      </div>
     </article>
   </TransitionGroup>
   <div
