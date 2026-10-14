@@ -45,6 +45,12 @@
 20. **React 视图层约束落点**：`admin-view.tsx` 的控制器创建只用 useState 初始化器 + `bind()` 注入闭包——react-hooks v7 的 refs 规则按词法扫描组件体，ref 传递/解引用都会被拦；绑定式注入同样满足「控制器只创建一次」。
 21. **管理台模态红线对齐**：WebRTC 端口提示弹窗改为只经按钮/背景点击显式目标关闭（旧版 backdrop click.self 关闭与「模态不响应 backdrop」红线冲突，按红线收口）。
 
+## 2026-10-14 · P4-3a 首页逻辑层取舍
+
+22. **首页态拆分**：`web-client/home-store`（join 表单+弹窗+收藏+身份对话框的共享 zustand/vanilla 状态）+ 四控制器：home-connection（join 触发/双密码弹窗/乐观选台）、home-identity（导入导出代际纪律）、home-favorites（连接即收藏）、public-config（公开配置预填）；`server-switch`（语音内切服横幅状态机）独立。全部接受结构化切面（voiceStore 只声明四个连接字段 + 动作回调），不 import 真实 controller 类型——测试用夹具 store 即可，视图层接 VoiceSessionController。
+23. **Vue watch → store 订阅**：errorCode/channelSwitchedChannelId/selfMovedChannelId 三字段的弹窗驱动语义（频道密码重开、服务器密码弹窗、强制移动同步选台）改为 zustand subscribe + prev 比较；home-identity 对 rememberIdentity/identityMaterial 的监听同样订阅化（任何来源的变更都作废在途导出）。测试 39 条全平移（connection 4+3 补充 / identity 22 / favorites 4 / switch 4）。
+24. **window.confirm/Toast 走回调注入**：控制器不依赖具体 toast 实现（视图接 sonner），确认弹窗等 P4-3b 视图层决定用 confirmDialog Promise host 还是保留 window.confirm。
+
 ## 待办决策（无）
 
 （Phase 4 迁移过程中新产生的取舍记此处，格式：日期 · 决策 · 理由 · 影响面）
