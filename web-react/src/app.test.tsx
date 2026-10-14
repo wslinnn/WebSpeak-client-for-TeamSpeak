@@ -38,11 +38,12 @@ function stubMatchMedia(): void {
 test("默认路由渲染 WebClient 壳：皮肤根锚点 + data-ws-page=home + data-ws-route=webclient", async () => {
   stubMatchMedia();
   renderRoutes("/");
+  // 整跑并行负载下模块图与首渲染可超默认 1s（/download 用例同款先例）。
   const shell = await waitFor(() => {
     const element = document.querySelector(".web-client.ws-skin-root");
     expect(element).not.toBeNull();
     return element;
-  });
+  }, { timeout: 5000 });
   expect(shell?.getAttribute("data-ws-page")).toBe("home");
   // 挂载后补的 applyTheme 会把内置皮肤 id 钉到根元素（内置皮肤 CSS 的作用域锚点）。
   expect(shell?.getAttribute("data-ws-skin")).toMatch(/^builtin\.(light|dark)$/);
@@ -52,7 +53,7 @@ test("默认路由渲染 WebClient 壳：皮肤根锚点 + data-ws-page=home + d
 test("/join 与 / 同壳", async () => {
   stubMatchMedia();
   renderRoutes("/join");
-  await waitFor(() => expect(document.querySelector(".web-client.ws-skin-root")).not.toBeNull());
+  await waitFor(() => expect(document.querySelector(".web-client.ws-skin-root")).not.toBeNull(), { timeout: 5000 });
 });
 
 test("/download 渲染 DownloadView 壳并标记 data-ws-route=download", async () => {

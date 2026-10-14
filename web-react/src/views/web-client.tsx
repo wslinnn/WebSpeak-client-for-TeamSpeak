@@ -4,15 +4,15 @@ import { useShallow } from "zustand/react/shallow";
 
 import "../styles/web-client.css";
 
-import { ChannelPasswordDialog } from "@/components/web-client/channel-password-dialog";
-import { FavoriteServerDialog, type FavoriteServerDraft } from "@/components/web-client/favorite-server-dialog";
+import type { FavoriteServerDraft } from "@/components/web-client/favorite-server-dialog";
 import { Icon } from "@/components/web-client/icon";
 import { IdentityImportDialog } from "@/components/web-client/identity-import-dialog";
 import { JoinNotices } from "@/components/web-client/join-notices";
 import { JoinForm } from "@/components/web-client/join-form";
 import { JoinHeader } from "@/components/web-client/join-header";
 import { MobileGate } from "@/components/web-client/mobile-gate";
-import { ServerPasswordDialog } from "@/components/web-client/server-password-dialog";
+import { RootDialogs } from "@/components/web-client/root-dialogs";
+import { VoiceShell } from "@/components/web-client/voice-shell";
 import { VoiceSessionProvider, useVoiceSession, useVoiceView } from "@/hooks/useVoiceSession";
 import { useI18n } from "@/hooks/use-i18n";
 import { applyTheme, getStoredTheme } from "@/services/theme";
@@ -28,6 +28,7 @@ import {
 import type { FavoriteServer } from "@/services/local-persistence";
 import { combineTeamSpeakTarget, splitTeamSpeakTarget } from "@/services/teamspeak-target";
 import { clearVoiceSessionIntent } from "@/voice/session-intent";
+import { useInRoomControllers } from "@/web-client/use-inroom-controllers";
 import { useWebClientControllers } from "@/web-client/use-web-client-controllers";
 import { useRetryCountdown } from "@/web-client/use-retry-countdown";
 import { cn } from "@/lib/utils";
@@ -69,6 +70,19 @@ function WebClientRoot() {
     errorCode: view.errorCode,
   })));
   const { waiting: retryWaiting, secondsShown: retrySecondsShown } = useRetryCountdown(voiceView.retryNotUntil);
+
+  // —— 进房态（控制器装配在 useInRoomControllers：草稿/折叠记忆/菜单跨两态存活） ——
+  const inRoom = useInRoomControllers({
+    voice,
+    store,
+    connection,
+    isMobileViewport,
+    viewportHeight: mobileViewport.height,
+    showToast,
+    t,
+    localizedMessage,
+  });
+  const { switchState } = inRoom;
 
   const joinDisabled = !connection.canJoin()
     || config.serverConfigLoading
@@ -182,7 +196,9 @@ function WebClientRoot() {
     showToast(t("localDataCleared"));
   }
 
-  const voiceShellVisible = voiceView.connected || voiceView.reconnecting || voiceView.reconnectFailed;
+  // 切服挂起期间语音壳保持挂载（横幅状态），不回闪首页表单（旧平价）。
+  const voiceShellVisible = voiceView.connected || voiceView.reconnecting || voiceView.reconnectFailed
+    || Boolean(switchState.pending || switchState.failed);
   const localizedWelcomeText = config.welcomeTexts[language] || t("joinDescription");
 
   return (
@@ -193,7 +209,36 @@ function WebClientRoot() {
       data-ws-part="app"
       data-ws-page={voiceShellVisible ? "voice" : "home"}
     >
-      {/* 连接/欢迎页。进房壳随 P4-4 落地；过渡期已连接时仍显示本页。 */}
+      {voiceShellVisible && (
+        <VoiceShell
+          voice={voice}
+          home={store}
+          chat={inRoom.chat}
+          membersController={inRoom.membersController}
+          fold={inRoom.fold}
+          serverSwitch={inRoom.serverSwitch}
+          language={language}
+          isMobileViewport={isMobileViewport}
+          mobileSection={inRoom.mobileSection}
+          onMobileSectionChange={inRoom.setMobileSection}
+          memberQuery={inRoom.memberQuery}
+          onMemberQueryChange={inRoom.setMemberQuery}
+          onChatListElement={inRoom.onChatListElement}
+          onSelectChannel={(channel) => void connection.selectChannel(channel)}
+          onSwitchServer={inRoom.switchServer}
+          onLeave={inRoom.leaveVoiceWorkspace}
+          onReconnect={() => voice.reconnectNow()}
+          onEditFavorite={editFavoriteServer}
+          onRemoveFavorite={(server) => void favorites.removeFavoriteRow(server)}
+          onOpenFavoriteDialog={() => openFavoriteServerDialog()}
+          onVolumeInput={(clientId, value) => voice.setVolume(clientId, value)}
+          t={t}
+          showToast={showToast}
+        />
+      )}
+
+      {/* 连接/欢迎页。进房壳已接：切服挂起期间两态并存（壳挂载、本页卸载）。 */}
+      {!voiceShellVisible && (
       <section className="join-page" data-ws-part="home">
         <JoinHeader
           brandName={config.siteName}
@@ -331,50 +376,23 @@ function WebClientRoot() {
           </button>
         </footer>
       </section>
+      )}
 
-      {home.channelPasswordDialog.open && (
-        <ChannelPasswordDialog
-          password={home.channelPasswordDialog.password}
-          onPasswordChange={(password) => store.setState({ channelPasswordDialog: { ...home.channelPasswordDialog, password } })}
-          busy={home.channelPasswordDialog.submitting}
-          error={home.channelPasswordDialog.error}
-          onClose={connection.cancelChannelPassword}
-          onSubmit={connection.submitChannelPassword}
-          title={t("channelPasswordTitle")}
-          lead={t("channelPasswordLead")}
-          promptLabel={t("channelPasswordPrompt")}
-          placeholder={t("channelPasswordPlaceholder")}
-          cancelLabel={t("channelPasswordCancel")}
-          submitLabel={t("channelPasswordSubmit")}
-          closeLabel={t("close")}
-        />
-      )}
-      {home.serverPasswordDialog.open && (
-        <ServerPasswordDialog
-          password={home.serverPasswordDialog.password}
-          onPasswordChange={(password) => store.setState({ serverPasswordDialog: { ...home.serverPasswordDialog, password } })}
-          errorCode={home.serverPasswordDialog.errorCode}
-          onClose={connection.cancelServerPassword}
-          onSubmit={connection.submitServerPassword}
-          title={t("serverPasswordTitle")}
-          invalidLead={t("serverPasswordInvalidLead")}
-          requiredLead={t("serverPasswordRequiredLead")}
-          promptLabel={t("serverPasswordPrompt")}
-          placeholder={t("serverPasswordRetryPlaceholder")}
-          cancelLabel={t("channelPasswordCancel")}
-          retryLabel={t("serverPasswordRetry")}
-          closeLabel={t("close")}
-        />
-      )}
-      {favoriteDialogInitial !== null && (
-        <FavoriteServerDialog
-          initial={favoriteDialogInitial}
-          knownFavoriteAddresses={home.favoriteServers.map((favorite) => favorite.address)}
-          onClose={() => setFavoriteDialogInitial(null)}
-          onSave={saveFavoriteServerDraft}
-          t={t}
-        />
-      )}
+      <RootDialogs
+        channelDialog={home.channelPasswordDialog}
+        serverDialog={home.serverPasswordDialog}
+        favoriteInitial={favoriteDialogInitial}
+        favoriteKnownAddresses={home.favoriteServers.map((favorite) => favorite.address)}
+        onChannelPasswordChange={(password) => store.setState({ channelPasswordDialog: { ...home.channelPasswordDialog, password } })}
+        onChannelClose={connection.cancelChannelPassword}
+        onChannelSubmit={connection.submitChannelPassword}
+        onServerPasswordChange={(password) => store.setState({ serverPasswordDialog: { ...home.serverPasswordDialog, password } })}
+        onServerClose={inRoom.onServerPasswordCancel}
+        onServerSubmit={connection.submitServerPassword}
+        onFavoriteClose={() => setFavoriteDialogInitial(null)}
+        onFavoriteSave={saveFavoriteServerDraft}
+        t={t}
+      />
     </div>
   );
 }

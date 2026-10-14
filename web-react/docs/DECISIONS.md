@@ -67,6 +67,14 @@
 33. **聊天历史装载触发面**：旧 watch([connected, sessionEpoch, serverKey]) 三源在 React 侧收敛为三处 store 订阅各触发 + 幂等 identity 去重（`connected:epoch:serverKey`）；控制器直接 setState 会话 store 合并历史（快照替换语义，Phase 2 红线）。
 34. **members 拖拽 DOM 操作不进 store**：pointer capture 与 elementFromPoint 命中留在控制器闭包，store 只收 draggedMember/dragOverChannelId 两个渲染字段；prompt（poke/away 留言）经 Options 注入保测试性（生产默认 window.prompt，替换留 Phase 5，与 #16/#24/#28 同纪律）。
 
+## 2026-10-14 · P4-4b 进房视图层取舍
+
+35. **壳组件按门禁分片**：VoiceShell 压在 400 行内（397），横幅+poke 自动消退拆 `voice-banners.tsx`（113 行）、移动端 more 面板拆 `voice-mobile-more.tsx`。poke 到达的提示音归 VoiceBanners（横幅宿主），后台系统通知（showBackgroundTabNotification）归根部 useInRoomControllers——旧版同一 watch 里做三件事，拆分后各认一半防双音；桌面通知开关沿用 `readDesktopNotificationSetting()` 读时取值（设置 UI 随 P4-5 回归）。
+36. **进房控制器装配 `useInRoomControllers`**：chat/members/fold/serverSwitch 在根部 hook 创建（切服/断线期间语音壳与首页互换挂载，草稿/折叠/菜单必须跨两态存活，与旧单文件 ref 平价）；语言/视口经模块级 live 桥（liveMessages 同款纪律，仅事件与订阅回调触达）。React Compiler 两轮规则应对已定型：渲染期建闭包读 ref.current → refs 违规（改模块桥）；useMemo 返回的稳定盒在 effect/回调里写 → immutability 违规（hook 返回值视为不可变）——可变非渲染数据一律走模块桥，不再试 ref/盒两条路。app.test 两个 WebClient 用例 waitFor 提到 5000ms（并行负载下模块图+首渲染可超默认 1s，/download 用例同款先例）。
+37. **vite8 代理必须 `changeOrigin: false`**：vite 8 的 dev 代理默认改写 Host 头，网关 `/api/join-ticket` 的 `Origin===Host` 同源校验随即失败（ORIGIN_REJECTED）；api/avatars/ws 三条代理显式保留原始 Host（旧 web/vite6 未受影响）。真浏览器连真实 TS 服务器全链路走查即依赖此修复。
+38. **平迁陷阱两则（真浏览器走查揪出，测试与 tsc 都测不出）**：① zustand store 渲染期 `getState()` 是一次性快照——fold 集合曾这样传给面板，toggle 后 UI 不更新，必须 `useStore(fold.store)` 订阅；② 容器归属必须照旧模板逐层核对——聊天面板与说话横条是 workspace-content 直接子级（移动页签显隐各归各），放进 voice-section 会被 `mobile-section-hidden` 连带藏掉。#27 的「服务器密码取消联动切服结算」缺口已在此轮补齐（onServerPasswordCancel = serverSwitch.fail + cancelServerPassword）；switchServer 平价含同地址 no-op、失败镜像复位、无效表单即挂失败横幅。
+39. **成员子菜单开合语义与旧版等价**：mouseenter 开 + click toggle 的组合在「鼠标悬停容器内再点触发器」时会开合抵消（Playwright 首点即此路径）——与旧 Vue 版逐行为同构，不改；子菜单摆位沿用同帧反推（主菜单位置未提交时按未偏移锚点计算），摆位/视口clamp 真浏览器核实（fixed + --ui-scale 折算 + z-index 310 = --ws-z-menu）。
+
 ## 待办决策（无）
 
 （Phase 4 迁移过程中新产生的取舍记此处，格式：日期 · 决策 · 理由 · 影响面）

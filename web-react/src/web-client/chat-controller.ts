@@ -314,6 +314,8 @@ export function createChatController(options: Options) {
 
   return {
     store,
+    setTab,
+    setDraft: (text: string) => patch({ messageDraft: text }),
     conversations,
     visibleMessages,
     tabLabel,

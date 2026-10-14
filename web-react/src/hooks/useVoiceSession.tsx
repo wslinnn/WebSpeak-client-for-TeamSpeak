@@ -17,6 +17,11 @@ export function useVoiceSession(): VoiceSessionController {
   return controller;
 }
 
+/** 说话指示 store 订阅（speakingIds 集合，引用替换语义）。 */
+export function useStoreOfSpeaking(controller: VoiceSessionController) {
+  return useStore(controller.speakingStore);
+}
+
 /** Subscribe to the view snapshot. Selectors must return primitives or stable
  *  references — zustand v5 compares with Object.is, and a fresh object per
  *  call re-renders forever (use useShallow for composite picks). */

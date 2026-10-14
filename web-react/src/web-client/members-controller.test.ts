@@ -16,6 +16,7 @@ function harness(channels: Partial<TreeChannel>[] = [], whisperIds: number[] = [
   const prompts: string[] = [];
   const controller = createMembersController({
     getChannels: () => tree,
+      getCurrentChannel: () => undefined,
     moveClient: vi.fn(async () => undefined),
     setWhisperTargets: (ids) => whispers.setState({ ids }),
     sendPoke: vi.fn(),
@@ -81,6 +82,7 @@ describe("members controller（成员交互）", () => {
     const toasts: string[] = [];
     const controller = createMembersController({
       getChannels: () => tree,
+      getCurrentChannel: () => undefined,
       moveClient: vi.fn(async () => undefined),
       setWhisperTargets: () => {},
       sendPoke,
@@ -106,6 +108,7 @@ describe("members controller（成员交互）", () => {
     const toasts: Array<[string, string?]> = [];
     const controller = createMembersController({
       getChannels: () => tree,
+      getCurrentChannel: () => undefined,
       moveClient,
       setWhisperTargets: () => {},
       sendPoke: () => {},
@@ -132,6 +135,7 @@ describe("members controller（成员交互）", () => {
     let answer: string | null = null;
     const controller = createMembersController({
       getChannels: () => tree,
+      getCurrentChannel: () => undefined,
       moveClient: vi.fn(async () => undefined),
       setWhisperTargets: () => {},
       sendPoke: () => {},

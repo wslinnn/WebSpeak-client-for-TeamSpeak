@@ -17,11 +17,14 @@ export default defineConfig({
   server: {
     port: 5174,
     proxy: {
-      "/api": "http://localhost:3040",
-      "/avatars": "http://localhost:3040",
+      // changeOrigin:false 保留原始 Host：网关 /api/join-ticket 用 Origin===Host
+      // 做同源校验（vite 8 代理默认改写 Host，会被 ORIGIN_REJECTED 拒绝）。
+      "/api": { target: "http://localhost:3040", changeOrigin: false },
+      "/avatars": { target: "http://localhost:3040", changeOrigin: false },
       "/ws": {
         target: "ws://localhost:3040",
         ws: true,
+        changeOrigin: false,
       },
     },
   },

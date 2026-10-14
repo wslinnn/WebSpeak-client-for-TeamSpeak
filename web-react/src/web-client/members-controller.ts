@@ -30,6 +30,8 @@ export interface MembersStore {
 interface Options {
   /** 频道目录读取（含成员注入的展示树）。 */
   getChannels(): TreeChannel[];
+  /** 当前频道（移人子菜单的「回到我的频道」语义）。 */
+  getCurrentChannel(): TreeChannel | undefined;
   moveClient(clientId: number, targetChannelId: string): Promise<void>;
   setWhisperTargets(clientIds: number[]): void;
   sendPoke(clientId: number, message: string): void;
@@ -64,22 +66,23 @@ export function createMembersController(options: Options) {
   };
   const prompt = options.prompt ?? ((message: string, initial?: string) => window.prompt(message, initial));
 
-  function memberMoveMenuCurrentChannel(currentChannel: TreeChannel | undefined): TreeChannel | null {
+  function memberMoveMenuCurrentChannel(): TreeChannel | null {
     const member = state().memberMenu?.member;
+    const currentChannel = options.getCurrentChannel();
     if (!member || !currentChannel || currentChannel.id === "__current__") return null;
     return currentChannel;
   }
-  function memberMoveMenuCurrentSameChannel(currentChannel: TreeChannel | undefined): boolean {
+  function memberMoveMenuCurrentSameChannel(): boolean {
     const member = state().memberMenu?.member;
-    const currentId = memberMoveMenuCurrentChannel(currentChannel)?.id;
+    const currentId = memberMoveMenuCurrentChannel()?.id;
     if (!member || !currentId) return false;
     return options.getChannels().find((item) => item.members.some((candidate) => candidate.id === member.id))?.id === currentId;
   }
-  function memberMoveMenuOtherChannels(currentChannel: TreeChannel | undefined): TreeChannel[] {
+  function memberMoveMenuOtherChannels(): TreeChannel[] {
     const member = state().memberMenu?.member;
     if (!member) return [];
     const sourceChannelId = options.getChannels().find((item) => item.members.some((candidate) => candidate.id === member.id))?.id ?? "";
-    const currentChannelId = memberMoveMenuCurrentChannel(currentChannel)?.id;
+    const currentChannelId = memberMoveMenuCurrentChannel()?.id;
     return options.getChannels().filter((item) => item.id !== "__current__" && item.id !== sourceChannelId && item.id !== currentChannelId);
   }
 
@@ -254,6 +257,10 @@ export function createMembersController(options: Options) {
     options.setAway(value, message);
   }
 
+  function memberDisplayName(member: ChannelMember): string {
+    return member.isSelf ? `${member.nickname}${options.t("selfSuffix")}` : member.nickname;
+  }
+
   return {
     store,
     memberMoveMenuCurrentChannel,
@@ -275,6 +282,7 @@ export function createMembersController(options: Options) {
     copyMemberName,
     toggleAway,
     setAutomaticAway,
+    memberDisplayName,
   };
 }
 
