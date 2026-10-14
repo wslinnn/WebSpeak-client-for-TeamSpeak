@@ -28,6 +28,14 @@
 - 头像换新检测（`fileTransferInitDownload` 元数据比对路径已明确）。
 - 上游式「复制服务器/频道链接」：默认不做，做则放 more 面板守住 header 图标数。
 
+## 2026-10-14 · Phase 2 移植落地取舍
+
+6. **状态层：Vue reactive/ref → zustand/vanilla 快照替换**。session-state 的公开快照按「数组与对象写入即替换」发布（React 靠引用相等感知变更），三处原字段突变点（memberUpdated/applyAvatar/channelUpdated）改为新建对象换引用；**「频道投影与成员列表共享同一对象」这条业务不变量保留**。旧规格测试中钉 Vue 实现细节的断言（数组引用跨更新不变、ref.value）按「行为级平价」翻译为内容断言，见 `src/voice/session-controller.test.ts` 文件头。
+7. **useVoiceWebSocket → `src/voice/session-controller.ts`**：行为级等价平移（1456 行，进 max-lines 存量豁免清单，Phase 4 随视图层拆解）。Vue computed（voiceTransport）改为写入点同步重算；Vue 生命周期（onUnmounted）改为显式 `dispose()`（React Provider 卸载时调用）；screen-share 的 `api` 摊平对象取消，暴露 `store` + 动作方法。React 绑定只有 `src/hooks/useVoiceSession.tsx` 一层（context + useStore 选择器）。
+8. **i18n：`createWebClientMessages(language)` 纯函数层**（useWebClientI18n 机械转换，翻译表零漂移 diff 验证），React Provider/hook 随 Phase 3 应用壳落地；五语键集平价测试照旧。
+9. **门禁存量豁免清单**（`eslint.config.js`，Phase 4 拆解后必须清空）：skin-pack.ts / screen-share.ts / session-controller.ts。
+10. **规格测试分两波移植**：已入 web-react（会话生命周期/命令/重连/目录增量/聊天边界/屏幕共享释放/存储命名空间/皮肤包导入/协议解析等 117 用例）；**随视图层重写的测试留旧套件、Phase 4 以 RTL+新钩子重钉**——chat ack 视图分组、channel tree、audio controls、performance 面板轮询、voice-server-switch 横幅、admin-api.integration（切包后把 import 指向新副本）。皮肤包 5 个锚定旧 web-client.css/Vue 源的基线测试留旧套件，Phase 3/4 按新样式基线重钉。
+
 ## 待办决策（无）
 
 （Phase 4 迁移过程中新产生的取舍记此处，格式：日期 · 决策 · 理由 · 影响面）
