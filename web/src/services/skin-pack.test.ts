@@ -114,19 +114,21 @@ test("all public skin parts are documented and the admin console is outside skin
   assert.doesNotMatch(`${admin}\n${adminComponents}`, /ws-skin-root|data-ws-page=/);
 });
 
-test("public skin and language selectors keep readable light surfaces in dark mode", async () => {
+test("public skin and language selectors follow the page theme via tokens", async () => {
   const [skinSwitcher, languageSwitcher, darkSkin] = await Promise.all([
     readFile(new URL("../components/SkinSwitcher.vue", import.meta.url), "utf8"),
     readFile(new URL("../components/LanguageSwitcher.vue", import.meta.url), "utf8"),
     readFile(new URL("../skins/builtin/dark/skin.css", import.meta.url), "utf8"),
   ]);
 
-  // The selectors keep near-white light surfaces under the dark skin; batch
-  // 19-① re-tinted them teal→green without changing the lightness contract.
-  assert.match(skinSwitcher, /\.skin-trigger\s*\{[^}]*background:\s*rgba\(253,\s*255,\s*248/i);
-  assert.match(skinSwitcher, /\.skin-dropdown\s*\{[^}]*background:\s*linear-gradient/i);
-  assert.match(skinSwitcher, /\.skin-option\s*\{[^}]*color:\s*#2a3322/i);
-  assert.match(languageSwitcher, /\.language-dropdown\s*\{[^}]*background:\s*#fff/i);
+  // 2026-10-14: the old "keep light surfaces in dark mode" contract was
+  // retired after the night-mode dropdown report — both switchers now run on
+  // --wsd-* tokens (day fallbacks keep admin's light look; its [data-theme]
+  // block owns the dark state there).
+  assert.match(skinSwitcher, /\.skin-trigger\s*\{[^}]*background:\s*color-mix\(in srgb, var\(--wsd-accent/);
+  assert.match(skinSwitcher, /\.skin-dropdown\s*\{[^}]*background:\s*var\(--wsd-panel/);
+  assert.match(skinSwitcher, /\.skin-option\s*\{[^}]*color:\s*var\(--wsd-text/);
+  assert.match(languageSwitcher, /\.language-dropdown\s*\{[^}]*background:\s*var\(--wsd-panel/);
   assert.doesNotMatch(darkSkin, /\.language-switcher\s+\.language-(?:trigger|dropdown|option)/);
 });
 

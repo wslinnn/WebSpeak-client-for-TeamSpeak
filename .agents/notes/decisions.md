@@ -20,7 +20,7 @@
 - 配置弹窗=全量配置面，两端必须一致（2026-10-13 拍板「PC 对齐移动端，不做删减」）：平台差异只允许用快捷面承载（音频坞悬停面板），禁止用 viewport 门控在弹窗里删项；新配置项两端同加。
 - pointerdown 激活即卸载的浮层（下拉选项），必须吞掉手势尾随 click（一次性捕获守卫）——菜单卸载后合成 click 会落在新暴露的元素上（实案：更多面板切语言误触退出按钮断连）；danger 动作必须与浮层覆盖区空间隔离（更多面板分隔线）。
 - 下拉浮层钳制必须四边含裁剪祖先（LanguageSwitcher placeDropdown 模式）：overflow-y 非 visible 时 overflow-x 计算值连带非 visible（CSS 规范）——只钳垂直会从水平方向溢出（实案：登录卡片）；视口钳制管不了 overflow 祖先，实施前先收集 overflow≠visible 的容器，边界取祖先∩视口最紧者。
-- 工作区四栏布局（2026-10-13 拍板，报告 16）：≥981 走 `86/304/1fr/聊天列` 四栏，配色一律走 `--wsd-*` token 层——日间默认值在 00-tokens.css 基础层、夜间整块翻转挂 builtin.dark 属性选择器（皮肤选择器就是日/夜开关）；旧 `--ws-*`/`--surface-*` 并存服务未迁移区域，新代码勿混用两套。ChatPanel 按 ≥981 断点双实例渲染（桌面 shell 子元素/窄屏 workspace 原位）——移动端聊天视图的 CSS 依赖面板在 workspace 内的位置，勿把窄屏实例也搬去 shell；聊天折叠持久化键 `webspeak:chat-collapsed`。皮肤/语言切换器在暗色下保持亮面是 skin-pack 测试钉住的刻意设计。新布局规则集中在 `19-workspace-relayout.css` 单分片；跨组件选择器必须整链 `:deep()`（子组件内部元素不带父作用域属性）。
+- 工作区四栏布局（2026-10-13 拍板，报告 16）：≥981 走 `86/304/1fr/聊天列` 四栏，配色一律走 `--wsd-*` token 层——日间默认值在 00-tokens.css 基础层、夜间整块翻转挂 builtin.dark 属性选择器（皮肤选择器就是日/夜开关）；旧 `--ws-*`/`--surface-*` 并存服务未迁移区域，新代码勿混用两套。ChatPanel 按 ≥981 断点双实例渲染（桌面 shell 子元素/窄屏 workspace 原位）——移动端聊天视图的 CSS 依赖面板在 workspace 内的位置，勿把窄屏实例也搬去 shell；聊天折叠持久化键 `webspeak:chat-collapsed`。皮肤/语言切换器在暗色下保持亮面是 skin-pack 测试钉住的刻意设计（2026-10-14 已推翻，见「rail 动作位」条：现走 token 随主题）。新布局规则集中在 `19-workspace-relayout.css` 单分片；跨组件选择器必须整链 `:deep()`（子组件内部元素不带父作用域属性）。
 
 ## 已评估否决项（勿重新立项）
 
@@ -57,7 +57,7 @@
 - **颜色权威**：四栏工作区（≥981）一律 `--wsd-*`。内置皮肤（`skins/builtin/*/skin.css`）**不得再高特异性改写已迁移选择器**（app-shell/工作区/频道面板/聊天/右键菜单/滚动条等）——皮肤样式运行时后置注入，同属性必压过 scoped 分片（`:where()` 降特异性无效：打平后仍按注入序由皮肤胜出）。迁移新元素 = 双皮肤删规则 + `20-night-surfaces.css` 补**全宽度**夜间组（皮肤规则同时服务 <981 布局，夜间组必须全宽度、勿并入 19）；滚动条颜色/宽度在 00-tokens.css 收敛。
 - **聊天=降噪流**：无气泡、自己消息左对齐（不右反转）、作者 11px/600 muted、时间 10px、正文 13px/1.55——改回气泡/右对齐属回归。
 - **频道树**：单击选中（hover 面）+ 双击/回车加入（选中行尾 10px 绿色 hint，i18n 键 `doubleClickToJoin`）；单击不再直接切频道。
-- **rail 动作位**：退出断电钮在语音坞头部（25px 红圆钮、`channelName` prop）；皮肤/语言切换器是 rail 58×58 瓦片（组件 `tile` 变体；下拉 fixed 定位贴瓦片右侧——rail 是 overflow 裁剪容器，绝对定位会被裁）。下拉面板亮面是 skin-pack 测试钉住的刻意设计，勿改暗。
+- **rail 动作位**：退出断电钮在语音坞头部（25px 红圆钮、`channelName` prop）；皮肤/语言切换器是 rail 58×58 瓦片（组件 `tile` 变体；下拉 fixed 定位贴瓦片右侧——rail 是 overflow 裁剪容器，绝对定位会被裁）。~~下拉面板亮面是 skin-pack 测试钉住的刻意设计，勿改暗~~（**2026-10-14 推翻**：用户报夜间下拉配色问题，两组件已全量 `--wsd-*` token 化——日间 fallback 值保 admin 环境观感、其 `[data-theme]` 前缀块继续管 admin 暗态；客户端夜间随页面暗色，skin-pack 测试断言改为钉 token 引用）。
 - **room bar**：≥981 顶栏左段=频道 glyph+频道名+在线数（46px 高）；breadcrumbs 与「语音动态」heading 走 `v-if="!chatColumnActive"`（窄屏/旧布局保留，`voice.activity-heading` 部件仍在模板内，勿删文档登记）。性能触发器 32px 圆形钮，传输状态在 title。
 - **部件形态**：服务器瓦片 58px/2px 透明描边，active=2px 绿描边+左缘 4×34 标，悬停只变表面色；舞台磁贴 1.82:1 宽卡平贴舞台色、头像 104px、说话态半透明绿环+116px 脉冲环（1.08s）。**全局 `prefers-reduced-motion { animation:none !important }`（04-room.css）是当初否决 KAAK 双环无限动画的豁免前提，勿删**。
 - **音频设置**：只对齐排印与容器（32px 标题/14px 标签/660px 内层卡/40px radius 12 select/加深遮罩），两端配置项与自由流布局不动。

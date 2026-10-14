@@ -154,7 +154,10 @@ onUnmounted(() => {
   position: relative;
   z-index: var(--ws-z-dropdown);
   flex: 0 0 auto;
-  color: #4f9e0c;
+  /* Token surfaces with day fallbacks: the client flips with the skin
+   * attribute; admin (no --wsd-* scope) keeps the day values and its own
+   * [data-theme] dark overrides below. */
+  color: var(--wsd-accent, #4f9e0c);
   font-family: inherit;
 }
 
@@ -165,9 +168,9 @@ onUnmounted(() => {
   min-width: 70px;
   min-height: 32px;
   padding: 0 9px;
-  color: #4f9e0c;
-  background: #eef6db;
-  border: 1px solid #d9e9bd;
+  color: var(--wsd-accent, #4f9e0c);
+  background: color-mix(in srgb, var(--wsd-accent, #4f9e0c) 12%, var(--wsd-panel, #fff));
+  border: 1px solid color-mix(in srgb, var(--wsd-accent, #4f9e0c) 28%, var(--wsd-border, #dfe5e8));
   border-radius: 8px;
   font: inherit;
   font-size: 11px;
@@ -179,9 +182,9 @@ onUnmounted(() => {
 .language-trigger:hover,
 .language-switcher.open .language-trigger {
   color: #fff;
-  background: #4f9e0c;
-  border-color: #4f9e0c;
-  box-shadow: 0 7px 16px rgba(79, 158, 12, .18);
+  background: var(--wsd-accent, #4f9e0c);
+  border-color: var(--wsd-accent, #4f9e0c);
+  box-shadow: 0 7px 16px color-mix(in srgb, var(--wsd-accent, #4f9e0c) 18%, transparent);
 }
 
 .language-trigger .ui-icon {
@@ -222,10 +225,10 @@ onUnmounted(() => {
   max-height: none;
   padding: 7px;
   overflow: visible;
-  background: #fff;
-  border: 1px solid #e0e8d2;
+  background: var(--wsd-panel, #fff);
+  border: 1px solid var(--wsd-border, #e0e8d2);
   border-radius: 13px;
-  box-shadow: 0 16px 36px rgba(56, 82, 34, .16), 0 3px 8px rgba(56, 82, 34, .06);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, .18), 0 3px 8px rgba(0, 0, 0, .07);
   animation: language-menu-in .14s ease-out;
 }
 
@@ -237,7 +240,7 @@ onUnmounted(() => {
   gap: 8px;
   min-height: 38px;
   padding: 6px 8px;
-  color: #344540;
+  color: var(--wsd-text, #344540);
   background: transparent;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -250,9 +253,9 @@ onUnmounted(() => {
 .language-option:hover,
 .language-option:focus-visible,
 .language-option.selected {
-  color: #4f9e0c;
-  background: #eef6db;
-  border-color: #d9e9bd;
+  color: var(--wsd-accent, #4f9e0c);
+  background: color-mix(in srgb, var(--wsd-accent, #4f9e0c) 12%, var(--wsd-panel, #fff));
+  border-color: color-mix(in srgb, var(--wsd-accent, #4f9e0c) 28%, var(--wsd-border, #dfe5e8));
 }
 
 .language-option-flag {
@@ -283,7 +286,7 @@ onUnmounted(() => {
 
 .language-option small {
   flex: 0 0 auto;
-  color: #91a19c;
+  color: var(--wsd-text-dim, #91a19c);
   font-size: 10px;
   font-weight: 700;
 }

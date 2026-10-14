@@ -129,25 +129,27 @@ onUnmounted(() => {
   min-width: 34px;
   min-height: 32px;
   padding: 0 8px;
-  color: #4f9e0c;
-  background: rgba(253, 255, 248, .94);
-  border: 1px solid #d9e9bd;
+  /* Token surfaces with day fallbacks — same contract as LanguageSwitcher:
+   * the client follows the skin attribute, admin keeps day + its dark block. */
+  color: var(--wsd-accent, #4f9e0c);
+  background: color-mix(in srgb, var(--wsd-accent, #4f9e0c) 8%, var(--wsd-panel, #fff));
+  border: 1px solid color-mix(in srgb, var(--wsd-accent, #4f9e0c) 28%, var(--wsd-border, #dfe5e8));
   border-radius: 8px;
   font: inherit;
   font-size: 10px;
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(108, 191, 0, .08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .06);
   transition: color .16s, background .16s, border-color .16s, box-shadow .16s;
 }
 
 .skin-trigger:hover,
 .skin-switcher.open .skin-trigger {
-  color: #468f0a;
-  background: #f3fadf;
-  border-color: #b5d97e;
-  box-shadow: 0 6px 16px rgba(108, 191, 0, .16);
+  color: var(--wsd-accent-hover, #468f0a);
+  background: color-mix(in srgb, var(--wsd-accent, #4f9e0c) 14%, var(--wsd-panel, #fff));
+  border-color: color-mix(in srgb, var(--wsd-accent, #4f9e0c) 38%, var(--wsd-border, #dfe5e8));
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .08);
 }
 
 .skin-trigger > .ui-icon:last-child { margin-left: 1px; }
@@ -160,11 +162,11 @@ onUnmounted(() => {
   gap: 3px;
   min-width: 176px;
   padding: 6px;
-  color: #2a3322;
-  background: linear-gradient(145deg, rgba(253, 255, 246, .99), rgba(243, 250, 231, .98));
-  border: 1px solid rgba(150, 200, 90, .55);
+  color: var(--wsd-text, #2a3322);
+  background: var(--wsd-panel, #fff);
+  border: 1px solid var(--wsd-border, #dfe5e8);
   border-radius: 11px;
-  box-shadow: 0 18px 42px rgba(70, 110, 35, .2), inset 0 1px 0 rgba(255, 255, 255, .96);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, .16);
   backdrop-filter: blur(18px) saturate(1.12);
 }
 
@@ -174,48 +176,36 @@ onUnmounted(() => {
   gap: 9px;
   min-height: 36px;
   padding: 0 9px;
-  color: #2a3322;
-  background: linear-gradient(112deg, rgba(255, 255, 255, .96), rgba(240, 250, 225, .96), rgba(212, 238, 175, .94), rgba(255, 255, 255, .96));
-  background-size: 240% 100%;
-  border: 1px solid rgba(160, 210, 100, .46);
+  color: var(--wsd-text, #2a3322);
+  background: var(--wsd-raised, #f2f5f6);
+  border: 1px solid color-mix(in srgb, var(--wsd-accent, #4f9e0c) 22%, var(--wsd-border, #dfe5e8));
   border-radius: 7px;
   font: inherit;
   font-size: 11px;
   text-align: left;
   cursor: pointer;
-  animation: skin-option-gradient 8s ease-in-out infinite alternate;
-  transition: color .18s, border-color .18s, box-shadow .18s, background-position .4s ease;
+  transition: color .18s, border-color .18s, box-shadow .18s, background .18s;
 }
 
-.skin-option > .ui-icon:first-child { color: #6b7568; }
-.skin-option > .ui-icon:last-child { margin-left: auto; color: #4f9e0c; }
+.skin-option > .ui-icon:first-child { color: var(--wsd-text-dim, #6b7568); }
+.skin-option > .ui-icon:last-child { margin-left: auto; color: var(--wsd-accent, #4f9e0c); }
 .skin-option:hover,
 .skin-option:focus-visible {
-  color: #4f9e0c;
-  border-color: rgba(108, 191, 0, .62);
-  background-position: 100% 50%;
-  box-shadow: 0 4px 13px rgba(108, 191, 0, .16), inset 0 0 0 1px rgba(255, 255, 255, .84);
+  color: var(--wsd-accent, #4f9e0c);
+  border-color: color-mix(in srgb, var(--wsd-accent, #4f9e0c) 45%, transparent);
+  background: color-mix(in srgb, var(--wsd-accent, #4f9e0c) 12%, var(--wsd-panel, #fff));
+  box-shadow: 0 4px 13px rgba(0, 0, 0, .08);
 }
 
 .skin-option.selected {
-  color: #468f0a;
-  border-color: rgba(108, 191, 0, .7);
-  background-image: linear-gradient(112deg, #fdfff8 0%, #e2f2c6 36%, #a8d96e 70%, #ecf8d8 100%);
-  background-position: 100% 50%;
-  box-shadow: 0 5px 16px rgba(108, 191, 0, .22), inset 0 0 0 1px rgba(255, 255, 255, .94), inset 0 -1px 0 rgba(108, 191, 0, .14);
+  color: var(--wsd-accent-hover, #468f0a);
+  border-color: color-mix(in srgb, var(--wsd-accent, #4f9e0c) 55%, transparent);
+  background: color-mix(in srgb, var(--wsd-accent, #4f9e0c) 18%, var(--wsd-panel, #fff));
+  box-shadow: 0 5px 16px rgba(0, 0, 0, .1);
 }
 
 .skin-option.selected > .ui-icon:first-child,
-.skin-option.selected > .ui-icon:last-child { color: #4f9e0c; }
-
-@keyframes skin-option-gradient {
-  from { background-position: 0% 50%; }
-  to { background-position: 100% 50%; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .skin-option { animation: none; }
-}
+.skin-option.selected > .ui-icon:last-child { color: var(--wsd-accent, #4f9e0c); }
 
 @media (max-width: 520px) {
   .skin-trigger { min-height: 36px; }

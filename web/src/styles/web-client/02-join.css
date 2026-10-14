@@ -339,15 +339,15 @@
   gap: 10px;
   min-height: 42px;
   padding: 0 14px;
-  color: #8b9b96;
+  color: var(--wsd-text-muted);
   border-radius: 10px;
-  background: #f3f6f5;
+  background: var(--wsd-raised);
   transition: .2s ease;
 }
 
 :deep(.field-wrap:focus-within) {
   color: var(--wsd-accent);
-  background: #fff;
+  background: var(--wsd-panel);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--wsd-accent) 35%, transparent);
 }
 
@@ -355,7 +355,7 @@
   width: 100%;
   min-width: 0;
   padding: 0;
-  color: #24312f;
+  color: var(--wsd-text);
   outline: none;
   border: 0;
   background: transparent;
@@ -363,7 +363,7 @@
 }
 
 :deep(.field-wrap input::placeholder) {
-  color: #a5b0ad;
+  color: var(--wsd-text-dim);
 }
 
 :deep(.primary-button),
