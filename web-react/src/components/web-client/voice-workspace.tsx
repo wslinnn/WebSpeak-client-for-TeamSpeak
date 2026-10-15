@@ -1,8 +1,12 @@
 import { ChatPanel } from "./chat-panel";
 import { Icon } from "./icon";
+import { ScreenSharePlayer } from "./screen-share-player";
+import { ScreenShareSettingsDialog } from "./screen-share-settings-dialog";
 import { VoiceMembers } from "./voice-members";
 import { WhisperControls } from "./whisper-controls";
 import { speakingNowNames } from "@/web-client/view-utils";
+import { screenShareErrorTextOf } from "@/web-client/screen-share-view";
+import type { ScreenShareUi } from "@/web-client/use-screen-share";
 import type { AudioControls } from "@/web-client/audio-controls";
 import type { ChatController, ChatScrollerAspect } from "@/web-client/chat-controller";
 import type { VoiceSessionController } from "@/voice/session-controller";
@@ -16,6 +20,8 @@ interface VoiceWorkspaceProps {
   chat: ChatController;
   chatTab: WebClientChatTab;
   audioControls: AudioControls;
+  screenShare: ScreenShareUi;
+  nickname: string;
   chatColumnActive: boolean;
   currentChannelName: string;
   currentMembers: ChannelMember[];
@@ -38,13 +44,15 @@ interface VoiceWorkspaceProps {
   t(key: string, variables?: Record<string, string | number>): string;
 }
 
-/** 工作区（旧 WebClient.vue workspace 段平价）：header（房间条/面包屑）、成员卡
- *  语音区、移动端音频控件、说话横条与非停靠聊天面板——说话横条与聊天面板是
- *  workspace-content 的直接子级（移动页签显隐各归各，见 DECISIONS #38）。 */
+/** 工作区（旧 WebClient.vue workspace 段平价）：header（房间条/面包屑）、共享
+ *  设置弹窗、语音区（共享内联错误/播放器/成员卡）、移动端音频控件、说话横条与
+ *  非停靠聊天面板——说话横条与聊天面板是 workspace-content 的直接子级（移动页签
+ *  显隐各归各，见 DECISIONS #38）。 */
 export function VoiceWorkspace(props: VoiceWorkspaceProps) {
-  const { chat, chatTab, chatColumnActive, currentChannelName, currentMembers, speakingIds, microphoneMuted, outputMuted, t } = props;
+  const { chat, chatTab, chatColumnActive, currentChannelName, currentMembers, speakingIds, microphoneMuted, outputMuted, screenShare, t } = props;
   const isSpeaking = (member: { id: number }) => speakingIds.has(member.id);
   const speakingNames = speakingNowNames(currentMembers, speakingIds);
+  const shareErrorText = screenShareErrorTextOf(screenShare.state.error, screenShare.state.errorCode, t);
 
   return (
     <main className="workspace" data-ws-part="voice.workspace">
@@ -67,6 +75,16 @@ export function VoiceWorkspace(props: VoiceWorkspaceProps) {
         <div className="workspace-actions" data-ws-part="voice.header-actions" />
       </header>
 
+      {screenShare.settingsOpen && (
+        <ScreenShareSettingsDialog
+          presets={screenShare.presets}
+          onPresetsChange={screenShare.onPresetsChange}
+          onSubmit={screenShare.startWithSettings}
+          onClose={() => screenShare.onSettingsOpenChange(false)}
+          t={t}
+        />
+      )}
+
       <div className="workspace-scroll" data-ws-part="voice.scroll">
         <div className="workspace-content" data-ws-part="voice.content">
           <section
@@ -83,10 +101,29 @@ export function VoiceWorkspace(props: VoiceWorkspaceProps) {
                 <span className="section-counter">{t("onlineShort", { count: currentMembers.length })}</span>
               </div>
             )}
+            {screenShare.state.error && (
+              <div className="screen-share-inline-error" data-ws-part="voice.screen-share-error" role="alert">
+                <Icon name="info" size={15} />
+                {" "}
+                <span>{shareErrorText}</span>
+              </div>
+            )}
+            {screenShare.state.viewing && (
+              <ScreenSharePlayer
+                ui={screenShare}
+                onPlayerElement={screenShare.setPlayerElement}
+                onVideoElement={screenShare.setVideoElement}
+                nickname={props.nickname}
+                t={t}
+              />
+            )}
             <VoiceMembers
               currentMembers={currentMembers}
               isMobileViewport={props.isMobileViewport}
               isSpeaking={isSpeaking}
+              screenShareStreams={screenShare.state.streams}
+              viewingStreamId={screenShare.state.viewingStreamId}
+              onToggleScreenShare={screenShare.toggleForMember}
               t={t}
               onMemberActions={props.onMemberActions}
             />

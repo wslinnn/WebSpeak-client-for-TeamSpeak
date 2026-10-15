@@ -14,7 +14,9 @@ import {
   Headphones,
   Info,
   Lock,
+  Maximize,
   Menu,
+  Minimize,
   MessageSquare,
   Mic,
   MicOff,
@@ -78,6 +80,8 @@ const NAME_MAP = {
   waveform: AudioWaveform,
   activity: Activity,
   refresh: RefreshCw,
+  fullscreen: Maximize,
+  "fullscreen-exit": Minimize,
 } as const;
 
 export type IconName = keyof typeof NAME_MAP;

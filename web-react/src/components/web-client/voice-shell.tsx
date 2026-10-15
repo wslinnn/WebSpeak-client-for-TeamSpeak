@@ -17,6 +17,7 @@ import type { VoiceSessionController } from "@/voice/session-controller";
 import { buildChannelTree, deriveMemberChannels, ensureSelectedChannelId, filterMemberChannels, findCurrentChannel, type TreeChannel } from "@/web-client/channel-tree";
 import { createLongPressContextMenu } from "@/services/long-press-context-menu";
 import { rangeStyle } from "@/web-client/view-utils";
+import { useScreenShareUi } from "@/web-client/use-screen-share";
 import type { ChatController, ChatScrollerAspect } from "@/web-client/chat-controller";
 import type { AudioControls } from "@/web-client/audio-controls";
 import type { PerformanceMonitor } from "@/web-client/performance-monitor";
@@ -62,8 +63,7 @@ interface VoiceShellProps {
 
 /** 进房壳（旧 WebClient.vue 语音态平价）：banners / 收藏 chips(≤740)+rail(≥741) /
  *  workspace（面包屑+成员卡+说话横条）/ 聊天（≥981 停靠列，其余留在工作区）/
- *  频道成员面板 / 移动端 more 面板与底部导航。AudioDock/设置/共享/耳语控件随
- *  P4-5/P4-6 回归。 */
+ *  频道成员面板 / 移动端 more 面板与底部导航。 */
 export function VoiceShell(props: VoiceShellProps) {
   const { voice, home, chat, membersController, fold, serverSwitch, t } = props;
   const voiceView = useStore(voice.store);
@@ -74,6 +74,7 @@ export function VoiceShell(props: VoiceShellProps) {
   const switchState = useStore(serverSwitch.store);
   // 折叠集合经订阅进渲染（直接 getState 是一次性快照，toggle 后 UI 不更新）。
   const foldedChannels = useStore(fold.store).folded;
+  const screenShare = useScreenShareUi(voice);
   const isSpeaking = (member: { id: number }) => speakingIds.has(member.id);
 
   const chatTab = homeState.chatTab;
@@ -233,6 +234,8 @@ export function VoiceShell(props: VoiceShellProps) {
         chat={chat}
         chatTab={chatTab}
         audioControls={props.audioControls}
+        screenShare={screenShare}
+        nickname={homeState.nickname}
         chatColumnActive={chatColumnActive}
         currentChannelName={currentChannelName}
         currentMembers={currentMembers}
@@ -308,11 +311,15 @@ export function VoiceShell(props: VoiceShellProps) {
               micLevel: voiceView.micLevel,
             }}
             controls={props.audioControls}
+            share={{ active: screenShare.state.active, starting: screenShare.state.starting }}
             t={t}
             channelName={currentChannelName}
             onSettings={props.onOpenAudioSettings}
             onOutputMute={() => voice.toggleOutputMute()}
             onDisconnect={props.onLeave}
+            onStartShare={() => screenShare.startSharing()}
+            onStopShare={() => screenShare.stopSharing()}
+            onShareSettings={() => screenShare.onSettingsOpenChange(true)}
           >
             <VoicePerformancePanel monitor={props.monitor} voice={voice} t={t} />
           </AudioDock>

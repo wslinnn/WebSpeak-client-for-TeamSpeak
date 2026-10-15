@@ -83,6 +83,11 @@
 43. **行数门禁的第二层拆分**：P4-5 接线后 voice-shell（435）与 view（423）再次超 400——workspace 段拆 `voice-workspace.tsx`（含耳语条与移动音频控件）、首页段拆 `join-page.tsx`、音频设置状态拆 `use-audio-settings.tsx`（弹窗元素由 hook 返回，保持根部两态可达）。容器归属沿用 #38 教训逐层核对；modal-backdrop/settings-modal 系样式已在 21-components.css 无需新增。走查确认：dock 悬停面板/伴奏钮/性能面板触发器（transport 镜像）真浏览器可用，设置弹窗焦点圈禁、Esc/完成双路径关闭、24 根电平条与权限诊断按真实设备状态渲染。
 44. **桌面通知开关保持读时取值**：`readDesktopNotificationSetting()` 是开关初值，toggle 即落盘；首次开启借用户手势请求权限，被拒则静默回退存储标记并提示（旧版逐行为平价）。poke 的后台系统通知读同一存储（#35 拆分已接）。
 
+## 2026-10-15 · P4-6 屏幕共享取舍
+
+45. **进 `ref=` 的回调必须顶层 props 直传**：hook bundle 成员写进 `ref={ui.setPlayerElement}` 会触发 React Compiler refs 规则的容器推断——整个 `ui` 被判成 ref，组件内全部 `ui.*` 渲染期读取连坐被拦（改名规避无效，属性访问即触发）；由调用点把稳定回调以独立顶层 props 传入（`screen-share-player.tsx`）。纪律并入 #36/#42 的 Compiler 三条：hook 返回值里凡要进 `ref=` 的函数，单独走 props。
+46. **长命页面 HMR 陈旧假象（走查排障两小时教训）**：dev 页面跨多轮文件编辑存活后，出现「点击不触发 handler + setState 后 fiber props 恒旧值」的假死，全程无 console 报错，直接调用提交的 onClick 也无效——整页 reload + 重进即恢复，且此后全部走查项通过。判定纪律：真浏览器走查一律先整页 reload 再进房，不许在跨编辑会话的旧页面上下结论（grep/计算样式不算数之外再加这条）。
+
 ## 待办决策（无）
 
 （Phase 4 迁移过程中新产生的取舍记此处，格式：日期 · 决策 · 理由 · 影响面）

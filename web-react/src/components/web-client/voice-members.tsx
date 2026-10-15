@@ -1,18 +1,25 @@
 import { Icon } from "./icon";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
+import { findScreenShareStreamForMember } from "@/web-client/screen-share-view";
+import type { ScreenShareStreamDescription as ScreenShareStream } from "@shared/screen-share";
 import type { ChannelMember } from "@shared/voice-models";
 
 interface VoiceMembersProps {
   currentMembers: ChannelMember[];
   isMobileViewport: boolean;
   isSpeaking(member: ChannelMember): boolean;
+  screenShareStreams: ScreenShareStream[];
+  viewingStreamId: string;
+  onToggleScreenShare(member: ChannelMember): void;
   t(key: string, variables?: Record<string, string | number>): string;
   onMemberActions(member: ChannelMember): void;
 }
 
-/** 说话成员卡网格（旧 VoiceMemberCards.vue 平价；屏幕共享角标随 P4-6 回归——
- *  当前无人共享时旧版也不渲染该元素，DOM 形状一致）。 */
-export function VoiceMembers({ currentMembers, isMobileViewport, isSpeaking, t, onMemberActions }: VoiceMembersProps) {
+const SCREEN_SHARE_INDICATOR_BARS = [5, 10, 7, 12, 8, 10];
+
+/** 说话成员卡网格（旧 VoiceMemberCards.vue 平价）：共享中成员的头像角标——他人
+ *  卡上是可点击的观看/停止观看按钮，本人卡上是「直播中」静态标。 */
+export function VoiceMembers({ currentMembers, isMobileViewport, isSpeaking, screenShareStreams, viewingStreamId, onToggleScreenShare, t, onMemberActions }: VoiceMembersProps) {
   if (!currentMembers.length) {
     return (
       <div className="voice-empty" data-ws-part="voice.members.empty">
@@ -26,6 +33,8 @@ export function VoiceMembers({ currentMembers, isMobileViewport, isSpeaking, t, 
     <div className="voice-grid" data-ws-part="voice.members">
       {currentMembers.map((member) => {
         const speaking = isSpeaking(member);
+        const shareStream = findScreenShareStreamForMember(screenShareStreams, member);
+        const viewingThis = shareStream !== null && viewingStreamId === shareStream.streamId;
         return (
           <article
             key={member.id}
@@ -54,7 +63,10 @@ export function VoiceMembers({ currentMembers, isMobileViewport, isSpeaking, t, 
             >
               <Icon name={member.inputMuted ? "mic-off" : "mic"} size={13} />
             </span>
-            <div className="voice-avatar-wrap" data-ws-part="voice.member.avatar-wrap">
+            <div
+              className={shareStream ? "voice-avatar-wrap screen-share-avatar-wrap" : "voice-avatar-wrap"}
+              data-ws-part="voice.member.avatar-wrap"
+            >
               <div
                 className={speaking ? "voice-avatar speaking" : "voice-avatar"}
                 data-ws-part="voice.member.avatar"
@@ -62,6 +74,34 @@ export function VoiceMembers({ currentMembers, isMobileViewport, isSpeaking, t, 
               >
                 {member.avatar ? "" : avatarInitial(member.nickname)}
               </div>
+              {shareStream && !member.isSelf && (
+                <button
+                  type="button"
+                  className={viewingThis ? "screen-share-live-indicator viewing" : "screen-share-live-indicator"}
+                  data-ws-part="voice.member.live-indicator"
+                  data-ws-state={viewingThis ? "viewing" : "live"}
+                  title={viewingThis ? t("leaveScreenShare") : t("watchScreenShare")}
+                  aria-pressed={viewingThis}
+                  onClick={(event) => { event.stopPropagation(); onToggleScreenShare(member); }}
+                >
+                  <span className="screen-share-wave" aria-hidden="true">
+                    {SCREEN_SHARE_INDICATOR_BARS.map((bar, index) => (
+                      <i key={index} style={{ height: `${bar}px` }} />
+                    ))}
+                  </span>
+                  <span>{viewingThis ? t("watching") : t("live")}</span>
+                </button>
+              )}
+              {shareStream && member.isSelf && (
+                <span className="screen-share-live-indicator" data-ws-part="voice.member.live-indicator" data-ws-state="live">
+                  <span className="screen-share-wave" aria-hidden="true">
+                    {SCREEN_SHARE_INDICATOR_BARS.map((bar, index) => (
+                      <i key={index} style={{ height: `${bar}px` }} />
+                    ))}
+                  </span>
+                  <span>{t("sharingScreen")}</span>
+                </span>
+              )}
             </div>
             <strong data-ws-part="voice.member.name">{member.isSelf ? t("you") : member.nickname}</strong>
             <span data-ws-part="voice.member.status">

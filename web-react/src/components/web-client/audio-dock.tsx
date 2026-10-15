@@ -28,19 +28,23 @@ interface AudioDockControls {
 interface AudioDockProps {
   model: AudioDockModel;
   controls: AudioDockControls;
+  share: { active: boolean; starting: boolean };
   t(key: string): string;
   channelName: string;
   onSettings(): void;
   onOutputMute(): void;
   onDisconnect(): void;
+  onStartShare(): void;
+  onStopShare(): void;
+  onShareSettings(): void;
   /** status 位渲染性能面板触发器（旧 #status slot 平价）。 */
   children?: ReactNode;
 }
 
-/** 桌面音频坞（旧 AudioDock.vue 平价，屏幕共享行随 P4-6 回归）。坞是「我是否
- *  被听见」的表面：静音时电平钉零由视图层 displayMicLevel 承担，设置弹窗里仍看
- *  得到原始采集电平。 */
-export function AudioDock({ model, controls, t, channelName, onSettings, onOutputMute, onDisconnect, children }: AudioDockProps) {
+/** 桌面音频坞（旧 AudioDock.vue 平价）：共享行（开播以持久化预设直发、齿轮开
+ *  设置弹窗）、伴奏钮。坞是「我是否被听见」的表面：静音时电平钉零由视图层
+ *  displayMicLevel 承担，设置弹窗里仍看得到原始采集电平。 */
+export function AudioDock({ model, controls, share, t, channelName, onSettings, onOutputMute, onDisconnect, onStartShare, onStopShare, onShareSettings, children }: AudioDockProps) {
   const displayMicLevel = model.microphoneMuted ? 0 : model.micLevel;
   return (
     <div
@@ -62,7 +66,29 @@ export function AudioDock({ model, controls, t, channelName, onSettings, onOutpu
         ><Icon name="power" size={20} /></button>
       </div>
       <div className="desktop-audio-dock-share-row">
-        {/* 屏幕共享按钮随 P4-6 回归；伴奏按钮已平价。 */}
+        <div className={share.active ? "desktop-audio-dock-share is-stop" : "desktop-audio-dock-share"}>
+          {!share.active ? (
+            <button
+              type="button"
+              className="desktop-audio-dock-share-main"
+              disabled={share.starting}
+              onClick={onStartShare}
+            ><Icon name="monitor" size={17} />{t("startScreenShare")}</button>
+          ) : (
+            <button
+              type="button"
+              className="desktop-audio-dock-share-main"
+              onClick={onStopShare}
+            ><Icon name="close" size={14} />{t("stopScreenShare")}</button>
+          )}
+          <button
+            type="button"
+            className="desktop-audio-dock-share-gear"
+            aria-label={t("screenShareSettings")}
+            title={t("screenShareSettings")}
+            onClick={onShareSettings}
+          ><Icon name="settings" size={13} /></button>
+        </div>
         <button
           type="button"
           className="desktop-audio-dock-accompaniment"
