@@ -56,7 +56,6 @@
   place-items: center;
   color: #fff;
   background: var(--wsd-accent);
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--wsd-accent) 18%, transparent);
 }
 
 .brand-mark {
@@ -201,7 +200,7 @@
   border: 1px solid color-mix(in srgb, var(--wsd-border) 80%, transparent);
   border-radius: 20px;
   background: color-mix(in srgb, var(--wsd-panel) 86%, transparent);
-  box-shadow: 0 20px 52px rgba(35, 68, 63, .08);
+  box-shadow: 0 20px 52px rgba(16, 18, 22, .08);
   backdrop-filter: blur(12px);
 }
 
@@ -372,7 +371,7 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: #fff;
+  color: var(--wsd-accent-contrast);
   background: var(--wsd-accent-fill);
   border-radius: 9px;
   font-size: 12px;
@@ -384,7 +383,7 @@
 .primary-button:hover:not(:disabled),
 .identity-import-submit:hover:not(:disabled) {
   background: var(--wsd-accent-fill-hover);
-  box-shadow: 0 9px 20px color-mix(in srgb, var(--wsd-accent-fill) 18%, transparent);
+  box-shadow: 0 9px 20px rgba(16, 18, 22, .14);
   transform: translateY(-1px);
 }
 

@@ -15,7 +15,7 @@
   min-width: 0;
   padding: 22px;
   background: #fff;
-  border: 1px solid #dfe8e5;
+  border: 1px solid #e5e7eb;
   border-radius: 14px;
 }
 
@@ -46,7 +46,7 @@
 .table-wrap {
   margin: 18px -22px -22px;
   overflow: auto;
-  border-top: 1px solid #edf1ef;
+  border-top: 1px solid #ececef;
 }
 
 .table-wrap table {
@@ -59,13 +59,13 @@
 .table-wrap th,
 .table-wrap td {
   padding: 12px 14px;
-  border-bottom: 1px solid #edf1ef;
+  border-bottom: 1px solid #ececef;
   font-size: 11px;
   white-space: nowrap;
 }
 
 .table-wrap th {
-  color: #83928d;
+  color: #8f939b;
   font-size: 10px;
   font-weight: 700;
 }
@@ -77,15 +77,15 @@
 
 .table-wrap td small {
   margin-top: 3px;
-  color: #8a9994;
+  color: #8f939b;
   font-size: 9px;
 }
 
 .state-pill {
   display: inline-flex;
   padding: 4px 7px;
-  color: #236c63;
-  background: #e5f5f1;
+  color: var(--admin-muted);
+  background: var(--admin-raised);
   border-radius: 99px;
   font-size: 10px;
   font-weight: 700;
@@ -128,18 +128,18 @@
   place-items: center;
   gap: 8px;
   min-height: 130px;
-  color: #8b9994;
+  color: #8f939b;
   text-align: center;
   font-size: 11px;
 }
 
 .operation-empty .ui-icon {
-  color: #72afa7;
+  color: #8f939b;
 }
 
 .field-help {
   margin-top: -8px;
-  color: #899792;
+  color: #8f939b;
   font-size: 10px;
 }
 
@@ -171,12 +171,12 @@
 
 .diagnostic-list div {
   padding: 10px;
-  background: #f6f9f8;
+  background: #f4f4f5;
   border-radius: 8px;
 }
 
 .diagnostic-list dt {
-  color: #8a9893;
+  color: #8f939b;
   font-size: 9px;
 }
 
@@ -200,7 +200,7 @@
 }
 
 .muted-label {
-  color: #9aa6a2;
+  color: #9a9ea6;
   font-size: 9px;
 }
 
@@ -217,7 +217,7 @@
   align-items: flex-start;
   gap: 8px;
   padding: 8px;
-  background: #f6f9f8;
+  background: #f4f4f5;
   border-radius: 7px;
 }
 
@@ -239,7 +239,7 @@
 
 .log-row small {
   margin-top: 4px;
-  color: #899792;
+  color: #8f939b;
   font-size: 8px;
 }
 
@@ -247,8 +247,8 @@
   flex: none;
   padding: 3px 5px;
   border-radius: 4px;
-  color: #356c62;
-  background: #e3f3ef;
+  color: var(--admin-muted);
+  background: var(--admin-raised);
   font-size: 8px;
   font-weight: 800;
 }
@@ -266,34 +266,34 @@
 
 html[data-ws-route="admin"][data-theme="dark"] .connection-row,
 html[data-ws-route="admin"][data-theme="dark"] .connection-history-heading {
-  color: #e8f3f0;
-  background: #202f2c;
-  border-color: #30413d;
+  color: #ededf0;
+  background: #26262a;
+  border-color: #333338;
 }
 
 html[data-ws-route="admin"][data-theme="dark"] .operation-card,
 html[data-ws-route="admin"][data-theme="dark"] .invite-row,
 html[data-ws-route="admin"][data-theme="dark"] .diagnostic-list div,
 html[data-ws-route="admin"][data-theme="dark"] .log-row {
-  color: #e8f3f0;
-  background: #202f2c;
-  border-color: #30413d;
+  color: #ededf0;
+  background: #26262a;
+  border-color: #333338;
 }
 
 html[data-ws-route="admin"][data-theme="dark"] .table-wrap {
-  border-color: #30413d;
+  border-color: #333338;
 }
 
 html[data-ws-route="admin"][data-theme="dark"] .table-wrap th,
 html[data-ws-route="admin"][data-theme="dark"] .table-wrap td,
 html[data-ws-route="admin"][data-theme="dark"] .invite-list {
-  border-color: #30413d;
+  border-color: #333338;
 }
 
 html[data-ws-route="admin"][data-theme="dark"] .operation-card header p,
 html[data-ws-route="admin"][data-theme="dark"] .table-wrap th,
 html[data-ws-route="admin"][data-theme="dark"] .table-wrap td small,
 html[data-ws-route="admin"][data-theme="dark"] .invite-row small {
-  color: #9bb0aa;
+  color: #9a9aa2;
 }
 

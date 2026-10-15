@@ -24,7 +24,7 @@
   width: 38px;
   height: 38px;
   color: var(--admin-accent);
-  background: #e3f5f0;
+  background: var(--admin-accent-soft);
   border-radius: 11px;
 }
 
@@ -35,50 +35,50 @@
 
 .modal-card p {
   margin: 0 0 20px;
-  color: #71817c;
+  color: #63696f;
   font-size: 12px;
   line-height: 1.7;
 }
 
 html[data-ws-route="admin"][data-theme="dark"] .webrtc-port-fields {
-  background: #202f2c;
-  border-color: #30413d;
+  background: #26262a;
+  border-color: #333338;
 }
 
 html[data-ws-route="admin"][data-theme="dark"] .port-fields-heading small {
-  color: #9bb0aa;
+  color: #9a9aa2;
 }
 
 html[data-ws-route="admin"][data-theme="dark"] .port-inputs input:disabled {
-  color: #9bb0aa;
-  background: #263a35;
-  border-color: #3a514b;
+  color: #9a9aa2;
+  background: #26262a;
+  border-color: #333338;
 }
 
 html[data-ws-route="admin"][data-theme="dark"] .welcome-editor {
-  background: #202f2c;
-  border-color: #30413d;
+  background: #26262a;
+  border-color: #333338;
 }
 
 html[data-ws-route="admin"][data-theme="dark"] .welcome-editor select,
 html[data-ws-route="admin"][data-theme="dark"] .welcome-editor textarea {
-  color: #e8f3f0;
-  background: #172321;
-  border-color: #30413d;
+  color: #ededf0;
+  background: #1c1c1f;
+  border-color: #333338;
 }
 
 html[data-ws-route="admin"][data-theme="dark"] .welcome-editor-heading>small {
-  color: #9bb0aa;
+  color: #9a9aa2;
 }
 
 html[data-ws-route="admin"][data-theme="dark"] .modal-card {
-  color: #e8f3f0;
-  background: #172321;
-  border-color: #30413d;
+  color: #ededf0;
+  background: #1c1c1f;
+  border-color: #333338;
 }
 
 html[data-ws-route="admin"][data-theme="dark"] .modal-card p {
-  color: #9bb0aa;
+  color: #9a9aa2;
 }
 
 @media (max-width:520px) {

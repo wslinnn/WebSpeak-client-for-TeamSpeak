@@ -16,7 +16,7 @@
   overflow-y: auto;
   border-radius: 16px;
   background: var(--wsd-panel);
-  box-shadow: 0 18px 48px rgba(15, 32, 29, .28);
+  box-shadow: 0 18px 48px rgba(14, 16, 20, .28);
 }
 
 .favorite-server-header {
@@ -84,7 +84,7 @@
   background: color-mix(in srgb, var(--wsd-danger) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--wsd-danger) 30%, transparent);
   border-radius: 10px;
-  box-shadow: 0 8px 22px rgba(88, 40, 28, .14);
+  box-shadow: 0 8px 22px rgba(20, 16, 14, .14);
   font-size: 12px;
 }
 
@@ -129,7 +129,7 @@
   overflow: hidden;
   border-radius: 16px;
   background: var(--wsd-panel);
-  box-shadow: 0 20px 60px rgba(16,40,35,.2);
+  box-shadow: 0 20px 60px rgba(14,16,20,.2);
 }
 
 .settings-nav {
@@ -306,7 +306,6 @@
 
 .meter i.active {
   background: var(--wsd-accent-fill);
-  box-shadow: 0 0 7px color-mix(in srgb, var(--wsd-accent-fill) 45%, transparent);
   animation: meter 1s ease-in-out infinite alternate;
 }
 
@@ -396,9 +395,9 @@
   gap: 8px;
   padding: 11px 15px;
   color: #fff;
-  background: #263e39;
+  background: #24262b;
   border-radius: 9px;
-  box-shadow: 0 10px 24px rgba(16,48,42,.2);
+  box-shadow: 0 10px 24px rgba(14,16,20,.2);
   font-size: 11px;
   animation: toast-in .25s ease-out;
 }
@@ -406,8 +405,8 @@
 /* Warn tone: negative outcomes (failures, blocked permissions) must not share
  * the green checkmark styling of confirmations. */
 .toast.warn {
-  background: #63332d;
-  box-shadow: 0 10px 24px rgba(70,20,14,.28);
+  background: #5c312b;
+  box-shadow: 0 10px 24px rgba(20,14,13,.28);
 }
 
 .toast.warn .ui-icon {
@@ -422,7 +421,7 @@
   border: 1px solid var(--wsd-border);
   border-radius: 16px;
   background: var(--wsd-panel);
-  box-shadow: 0 20px 60px rgba(16,40,35,.22);
+  box-shadow: 0 20px 60px rgba(14,16,20,.22);
 }
 
 .channel-password-modal h2 {
@@ -552,27 +551,12 @@
   }
 }
 
-@keyframes join-accent-breathe {
-  0%,
-  100% {
-    text-shadow: 0 0 0 color-mix(in srgb, var(--wsd-accent) 0%, transparent);
-  }
-  50% {
-    text-shadow: 0 5px 18px color-mix(in srgb, var(--wsd-accent) 16%, transparent);
-  }
-}
-
 .join-page .join-header {
   animation: join-fade-up .55s cubic-bezier(.22, 1, .36, 1) both;
 }
 
 .join-page .join-copy h1 {
   animation: join-title-in .78s .16s cubic-bezier(.22, 1, .36, 1) both;
-}
-
-.join-page .join-copy h1 em {
-  display: inline-block;
-  animation: join-accent-breathe 5s 1.15s ease-in-out infinite;
 }
 
 .join-page .join-description {

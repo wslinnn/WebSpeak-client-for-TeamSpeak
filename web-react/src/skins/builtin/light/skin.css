@@ -1,18 +1,18 @@
 /* Built-in package: builtin.light. All rules stay inside the public client. */
 .ws-skin-root[data-ws-skin="builtin.light"] {
   color-scheme: light;
-  --ws-page-bg: #f7f9f8;
+  --ws-page-bg: #fafafa;
   --ws-surface-1: #fff;
-  --ws-surface-2: #f1f6f4;
-  --ws-text: #192120;
-  --ws-text-muted: #71807c;
-  /* Single-green brand (KAAK alignment): the legacy --ws-accent root adopts
-   * the workspace day accent so every unmigrated consumer shares one hue. */
-  --ws-accent: #4f9e0c;
-  --ws-success: var(--ws-accent);
-  --ws-warning: #c89143;
-  --ws-danger: #c95a54;
-  --ws-border: #e4ece9;
+  --ws-surface-2: #f4f4f5;
+  --ws-text: #1c1e21;
+  --ws-text-muted: #63696f;
+  /* Graphite × cobalt: neutral surfaces, one interactive hue. Success keeps
+   * its own green (status semantics), separate from the brand accent. */
+  --ws-accent: #2b5cd9;
+  --ws-success: #1e7a40;
+  --ws-warning: #8a5d0b;
+  --ws-danger: #bb3f38;
+  --ws-border: #e5e7eb;
   --surface-0: var(--ws-page-bg);
   --surface-1: var(--ws-surface-1);
   --surface-2: var(--ws-surface-2);
@@ -53,7 +53,7 @@
   color: var(--text-primary);
 }
 .ws-skin-root[data-ws-skin="builtin.light"] .room-hero {
-  background: linear-gradient(110deg, color-mix(in srgb, var(--skin-accent) 18%, var(--surface-1)), var(--surface-1) 75%);
+  background: linear-gradient(110deg, color-mix(in srgb, var(--text-primary) 3%, var(--surface-1)), var(--surface-1) 75%);
 }
 .ws-skin-root[data-ws-skin="builtin.light"] .settings-modal {
   box-shadow: 0 7px 18px color-mix(in srgb, var(--text-primary) 8%, transparent);

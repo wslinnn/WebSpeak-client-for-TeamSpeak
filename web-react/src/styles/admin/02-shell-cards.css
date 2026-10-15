@@ -9,8 +9,8 @@
   height: 100dvh;
   flex-direction: column;
   padding: 26px 18px;
-  background: #073f3b;
-  color: #eafffb;
+  background: #17171a;
+  color: #ededf0;
 }
 
 .admin-sidebar .admin-brand {
@@ -29,7 +29,7 @@
   align-items: center;
   gap: 10px;
   padding: 11px 12px;
-  color: #9fc8c2;
+  color: #b9babf;
   text-decoration: none;
   background: transparent;
   border: 0;
@@ -40,8 +40,8 @@
 }
 
 .admin-sidebar nav a.active {
-  color: #fff;
-  background: #0b5b54;
+  color: var(--admin-accent-contrast);
+  background: var(--admin-accent);
 }
 
 .sidebar-bottom {
@@ -59,7 +59,7 @@
   min-height: 82px;
   padding: 0 clamp(24px,4vw,58px);
   background: #fff;
-  border-bottom: 1px solid #e4ebe8;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .admin-topbar small,
@@ -69,7 +69,7 @@
 }
 
 .admin-topbar small {
-  color: #8b9995;
+  color: #8f939b;
   font-size: 10px;
   text-transform: uppercase;
 }
@@ -83,7 +83,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #66807a;
+  color: #63696f;
   font-size: 11px;
 }
 
@@ -119,7 +119,7 @@
 
 .page-heading p {
   margin: 7px 0 0;
-  color: #75857f;
+  color: #8f939b;
   font-size: 12px;
 }
 
@@ -134,7 +134,7 @@
 .overview-card {
   padding: 24px;
   background: #fff;
-  border: 1px solid #dfe8e5;
+  border: 1px solid #e5e7eb;
   border-radius: 14px;
 }
 
@@ -167,8 +167,8 @@
 .password-actions button {
   height: 42px;
   padding: 0 10px;
-  color: #55706a;
-  background: #eef4f2;
+  color: #63696f;
+  background: #f4f4f5;
   border: 0;
   border-radius: 8px;
   font-size: 10px;
@@ -177,8 +177,8 @@
 }
 
 .password-actions button.active {
-  color: #fff;
-  background: #16877d;
+  color: var(--admin-accent-contrast);
+  background: var(--admin-accent);
 }
 
 .password-actions button.danger {
@@ -197,13 +197,13 @@
 .readonly-card dl div,
 .overview-card dl div {
   padding: 13px;
-  background: #f6f9f8;
+  background: #f4f4f5;
   border-radius: 9px;
 }
 
 .readonly-card dt,
 .overview-card dt {
-  color: #85948f;
+  color: #8f939b;
   font-size: 10px;
 }
 
@@ -222,7 +222,7 @@
 }
 
 .import-notice button {
-  color: #08776e;
+  color: var(--admin-accent);
   background: transparent;
   border: 0;
   font-weight: 800;
@@ -234,13 +234,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 30px;
-  color: #f2fced;
-  background: linear-gradient(135deg,#2f6f0a,#4f9e0c);
+  color: var(--admin-accent-contrast);
+  background: var(--admin-accent);
   border-radius: 16px;
 }
 
 .hero-status small {
-  color: #80d8cc;
+  color: color-mix(in srgb, var(--admin-accent-contrast) 72%, transparent);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: .1em;
@@ -286,7 +286,7 @@
   position: relative;
   padding: 21px;
   background: #fff;
-  border: 1px solid #dfe8e5;
+  border: 1px solid #e5e7eb;
   border-radius: 13px;
 }
 
@@ -299,7 +299,7 @@
   width: 35px;
   height: 35px;
   color: var(--admin-accent);
-  background: #e9f5f2;
+  background: var(--admin-accent-soft);
   border-radius: 9px;
 }
 
@@ -310,7 +310,7 @@
 }
 
 .metric-grid small {
-  color: #82908c;
+  color: #8f939b;
   font-size: 10px;
 }
 
@@ -325,7 +325,7 @@
 
 .metric-grid em {
   margin-top: 7px;
-  color: #71817c;
+  color: #63696f;
   font-size: 10px;
   font-style: normal;
 }
@@ -367,7 +367,7 @@
 .overview-card dd i {
   width: 7px;
   height: 7px;
-  background: #aab5b2;
+  background: #9a9ea6;
   border-radius: 50%;
 }
 
@@ -392,7 +392,7 @@
   align-items: center;
   gap: 10px;
   padding: 10px;
-  background: #f6f9f8;
+  background: #f4f4f5;
   border-radius: 9px;
 }
 
@@ -402,7 +402,7 @@
   width: 27px;
   height: 27px;
   color: var(--admin-accent);
-  background: #dff1ed;
+  background: var(--admin-accent-soft);
   border-radius: 8px;
 }
 
@@ -417,13 +417,13 @@
 
 .event-list small {
   margin-top: 3px;
-  color: #879590;
+  color: #8f939b;
   font-size: 9px;
 }
 
 .event-list .empty-event {
   display: block;
-  color: #82908c;
+  color: #8f939b;
   text-align: center;
 }
 

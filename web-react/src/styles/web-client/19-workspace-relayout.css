@@ -368,15 +368,15 @@
     width: 36px;
     height: 36px;
     padding: 0;
-    color: #102016;
+    color: var(--wsd-accent-contrast);
     background: var(--wsd-accent-fill);
     border-radius: 9px;
-    box-shadow: 0 5px 14px color-mix(in srgb, var(--wsd-accent-fill) 32%, transparent);
+    box-shadow: 0 5px 14px rgba(16, 18, 22, .16);
   }
 
   .chat-reopen:hover,
   .chat-reopen:focus-visible {
-    color: #102016;
+    color: var(--wsd-accent-contrast);
     background: var(--wsd-accent-fill-hover);
   }
 
@@ -938,7 +938,7 @@
   }
 
   .app-shell > .chat-panel .send-button {
-    color: #142010;
+    color: var(--wsd-accent-contrast);
     background: var(--wsd-accent-fill);
   }
 

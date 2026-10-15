@@ -115,12 +115,12 @@ html[data-ws-route="webclient"] body {
 .member-panel {
   grid-column: 2;
   grid-row: 2;
-  border-right: 1px solid #eef2f0;
+  border-right: 1px solid #ececef;
   border-left: 0;
 }
 
 .voice-avatar.speaking {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wsd-accent) 55%, transparent), 0 0 14px color-mix(in srgb, var(--wsd-accent) 35%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wsd-accent) 55%, transparent);
 }
 
 .chat-panel {
@@ -150,7 +150,7 @@ html[data-ws-route="webclient"] body {
     grid-column: 1 / -1;
     grid-row: 3;
     display: flex;
-    border-top: 1px solid #eef2f0;
+    border-top: 1px solid #ececef;
     border-right: 0;
     padding: 16px 18px;
   }
@@ -518,7 +518,7 @@ html[data-ws-route="webclient"] body {
 
 .settings-hint {
   margin: -1px 0 19px;
-  color: #8b9994;
+  color: #8f939b;
   font-size: 11px;
 }
 
@@ -882,7 +882,7 @@ html[data-ws-route="webclient"] body {
   height: 7px;
   margin: 7px 0 17px;
   overflow: hidden;
-  background: #e8efec;
+  background: #ececef;
   border-radius: 999px;
 }
 

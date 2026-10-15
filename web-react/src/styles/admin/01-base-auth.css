@@ -24,8 +24,8 @@ html[data-ws-route="admin"] * {
 
 html[data-ws-route="admin"] body {
   margin: 0;
-  color: #20302c;
-  background: #f4f8f6;
+  color: #1c1e21;
+  background: #fafafa;
 }
 
 .admin-root {
@@ -43,8 +43,8 @@ html[data-ws-route="admin"] body {
   place-items: center;
   width: 42px;
   height: 42px;
-  color: #fff;
-  background: #07877d;
+  color: var(--admin-accent-contrast);
+  background: var(--admin-accent);
   border-radius: 12px;
   box-shadow: 0 8px 22px rgba(0,0,0,.15);
 }
@@ -61,7 +61,7 @@ html[data-ws-route="admin"] body {
 
 .admin-brand small {
   margin-top: 3px;
-  color: #9bc9c2;
+  color: #9a9aa2;
   font-size: 11px;
 }
 
@@ -72,15 +72,15 @@ html[data-ws-route="admin"] body {
 }
 
 .step-list button.done {
-  color: #8ee4d7;
+  color: #4cc27a;
 }
 
 .panel-tools button,
 .language-link,
 .admin-topbar button {
-  color: #08766e;
-  background: #e4f3ef;
-  border: 1px solid #cae7e0;
+  color: var(--admin-accent);
+  background: var(--admin-accent-soft);
+  border: 1px solid var(--admin-border);
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 11px;
@@ -93,7 +93,7 @@ html[data-ws-route="admin"] body {
   width: min(560px,100%);
   padding: 36px;
   background: #fff;
-  border: 1px solid #dfeae6;
+  border: 1px solid #e5e7eb;
   border-radius: 20px;
   box-shadow: 0 20px 55px rgba(27,69,61,.09);
 }
@@ -108,7 +108,7 @@ html[data-ws-route="admin"] body {
 .setup-card header p,
 .login-card header p {
   margin: 0;
-  color: #71817c;
+  color: #63696f;
   font-size: 13px;
   line-height: 1.6;
 }
@@ -124,13 +124,13 @@ label>span,
 fieldset legend {
   display: block;
   margin-bottom: 7px;
-  color: #40514c;
+  color: #3f424a;
   font-size: 12px;
   font-weight: 700;
 }
 
 label em {
-  color: #91a09c;
+  color: #9099a1;
   font-size: 10px;
   font-style: normal;
   font-weight: 500;
@@ -139,7 +139,7 @@ label em {
 label small {
   display: block;
   margin-top: 6px;
-  color: #899792;
+  color: #8f939b;
   font-size: 10px;
   line-height: 1.5;
 }
@@ -148,9 +148,9 @@ input,
 textarea {
   width: 100%;
   padding: 11px 12px;
-  color: #22332f;
-  background: #fbfdfc;
-  border: 1px solid #dbe7e3;
+  color: #1c1e21;
+  background: #fafafa;
+  border: 1px solid #e5e7eb;
   border-radius: 9px;
   font: inherit;
   font-size: 13px;
@@ -163,8 +163,8 @@ input {
 
 input:focus,
 textarea:focus {
-  border-color: #54bdb2;
-  box-shadow: 0 0 0 3px rgba(84,189,178,.13);
+  border-color: var(--admin-accent);
+  box-shadow: 0 0 0 3px rgba(43,92,217,.13);
 }
 
 textarea {
@@ -174,14 +174,14 @@ textarea {
 .strength {
   height: 4px;
   overflow: hidden;
-  background: #e7eeeb;
+  background: #e5e7eb;
   border-radius: 4px;
 }
 
 .strength i {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg,#e7a452,#50c5a2);
+  background: var(--admin-accent);
   transition: .2s;
 }
 
@@ -198,14 +198,14 @@ fieldset {
   align-items: flex-start;
   gap: 10px;
   padding: 13px;
-  border: 1px solid #dfe9e6;
+  border: 1px solid #e5e7eb;
   border-radius: 10px;
   cursor: pointer;
 }
 
 .choice:has(input:checked) {
-  border-color: #62bfb5;
-  background: #eff8f6;
+  border-color: var(--admin-accent);
+  background: var(--admin-accent-soft);
 }
 
 .choice input {
@@ -226,7 +226,7 @@ fieldset {
 
 .choice small {
   margin-top: 4px;
-  color: #7b8985;
+  color: #8f939b;
   font-size: 10px;
   line-height: 1.45;
 }
@@ -263,13 +263,13 @@ fieldset {
 }
 
 .secondary-button {
-  color: #08776e;
-  background: #eaf6f3;
-  border: 1px solid #cfe9e3;
+  color: var(--admin-accent);
+  background: var(--admin-accent-soft);
+  border: 1px solid var(--admin-border);
 }
 
 .text-button {
-  color: #687a74;
+  color: #63696f;
   background: transparent;
 }
 
@@ -314,9 +314,9 @@ fieldset {
 }
 
 .alert.info {
-  color: #23665f;
-  background: #eaf7f3;
-  border: 1px solid #cde9e2;
+  color: var(--admin-muted);
+  background: var(--admin-raised);
+  border: 1px solid var(--admin-border);
 }
 
 .test-result {
@@ -355,7 +355,7 @@ fieldset {
   min-height: 100dvh;
   place-items: center;
   padding: 25px;
-  background: radial-gradient(circle at 50% 10%,rgba(95,211,191,.2),transparent 30rem),#f4f8f6;
+  background: radial-gradient(circle at 50% 10%,rgba(95,211,191,.2),transparent 30rem),#fafafa;
 }
 
 .login-card {
@@ -385,7 +385,7 @@ fieldset {
   display: grid;
   place-content: center;
   justify-items: center;
-  color: #60746e;
+  color: #63696f;
 }
 
 /* Same exemption net the public client carries (04-room): decorative

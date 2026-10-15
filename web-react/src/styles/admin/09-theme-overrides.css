@@ -1,42 +1,45 @@
 /* One palette is shared by explicit dark mode and system dark mode. */
 
 .admin-root {
-  --admin-page: #f4f8f6;
+  --admin-page: #fafafa;
   --admin-surface: #fff;
-  --admin-raised: #f6f9f8;
+  --admin-raised: #f4f4f5;
   --admin-field: #fff;
-  --admin-text: #20302c;
-  --admin-muted: #657873;
-  --admin-border: #dfe8e5;
-  --admin-accent: #4f9e0c;
-  --admin-accent-soft: #eef6db;
+  --admin-text: #1c1e21;
+  --admin-muted: #63696f;
+  --admin-border: #e5e7eb;
+  --admin-accent: #2b5cd9;
+  --admin-accent-contrast: #ffffff;
+  --admin-accent-soft: rgba(43, 92, 217, .10);
   color: var(--admin-text);
   background: var(--admin-page);
 }
 
 html[data-ws-route="admin"][data-theme="dark"] .admin-root {
-  --admin-page: #101918;
-  --admin-surface: #172321;
-  --admin-raised: #202f2c;
-  --admin-field: #111d1b;
-  --admin-text: #e8f3f0;
-  --admin-muted: #b6c8c2;
-  --admin-border: #3a514b;
-  --admin-accent: #6cbf00;
-  --admin-accent-soft: rgba(108, 191, 0, .18);
+  --admin-page: #131316;
+  --admin-surface: #1c1c1f;
+  --admin-raised: #26262a;
+  --admin-field: #17171a;
+  --admin-text: #ededf0;
+  --admin-muted: #9a9aa2;
+  --admin-border: #333338;
+  --admin-accent: #7d96f2;
+  --admin-accent-contrast: #101318;
+  --admin-accent-soft: rgba(125, 150, 242, .16);
 }
 
 @media (prefers-color-scheme:dark) {
   html[data-ws-route="admin"][data-theme="system"] .admin-root {
-    --admin-page: #101918;
-    --admin-surface: #172321;
-    --admin-raised: #202f2c;
-    --admin-field: #111d1b;
-    --admin-text: #e8f3f0;
-    --admin-muted: #b6c8c2;
-    --admin-border: #3a514b;
-    --admin-accent: #6cbf00;
-    --admin-accent-soft: rgba(108, 191, 0, .18);
+    --admin-page: #131316;
+    --admin-surface: #1c1c1f;
+    --admin-raised: #26262a;
+    --admin-field: #17171a;
+    --admin-text: #ededf0;
+    --admin-muted: #9a9aa2;
+    --admin-border: #333338;
+    --admin-accent: #7d96f2;
+    --admin-accent-contrast: #101318;
+    --admin-accent-soft: rgba(125, 150, 242, .16);
   }
 }
 
@@ -180,7 +183,7 @@ html[data-ws-route="admin"][data-theme="dark"] .admin-root {
 
 .admin-root .password-actions button.active,
 .admin-root .primary-button {
-  color: #fff;
+  color: var(--admin-accent-contrast);
   background: var(--admin-accent);
 }
 
@@ -212,11 +215,11 @@ html[data-ws-route="admin"][data-theme="dark"] .admin-root {
 }
 
 .admin-root .admin-sidebar nav a {
-  color: #c2d8d3;
+  color: #b9babf;
 }
 
 .admin-root .admin-sidebar nav a.active {
-  color: #eafffb;
-  background: #0d615a;
+  color: #ededf0;
+  background: var(--admin-accent);
 }
 

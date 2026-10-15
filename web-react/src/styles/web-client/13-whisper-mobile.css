@@ -44,7 +44,7 @@
   gap: 7px;
   min-height: 36px;
   padding: 0 12px;
-  color: #fff;
+  color: var(--wsd-accent-contrast);
   background: var(--wsd-accent-fill);
   border-radius: 8px;
   font-size: 12px;
@@ -387,7 +387,7 @@ html[data-ws-route="webclient"] #app {
   min-height: 38px;
   flex: 0 0 auto;
   padding: 0 12px;
-  color: #fff;
+  color: var(--wsd-accent-contrast);
   background: var(--wsd-accent-fill);
   border-radius: 8px;
   font-size: 12px;
