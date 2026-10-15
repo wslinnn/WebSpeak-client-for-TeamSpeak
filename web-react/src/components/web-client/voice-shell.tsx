@@ -16,10 +16,11 @@ import { VoiceBanners } from "./voice-banners";
 import { VoiceMobileMore } from "./voice-mobile-more";
 import { VoicePerformancePanel } from "./voice-performance-panel";
 import { VoiceWorkspace } from "./voice-workspace";
+import { selectVoiceShellView } from "./voice-shell-view";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
 import { useI18n } from "@/hooks/use-i18n";
 import { useStoreOfSpeaking } from "@/hooks/useVoiceSession";
-import type { VoiceSessionController, VoiceSessionView } from "@/voice/session-controller";
+import type { VoiceSessionController } from "@/voice/session-controller";
 import { buildChannelTree, deriveMemberChannels, ensureSelectedChannelId, filterMemberChannels, findCurrentChannel, type TreeChannel } from "@/web-client/channel-tree";
 import { createLongPressContextMenu } from "@/services/long-press-context-menu";
 import { rangeStyle } from "@/web-client/view-utils";
@@ -65,6 +66,9 @@ interface VoiceShellProps {
   onVolumeInput(clientId: number, value: number): void;
   skinSwitcher: SkinSwitcherState;
   t(key: string, variables?: Record<string, string | number>): string;
+  localizedMessage(message: string): string;
+  localizedAudioNotice(code: string, message: string): string;
+  localizedMicrophoneError(code: string, message: string): string;
   showToast(message: string, tone?: "info" | "warn"): void;
 }
 
@@ -171,6 +175,12 @@ export function VoiceShell(props: VoiceShellProps) {
         reconnectFailed={voiceView.reconnectFailed}
         reconnectAttempt={voiceView.reconnectAttempt}
         error={voiceView.error}
+        audioNotice={voiceView.audioNotice}
+        audioNoticeCode={voiceView.audioNoticeCode}
+        onClearAudioNotice={voice.clearAudioNotice}
+        microphoneError={voiceView.microphoneError}
+        microphoneErrorCode={voiceView.microphoneErrorCode}
+        onClearMicrophoneError={voice.clearMicrophoneError}
         pokes={session.pokeNotifications}
         switchPending={switchState.pending}
         switchFailed={switchState.failed}
@@ -178,6 +188,9 @@ export function VoiceShell(props: VoiceShellProps) {
         onReconnect={props.onReconnect}
         onLeave={props.onLeave}
         t={t}
+        localizedMessage={props.localizedMessage}
+        localizedAudioNotice={props.localizedAudioNotice}
+        localizedMicrophoneError={props.localizedMicrophoneError}
       />
 
       {/* 移动端服务器条：壳级 chrome，页签切换藏不住。 */}
@@ -273,6 +286,8 @@ export function VoiceShell(props: VoiceShellProps) {
         language={props.language}
         onChatListElement={props.onChatListElement}
         onCollapseChat={() => setChatCollapsed(true)}
+        chatCollapsed={chatCollapsed}
+        onReopenChat={() => setChatCollapsed(false)}
         onLeave={props.onLeave}
         onMemberActions={(member) => membersController.openMemberActions(member)}
         whisperTargets={currentMembers.filter((member) => voiceView.whisperTargetIds.has(member.id))}
@@ -281,7 +296,6 @@ export function VoiceShell(props: VoiceShellProps) {
         onClearWhisperTargets={() => membersController.clearWhisperTargets()}
         t={t}
       />
-
       {chatColumnActive && (
         <ChatPanel
           chat={chat}
@@ -410,30 +424,4 @@ export function VoiceShell(props: VoiceShellProps) {
     membersController.closeMemberMenu();
     props.onMobileSectionChange(section);
   }
-}
-
-/** 壳层语音视图切片：刻意不含 micLevel（20–50Hz 写，只订在 AudioDock 与
- *  设置弹窗自身）；字段集合即 VoiceShell 渲染实际消费面，新增消费须登记。 */
-function selectVoiceShellView(view: VoiceSessionView) {
-  return {
-    tsClientId: view.tsClientId,
-    connecting: view.connecting,
-    reconnecting: view.reconnecting,
-    reconnectFailed: view.reconnectFailed,
-    reconnectAttempt: view.reconnectAttempt,
-    error: view.error,
-    serverName: view.serverName,
-    serverWelcomeMessage: view.serverWelcomeMessage,
-    volumes: view.volumes,
-    whisperTargetIds: view.whisperTargetIds,
-    whisperActive: view.whisperActive,
-    microphoneMuted: view.microphoneMuted,
-    inputVolume: view.inputVolume,
-    outputVolume: view.outputVolume,
-    outputMuted: view.outputMuted,
-    noiseSuppressionEnabled: view.noiseSuppressionEnabled,
-    echoCancellationEnabled: view.echoCancellationEnabled,
-    autoGainControlEnabled: view.autoGainControlEnabled,
-    accompanimentActive: view.accompanimentActive,
-  };
 }

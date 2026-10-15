@@ -39,6 +39,8 @@ interface VoiceWorkspaceProps {
   language: Language;
   onChatListElement(element: ChatScrollerAspect | null): void;
   onCollapseChat(): void;
+  chatCollapsed: boolean;
+  onReopenChat(): void;
   onLeave(): void;
   onMemberActions(member: ChannelMember): void;
   t(key: string, variables?: Record<string, string | number>): string;
@@ -72,7 +74,18 @@ export function VoiceWorkspace(props: VoiceWorkspaceProps) {
             <strong>{currentChannelName}</strong>
           </div>
         )}
-        <div className="workspace-actions" data-ws-part="voice.header-actions" />
+        <div className="workspace-actions" data-ws-part="voice.header-actions">
+          {chatColumnActive && props.chatCollapsed && (
+            <button
+              type="button"
+              className="header-action chat-reopen"
+              data-ws-part="voice.chat.reopen"
+              title={t("openChat")}
+              aria-label={t("openChat")}
+              onClick={props.onReopenChat}
+            ><Icon name="message" size={17} /></button>
+          )}
+        </div>
       </header>
 
       {screenShare.settingsOpen && (

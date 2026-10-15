@@ -56,7 +56,7 @@ function WebClientRoot() {
   const { language, setLanguage } = useI18n();
   // 语言包异步加载（模块级单例 import）：就绪前渲染 null，与路由 chunk 加载窗口重合。
   const messages = useWebClientMessages();
-  const { t: translate, localizedMessage, localizedMicrophoneError, visibleErrorCode } = messages ?? pendingWebClientMessages;
+  const { t: translate, localizedMessage, localizedAudioNotice, localizedMicrophoneError, visibleErrorCode } = messages ?? pendingWebClientMessages;
   const { store, home, publicConfig, favorites, identity, connection, showToast } = useWebClientControllers();
   const config = useStore(publicConfig.store);
 
@@ -224,6 +224,7 @@ function WebClientRoot() {
     const joinIntentParams = new URLSearchParams(window.location.search);
     if (["server", "tsHost", "target"].some((key) => joinIntentParams.has(key))) clearVoiceSessionIntent();
     else voice.tryResumeVoiceSession();
+    void voice.watchMicrophonePermission();
     void publicConfig.loadPublicConfig();
     void identity.restore(async () => {
       const stored = await loadStoredIdentity();
@@ -353,6 +354,9 @@ function WebClientRoot() {
           onOpenAudioSettings={() => setSettingsOpen(true)}
           onVolumeInput={(clientId, value) => voice.setVolume(clientId, value)}
           t={t}
+          localizedMessage={localizedMessage}
+          localizedAudioNotice={localizedAudioNotice}
+          localizedMicrophoneError={localizedMicrophoneError}
           showToast={showToast}
         />
       )}

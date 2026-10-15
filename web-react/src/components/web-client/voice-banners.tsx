@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "./icon";
+import { VoiceDegradedBanners } from "./voice-degraded-banners";
 import type { PokeNotification } from "@/voice/session-state";
 
 interface VoiceBannersProps {
@@ -8,6 +9,12 @@ interface VoiceBannersProps {
   reconnectFailed: boolean;
   reconnectAttempt: number;
   error: string;
+  audioNotice: string;
+  audioNoticeCode: string;
+  onClearAudioNotice(): void;
+  microphoneError: string;
+  microphoneErrorCode: string;
+  onClearMicrophoneError(): void;
   pokes: readonly PokeNotification[];
   switchPending: string | null;
   switchFailed: string | null;
@@ -15,6 +22,9 @@ interface VoiceBannersProps {
   onReconnect(): void;
   onLeave(): void;
   t(key: string, variables?: Record<string, string | number>): string;
+  localizedMessage(message: string): string;
+  localizedAudioNotice(code: string, message: string): string;
+  localizedMicrophoneError(code: string, message: string): string;
 }
 
 const POKE_VISIBLE_MS = 9_000;
@@ -73,6 +83,17 @@ export function VoiceBanners(props: VoiceBannersProps) {
           </div>
         </div>
       )}
+      <VoiceDegradedBanners
+        audioNotice={props.audioNotice}
+        audioNoticeCode={props.audioNoticeCode}
+        onClearAudioNotice={props.onClearAudioNotice}
+        microphoneError={props.microphoneError}
+        microphoneErrorCode={props.microphoneErrorCode}
+        onClearMicrophoneError={props.onClearMicrophoneError}
+        t={t}
+        localizedAudioNotice={props.localizedAudioNotice}
+        localizedMicrophoneError={props.localizedMicrophoneError}
+      />
       {switchPending && (
         <div className="favorite-switch-banner" data-ws-part="voice.favorite-switch-banner" role="status" aria-live="polite">
           <div className="reconnect-copy"><strong>{t("switchingToServer", { name: switchPending })}</strong></div>
@@ -80,7 +101,10 @@ export function VoiceBanners(props: VoiceBannersProps) {
       )}
       {switchFailed && (
         <div className="favorite-switch-banner" data-ws-part="voice.favorite-switch-banner" role="status" aria-live="polite">
-          <div className="reconnect-copy"><strong>{t("switchToServerFailed", { name: switchFailed })}</strong></div>
+          <div className="reconnect-copy">
+            <strong>{t("switchToServerFailed", { name: switchFailed })}</strong>
+            {props.error && <span>{props.localizedMessage(props.error)}</span>}
+          </div>
           <div className="reconnect-actions">
             <button type="button" className="secondary-button" onClick={props.onLeave}>{t("back")}</button>
           </div>
