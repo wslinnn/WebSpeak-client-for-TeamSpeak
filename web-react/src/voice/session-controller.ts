@@ -249,6 +249,9 @@ export function createVoiceSessionController() {
   // WebSocket path remains the compatibility fallback for older browsers and
   // for deployments where the gateway's built-in UDP media range is unavailable.
   let audioCtx: SinkAudioContext | null = null;
+  // document 级 visibilitychange 恢复句柄：随 context 创建、随 close 摘除——
+  // 不摘会在每次断开→重连循环里累积一个监听器。
+  let resumeAudioCtx: (() => void) | null = null;
   let micStream: MediaStream | null = null;
   const microphoneCaptureFactory = createMicrophoneCaptureFactory();
   let microphoneCapture: MicrophoneCapture | null = null;
@@ -511,12 +514,12 @@ export function createVoiceSessionController() {
       // A suspended context silently starves the uplink graph and playback;
       // keep the shared context alive across lifecycle events (same failure
       // class Newt-Desktop documents for its destination-node uplink).
-      const resumeAudioCtx = (): void => {
+      resumeAudioCtx = (): void => {
         if (audioCtx && audioCtx.state === "suspended") void audioCtx.resume().catch(() => undefined);
       };
       audioCtx.addEventListener("statechange", () => {
         if (audioCtx) patch({ audioContextState: audioCtx.state });
-        resumeAudioCtx();
+        resumeAudioCtx?.();
       });
       document.addEventListener("visibilitychange", resumeAudioCtx);
       const supported = typeof audioCtx.setSinkId === "function"
@@ -914,6 +917,8 @@ export function createVoiceSessionController() {
     webrtc.releaseInput();
     micStream = null;
     if (closeContext) {
+      if (resumeAudioCtx) document.removeEventListener("visibilitychange", resumeAudioCtx);
+      resumeAudioCtx = null;
       void audioCtx?.close().catch(() => undefined);
       audioCtx = null;
     }
