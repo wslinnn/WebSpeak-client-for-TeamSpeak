@@ -15,6 +15,10 @@ import {
   type AndroidRelease,
 } from "@/services/android-release";
 
+// header-note/tiny-dot/language-switcher 是 web-client 样式家族的类，本路由必须
+// 自己带上聚合样式（与 views/web-client.tsx 同一份；路由级 css 不串 admin）。
+import "../styles/web-client.css";
+
 type ReleaseState =
   | { status: "loading" }
   | { status: "ready"; release: AndroidRelease }

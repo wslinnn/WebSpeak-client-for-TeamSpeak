@@ -6,7 +6,11 @@
  * --surface-* tokens stay untouched for areas that have not migrated yet.
  */
 
-.web-client {
+/* Token scope: the workspace (.web-client) and the download route
+ * (.download-page reuses header-note/tiny-dot/language-switcher) share the
+ * language; day values are the default, night flips under the dark skin. */
+.web-client,
+.download-page {
   --wsd-bg: #eef1f2;
   --wsd-rail: #e3e8ea;
   --wsd-panel: #ffffff;
@@ -34,7 +38,8 @@
   --wsd-font: "PingFang SC", "Microsoft YaHei New", 微软雅黑, "Microsoft Yahei", "Microsoft JhengHei", 宋体, SimSun, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-.web-client[data-ws-skin="builtin.dark"] {
+.web-client[data-ws-skin="builtin.dark"],
+.download-page[data-ws-skin="builtin.dark"] {
   --wsd-bg: #17181b;
   --wsd-rail: #141518;
   --wsd-panel: #1d1e22;
@@ -62,8 +67,10 @@
 }
 
 /* Scrollbar colors live here (moved out of the builtin skins with the
- * workspace re-theme); scrollbar-color inherits to every descendant. */
-.web-client {
+ * workspace re-theme); scrollbar-color inherits to every descendant.
+ * 下载页共享 token 作用域但刻意不吃 --wsd-font（保持 Geist）。 */
+.web-client,
+.download-page {
   scrollbar-color: var(--wsd-border) transparent;
 }
 
