@@ -59,43 +59,43 @@
 
 /* Theme all native scrollbars used by the admin surfaces. */
 
-:global(html[data-ws-route="admin"] *) {
+html[data-ws-route="admin"] * {
   scrollbar-color: #8fcfc7 transparent;
   scrollbar-width: thin;
 }
 
-:global(html[data-ws-route="admin"] *::-webkit-scrollbar) {
+html[data-ws-route="admin"] *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-:global(html[data-ws-route="admin"] *::-webkit-scrollbar-track) {
+html[data-ws-route="admin"] *::-webkit-scrollbar-track {
   background: transparent;
 }
 
-:global(html[data-ws-route="admin"] *::-webkit-scrollbar-thumb) {
+html[data-ws-route="admin"] *::-webkit-scrollbar-thumb {
   background: #a7d9d2;
   background-clip: padding-box;
   border: 2px solid transparent;
   border-radius: 999px;
 }
 
-:global(html[data-ws-route="admin"] *::-webkit-scrollbar-thumb:hover) {
+html[data-ws-route="admin"] *::-webkit-scrollbar-thumb:hover {
   background: #6bbab1;
   background-clip: padding-box;
   border-width: 1px;
 }
 
-:global(:root[data-ws-route="admin"][data-theme="dark"] *) {
+:root[data-ws-route="admin"][data-theme="dark"] * {
   scrollbar-color: #438f88 transparent;
 }
 
-:global(:root[data-ws-route="admin"][data-theme="dark"] *::-webkit-scrollbar-thumb) {
+:root[data-ws-route="admin"][data-theme="dark"] *::-webkit-scrollbar-thumb {
   background: #438f88;
   border-color: transparent;
 }
 
-:global(:root[data-ws-route="admin"][data-theme="dark"] *::-webkit-scrollbar-thumb:hover) {
+:root[data-ws-route="admin"][data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
   background: #69c7bc;
 }
 

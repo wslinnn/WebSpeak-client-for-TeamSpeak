@@ -18,13 +18,12 @@
   gap: 6px;
 }
 
-:global(html[data-ws-route="admin"] *) {
+html[data-ws-route="admin"] * {
   box-sizing: border-box;
 }
 
-:global(html[data-ws-route="admin"] body) {
+html[data-ws-route="admin"] body {
   margin: 0;
-  font-family: Inter,"Segoe UI","PingFang SC",sans-serif;
   color: #20302c;
   background: #f4f8f6;
 }

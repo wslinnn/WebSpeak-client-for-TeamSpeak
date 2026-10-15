@@ -22,9 +22,9 @@
 }
 
 @media (max-width:850px) {
-  :global(html[data-ws-route="admin"]),
-  :global(html[data-ws-route="admin"] body),
-  :global(html[data-ws-route="admin"] #app) {
+  html[data-ws-route="admin"],
+  html[data-ws-route="admin"] body,
+  html[data-ws-route="admin"] #root {
     height: auto;
     min-height: 100%;
     max-height: none;

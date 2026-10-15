@@ -264,36 +264,36 @@
   background: #fff0ee;
 }
 
-:global(html[data-ws-route="admin"][data-theme="dark"] .connection-row),
-:global(html[data-ws-route="admin"][data-theme="dark"] .connection-history-heading) {
+html[data-ws-route="admin"][data-theme="dark"] .connection-row,
+html[data-ws-route="admin"][data-theme="dark"] .connection-history-heading {
   color: #e8f3f0;
   background: #202f2c;
   border-color: #30413d;
 }
 
-:global(html[data-ws-route="admin"][data-theme="dark"] .operation-card),
-:global(html[data-ws-route="admin"][data-theme="dark"] .invite-row),
-:global(html[data-ws-route="admin"][data-theme="dark"] .diagnostic-list div),
-:global(html[data-ws-route="admin"][data-theme="dark"] .log-row) {
+html[data-ws-route="admin"][data-theme="dark"] .operation-card,
+html[data-ws-route="admin"][data-theme="dark"] .invite-row,
+html[data-ws-route="admin"][data-theme="dark"] .diagnostic-list div,
+html[data-ws-route="admin"][data-theme="dark"] .log-row {
   color: #e8f3f0;
   background: #202f2c;
   border-color: #30413d;
 }
 
-:global(html[data-ws-route="admin"][data-theme="dark"] .table-wrap) {
+html[data-ws-route="admin"][data-theme="dark"] .table-wrap {
   border-color: #30413d;
 }
 
-:global(html[data-ws-route="admin"][data-theme="dark"] .table-wrap th),
-:global(html[data-ws-route="admin"][data-theme="dark"] .table-wrap td),
-:global(html[data-ws-route="admin"][data-theme="dark"] .invite-list) {
+html[data-ws-route="admin"][data-theme="dark"] .table-wrap th,
+html[data-ws-route="admin"][data-theme="dark"] .table-wrap td,
+html[data-ws-route="admin"][data-theme="dark"] .invite-list {
   border-color: #30413d;
 }
 
-:global(html[data-ws-route="admin"][data-theme="dark"] .operation-card header p),
-:global(html[data-ws-route="admin"][data-theme="dark"] .table-wrap th),
-:global(html[data-ws-route="admin"][data-theme="dark"] .table-wrap td small),
-:global(html[data-ws-route="admin"][data-theme="dark"] .invite-row small) {
+html[data-ws-route="admin"][data-theme="dark"] .operation-card header p,
+html[data-ws-route="admin"][data-theme="dark"] .table-wrap th,
+html[data-ws-route="admin"][data-theme="dark"] .table-wrap td small,
+html[data-ws-route="admin"][data-theme="dark"] .invite-row small {
   color: #9bb0aa;
 }
 

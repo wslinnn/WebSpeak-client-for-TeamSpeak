@@ -76,9 +76,9 @@
 /* Admin layout contract: the desktop shell stays in the viewport, the main
    content is the only page-level scroller, and cards size to their content. */
 
-:global(html[data-ws-route="admin"]),
-:global(html[data-ws-route="admin"] body),
-:global(html[data-ws-route="admin"] #app) {
+html[data-ws-route="admin"],
+html[data-ws-route="admin"] body,
+html[data-ws-route="admin"] #root {
   width: 100%;
   height: 100dvh;
   min-height: 0;

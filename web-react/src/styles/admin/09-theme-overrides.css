@@ -14,7 +14,7 @@
   background: var(--admin-page);
 }
 
-:global(html[data-ws-route="admin"][data-theme="dark"] .admin-root) {
+html[data-ws-route="admin"][data-theme="dark"] .admin-root {
   --admin-page: #101918;
   --admin-surface: #172321;
   --admin-raised: #202f2c;
@@ -27,7 +27,7 @@
 }
 
 @media (prefers-color-scheme:dark) {
-  :global(html[data-ws-route="admin"][data-theme="system"] .admin-root) {
+  html[data-ws-route="admin"][data-theme="system"] .admin-root {
     --admin-page: #101918;
     --admin-surface: #172321;
     --admin-raised: #202f2c;

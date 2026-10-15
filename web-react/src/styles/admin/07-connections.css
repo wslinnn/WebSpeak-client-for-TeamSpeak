@@ -202,12 +202,12 @@
    2K viewport becomes a 1920px-tall admin shell and clips its lower cards. */
 
 @media (min-width:851px) {
-  :global(html[data-ws-route="admin"]),
-  :global(html[data-ws-route="admin"] body) {
+  html[data-ws-route="admin"],
+  html[data-ws-route="admin"] body {
     height: 100dvh;
     max-height: 100dvh;
   }
-  :global(html[data-ws-route="admin"] #app),
+  html[data-ws-route="admin"] #root,
   .admin-root,
   .admin-shell,
   .admin-sidebar {
