@@ -93,7 +93,7 @@ export default function DownloadView() {
       <div className="mx-auto grid max-w-[1060px] grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4">
         <section className="flex flex-col gap-3 rounded-2xl border bg-card p-5" data-ws-part="download.card">
           <div className="flex items-center gap-2.5" data-ws-part="download.card.head">
-            <span className="flex size-[34px] items-center justify-center rounded-[10px] bg-primary/10 text-primary">
+            <span className="flex size-[34px] items-center justify-center rounded-lg bg-primary/10 text-primary">
               <DownloadIcon size={20} aria-hidden="true" />
             </span>
             <h2 className="m-0 text-lg">{t("downloadOfficialTitle")}</h2>
@@ -109,17 +109,17 @@ export default function DownloadView() {
 
         <section className="flex flex-col gap-3 rounded-2xl border bg-card p-5" data-ws-part="download.card">
           <div className="flex items-center gap-2.5" data-ws-part="download.card.head">
-            <span className="flex size-[34px] items-center justify-center rounded-[10px] bg-primary/10 text-primary">
+            <span className="flex size-[34px] items-center justify-center rounded-lg bg-primary/10 text-primary">
               <DownloadIcon size={20} aria-hidden="true" />
             </span>
             <h2 className="m-0 text-lg">{t("downloadAndroidTitle")}</h2>
           </div>
           <p className="m-0 text-base text-muted-foreground">{t("downloadAndroidDescription")}</p>
           {releaseState.status === "loading" ? (
-            <p className="m-0 rounded-[11px] border bg-muted/50 px-3.5 py-2.5 text-sm">{t("downloadLoading")}</p>
+            <p className="m-0 rounded-lg border bg-muted/50 px-3.5 py-2.5 text-sm">{t("downloadLoading")}</p>
           ) : release ? (
             <>
-              <dl className="m-0 grid gap-1.5 rounded-[11px] border bg-muted/50 px-3.5 py-2.5 text-sm" data-ws-part="download.card.meta">
+              <dl className="m-0 grid gap-1.5 rounded-lg border bg-muted/50 px-3.5 py-2.5 text-sm" data-ws-part="download.card.meta">
                 <div className="flex min-w-0 items-baseline gap-2.5">
                   <dt className="shrink-0 text-muted-foreground">{t("downloadVersion")}</dt>
                   <dd className="m-0 min-w-0 [overflow-wrap:anywhere]">{release.version}</dd>
@@ -148,7 +148,7 @@ export default function DownloadView() {
             </>
           ) : (
             <>
-              <p className="m-0 rounded-[11px] border bg-muted/50 px-3.5 py-2.5 text-sm">{t("downloadUnavailable")}</p>
+              <p className="m-0 rounded-lg border bg-muted/50 px-3.5 py-2.5 text-sm">{t("downloadUnavailable")}</p>
               <Button asChild variant="secondary" className="mt-auto">
                 <a href="https://github.com/wslinnn/TS6_Droid_CN/releases" target="_blank" rel="noopener noreferrer">
                   {t("downloadViewReleases")}
