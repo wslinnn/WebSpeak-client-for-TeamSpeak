@@ -11,7 +11,8 @@ import { RootDialogs } from "@/components/web-client/root-dialogs";
 import type { SkinOption } from "@/components/web-client/skin-switcher";
 import { VoiceShell } from "@/components/web-client/voice-shell";
 import { VoiceSessionProvider, useVoiceSession, useVoiceView } from "@/hooks/useVoiceSession";
-import { useI18n } from "@/hooks/use-i18n";
+import { useI18n, useWebClientMessages } from "@/hooks/use-i18n";
+import { pendingWebClientMessages } from "@/i18n/messages";
 import { BUILTIN_DARK_SKIN, BUILTIN_LIGHT_SKIN } from "@/services/skin-runtime";
 import { isPublicSkinEnabled } from "@/services/skin-catalog";
 import { resolveSkinHomeCopy, resolveSkinMessages } from "@/web-client/skin-copy";
@@ -52,8 +53,10 @@ const mobileClientFlagBox: { current: boolean } = { current: false };
 
 function WebClientRoot() {
   const voice = useVoiceSession();
-  const { language, messages, setLanguage } = useI18n();
-  const { t: translate, localizedMessage, localizedMicrophoneError, visibleErrorCode } = messages;
+  const { language, setLanguage } = useI18n();
+  // 语言包异步加载（模块级单例 import）：就绪前渲染 null，与路由 chunk 加载窗口重合。
+  const messages = useWebClientMessages();
+  const { t: translate, localizedMessage, localizedMicrophoneError, visibleErrorCode } = messages ?? pendingWebClientMessages;
   const { store, home, publicConfig, favorites, identity, connection, showToast } = useWebClientControllers();
   const config = useStore(publicConfig.store);
 
@@ -310,6 +313,9 @@ function WebClientRoot() {
   const voiceShellVisible = voiceView.connected || voiceView.reconnecting || voiceView.reconnectFailed
     || Boolean(switchState.pending || switchState.failed);
   const localizedWelcomeText = config.welcomeTexts[language] || t("joinDescription");
+
+  // 语言包就绪前不渲染任何用户可见文案（hook 已全部执行完，此处分支安全）。
+  if (!messages) return null;
 
   return (
     <div

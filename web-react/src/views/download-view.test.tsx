@@ -1,7 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { I18nProvider } from "@/components/app/i18n-provider";
+import { loadTranslations } from "@/hooks/use-i18n";
 import { createWebClientMessages } from "@/i18n/messages";
 
 import DownloadView from "./download-view";
@@ -14,6 +15,7 @@ function stubFetch(payload: unknown, ok = true): ReturnType<typeof vi.fn> {
   return fetchMock;
 }
 
+// 语言包为模块级单例动态 import（就绪前视图渲染 null）：断言一律等待式。
 function renderDownload() {
   localStorage.setItem("webspeak:language", "zh");
   return render(
@@ -23,6 +25,10 @@ function renderDownload() {
   );
 }
 
+// 语言包首动态 import 在 vitest 里是按需转译（秒级），先于测试计时器预热到
+// 进程单例：useWebClientMessages 的 effect 命中已解析 promise，微任务即渲染。
+beforeAll(async () => { await loadTranslations(); }, 30000);
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -30,9 +36,13 @@ afterEach(() => {
 });
 
 test("加载中显示获取文案，release 到达后渲染版本/大小/SHA 与 APK 动作", async () => {
-  stubFetch({ release: { version: "2.4.1", apkUrl: "/downloads/ts6droid.apk", apkSizeBytes: 1.5 * 1024 * 1024, apkSha256: "feedc0de" } });
+  // fetch 由测试手动放行：语言包加载窗口内视图渲染 null 且 effect 已跑，
+  // 只有压住 fetch 才能确定性地观察到 loading 态。
+  let releaseFetch!: (response: Response) => void;
+  vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>((resolve) => { releaseFetch = resolve; })));
   renderDownload();
-  expect(screen.getByText("正在获取版本信息…")).toBeInTheDocument();
+  expect(await screen.findByText("正在获取版本信息…")).toBeInTheDocument();
+  releaseFetch(new Response(JSON.stringify({ release: { version: "2.4.1", apkUrl: "/downloads/ts6droid.apk", apkSizeBytes: 1.5 * 1024 * 1024, apkSha256: "feedc0de" } }), { status: 200 }));
   expect(await screen.findByText("2.4.1")).toBeInTheDocument();
   expect(screen.getByText("1.5 MB")).toBeInTheDocument();
   expect(screen.getByText("feedc0de")).toBeInTheDocument();
@@ -86,7 +96,12 @@ test("语言切换经切换器持久化 webspeak:language 且界面即时换语"
 test("页面锚点：皮肤根 + data-ws-page=download + 挂载后钉内置皮肤", async () => {
   stubFetch({ release: null });
   const { container } = renderDownload();
-  const root = container.querySelector(".download-page");
+  // 语言包加载窗口内视图渲染 null：等根出现再断言锚点。
+  const root = await waitFor(() => {
+    const element = container.querySelector(".download-page");
+    expect(element).not.toBeNull();
+    return element;
+  });
   expect(root?.getAttribute("data-ws-page")).toBe("download");
   expect(root?.classList.contains("ws-skin-root")).toBe(true);
   await waitFor(() => expect(root?.getAttribute("data-ws-skin")).toMatch(/^builtin\.(light|dark)$/));

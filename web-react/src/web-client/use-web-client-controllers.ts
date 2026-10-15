@@ -3,7 +3,7 @@ import { useStore } from "zustand";
 import { toast } from "sonner";
 
 import { useVoiceSession } from "@/hooks/useVoiceSession";
-import { useI18n } from "@/hooks/use-i18n";
+import { useWebClientMessages } from "@/hooks/use-i18n";
 import { saveLocalPreferences, saveStoredIdentity, removeStoredIdentity } from "@/services/local-persistence";
 import { combineTeamSpeakTarget } from "@/services/teamspeak-target";
 import { createHomeConnection } from "@/web-client/home-connection";
@@ -30,7 +30,7 @@ function showToast(message: string, tone: "info" | "warn" = "info"): void {
  *  进房可见复位身份操作、fixed 模式密码预填）。React 视图只消费返回值与渲染。 */
 export function useWebClientControllers() {
   const voice = useVoiceSession();
-  const { messages } = useI18n();
+  const messages = useWebClientMessages();
 
   const store = useMemo(() => {
     const created = createHomeStore();

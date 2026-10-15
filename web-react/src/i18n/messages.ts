@@ -389,3 +389,15 @@ function visibleErrorCode(code: string): string {
   return { t, localizedMessage, localizedAudioNotice, localizedMicrophoneError, visibleErrorCode };
 
 }
+
+export type WebClientMessages = ReturnType<typeof createWebClientMessages>;
+
+/** 语言包加载窗口的空转消息集：视图层在真消息就绪前渲染 null（见
+ *  useWebClientMessages），此桩只为让解构与 hook 顺序不分支。 */
+export const pendingWebClientMessages: WebClientMessages = {
+  t: (key) => key,
+  localizedMessage: (message) => message,
+  localizedAudioNotice: (message) => message,
+  localizedMicrophoneError: (_code, message) => message,
+  visibleErrorCode: (code) => code,
+};

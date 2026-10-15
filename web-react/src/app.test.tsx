@@ -1,9 +1,14 @@
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { AppRoutes } from "./App";
 import { I18nProvider } from "./components/app/i18n-provider";
+import { loadTranslations } from "@/hooks/use-i18n";
+
+// 语言包首动态 import 在 vitest 里是按需转译（秒级），先于测试计时器预热到
+// 进程单例：useWebClientMessages 的 effect 命中已解析 promise，微任务即渲染。
+beforeAll(async () => { await loadTranslations(); }, 30000);
 
 afterEach(() => {
   cleanup();

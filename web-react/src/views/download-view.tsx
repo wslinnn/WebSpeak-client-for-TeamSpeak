@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 
 import { LanguageSwitcher } from "@/components/web-client/language-switcher";
 import { Button } from "@/components/ui/button";
-import { useI18n } from "@/hooks/use-i18n";
+import { useI18n, useWebClientMessages } from "@/hooks/use-i18n";
+import { pendingWebClientMessages } from "@/i18n/messages";
 import { getWebClientSkinController } from "@/web-client/skin-controller";
 import { useStore } from "zustand";
 import { applyTheme, getStoredTheme } from "@/services/theme";
@@ -21,8 +22,10 @@ type ReleaseState =
 // SPEC §17：download 页布局（1060 容器、双卡 auto-fit、640 断点 header 折行）；
 // 视觉走 token 语义类，data-ws-part 钩子按契约重置登记（Phase 4-7 统一注册）。
 export default function DownloadView() {
-  const { messages, language, setLanguage } = useI18n();
-  const { t } = messages;
+  const { language, setLanguage } = useI18n();
+  // 语言包异步加载（模块级单例 import）：就绪前渲染 null，与路由 chunk 加载窗口重合。
+  const messages = useWebClientMessages();
+  const { t } = messages ?? pendingWebClientMessages;
   const [releaseState, setReleaseState] = useState<ReleaseState>({ status: "loading" });
   const [gatewayOnline, setGatewayOnline] = useState(false);
 
@@ -49,6 +52,8 @@ export default function DownloadView() {
   }, [skin]);
 
   const release = releaseState.status === "ready" ? releaseState.release : null;
+  // 语言包就绪前不渲染任何用户可见文案（hook 已全部执行完，此处分支安全）。
+  if (!messages) return null;
   return (
     <main data-ws-skin={skinView.activeSkinId} className="download-page ws-skin-root min-h-dvh bg-background px-[clamp(12px,3vw,44px)] pb-11 pt-[clamp(14px,2vw,30px)] text-foreground" data-ws-page="download">
       <header className="mx-auto flex max-w-[1060px] flex-wrap items-center justify-between gap-3.5 max-[640px]:flex-col max-[640px]:items-stretch" data-ws-part="download.header">
