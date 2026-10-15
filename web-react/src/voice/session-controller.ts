@@ -1073,9 +1073,11 @@ export function createVoiceSessionController() {
 
   function disconnect(preserveConnection = false): void {
     const keepRememberedIdentity = lastConnection?.rememberIdentity === true;
-    if (!preserveConnection) lastConnection = null;
+    if (!preserveConnection) {
+      lastConnection = null;
+      dropReconnectTicket();
+    }
     cancelBrowserReconnect();
-    dropReconnectTicket();
     voiceConnection.stop(() => releaseSessionResources(!preserveConnection));
     clearMicrophoneError();
     clearAudioNotice();

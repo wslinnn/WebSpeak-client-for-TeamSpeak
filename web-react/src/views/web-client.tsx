@@ -243,7 +243,10 @@ function WebClientRoot() {
     return () => {
       stopViewport();
       media.removeEventListener("change", onMedia);
-      voice.disconnect();
+      // preserveConnection：卸载（刷新/路由离开）必须保留恢复票——刷新后
+      // tryResumeVoiceSession 靠它领回 detached 的 TS 会话（Vue 时代靠
+      // onUnmounted 在卸载时从不运行才碰巧工作；React 的 effect 清理会跑）。
+      voice.disconnect(true);
       voice.dispose();
     };
     // 仅挂载语义：与旧 onMounted/onUnmounted 1:1。
