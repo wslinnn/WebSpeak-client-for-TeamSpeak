@@ -4,6 +4,7 @@
   --admin-page: #fafafa;
   --admin-surface: #fff;
   --admin-raised: #f4f4f5;
+  --admin-hover: #ebebee;
   --admin-field: #fff;
   --admin-text: #1c1e21;
   --admin-muted: #63696f;
@@ -19,6 +20,7 @@ html[data-ws-route="admin"][data-theme="dark"] .admin-root {
   --admin-page: #131316;
   --admin-surface: #1c1c1f;
   --admin-raised: #26262a;
+  --admin-hover: #2d2d32;
   --admin-field: #17171a;
   --admin-text: #ededf0;
   --admin-muted: #9a9aa2;
@@ -33,6 +35,7 @@ html[data-ws-route="admin"][data-theme="dark"] .admin-root {
     --admin-page: #131316;
     --admin-surface: #1c1c1f;
     --admin-raised: #26262a;
+    --admin-hover: #2d2d32;
     --admin-field: #17171a;
     --admin-text: #ededf0;
     --admin-muted: #9a9aa2;
@@ -177,8 +180,8 @@ html[data-ws-route="admin"][data-theme="dark"] .admin-root {
 }
 
 .admin-root .password-actions button {
-  color: var(--admin-accent);
-  background: var(--admin-accent-soft);
+  color: var(--admin-text);
+  background: var(--admin-raised);
 }
 
 .admin-root .password-actions button.active,
@@ -195,12 +198,14 @@ html[data-ws-route="admin"][data-theme="dark"] .admin-root {
   border-color: color-mix(in srgb,#d66d65 30%,var(--admin-border));
 }
 
+/* Secondary actions are neutral raised surfaces; accent stays on primary
+ * buttons, active/selected states and focus only. */
 .admin-root .secondary-button,
 .admin-root .admin-topbar button,
 .admin-root .admin-topbar .language-select,
 .admin-root .home-link {
-  color: var(--admin-accent);
-  background: var(--admin-accent-soft);
+  color: var(--admin-text);
+  background: var(--admin-raised);
   border-color: var(--admin-border);
 }
 

@@ -190,9 +190,9 @@ html[data-ws-route="webclient"] body {
   gap: 6px;
   min-height: 30px;
   padding: 0 10px;
-  color: var(--wsd-accent);
-  background: var(--wsd-accent-soft);
-  border: 1px solid color-mix(in srgb, var(--wsd-accent) 28%, transparent);
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
   border-radius: 8px;
   font-size: 12px;
   font-weight: 700;
@@ -201,9 +201,7 @@ html[data-ws-route="webclient"] body {
 }
 
 .guide-button:hover {
-  color: #fff;
-  background: var(--wsd-accent);
-  border-color: var(--wsd-accent);
+  background: var(--wsd-hover);
 }
 
 .workspace-actions {

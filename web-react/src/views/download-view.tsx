@@ -2,6 +2,7 @@ import { ChevronRightIcon, DownloadIcon, ServerIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { LanguageSwitcher } from "@/components/web-client/language-switcher";
+import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import { useI18n, useWebClientMessages } from "@/hooks/use-i18n";
 import { pendingWebClientMessages } from "@/i18n/messages";
@@ -58,7 +59,7 @@ export default function DownloadView() {
     <main data-ws-skin={skinView.activeSkinId} className="download-page ws-skin-root min-h-dvh bg-background px-[clamp(12px,3vw,44px)] pb-11 pt-[clamp(14px,2vw,30px)] text-foreground" data-ws-page="download">
       <header className="mx-auto flex max-w-[1060px] flex-wrap items-center justify-between gap-3.5 max-[640px]:flex-col max-[640px]:items-stretch" data-ws-part="download.header">
         <div className="flex min-w-0 items-center gap-2.5" data-ws-part="download.brand">
-          <img className="size-[38px] rounded-[11px]" src="/favicon.jpg" alt="WebSpeak" />
+          <BrandMark className="size-[38px] [color:var(--wsd-accent,#2b5cd9)]" />
           <div>
             <strong className="block text-lg">WebSpeak</strong>
             <small className="block text-sm text-muted-foreground">{t("browserWorkspace")}</small>

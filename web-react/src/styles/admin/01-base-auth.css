@@ -78,8 +78,8 @@ html[data-ws-route="admin"] body {
 .panel-tools button,
 .language-link,
 .admin-topbar button {
-  color: var(--admin-accent);
-  background: var(--admin-accent-soft);
+  color: var(--admin-text);
+  background: var(--admin-raised);
   border: 1px solid var(--admin-border);
   border-radius: 8px;
   padding: 8px 12px;
@@ -263,8 +263,8 @@ fieldset {
 }
 
 .secondary-button {
-  color: var(--admin-accent);
-  background: var(--admin-accent-soft);
+  color: var(--admin-text);
+  background: var(--admin-raised);
   border: 1px solid var(--admin-border);
 }
 

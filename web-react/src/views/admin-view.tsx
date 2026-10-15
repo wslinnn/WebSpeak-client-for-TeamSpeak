@@ -4,6 +4,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useStore } from "zustand";
 
 import { createAdminController } from "@/admin/admin-controller";
+import { BrandMark } from "@/components/brand-mark";
 import { AdminServerSettings } from "@/components/admin/server-settings";
 import { AdminOperations } from "@/components/admin/operations";
 import { AdminSkins } from "@/components/admin/skins";
@@ -84,7 +85,7 @@ export default function AdminView() {
       <div className="admin-shell">
         <aside className="admin-sidebar">
           <div className="admin-brand">
-            <img src="/favicon.jpg" alt="WebSpeak" className="size-[26px] rounded-[7px]" aria-hidden="true" />
+            <BrandMark className="size-[26px] [color:var(--admin-accent)]" aria-hidden="true" />
             <div><strong>WebSpeak</strong><small>{tr("adminConsole")}</small></div>
           </div>
           <nav>

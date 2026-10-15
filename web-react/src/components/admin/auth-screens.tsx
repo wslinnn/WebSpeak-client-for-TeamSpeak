@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useStore } from "zustand";
 
 import { useI18n } from "@/hooks/use-i18n";
+import { BrandMark } from "@/components/brand-mark";
 import { LanguageSwitcher } from "@/components/web-client/language-switcher";
 import type { AdminController } from "@/admin/admin-controller";
 import type { AdminMessages } from "@/i18n/admin-messages";
@@ -16,7 +17,7 @@ export function LoginScreen({ controller, messages }: { controller: AdminControl
     <main className="login-page">
       <section className="login-card">
         <div className="admin-brand centered">
-          <img src="/favicon.jpg" alt="WebSpeak" className="size-[28px] rounded-[8px]" aria-hidden="true" />
+          <BrandMark className="size-[28px] [color:var(--admin-accent)]" aria-hidden="true" />
           <div><strong>WebSpeak</strong><small>{tr("adminConsole")}</small></div>
         </div>
         <header>
@@ -61,7 +62,7 @@ export function ChangePasswordScreen({ controller, messages }: { controller: Adm
     <main className="login-page">
       <section className="login-card">
         <div className="admin-brand centered">
-          <img src="/favicon.jpg" alt="WebSpeak" className="size-[28px] rounded-[8px]" aria-hidden="true" />
+          <BrandMark className="size-[28px] [color:var(--admin-accent)]" aria-hidden="true" />
           <div><strong>WebSpeak</strong><small>{tr("adminConsole")}</small></div>
         </div>
         <header>

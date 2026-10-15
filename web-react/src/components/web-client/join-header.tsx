@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import { BrandMark } from "@/components/brand-mark";
 import { Icon } from "./icon";
 import { LanguageSwitcher } from "./language-switcher";
 import { SkinSwitcher, type SkinOption } from "./skin-switcher";
@@ -29,7 +30,7 @@ export function JoinHeader({ brandName, brandSubtitle, gatewayStatus, downloadLa
   return (
     <header className="join-header" data-ws-part="home.header">
       <div className="brand-lockup" data-ws-part="home.brand">
-        <img className="brand-mark" src="/favicon.jpg" alt="WebSpeak" />
+        <BrandMark className="brand-mark" />
         <div>
           <strong title={brandName}>{brandName}</strong>
           <small>{brandSubtitle}</small>

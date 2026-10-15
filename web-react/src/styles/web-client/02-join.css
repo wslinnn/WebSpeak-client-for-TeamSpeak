@@ -50,25 +50,24 @@
   gap: 12px;
 }
 
-.brand-mark,
 .rail-logo {
   display: grid;
   place-items: center;
-  color: #fff;
+  color: var(--wsd-accent-contrast);
   background: var(--wsd-accent);
 }
 
+/* 品牌 SVG mark：自带圆角与配色（currentColor = 强调色），这里只定尺寸。 */
 .brand-mark {
   display: block;
   width: 40px;
   height: 40px;
-  border-radius: 12px;
-  object-fit: cover;
+  color: var(--wsd-accent);
 }
 
 .brand-lockup strong {
   display: block;
-  color: var(--wsd-accent);
+  color: var(--wsd-text);
   font-size: 18px;
   letter-spacing: -.04em;
 }
