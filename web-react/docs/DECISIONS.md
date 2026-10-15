@@ -99,6 +99,10 @@
 50. **皮肤调色板迁 `--skin-` 命名空间**：内置皮肤曾借 `--accent`/`--border` 别名向平移 CSS 供色（Vue 时代无冲突，shadcn 接入后与 token 名相撞——download `hover:bg-accent` 误吃品牌绿）。两份内置 skin.css 的定义与平移 CSS 全部消费方（124 处）统一改名 `--skin-accent/--skin-border`，与 skin-pack 校验器对社区包的「自定义变量必须 `--skin-` 前缀」强制约定对齐；shadcn 的 `--accent/--border` 归 index.css。admin 的 2 处同名消费本就落 index.css 语义（admin 不跟随皮肤），不改。相关：基座 `html[data-ws-route] button{border:0}` 是未分层 CSS 会压过 portal 内容的分层工具类，已 `:where()` 限定 `.web-client` 页内树且特异性 (0,1,1) 不变——portal 弹窗按钮边框恢复。
 51. **语言包只进路由级 chunk**：入口图一律引 `@/i18n/web-client-language`（Language 类型 + getInitialLanguage 切片）；五语言包聚合（`@/i18n/web-client`）与 `createWebClientMessages` 只允许被路由级代码引用，消费经 `useWebClientMessages()`（模块级单例动态 import + effect 订阅，就绪前视图渲染 null）。禁止把语言包静态引回入口图（曾致 index chunk 多扛 ~85KB 源码）。RTL 测试在 beforeAll `loadTranslations()` 预热（vitest 首次按需转译秒级，不占测试计时器）。
 
+## 2026-10-15 · 主题色改版：石墨 × 钴蓝（用户拍板）
+
+52. **配色方向**：四方向选择题（石墨×钴蓝 / 石墨×翡翠 / 冷灰 blurple / 暖纸陶土）拍板「石墨 × 钴蓝 + SVG 重绘随主题 + 标准减法」。依据：诊断实测浅色三处 WCAG FAIL（次要文字 3.91、强调绿小字 3.19、CTA 白字 3.37），暗色「黑底荧光绿 + 发光」与 anti-slop 清单（glow lights、黑底酸绿二阶默认）逐条命中；调研结论=高级感公式「去饱和中性底 + 单强调色克制使用 + 零发光」。落地为三笔：①全家族换值（皮肤明暗两套、`--wsd-accent` 族、admin 四文件字面量镜像、shadcn `--ring`）+ 删全部发光（hero 光晕/呼吸动画、说话态 blur 光晕改实心环、绿调 rgba 阴影中性化）；②使用面收敛（次级动作回中性、标签回 muted、字标回墨）+ BrandMark SVG（currentColor 随主题）替换 favicon.jpg。强调色岗位白名单：主 CTA / 焦点环 / 激活选中态 / 链接 / hero 强调行 / 语义状态点（成功绿独立于品牌蓝，`--wsd-success` 等）。**换色前新强调色先过 AA 计算**（浅 #2b5cd9=5.8:1、暗 #7d96f2=6.6:1、全部语义色已验证）。琥珀/奶油警示面、success/danger 系为语义色豁免不随品牌换色。工作区 `--wsd-*` 中性值原本就是石墨，未动。
+
 ## 待办决策（无）
 
 （Phase 4 迁移过程中新产生的取舍记此处，格式：日期 · 决策 · 理由 · 影响面）
