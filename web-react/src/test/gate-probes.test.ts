@@ -18,11 +18,15 @@ function messagesFor(result: ESLint.LintResult): string[] {
 }
 
 describe("防劣化门禁探针", () => {
+  // 编程式 ESLint（带类型感知规则）单次 lintText 可达数秒，整跑并行负载下更慢；
+  // 全 describe 统一 20s 超时，只放宽计时上限不放宽断言。
+  const lintTimeout = 20_000;
+
   it("门禁 1：单文件 400 行（跳过空行与注释）——401 行实体代码被拦", async () => {
     const body = Array.from({ length: 401 }, (_, i) => `const pad${i} = ${i};`).join("\n");
     const result = await probe("src/probe-too-long.ts", body);
     expect(messagesFor(result).join("\n")).toContain("max-lines");
-  });
+  }, lintTimeout);
 
   it("门禁 1：401 行中大部分是注释则放行", async () => {
     const body = [

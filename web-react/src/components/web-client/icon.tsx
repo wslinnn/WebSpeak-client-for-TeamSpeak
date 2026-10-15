@@ -1,4 +1,6 @@
 import {
+  Activity,
+  AudioWaveform,
   Bell,
   Check,
   ChevronDown,
@@ -17,8 +19,11 @@ import {
   Mic,
   MicOff,
   Monitor,
+  Music,
   Paperclip,
   Plus,
+  Power,
+  RefreshCw,
   Search,
   Send,
   Server,
@@ -68,6 +73,11 @@ const NAME_MAP = {
   copy: Copy,
   bell: Bell,
   message: MessageSquare,
+  power: Power,
+  music: Music,
+  waveform: AudioWaveform,
+  activity: Activity,
+  refresh: RefreshCw,
 } as const;
 
 export type IconName = keyof typeof NAME_MAP;

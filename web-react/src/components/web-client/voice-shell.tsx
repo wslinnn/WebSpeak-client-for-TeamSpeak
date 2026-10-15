@@ -4,18 +4,22 @@ import type { StoreApi } from "zustand";
 
 import { ChannelMemberPanel } from "./channel-member-panel";
 import { ChatPanel } from "./chat-panel";
+import { AudioDock } from "./audio-dock";
 import { Icon } from "./icon";
 import { MemberActionsMenu } from "./member-actions-menu";
 import { ServerContextMenu } from "./server-context-menu";
 import { VoiceBanners } from "./voice-banners";
-import { VoiceMembers } from "./voice-members";
 import { VoiceMobileMore } from "./voice-mobile-more";
+import { VoicePerformancePanel } from "./voice-performance-panel";
+import { VoiceWorkspace } from "./voice-workspace";
 import { useStoreOfSpeaking } from "@/hooks/useVoiceSession";
 import type { VoiceSessionController } from "@/voice/session-controller";
 import { buildChannelTree, deriveMemberChannels, ensureSelectedChannelId, filterMemberChannels, findCurrentChannel, type TreeChannel } from "@/web-client/channel-tree";
 import { createLongPressContextMenu } from "@/services/long-press-context-menu";
-import { rangeStyle, speakingNowNames } from "@/web-client/view-utils";
+import { rangeStyle } from "@/web-client/view-utils";
 import type { ChatController, ChatScrollerAspect } from "@/web-client/chat-controller";
+import type { AudioControls } from "@/web-client/audio-controls";
+import type { PerformanceMonitor } from "@/web-client/performance-monitor";
 import type { MembersController } from "@/web-client/members-controller";
 import type { ChannelFold } from "@/web-client/channel-fold";
 import type { VoiceServerSwitch } from "@/web-client/server-switch";
@@ -33,6 +37,8 @@ interface VoiceShellProps {
   membersController: MembersController;
   fold: ChannelFold;
   serverSwitch: VoiceServerSwitch;
+  audioControls: AudioControls;
+  monitor: PerformanceMonitor;
   language: Language;
   isMobileViewport: boolean;
   mobileSection: MobileSection;
@@ -48,6 +54,7 @@ interface VoiceShellProps {
   onEditFavorite(server: FavoriteServer): void;
   onRemoveFavorite(server: FavoriteServer): void;
   onOpenFavoriteDialog(): void;
+  onOpenAudioSettings(): void;
   onVolumeInput(clientId: number, value: number): void;
   t(key: string, variables?: Record<string, string | number>): string;
   showToast(message: string, tone?: "info" | "warn"): void;
@@ -63,9 +70,11 @@ export function VoiceShell(props: VoiceShellProps) {
   const session = useStore(voice.session.store);
   const homeState = useStore(home);
   const speakingIds = useStoreOfSpeaking(voice).speakingIds;
+  // 折叠集合经订阅进渲染（直接 getState 是一次性快照，toggle 后 UI 不更新）。
   const switchState = useStore(serverSwitch.store);
   // 折叠集合经订阅进渲染（直接 getState 是一次性快照，toggle 后 UI 不更新）。
   const foldedChannels = useStore(fold.store).folded;
+  const isSpeaking = (member: { id: number }) => speakingIds.has(member.id);
 
   const chatTab = homeState.chatTab;
   const [chatCollapsed, setChatCollapsed] = useState(() => localStorage.getItem("webspeak:chat-collapsed") === "1");
@@ -122,7 +131,6 @@ export function VoiceShell(props: VoiceShellProps) {
     if (props.mobileSection === "chat") chat.scrollIfFollowing();
   }, [props.mobileSection, chat]);
 
-  const isSpeaking = (member: { id: number }) => speakingIds.has(member.id);
   const railServers = homeState.favoriteServers;
   const currentAddress = `${homeState.serverHost}:${homeState.serverPort}`;
   const [railMenu, setRailMenu] = useState<{ server: FavoriteServer; x: number; y: number } | null>(null);
@@ -220,78 +228,32 @@ export function VoiceShell(props: VoiceShellProps) {
         </button>
       </aside>
 
-      <main className="workspace" data-ws-part="voice.workspace">
-        <header className="workspace-header" data-ws-part="voice.header">
-          {chatColumnActive && (
-            <div className="room-bar">
-              <Icon name="volume" size={16} />
-              <strong>{currentChannelName}</strong>
-              <span>- {t("onlineShort", { count: currentMembers.length })}</span>
-            </div>
-          )}
-          {!chatColumnActive && (
-            <div className="breadcrumbs" data-ws-part="voice.breadcrumbs">
-              <span className="mobile-brand">TeamSpeak <em>Web</em></span>
-              <span className="crumb-muted">{t("serverBreadcrumb")}</span>
-              <Icon name="chevron-right" size={14} />
-              <strong>{currentChannelName}</strong>
-            </div>
-          )}
-          <div className="workspace-actions" data-ws-part="voice.header-actions" />
-        </header>
-
-        <div className="workspace-scroll" data-ws-part="voice.scroll">
-          <div className="workspace-content" data-ws-part="voice.content">
-            <section
-              className={props.mobileSection !== "voice" ? "voice-section mobile-section-hidden" : "voice-section"}
-              data-ws-part="voice.activity"
-            >
-              <div className="voice-activity-artwork" data-ws-part="voice.activity.artwork" aria-hidden="true" />
-              {!chatColumnActive && (
-                <div className="section-heading" data-ws-part="voice.activity-heading">
-                  <div>
-                    <span className="section-kicker">{t("voiceActivity")}</span>
-                    <h2>{t("speakingNow")}</h2>
-                  </div>
-                  <span className="section-counter">{t("onlineShort", { count: currentMembers.length })}</span>
-                </div>
-              )}
-              <VoiceMembers
-                currentMembers={currentMembers}
-                isMobileViewport={props.isMobileViewport}
-                isSpeaking={isSpeaking}
-                t={t}
-                onMemberActions={(member) => membersController.openMemberActions(member)}
-              />
-            </section>
-            {/* 说话横条与聊天面板是 workspace-content 的直接子级（旧模板平价）：
-                移动端聊天页签藏 voice-section，但聊天面板用自己的 mobileHidden 显隐。 */}
-            {/* 移动端聊天页签隐藏了成员卡：这条横条是唯一的「谁在说话」提示。 */}
-            {props.isMobileViewport && props.mobileSection === "chat" && speakingNowNames(currentMembers, speakingIds).length > 0 && (
-              <div className="whisper-strip" data-ws-part="voice.speaking-strip" role="status">
-                <div className="whisper-strip-copy">
-                  <strong><Icon name="volume" size={15} /> {t("speakingNow")}</strong>
-                  <span>{speakingNowNames(currentMembers, speakingIds).join("、")}</span>
-                </div>
-              </div>
-            )}
-            {!chatColumnActive && (
-              <ChatPanel
-                chat={chat}
-                tab={chatTab}
-                language={props.language}
-                currentChannelName={currentChannelName}
-                mobileHidden={props.mobileSection !== "chat"}
-                serverEvents={session.serverEvents}
-                members={session.members}
-                onListElement={props.onChatListElement}
-                onCollapse={() => setChatCollapsed(true)}
-                t={t}
-              />
-            )}
-          </div>
-        </div>
-      </main>
+      <VoiceWorkspace
+        voice={voice}
+        chat={chat}
+        chatTab={chatTab}
+        audioControls={props.audioControls}
+        chatColumnActive={chatColumnActive}
+        currentChannelName={currentChannelName}
+        currentMembers={currentMembers}
+        speakingIds={speakingIds}
+        serverEvents={session.serverEvents}
+        sessionMembers={session.members}
+        isMobileViewport={props.isMobileViewport}
+        mobileSection={props.mobileSection}
+        microphoneMuted={voiceView.microphoneMuted}
+        outputMuted={voiceView.outputMuted}
+        language={props.language}
+        onChatListElement={props.onChatListElement}
+        onCollapseChat={() => setChatCollapsed(true)}
+        onLeave={props.onLeave}
+        onMemberActions={(member) => membersController.openMemberActions(member)}
+        whisperTargets={currentMembers.filter((member) => voiceView.whisperTargetIds.has(member.id))}
+        whisperActive={voiceView.whisperActive}
+        whisperEnabled={!props.isMobileViewport || props.mobileSection === 'voice'}
+        onClearWhisperTargets={() => membersController.clearWhisperTargets()}
+        t={t}
+      />
 
       {chatColumnActive && (
         <ChatPanel
@@ -331,9 +293,33 @@ export function VoiceShell(props: VoiceShellProps) {
         rangeStyle={rangeStyle}
         switcherHost={document.querySelector<HTMLElement>(".web-client")}
         t={t}
-      />
+      >
+        {!props.isMobileViewport && (
+          <AudioDock
+            model={{
+              microphoneMuted: voiceView.microphoneMuted,
+              inputVolume: voiceView.inputVolume,
+              outputVolume: voiceView.outputVolume,
+              outputMuted: voiceView.outputMuted,
+              noiseSuppressionEnabled: voiceView.noiseSuppressionEnabled,
+              echoCancellationEnabled: voiceView.echoCancellationEnabled,
+              autoGainControlEnabled: voiceView.autoGainControlEnabled,
+              accompanimentActive: voiceView.accompanimentActive,
+              micLevel: voiceView.micLevel,
+            }}
+            controls={props.audioControls}
+            t={t}
+            channelName={currentChannelName}
+            onSettings={props.onOpenAudioSettings}
+            onOutputMute={() => voice.toggleOutputMute()}
+            onDisconnect={props.onLeave}
+          >
+            <VoicePerformancePanel monitor={props.monitor} voice={voice} t={t} />
+          </AudioDock>
+        )}
+      </ChannelMemberPanel>
 
-      {mobileMore && <VoiceMobileMore onLeave={props.onLeave} t={t} />}
+      {mobileMore && <VoiceMobileMore onLeave={props.onLeave} onOpenAudioSettings={props.onOpenAudioSettings} t={t} />}
 
       <nav className="mobile-nav" data-ws-part="voice.mobile-nav" aria-label={t("mobileNavigation")}>
         <button type="button" className={props.mobileSection === "channels" ? "active" : ""} aria-current={props.mobileSection === "channels" ? "page" : undefined} onClick={() => selectMobileSection("channels")}>

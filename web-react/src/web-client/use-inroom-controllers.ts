@@ -6,9 +6,11 @@ import { showBackgroundTabNotification, readDesktopNotificationSetting } from "@
 import { combineTeamSpeakTarget, splitTeamSpeakTarget } from "@/services/teamspeak-target";
 import type { FavoriteServer } from "@/services/local-persistence";
 import { buildChannelTree, findCurrentChannel } from "@/web-client/channel-tree";
+import { createAudioControls } from "@/web-client/audio-controls";
 import { createChannelFold } from "@/web-client/channel-fold";
 import { createChatController, type ChatScrollerAspect } from "@/web-client/chat-controller";
 import { createMembersController } from "@/web-client/members-controller";
+import { createPerformanceMonitor } from "@/web-client/performance-monitor";
 import { createVoiceServerSwitch } from "@/web-client/server-switch";
 import type { HomeConnection } from "@/web-client/home-connection";
 import type { HomeStoreController } from "@/web-client/home-store";
@@ -20,6 +22,8 @@ interface InRoomOptions {
   connection: HomeConnection;
   isMobileViewport: boolean;
   viewportHeight: number;
+  /** 音频设置弹窗开关（根 state；设置请求代际读它判定「还在当前弹窗」）。 */
+  getSettingsOpen(): boolean;
   showToast(message: string, tone?: "info" | "warn"): void;
   t(key: string, variables?: Record<string, string | number>): string;
   localizedMessage(message: string): string;
@@ -27,14 +31,15 @@ interface InRoomOptions {
 
 // 模块级实时桥（liveMessages 同款纪律与仓内先例）：WebClient 路由单实例，桥只在
 // 事件/订阅回调里被读取，渲染路径不经过；effect 落账当次语言与视口。不随语言/视口
-// 重建控制器——重建会丢草稿、菜单与滚动状态。
+// 重建控制器——重建会丢草稿、菜单与滚动状态。const 盒字段写入而非 let 重赋值：
+// React Compiler 禁止「渲染结束后重赋值变量」，字段写入不受此限。
 interface LiveI18n {
   t(key: string, variables?: Record<string, string | number>): string;
   localizedMessage(message: string): string;
 }
-let liveI18n: LiveI18n = { t: (key) => key, localizedMessage: (message) => message };
-let liveViewport: { isMobile: boolean; section: MobileSection } = { isMobile: false, section: "channels" };
-let chatListAspect: ChatScrollerAspect | null = null;
+const liveI18nBox: { current: LiveI18n } = { current: { t: (key) => key, localizedMessage: (message) => message } };
+const liveViewportBox: { current: { isMobile: boolean; section: MobileSection } } = { current: { isMobile: false, section: "channels" } };
+const chatListBox: { current: ChatScrollerAspect | null } = { current: null };
 
 /** 进房控制器装配（旧 WebClient.vue 根部 chat/members/fold/serverSwitch 装配平价）。
  *  控制器在根创建：切服/断线期间语音壳与首页互换挂载，草稿/折叠记忆/菜单状态必须
@@ -45,18 +50,68 @@ export function useInRoomControllers(options: InRoomOptions) {
   const [mobileSection, setMobileSection] = useState<MobileSection>("channels");
   const [memberQuery, setMemberQuery] = useState("");
   useEffect(() => {
-    liveI18n = { t: options.t, localizedMessage: options.localizedMessage };
+    liveI18nBox.current = { t: options.t, localizedMessage: options.localizedMessage };
   });
   useEffect(() => {
-    liveViewport = { isMobile: options.isMobileViewport, section: mobileSection };
+    liveViewportBox.current = { isMobile: options.isMobileViewport, section: mobileSection };
   }, [options.isMobileViewport, mobileSection]);
-  const tLive = useCallback((key: string, variables?: Record<string, string | number>) => liveI18n.t(key, variables), []);
-  const localizedLive = useCallback((message: string) => liveI18n.localizedMessage(message), []);
+  const tLive = useCallback((key: string, variables?: Record<string, string | number>) => liveI18nBox.current.t(key, variables), []);
+  const localizedLive = useCallback((message: string) => liveI18nBox.current.localizedMessage(message), []);
 
   const fold = useMemo(() => createChannelFold(), []);
   const serverSwitch = useMemo(() => createVoiceServerSwitch({ voiceStore: voice.store }), [voice]);
   useEffect(() => () => serverSwitch.dispose(), [serverSwitch]);
   const switchState = useStore(serverSwitch.store);
+
+  // 性能面板监视器：探针只在面板打开时采样（门控 connected && panelOpen）。
+  // connected 半边在此内部订阅（旧 watch([connected, panelOpen]) 平价），
+  // panelOpen 半边在 setPanelOpen/togglePanel 内自查。
+  const monitor = useMemo(() => createPerformanceMonitor({
+    isConnected: () => voice.store.getState().connected,
+    measure: () => voice.measureVoiceAudioStatus(),
+  }), [voice]);
+  useEffect(() => {
+    let lastConnected = voice.store.getState().connected;
+    const unsubscribe = voice.store.subscribe((snapshot) => {
+      if (snapshot.connected === lastConnected) return;
+      lastConnected = snapshot.connected;
+      monitor.syncGating();
+    });
+    return () => { unsubscribe(); monitor.dispose(); };
+  }, [voice, monitor]);
+
+  // 音频控制控制器（旧 useWebClientAudioControls 平价）：t/localizedMessage 经
+  // live 桥（只在 toast/错误文案的事件回调里读），不随语言重建——重建会丢 PTT
+  // 与麦克风测试状态。弹窗开关经 syncSettingsOpen 由根 effect 喂。
+  const audioControls = useMemo(() => createAudioControls({
+    getSettingsOpen: options.getSettingsOpen,
+    getMicrophoneMuted: () => voice.store.getState().microphoneMuted,
+    getMicLevel: () => voice.store.getState().micLevel,
+    getMicrophoneTestActive: () => voice.store.getState().microphoneTestActive,
+    getAccompanimentActive: () => voice.store.getState().accompanimentActive,
+    getAccompanimentErrorCode: () => voice.store.getState().accompanimentErrorCode,
+    getWhisperTargetCount: () => voice.store.getState().whisperTargetIds.size,
+    prepareInputDevices: () => voice.prepareInputDevices(),
+    setInputVolume: (value) => voice.setInputVolume(value),
+    setNoiseSuppressionEnabled: (enabled) => voice.setNoiseSuppressionEnabled(enabled),
+    setEchoCancellationEnabled: (enabled) => voice.setEchoCancellationEnabled(enabled),
+    setAutoGainControlEnabled: (enabled) => voice.setAutoGainControlEnabled(enabled),
+    setOutputVolume: (value) => voice.setOutputVolume(value),
+    setVoxThreshold: (value) => voice.setVoxThreshold(value),
+    setNotificationVolume: (value) => voice.setNotificationVolume(value),
+    setInputDevice: (deviceId) => voice.setInputDevice(deviceId),
+    setOutputDevice: (deviceId) => voice.setOutputDevice(deviceId),
+    setMicrophoneMuted: (muted) => voice.setMicrophoneMuted(muted),
+    startMicrophoneTest: () => voice.startMicrophoneTest(),
+    stopMicrophoneTest: () => voice.stopMicrophoneTest(),
+    startAccompaniment: () => voice.startAccompaniment(),
+    stopAccompaniment: () => voice.stopAccompaniment(),
+    setWhisperActive: (active) => voice.setWhisperActive(active),
+    localizedMessage: localizedLive,
+    showToast: options.showToast,
+    t: tLive,
+  }), [voice, options.getSettingsOpen, localizedLive, tLive, options.showToast]);
+  useEffect(() => () => audioControls.dispose(), [audioControls]);
 
   // 频道投影根部版（shell 内 useMemo 是渲染期平价；这里是控制器回调读取的同一事实源）。
   const currentChannelOf = useCallback(() => {
@@ -84,7 +139,7 @@ export function useInRoomControllers(options: InRoomOptions) {
   }), [voice, currentChannelOf, localizedLive, tLive, options.showToast]);
 
   const onChatListElement = useCallback((element: ChatScrollerAspect | null) => {
-    chatListAspect = element;
+    chatListBox.current = element;
   }, []);
   const chat = useMemo(() => createChatController({
     home: store,
@@ -98,8 +153,8 @@ export function useInRoomControllers(options: InRoomOptions) {
     getCurrentChannel: currentChannelOf,
     getCurrentChannelName: () => currentChannelOf()?.name ?? store.getState().channelName,
     getSelectedChannelId: () => store.getState().selectedChannelId,
-    isMobileViewport: () => liveViewport.isMobile,
-    getMobileSection: () => liveViewport.section,
+    isMobileViewport: () => liveViewportBox.current.isMobile,
+    getMobileSection: () => liveViewportBox.current.section,
     setMobileSection,
     closeMemberMenu: () => membersController.closeMemberMenu(),
     sendTextMessage: voice.sendTextMessage,
@@ -107,7 +162,7 @@ export function useInRoomControllers(options: InRoomOptions) {
     sendPrivateMessage: voice.sendPrivateMessage,
     notifyPrivateMessage: () => voice.playNotification("private"),
     t: tLive,
-    getList: () => chatListAspect,
+    getList: () => chatListBox.current,
   }), [voice, store, currentChannelOf, membersController, tLive]);
 
   // 视口高度变化（移动端键盘收展）后消息列表回底（旧 watch(mobileViewport.height) 平价）。
@@ -170,6 +225,8 @@ export function useInRoomControllers(options: InRoomOptions) {
     fold,
     serverSwitch,
     switchState,
+    monitor,
+    audioControls,
     mobileSection,
     setMobileSection,
     memberQuery,

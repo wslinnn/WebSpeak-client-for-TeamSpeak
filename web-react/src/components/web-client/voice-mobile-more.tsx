@@ -2,10 +2,11 @@ import { Icon } from "./icon";
 
 interface VoiceMobileMoreProps {
   onLeave(): void;
+  onOpenAudioSettings(): void;
   t(key: string, variables?: Record<string, string | number>): string;
 }
 
-/** 移动端 more 页签面板（旧 mobile-more-panel 平价）：音频设置位随 P4-5 回归。 */
+/** 移动端 more 页签面板（旧 mobile-more-panel 平价）。 */
 export function VoiceMobileMore(props: VoiceMobileMoreProps) {
   const { t } = props;
   return (
@@ -13,7 +14,7 @@ export function VoiceMobileMore(props: VoiceMobileMoreProps) {
       <span className="section-kicker">{t("voiceActivity")}</span>
       <h2>{t("mobileMore")}</h2>
       <p className="more-group-label">{t("audioGroup")}</p>
-      <button type="button" disabled title={t("audioSettings") /* 音频设置随 P4-5 回归 */}>
+      <button type="button" onClick={props.onOpenAudioSettings}>
         <Icon name="settings" size={18} />
         {" "}
         {t("audioSettings")}

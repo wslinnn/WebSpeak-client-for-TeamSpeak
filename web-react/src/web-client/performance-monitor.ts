@@ -68,7 +68,7 @@ export interface VoiceAudioStats {
   microphoneMuted: boolean;
   microphoneReady: boolean;
   microphonePermission: string;
-  playbackState: string | null;
+  playbackState: VoiceAudioStatusSample["playbackState"];
   uplinkFramesPerSecond: number | null;
   downlinkFramesPerSecond: number | null;
   uplinkBitrateKbps: number | null;

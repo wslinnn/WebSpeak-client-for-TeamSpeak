@@ -75,6 +75,14 @@
 38. **平迁陷阱两则（真浏览器走查揪出，测试与 tsc 都测不出）**：① zustand store 渲染期 `getState()` 是一次性快照——fold 集合曾这样传给面板，toggle 后 UI 不更新，必须 `useStore(fold.store)` 订阅；② 容器归属必须照旧模板逐层核对——聊天面板与说话横条是 workspace-content 直接子级（移动页签显隐各归各），放进 voice-section 会被 `mobile-section-hidden` 连带藏掉。#27 的「服务器密码取消联动切服结算」缺口已在此轮补齐（onServerPasswordCancel = serverSwitch.fail + cancelServerPassword）；switchServer 平价含同地址 no-op、失败镜像复位、无效表单即挂失败横幅。
 39. **成员子菜单开合语义与旧版等价**：mouseenter 开 + click toggle 的组合在「鼠标悬停容器内再点触发器」时会开合抵消（Playwright 首点即此路径）——与旧 Vue 版逐行为同构，不改；子菜单摆位沿用同帧反推（主菜单位置未提交时按未偏移锚点计算），摆位/视口clamp 真浏览器核实（fixed + --ui-scale 折算 + z-index 310 = --ws-z-menu）。
 
+## 2026-10-15 · P4-5 语音控制取舍
+
+40. **音频控制两步走**：逻辑层 `audio-controls.ts`（设置请求代际/PTT 双路/伴奏错误分派，24 条 characterization 自旧 audio-controls.test.mjs 与 voice-performance.test.mjs 平移）先行提交，视图层 dock/设置弹窗/性能面板/耳语条随后。控制器经 useInRoomControllers 装配（live 桥读 t，不随语言重建——重建会丢 PTT 与麦克风测试状态）；`syncSettingsOpen(open)` 是旧 `watch(settingsOpen, flush sync)` 的显式化，由根 effect 喂。poke 拆分原则同源复用：提示音归横幅宿主 VoiceBanners，后台系统通知归根 hook，各认一半防双音。
+41. **性能面板探针门控内部化**：`performance-monitor.ts` 的门控（connected && panelOpen）拆两半——panelOpen 在 setPanelOpen/togglePanel 内自查，connected 经根 hook 的 store 订阅（挪进 useEffect：订阅回调里的 let 重赋值在 useMemo 渲染闭包内是 Compiler 违规，effect 闭包允许）；定时器经 Options 注入（测试手动 tick，不依赖真实计时）。`computeVoiceStats` 是纯函数（scopeId/transport 换挡即新基线），视图 useMemo 派生。
+42. **进 hook 的函数参数必须引用稳定**：`getSettingsOpen` 内联箭头传进 useInRoomControllers 的 useMemo deps，让 audioControls 每渲染重建——dispose/syncSettingsOpen effect 随之每渲染执行并 setState，真浏览器触发 Maximum update depth exceeded（测试与 tsc 都测不出）。纪律：凡传进控制器装配 hook 的回调一律 useCallback 或模块函数；模块级实时桥从 let 重赋值改 const 盒字段写入（Compiler 禁「渲染结束后重赋值变量」，字段写入不受限）。
+43. **行数门禁的第二层拆分**：P4-5 接线后 voice-shell（435）与 view（423）再次超 400——workspace 段拆 `voice-workspace.tsx`（含耳语条与移动音频控件）、首页段拆 `join-page.tsx`、音频设置状态拆 `use-audio-settings.tsx`（弹窗元素由 hook 返回，保持根部两态可达）。容器归属沿用 #38 教训逐层核对；modal-backdrop/settings-modal 系样式已在 21-components.css 无需新增。走查确认：dock 悬停面板/伴奏钮/性能面板触发器（transport 镜像）真浏览器可用，设置弹窗焦点圈禁、Esc/完成双路径关闭、24 根电平条与权限诊断按真实设备状态渲染。
+44. **桌面通知开关保持读时取值**：`readDesktopNotificationSetting()` 是开关初值，toggle 即落盘；首次开启借用户手势请求权限，被拒则静默回退存储标记并提示（旧版逐行为平价）。poke 的后台系统通知读同一存储（#35 拆分已接）。
+
 ## 待办决策（无）
 
 （Phase 4 迁移过程中新产生的取舍记此处，格式：日期 · 决策 · 理由 · 影响面）

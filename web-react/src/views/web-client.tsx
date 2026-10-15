@@ -1,16 +1,11 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 
 import "../styles/web-client.css";
 
 import type { FavoriteServerDraft } from "@/components/web-client/favorite-server-dialog";
-import { Icon } from "@/components/web-client/icon";
-import { IdentityImportDialog } from "@/components/web-client/identity-import-dialog";
-import { JoinNotices } from "@/components/web-client/join-notices";
-import { JoinForm } from "@/components/web-client/join-form";
-import { JoinHeader } from "@/components/web-client/join-header";
-import { MobileGate } from "@/components/web-client/mobile-gate";
+import { JoinPage } from "@/components/web-client/join-page";
 import { RootDialogs } from "@/components/web-client/root-dialogs";
 import { VoiceShell } from "@/components/web-client/voice-shell";
 import { VoiceSessionProvider, useVoiceSession, useVoiceView } from "@/hooks/useVoiceSession";
@@ -29,13 +24,13 @@ import type { FavoriteServer } from "@/services/local-persistence";
 import { combineTeamSpeakTarget, splitTeamSpeakTarget } from "@/services/teamspeak-target";
 import { clearVoiceSessionIntent } from "@/voice/session-intent";
 import { useInRoomControllers } from "@/web-client/use-inroom-controllers";
+import { useAudioSettingsState } from "@/web-client/use-audio-settings";
 import { useWebClientControllers } from "@/web-client/use-web-client-controllers";
 import { useRetryCountdown } from "@/web-client/use-retry-countdown";
 import { cn } from "@/lib/utils";
 import type { Language } from "@/i18n/web-client";
 
-export default function WebClient() {
-  // 控制器随路由组件生灭：离开 web-client 路由 = 断开语音会话（平价旧 onUnmounted disconnect）。
+export default function WebClient() {  // 控制器随路由组件生灭：离开 web-client 路由 = 断开语音会话（平价旧 onUnmounted disconnect）。
   return (
     <VoiceSessionProvider>
       <WebClientRoot />
@@ -46,7 +41,7 @@ export default function WebClient() {
 function WebClientRoot() {
   const voice = useVoiceSession();
   const { language, messages, setLanguage } = useI18n();
-  const { t, localizedMessage, visibleErrorCode } = messages;
+  const { t, localizedMessage, localizedMicrophoneError, visibleErrorCode } = messages;
   const { store, home, publicConfig, favorites, identity, connection, showToast } = useWebClientControllers();
   const config = useStore(publicConfig.store);
 
@@ -72,17 +67,39 @@ function WebClientRoot() {
   const { waiting: retryWaiting, secondsShown: retrySecondsShown } = useRetryCountdown(voiceView.retryNotUntil);
 
   // —— 进房态（控制器装配在 useInRoomControllers：草稿/折叠记忆/菜单跨两态存活） ——
+  const settingsOpenRef = useRef(false);
+  // 引用必须稳定：进 hook 的 useMemo deps 后，内联箭头会让 audioControls 每渲染
+  // 重建，dispose/syncSettingsOpen effect 随之每渲染执行并 setState，成死循环。
+  const getSettingsOpen = useCallback(() => settingsOpenRef.current, []);
   const inRoom = useInRoomControllers({
     voice,
     store,
     connection,
     isMobileViewport,
     viewportHeight: mobileViewport.height,
+    getSettingsOpen,
     showToast,
     t,
     localizedMessage,
   });
-  const { switchState } = inRoom;
+  const { switchState, audioControls } = inRoom;
+
+  // —— 音频设置弹窗（旧 settingsOpen 根 ref 平价）：首页设备设置按钮与进房
+  // dock 的设置按钮共用一个实例；弹窗元素在模板根部两态可达。 ——
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  useEffect(() => {
+    settingsOpenRef.current = settingsOpen;
+    audioControls.syncSettingsOpen(settingsOpen);
+  }, [settingsOpen, audioControls]);
+  const { dialog: audioSettingsDialog } = useAudioSettingsState({
+    audioControls,
+    settingsOpen,
+    closeSettings: () => setSettingsOpen(false),
+    showToast,
+    t,
+    localizedMessage,
+    localizedMicrophoneError,
+  });
 
   const joinDisabled = !connection.canJoin()
     || config.serverConfigLoading
@@ -217,6 +234,8 @@ function WebClientRoot() {
           membersController={inRoom.membersController}
           fold={inRoom.fold}
           serverSwitch={inRoom.serverSwitch}
+          audioControls={inRoom.audioControls}
+          monitor={inRoom.monitor}
           language={language}
           isMobileViewport={isMobileViewport}
           mobileSection={inRoom.mobileSection}
@@ -231,151 +250,52 @@ function WebClientRoot() {
           onEditFavorite={editFavoriteServer}
           onRemoveFavorite={(server) => void favorites.removeFavoriteRow(server)}
           onOpenFavoriteDialog={() => openFavoriteServerDialog()}
+          onOpenAudioSettings={() => setSettingsOpen(true)}
           onVolumeInput={(clientId, value) => voice.setVolume(clientId, value)}
           t={t}
           showToast={showToast}
         />
       )}
 
-      {/* 连接/欢迎页。进房壳已接：切服挂起期间两态并存（壳挂载、本页卸载）。 */}
+      {/* 连接/欢迎页。切服挂起期间两态并存（壳挂载、本页卸载）。 */}
       {!voiceShellVisible && (
-      <section className="join-page" data-ws-part="home">
-        <JoinHeader
-          brandName={config.siteName}
-          brandSubtitle={t("browserWorkspace")}
-          gatewayStatus={t("secureGateway")}
-          downloadLabel={t("downloadPage")}
-          adminLabel={t("adminConsole")}
-          moreLabel={t("mobileMore")}
+        <JoinPage
+          config={{
+            siteName: config.siteName,
+            accessMode: config.accessMode,
+            initialized: config.initialized,
+            serverConfigLoading: config.serverConfigLoading,
+            publicConfigFailed: config.publicConfigFailed,
+          }}
           language={language}
           onLanguageChange={setLanguage}
-          languageMenuLabel={t("languageMenu")}
+          mobileGateActive={mobileGateActive}
+          onContinueMobile={continueOnMobile}
+          welcomeText={localizedWelcomeText}
+          storageAvailable={storageAvailable}
+          browserError={browserError}
+          browserWarning={browserWarning}
+          voice={{ error: voiceView.error, errorCode: voiceView.errorCode, connecting: voiceView.connecting }}
+          retryWaiting={retryWaiting}
+          retrySeconds={retrySecondsShown}
+          isMobileViewport={isMobileViewport}
+          joinDisabled={joinDisabled}
+          home={home}
+          identity={identity}
+          connection={connection}
+          onRememberIdentityChange={(value) => store.setState({ rememberIdentity: value })}
+          onSelectServer={favorites.selectLocalServer}
+          onRemoveFavorite={(server) => void favorites.removeFavoriteRow(server)}
+          onConnectServer={connectFromServerTab}
+          onEditFavorite={editFavoriteServer}
+          onOpenFavoriteDialog={openFavoriteServerDialog}
+          onOpenDeviceSettings={() => setSettingsOpen(true)}
+          onClearBrowserData={() => void clearBrowserData()}
+          onRetryConfig={reloadPublicConfig}
+          t={t}
+          localizedMessage={localizedMessage}
+          visibleErrorCode={visibleErrorCode}
         />
-
-        {mobileGateActive ? (
-          <MobileGate
-            title={t("mobileGateTitle")}
-            description={t("mobileGateDescription")}
-            downloadLabel={t("mobileGateDownload")}
-            continueLabel={t("mobileGateContinue")}
-            hint={t("mobileGateHint")}
-            onContinue={continueOnMobile}
-          />
-        ) : (
-          <main className="join-content" data-ws-part="home.content">
-            <div className="join-copy" data-ws-part="home.hero">
-              <h1 data-ws-part="home.hero.title">
-                {t("joinLine1")}
-                <br />
-                <em>{t("joinLine2")}</em>
-              </h1>
-              <p className="join-description" data-ws-part="home.hero.description">{localizedWelcomeText}</p>
-            </div>
-
-            <div className="join-card" data-ws-part="home.join-card">
-              <div className="join-card-effects" aria-hidden="true">
-                <span className="join-card-waveform" data-ws-part="home.join-card.waveform">
-                  {Array.from({ length: 9 }, (_, bar) => <i key={bar} />)}
-                </span>
-                <span className="join-card-sonar" data-ws-part="home.join-card.sonar">
-                  {Array.from({ length: 3 }, (_, ring) => <i key={ring} />)}
-                </span>
-              </div>
-              <h2 data-ws-part="home.join-title">{t("welcomeBack")}</h2>
-              <p className="card-lead" data-ws-part="home.join-description">{t("joinLead")}</p>
-
-              <JoinNotices
-                voiceError={voiceView.error}
-                retryWaiting={retryWaiting}
-                retrySeconds={retrySecondsShown}
-                errorCode={voiceView.errorCode}
-                browserError={browserError}
-                browserWarning={browserWarning}
-                unconfigured={!config.serverConfigLoading && !config.initialized && !config.publicConfigFailed}
-                configLoadFailed={config.publicConfigFailed && !config.serverConfigLoading}
-                storageUnavailable={!storageAvailable}
-                onRetryConfig={reloadPublicConfig}
-                t={t}
-                localizedMessage={localizedMessage}
-                visibleErrorCode={visibleErrorCode}
-              />
-
-              {config.initialized && (
-                <JoinForm
-                  autofocusNickname={!isMobileViewport}
-                  accessMode={config.accessMode}
-                  serverHost={home.serverHost}
-                  serverPort={home.serverPort}
-                  serverPassword={home.serverPassword}
-                  nickname={home.nickname}
-                  channel={home.channelName}
-                  rememberIdentity={home.rememberIdentity}
-                  onServerHostChange={connection.setHost}
-                  onServerPortChange={connection.setPort}
-                  onServerPasswordChange={connection.setServerPassword}
-                  onNicknameChange={connection.setNickname}
-                  onChannelChange={connection.setChannelName}
-                  onRememberIdentityChange={(value) => store.setState({ rememberIdentity: value })}
-                  favoriteServers={home.favoriteServers}
-                  identityExportBusy={home.identityDialog.exporting}
-                  hasIdentity={Boolean(home.identityMaterial)}
-                  connecting={voiceView.connecting}
-                  joinDisabled={joinDisabled}
-                  joinRetrySeconds={retrySecondsShown}
-                  onOpenDeviceSettings={() => { /* 设备设置弹窗随 P4-5 音频设置回归 */ }}
-                  onConnect={connection.doConnect}
-                  onDisconnect={connection.doDisconnect}
-                  onConnectServer={connectFromServerTab}
-                  onSelectServer={favorites.selectLocalServer}
-                  onEditFavorite={editFavoriteServer}
-                  onRemoveFavorite={(server) => void favorites.removeFavoriteRow(server)}
-                  onOpenFavoriteDialog={openFavoriteServerDialog}
-                  onImportIdentity={() => identity.show()}
-                  onExportIdentity={() => void identity.exportIdentity()}
-                  t={t}
-                />
-              )}
-              <div className="join-meta" data-ws-part="home.security-note">
-                <Icon name="lock" size={14} />
-                {t("connectionAuthorized")}
-              </div>
-            </div>
-          </main>
-        )}
-
-        {home.identityDialog.open && (
-          <IdentityImportDialog
-            text={home.identityDialog.text}
-            onTextChange={identity.setText}
-            busy={home.identityDialog.busy}
-            reading={home.identityDialog.reading}
-            error={home.identityDialog.error}
-            closeLabel={t("close")}
-            title={t("identityImportTitle")}
-            description={t("identityImportDescription")}
-            placeholder={t("identityImportPlaceholder")}
-            dropZoneLabel={t("identityDropZone")}
-            chooseFileLabel={t("identityChooseFile")}
-            securityNote={t("identityImportSecurity")}
-            cancelLabel={t("identityImportCancel")}
-            connectingLabel={t("connecting")}
-            submitLabel={t("identityImportSubmit")}
-            onClose={identity.close}
-            onSubmit={() => void identity.submit()}
-            onFile={(file) => void identity.readFile(file)}
-          />
-        )}
-
-        <footer className="join-footer" data-ws-part="home.footer">
-          <span>{config.siteName}</span>
-          <span className="footer-separator">·</span>
-          <span>{t("teamSpeakClient")}</span>
-          <span className="footer-spacer" />
-          <button type="button" className="clear-local-button" onClick={() => void clearBrowserData()}>
-            {t("clearLocalData")}
-          </button>
-        </footer>
-      </section>
       )}
 
       <RootDialogs
@@ -393,6 +313,8 @@ function WebClientRoot() {
         onFavoriteSave={saveFavoriteServerDraft}
         t={t}
       />
+
+      {audioSettingsDialog}
     </div>
   );
 }
