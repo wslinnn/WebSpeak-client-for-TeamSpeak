@@ -61,9 +61,9 @@
 .identity-file-button {
   min-height: 31px;
   padding: 0 10px;
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 9%, var(--surface-1));
-  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  color: var(--skin-accent);
+  background: color-mix(in srgb, var(--skin-accent) 9%, var(--surface-1));
+  border: 1px solid color-mix(in srgb, var(--skin-accent) 22%, var(--skin-border));
   border-radius: 8px;
   font: inherit;
   font-size: 10px;
@@ -73,7 +73,7 @@
 
 .identity-action-button:hover,
 .identity-file-button:hover {
-  background: color-mix(in srgb, var(--accent) 16%, var(--surface-1));
+  background: color-mix(in srgb, var(--skin-accent) 16%, var(--surface-1));
 }
 
 .identity-action-button:disabled {
@@ -96,7 +96,7 @@
   padding: 25px;
   color: var(--text-primary);
   background: var(--surface-1);
-  border: 1px solid var(--border);
+  border: 1px solid var(--skin-border);
   border-radius: 18px;
   box-shadow: 0 20px 60px color-mix(in srgb, var(--text-primary) 22%, transparent);
 }
@@ -131,7 +131,7 @@
   padding: 12px;
   color: var(--text-primary);
   background: var(--surface-2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--skin-border);
   border-radius: 10px;
   outline: none;
   font: 11px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace;
@@ -139,8 +139,8 @@
 }
 
 .identity-import-textarea:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 17%, transparent);
+  border-color: var(--skin-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--skin-accent) 17%, transparent);
 }
 
 .identity-drop-zone {
@@ -152,8 +152,8 @@
   min-height: 58px;
   padding: 10px 14px;
   color: var(--text-muted);
-  background: color-mix(in srgb, var(--accent) 5%, var(--surface-1));
-  border: 1px dashed color-mix(in srgb, var(--accent) 48%, var(--border));
+  background: color-mix(in srgb, var(--skin-accent) 5%, var(--surface-1));
+  border: 1px dashed color-mix(in srgb, var(--skin-accent) 48%, var(--skin-border));
   border-radius: 10px;
   font-size: 11px;
   cursor: pointer;
@@ -161,13 +161,13 @@
 }
 
 .identity-drop-zone > .ui-icon {
-  color: var(--accent);
+  color: var(--skin-accent);
 }
 
 .identity-drop-zone.active,
 .identity-drop-zone:hover {
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface-1));
-  border-color: var(--accent);
+  background: color-mix(in srgb, var(--skin-accent) 12%, var(--surface-1));
+  border-color: var(--skin-accent);
 }
 
 .identity-file-input {

@@ -5,7 +5,7 @@
   margin: 10px 0 0;
   padding: 8px 10px;
   color: var(--danger);
-  border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--border));
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--skin-border));
   border-radius: 9px;
   background: color-mix(in srgb, var(--danger) 12%, var(--surface-1));
   font-size: 10px;
@@ -137,7 +137,7 @@ button.screen-share-live-indicator:focus-visible {
   min-height: 25px;
   padding: 0;
   color: var(--text-muted);
-  border: 1px solid var(--border);
+  border: 1px solid var(--skin-border);
   border-radius: 50%;
   background: var(--surface-1);
   cursor: pointer;
@@ -145,9 +145,9 @@ button.screen-share-live-indicator:focus-visible {
 
 .screen-share-settings-button:hover,
 .screen-share-settings-button[aria-expanded="true"] {
-  color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
-  background: color-mix(in srgb, var(--accent) 9%, var(--surface-1));
+  color: var(--skin-accent);
+  border-color: color-mix(in srgb, var(--skin-accent) 35%, var(--skin-border));
+  background: color-mix(in srgb, var(--skin-accent) 9%, var(--surface-1));
 }
 
 .screen-share-settings-backdrop {
@@ -161,7 +161,7 @@ button.screen-share-live-indicator:focus-visible {
   width: min(360px, 100%);
   padding: 22px;
   color: var(--text-primary);
-  border: 1px solid var(--border);
+  border: 1px solid var(--skin-border);
   border-radius: 16px;
   background: var(--surface-1);
   box-shadow: 0 20px 60px color-mix(in srgb, var(--text-primary) 20%, transparent);
@@ -177,15 +177,15 @@ button.screen-share-live-indicator:focus-visible {
   height: 30px;
   padding: 0;
   color: var(--text-muted);
-  border: 1px solid var(--border);
+  border: 1px solid var(--skin-border);
   border-radius: 50%;
   background: var(--surface-2);
   cursor: pointer;
 }
 
 .screen-share-settings-close:hover {
-  color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  color: var(--skin-accent);
+  border-color: color-mix(in srgb, var(--skin-accent) 35%, var(--skin-border));
 }
 
 .screen-share-settings-heading {
@@ -235,7 +235,7 @@ button.screen-share-live-indicator:focus-visible {
   padding: 0 9px;
   overflow: hidden;
   color: var(--text-primary);
-  border: 1px solid var(--border);
+  border: 1px solid var(--skin-border);
   border-radius: 8px;
   background: var(--surface-2);
   font: inherit;
@@ -263,7 +263,7 @@ button.screen-share-live-indicator:focus-visible {
   gap: 12px;
   margin-top: 20px;
   padding-top: 15px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--skin-border);
 }
 
 .screen-share-settings-start {
@@ -277,7 +277,7 @@ button.screen-share-live-indicator:focus-visible {
   margin-top: 17px;
   overflow: hidden;
   color: var(--text-primary);
-  border: 1px solid var(--border);
+  border: 1px solid var(--skin-border);
   border-radius: 18px;
   background: var(--surface-1);
   box-shadow: 0 12px 30px color-mix(in srgb, var(--text-primary) 18%, transparent);
@@ -291,7 +291,7 @@ button.screen-share-live-indicator:focus-visible {
   aspect-ratio: 16 / 9;
   place-items: center;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--accent) 12%, var(--surface-1)), var(--surface-2) 74%);
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--skin-accent) 12%, var(--surface-1)), var(--surface-2) 74%);
 }
 
 .screen-share-player-video {
@@ -320,10 +320,10 @@ button.screen-share-live-indicator:focus-visible {
   place-items: center;
   width: 58px;
   height: 58px;
-  color: var(--accent);
-  border: 1px solid color-mix(in srgb, var(--accent) 36%, transparent);
+  color: var(--skin-accent);
+  border: 1px solid color-mix(in srgb, var(--skin-accent) 36%, transparent);
   border-radius: 18px;
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  background: color-mix(in srgb, var(--skin-accent) 12%, transparent);
 }
 
 .screen-share-player-placeholder strong {
@@ -345,7 +345,7 @@ button.screen-share-live-indicator:focus-visible {
   height: 38px;
   padding: 0;
   color: var(--text-primary);
-  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--skin-border) 78%, transparent);
   border-radius: 50%;
   background: color-mix(in srgb, var(--surface-1) 88%, transparent);
   box-shadow: 0 5px 16px color-mix(in srgb, var(--text-primary) 14%, transparent);
@@ -362,9 +362,9 @@ button.screen-share-live-indicator:focus-visible {
 
 .screen-share-player-exit:hover,
 .screen-share-player-controls button:hover {
-  color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface-1));
+  color: var(--skin-accent);
+  border-color: color-mix(in srgb, var(--skin-accent) 55%, var(--skin-border));
+  background: color-mix(in srgb, var(--skin-accent) 12%, var(--surface-1));
 }
 
 .screen-share-player-viewers {
@@ -378,7 +378,7 @@ button.screen-share-live-indicator:focus-visible {
   min-height: 38px;
   padding: 5px 8px 5px 11px;
   color: var(--text-primary);
-  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--skin-border) 78%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface-1) 88%, transparent);
   box-shadow: 0 5px 16px color-mix(in srgb, var(--text-primary) 14%, transparent);
@@ -425,7 +425,7 @@ button.screen-share-live-indicator:focus-visible {
   gap: 6px;
   padding: 7px 10px;
   color: var(--text-primary);
-  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--skin-border) 78%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface-1) 88%, transparent);
   box-shadow: 0 5px 16px color-mix(in srgb, var(--text-primary) 14%, transparent);
@@ -452,7 +452,7 @@ button.screen-share-live-indicator:focus-visible {
   overflow: hidden;
   padding: 7px 10px;
   color: var(--text-primary);
-  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--skin-border) 78%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface-1) 88%, transparent);
   box-shadow: 0 5px 16px color-mix(in srgb, var(--text-primary) 14%, transparent);
@@ -480,7 +480,7 @@ button.screen-share-live-indicator:focus-visible {
   min-height: 38px;
   padding: 0 11px;
   color: var(--text-primary);
-  border: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--skin-border) 78%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface-1) 88%, transparent);
   box-shadow: 0 5px 16px color-mix(in srgb, var(--text-primary) 14%, transparent);

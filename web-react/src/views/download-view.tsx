@@ -71,7 +71,7 @@ export default function DownloadView() {
           </div>
           <LanguageSwitcher language={language} onChange={setLanguage} menuLabel={t("languageMenu")} />
           <a
-            className="inline-flex items-center gap-1.5 rounded-lg border bg-secondary px-3 py-2 text-base hover:bg-accent"
+            className="inline-flex items-center gap-1.5 rounded-lg border bg-secondary px-3 py-2 text-base hover:bg-accent hover:text-accent-foreground"
             href="/"
           >
             <ServerIcon size={15} aria-hidden="true" />

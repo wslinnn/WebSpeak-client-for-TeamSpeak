@@ -191,7 +191,7 @@
   padding: 13px 14px;
   color: var(--text-primary);
   background: var(--surface-1);
-  border: 1px solid var(--border);
+  border: 1px solid var(--skin-border);
   border-radius: 12px;
   box-shadow: 0 15px 34px color-mix(in srgb, var(--text-primary) 18%, transparent);
   opacity: 0;
@@ -222,8 +222,8 @@
   width: 10px;
   height: 10px;
   background: var(--surface-1);
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--skin-border);
+  border-bottom: 1px solid var(--skin-border);
   transform: translateX(-50%) rotate(45deg);
 }
 
@@ -257,7 +257,7 @@
 
 .dock-slider-heading strong {
   flex: 0 0 auto;
-  color: var(--accent);
+  color: var(--skin-accent);
   font-size: 11px;
 }
 
@@ -295,7 +295,7 @@
 .dock-panel-divider {
   height: 1px;
   margin: 12px 0;
-  background: var(--border);
+  background: var(--skin-border);
 }
 
 /* Reuses .audio-level-row/.audio-level-track; trim the dialog-sized bottom
@@ -333,7 +333,7 @@
   margin-bottom: 18px;
   padding: 12px;
   background: var(--surface-2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--skin-border);
   border-radius: 11px;
 }
 
@@ -356,7 +356,7 @@
   margin: 0;
   padding: 0;
   appearance: none;
-  border: 2px solid var(--border);
+  border: 2px solid var(--skin-border);
   border-radius: 999px;
   outline: none;
   background: var(--surface-2);

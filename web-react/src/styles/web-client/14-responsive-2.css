@@ -163,8 +163,8 @@
   }
   .voice-member-action:hover,
   .voice-member-action:active {
-    color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 14%, var(--surface-1));
+    color: var(--skin-accent);
+    background: color-mix(in srgb, var(--skin-accent) 14%, var(--surface-1));
   }
   .mobile-voice-controls {
     display: flex;
@@ -173,7 +173,7 @@
     margin-top: 14px;
     padding: 8px;
     background: var(--surface-2);
-    border: 1px solid var(--border);
+    border: 1px solid var(--skin-border);
     border-radius: 14px;
   }
   .mobile-voice-toggle,
@@ -185,9 +185,9 @@
     min-height: 44px;
     min-width: 0;
     padding: 0 11px;
-    color: var(--accent);
+    color: var(--skin-accent);
     background: var(--surface-1);
-    border: 1px solid var(--border);
+    border: 1px solid var(--skin-border);
     border-radius: 10px;
     font-size: 12px;
     font-weight: 700;
@@ -301,8 +301,8 @@
   }
   .member-action-button:hover,
   .member-action-button:active {
-    color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 14%, var(--surface-1));
+    color: var(--skin-accent);
+    background: color-mix(in srgb, var(--skin-accent) 14%, var(--surface-1));
   }
   .app-shell.mobile-view-chat .workspace-scroll {
     overflow: hidden;
@@ -327,7 +327,7 @@
     flex: 0 0 auto;
     margin-top: 0;
     padding: 10px 0 9px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--skin-border);
     scrollbar-width: none;
   }
   .app-shell.mobile-view-chat .chat-tabs::-webkit-scrollbar {
@@ -369,7 +369,7 @@
     min-height: 54px;
     margin: 0 0 4px;
     padding: 7px 8px 7px 13px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--skin-border);
   }
   .app-shell.mobile-view-chat .message-composer :is(input, textarea) {
     font-size: 14px;

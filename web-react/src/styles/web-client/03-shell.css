@@ -82,7 +82,7 @@
   overflow-x: auto;
   scrollbar-width: none;
   background: color-mix(in srgb, var(--surface-1) 94%, transparent);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--skin-border);
 }
 
 .favorite-server-strip::-webkit-scrollbar {
@@ -138,8 +138,8 @@
     padding: 14px 8px 16px 10px;
     overflow-y: auto;
     scrollbar-width: none;
-    background: color-mix(in srgb, var(--surface-1) 96%, var(--accent));
-    border-right: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface-1) 96%, var(--skin-accent));
+    border-right: 1px solid var(--skin-border);
   }
   .favorite-server-rail::-webkit-scrollbar {
     display: none;
@@ -227,7 +227,7 @@
   height: 15px;
   color: var(--text-muted);
   background: var(--surface-1);
-  border: 1px solid var(--border);
+  border: 1px solid var(--skin-border);
   border-radius: 50%;
 }
 

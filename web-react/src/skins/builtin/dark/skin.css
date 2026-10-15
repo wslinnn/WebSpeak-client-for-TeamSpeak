@@ -18,11 +18,11 @@
   --surface-2: var(--ws-surface-2);
   --text-primary: var(--ws-text);
   --text-muted: var(--ws-text-muted);
-  --accent: var(--ws-accent);
+  --skin-accent: var(--ws-accent);
   --success: var(--ws-success);
   --warning: var(--ws-warning);
   --danger: var(--ws-danger);
-  --border: var(--ws-border);
+  --skin-border: var(--ws-border);
 }
 
 .ws-skin-root[data-ws-skin="builtin.dark"] {
@@ -36,12 +36,12 @@
 
 .ws-skin-root[data-ws-skin="builtin.dark"] .settings-modal {
   background: var(--surface-1);
-  border-color: var(--border);
+  border-color: var(--skin-border);
 }
 
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-card {
   background: color-mix(in srgb, var(--surface-1) 94%, transparent);
-  border-color: var(--border);
+  border-color: var(--skin-border);
 }
 .ws-skin-root[data-ws-skin="builtin.dark"] .field-wrap,
 .ws-skin-root[data-ws-skin="builtin.dark"] .mic-mode-switch,
@@ -53,7 +53,7 @@
   color: var(--text-primary);
 }
 .ws-skin-root[data-ws-skin="builtin.dark"] .room-hero {
-  background: linear-gradient(110deg, color-mix(in srgb, var(--accent) 18%, var(--surface-1)), var(--surface-1) 75%);
+  background: linear-gradient(110deg, color-mix(in srgb, var(--skin-accent) 18%, var(--surface-1)), var(--surface-1) 75%);
 }
 .ws-skin-root[data-ws-skin="builtin.dark"] .settings-modal {
   box-shadow: 0 7px 18px color-mix(in srgb, var(--text-primary) 8%, transparent);
@@ -72,7 +72,7 @@
 .ws-skin-root[data-ws-skin="builtin.dark"] .settings-header,
 .ws-skin-root[data-ws-skin="builtin.dark"] .settings-footer,
 .ws-skin-root[data-ws-skin="builtin.dark"] .settings-separator {
-  border-color: var(--border);
+  border-color: var(--skin-border);
 }
 
 .ws-skin-root[data-ws-skin="builtin.dark"] .settings-content,
@@ -80,7 +80,7 @@
   background: var(--surface-1);
 }
 .ws-skin-root[data-ws-skin="builtin.dark"] .settings-nav {
-  border-right-color: var(--border);
+  border-right-color: var(--skin-border);
 }
 .ws-skin-root[data-ws-skin="builtin.dark"] .settings-section h3,
 .ws-skin-root[data-ws-skin="builtin.dark"] .settings-header h2 {
@@ -89,31 +89,31 @@
 .ws-skin-root[data-ws-skin="builtin.dark"] .settings-select {
   color: var(--text-primary);
   background: var(--surface-2);
-  border-color: var(--border);
+  border-color: var(--skin-border);
 }
 .ws-skin-root[data-ws-skin="builtin.dark"] .audio-level-track,
 .ws-skin-root[data-ws-skin="builtin.dark"] .meter i {
-  background: var(--border);
+  background: var(--skin-border);
 }
 
 .ws-skin-root[data-ws-skin="builtin.dark"] :focus-visible {
-  outline-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-color: color-mix(in srgb, var(--skin-accent) 55%, transparent);
 }
 
 .ws-skin-root[data-ws-skin="builtin.dark"] .channel-password-modal {
   color: var(--text-primary);
-  border-color: var(--border);
+  border-color: var(--skin-border);
   background: var(--surface-1);
   box-shadow: 0 20px 60px color-mix(in srgb, var(--text-primary) 18%, transparent);
 }
 .ws-skin-root[data-ws-skin="builtin.dark"] .channel-password-modal h2 { color: var(--text-primary); }
 .ws-skin-root[data-ws-skin="builtin.dark"] .channel-password-modal > p { color: var(--text-muted); }
 .ws-skin-root[data-ws-skin="builtin.dark"] .channel-password-icon {
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 13%, var(--surface-2));
+  color: var(--skin-accent);
+  background: color-mix(in srgb, var(--skin-accent) 13%, var(--surface-2));
 }
 
-.ws-skin-root[data-ws-skin="builtin.dark"] .brand-lockup strong { color: var(--accent); }
+.ws-skin-root[data-ws-skin="builtin.dark"] .brand-lockup strong { color: var(--skin-accent); }
 .ws-skin-root[data-ws-skin="builtin.dark"] .brand-lockup strong span { color: var(--text-primary); }
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .brand-lockup small,
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .header-note,
@@ -128,16 +128,16 @@
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .join-copy h1 em,
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .card-kicker,
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .field-label span,
-.ws-skin-root[data-ws-skin="builtin.dark"] .join-page .join-footer a { color: var(--accent); }
+.ws-skin-root[data-ws-skin="builtin.dark"] .join-page .join-footer a { color: var(--skin-accent); }
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .join-card {
   background: color-mix(in srgb, var(--surface-1) 94%, transparent);
-  border-color: var(--border);
+  border-color: var(--skin-border);
   box-shadow: 0 20px 52px color-mix(in srgb, var(--text-primary) 14%, transparent);
 }
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .field-wrap { color: var(--text-muted); background: var(--surface-2); }
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .field-wrap input { color: var(--text-primary); }
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .field-wrap input::placeholder { color: var(--text-muted); }
-.ws-skin-root[data-ws-skin="builtin.dark"] .join-page .join-footer { border-top-color: var(--border); }
+.ws-skin-root[data-ws-skin="builtin.dark"] .join-page .join-footer { border-top-color: var(--skin-border); }
 .ws-skin-root[data-ws-skin="builtin.dark"] .join-page .join-copy h1 {
   color: #f3fffb;
   text-shadow: 0 1px 0 #07100f, 0 0 9px rgba(243, 255, 251, .16);
