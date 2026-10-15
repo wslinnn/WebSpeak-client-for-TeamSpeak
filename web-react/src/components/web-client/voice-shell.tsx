@@ -8,12 +8,15 @@ import { AudioDock } from "./audio-dock";
 import { Icon } from "./icon";
 import { MemberActionsMenu } from "./member-actions-menu";
 import { ServerContextMenu } from "./server-context-menu";
+import { LanguageSwitcher } from "./language-switcher";
 import { SkinSwitcher } from "./skin-switcher";
 import type { SkinSwitcherState } from "./skin-switcher";
 import { VoiceBanners } from "./voice-banners";
 import { VoiceMobileMore } from "./voice-mobile-more";
 import { VoicePerformancePanel } from "./voice-performance-panel";
 import { VoiceWorkspace } from "./voice-workspace";
+import { avatarInitial, avatarStyle } from "@/web-client/avatar";
+import { useI18n } from "@/hooks/use-i18n";
 import { useStoreOfSpeaking } from "@/hooks/useVoiceSession";
 import type { VoiceSessionController } from "@/voice/session-controller";
 import { buildChannelTree, deriveMemberChannels, ensureSelectedChannelId, filterMemberChannels, findCurrentChannel, type TreeChannel } from "@/web-client/channel-tree";
@@ -68,6 +71,7 @@ interface VoiceShellProps {
  *  workspace（面包屑+成员卡+说话横条）/ 聊天（≥981 停靠列，其余留在工作区）/
  *  频道成员面板 / 移动端 more 面板与底部导航。 */
 export function VoiceShell(props: VoiceShellProps) {
+  const i18n = useI18n();
   const { voice, home, chat, membersController, fold, serverSwitch, t } = props;
   const voiceView = useStore(voice.store);
   const session = useStore(voice.session.store);
@@ -238,6 +242,11 @@ export function VoiceShell(props: VoiceShellProps) {
           className="rail-switcher-tile"
           onChange={props.skinSwitcher.onChange}
         />
+        <LanguageSwitcher language={i18n.language} onChange={i18n.setLanguage} menuLabel={props.t("languageMenu")} className="rail-switcher-tile" tile />
+        <div className="rail-identity" data-ws-part="voice.rail-identity" title={homeState.nickname}>
+          <span className="rail-identity-avatar" style={avatarStyle(homeState.nickname, true, "")} aria-hidden="true">{avatarInitial(homeState.nickname)}</span>
+          <span className="rail-identity-presence" aria-hidden="true"></span>
+        </div>
       </aside>
 
       <VoiceWorkspace

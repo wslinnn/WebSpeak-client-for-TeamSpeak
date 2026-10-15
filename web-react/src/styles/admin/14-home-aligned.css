@@ -1,0 +1,37 @@
+/* 色彩对齐 home（用户拍板：布局不动，登录/改密屏与 home 同族色彩，随明暗主题）。
+ * 高特异性覆盖平移分片的写死色值；token 与 home 同源（index.css @theme +
+ * .dark），侧栏深绿品牌底保留。 */
+.admin-root .login-page {
+  background: var(--background);
+}
+
+.admin-root .login-card,
+.admin-root .setup-card {
+  background: var(--card);
+  border-color: var(--border);
+  box-shadow: 0 20px 52px rgba(35, 68, 63, .08);
+}
+
+.admin-root .login-card h1,
+.admin-root .setup-card h1,
+.admin-root .login-card h2,
+.admin-root .login-card p,
+.admin-root .login-card label,
+.admin-root .setup-card label {
+  color: var(--foreground);
+}
+
+.admin-root .login-card input,
+.admin-root .setup-card input {
+  background: var(--background);
+  border-color: var(--border);
+  color: var(--foreground);
+}
+
+.admin-root .primary-button {
+  background: var(--primary);
+}
+
+.admin-root .primary-button:hover {
+  background: color-mix(in srgb, var(--primary) 85%, #000);
+}

@@ -12,12 +12,13 @@ interface LanguageSwitcherProps {
   menuLabel: string;
   /** rail 上的 58px 方块变体。 */
   tile?: boolean;
+  className?: string;
 }
 
 /** 旧 LanguageSwitcher.vue 平价：自绘下拉（place 服务定位）、pointerdown 外点关闭、
  *  视口变化即关、pointer 选中武装一次性尾随 click 吞噬（选中会卸载菜单，尾随 click
  *  会落到底下元素——手机 more 面板里正下方是退出按钮）。键盘选中无尾随 click，不武装。 */
-export function LanguageSwitcher({ language, onChange, menuLabel, tile }: LanguageSwitcherProps) {
+export function LanguageSwitcher({ language, onChange, menuLabel, tile, className }: LanguageSwitcherProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -79,7 +80,7 @@ export function LanguageSwitcher({ language, onChange, menuLabel, tile }: Langua
   }, []);
 
   return (
-    <div ref={rootRef} className={cn("language-switcher", { open, tile })} onKeyDown={(event) => { if (event.key === "Escape") setOpen(false); }}>
+    <div ref={rootRef} className={cn("language-switcher", { open, tile }, className)} onKeyDown={(event) => { if (event.key === "Escape") setOpen(false); }}>
       <button
         type="button"
         className="language-trigger"

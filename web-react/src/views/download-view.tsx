@@ -24,6 +24,7 @@ export default function DownloadView() {
   const { messages, language, setLanguage } = useI18n();
   const { t } = messages;
   const [releaseState, setReleaseState] = useState<ReleaseState>({ status: "loading" });
+  const [gatewayOnline, setGatewayOnline] = useState(false);
 
   const skin = getWebClientSkinController();
   const skinView = useStore(skin.store);
@@ -33,6 +34,12 @@ export default function DownloadView() {
     applyTheme(getStoredTheme());
     void skin.initialize();
     let cancelled = false;
+    // 网关状态点与 home/admin 同源语义：public-config 可达即在线。
+    void fetch("/api/public-config").then((res) => {
+      if (!cancelled) setGatewayOnline(res.ok);
+    }).catch(() => {
+      if (!cancelled) setGatewayOnline(false);
+    });
     fetchAndroidRelease().then((release) => {
       if (!cancelled) setReleaseState(release ? { status: "ready", release } : { status: "unavailable" });
     });
@@ -53,6 +60,10 @@ export default function DownloadView() {
           </div>
         </div>
         <div className="flex items-center gap-2 max-[640px]:justify-between">
+          <div className="header-note" data-ws-part="download.gateway-status" role="status">
+            <span className="tiny-dot" aria-hidden="true"></span>
+            {gatewayOnline ? t("secureGateway") : t("gatewayOffline")}
+          </div>
           <LanguageSwitcher language={language} onChange={setLanguage} menuLabel={t("languageMenu")} />
           <a
             className="inline-flex items-center gap-1.5 rounded-lg border bg-secondary px-3 py-2 text-base hover:bg-accent"

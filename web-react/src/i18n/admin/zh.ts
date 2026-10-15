@@ -89,7 +89,7 @@ export const zhCopy = {
     skinRemoved: "皮肤已从实例中移除。",
     openGuest: "打开访客页面",
     logout: "退出登录",
-    gatewayRunning: "网关运行中",
+    gatewayRunning: "网关在线",
     serverSettings: "服务器设置",
     serverSettingsLead: "管理默认 TeamSpeak 目标、访问策略和访客页面内容。",
     saving: "正在保存…",

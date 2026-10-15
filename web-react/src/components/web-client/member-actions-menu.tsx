@@ -22,6 +22,8 @@ interface MemberActionsMenuProps {
  *  会跟错行），菜内滚动保留。 */
 export function MemberActionsMenu({ members, isMobileViewport, volumes, whisperTargetIds, rangeStyle, t, onPrivateChat, onVolumeInput }: MemberActionsMenuProps) {
   const menu = useStore(members.store);
+  // 子菜单是否由悬停打开（区别于点击打开，供「点击不抵消」判断）。
+  const hoverOpenedRef = useRef(false);
   const memberMenu = menu.memberMenu;
   const [menuStyle, setMenuStyle] = useState<Record<string, string>>({});
   const [submenuStyle, setSubmenuStyle] = useState<Record<string, string>>({});
@@ -131,8 +133,13 @@ export function MemberActionsMenu({ members, isMobileViewport, volumes, whisperT
           {" "}
           {t("copyNickname")}
         </button>
-        <div className="member-menu-submenu" onMouseEnter={() => { if (!isMobileViewport) members.store.setState({ memberMoveMenuOpen: true }); }}>
-          <button type="button" className="member-menu-submenu-trigger" aria-expanded={menu.memberMoveMenuOpen} onClick={() => members.toggleMemberMoveMenu()}>
+        <div className="member-menu-submenu" onMouseEnter={() => { if (!isMobileViewport) { members.store.setState({ memberMoveMenuOpen: true }); hoverOpenedRef.current = true; } }}>
+          <button type="button" className="member-menu-submenu-trigger" aria-expanded={menu.memberMoveMenuOpen} onClick={() => {
+            // 悬停已打开时点击不再关闭（旧版开合抵消是反直觉平价，用户拍板改掉）。
+            if (hoverOpenedRef.current && menu.memberMoveMenuOpen) return;
+            hoverOpenedRef.current = false;
+            members.toggleMemberMoveMenu();
+          }}>
             <Icon name="chevron-right" size={15} />
             {" "}
             <span>{t("moveMemberMenu")}</span>

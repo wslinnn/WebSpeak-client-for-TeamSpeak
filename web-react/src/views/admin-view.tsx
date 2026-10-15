@@ -106,7 +106,7 @@ export default function AdminView() {
             </NavLink>
           </nav>
           <div className="sidebar-bottom">
-            <a href="/" target="_blank">
+            <a href="/">
               <ShareIcon size={16} aria-hidden="true" />
               {tr("openGuest")}
             </a>
