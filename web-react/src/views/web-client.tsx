@@ -121,6 +121,7 @@ function WebClientRoot() {
   // 自动 away 控制器在 hook 返回后才创建（需要 membersController）；手动状态
   // 回调经盒晚绑（旧 mobileAwayController?. 平价）。
   const mobileAwayBox = useRef<MobileAwayController | null>(null);
+  const onManualStatusChange = useCallback(() => mobileAwayBox.current?.preserveManualStatus(), []);
   const inRoom = useInRoomControllers({
     voice,
     store,
@@ -128,7 +129,7 @@ function WebClientRoot() {
     isMobileViewport,
     viewportHeight: mobileViewport.height,
     getSettingsOpen,
-    onManualStatusChange: () => mobileAwayBox.current?.preserveManualStatus(),
+    onManualStatusChange,
     showToast,
     t,
     localizedMessage,
@@ -164,7 +165,7 @@ function WebClientRoot() {
     isConnected: () => voice.store.getState().connected,
     isAway: () => membersController.store.getState().away,
     setAway: (value) => membersController.setAutomaticAway(value),
-  }), [voice, membersController]);
+  }), [voice, membersController, isMobileBox]);
   useEffect(() => {
     mobileAwayBox.current = mobileAway;
   }, [mobileAway]);

@@ -139,7 +139,7 @@ export function useInRoomControllers(options: InRoomOptions) {
     localizedMessage: localizedLive,
     showToast: options.showToast,
     t: tLive,
-  }), [voice, currentChannelOf, localizedLive, tLive, options.showToast]);
+  }), [voice, currentChannelOf, localizedLive, tLive, options.showToast, options.onManualStatusChange]);
 
   const onChatListElement = useCallback((element: ChatScrollerAspect | null) => {
     chatListBox.current = element;
