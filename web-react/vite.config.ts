@@ -5,7 +5,9 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  // compiler: React Compiler 构建转换（oxc-transform-react）——组件自动 memo 化；
+  // 移植全程按其规则编写（DECISIONS #36/#42/#45/#47），异常组件可逐个 "use no compiler" 豁免。
+  plugins: [react({ compiler: { logDiagnostics: true } }), tailwindcss()],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
