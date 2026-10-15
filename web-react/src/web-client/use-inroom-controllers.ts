@@ -24,6 +24,8 @@ interface InRoomOptions {
   viewportHeight: number;
   /** 音频设置弹窗开关（根 state；设置请求代际读它判定「还在当前弹窗」）。 */
   getSettingsOpen(): boolean;
+  /** 用户手动改 away 时回调（根用它让自动 away 控制器放弃自己的标记）。 */
+  onManualStatusChange?(): void;
   showToast(message: string, tone?: "info" | "warn"): void;
   t(key: string, variables?: Record<string, string | number>): string;
   localizedMessage(message: string): string;
@@ -130,6 +132,7 @@ export function useInRoomControllers(options: InRoomOptions) {
     setWhisperTargets: (clientIds) => voice.setWhisperTargets(clientIds),
     sendPoke: (clientId, message) => voice.sendPoke(clientId, message),
     setAway: (away, message) => voice.setAway(away, message),
+    onManualStatusChange: options.onManualStatusChange,
     // PTT 指针捕获释放随 P4-5 音频控制回归；核心的关耳语在此已平价。
     stopWhisperTalk: () => voice.setWhisperActive(false),
     getWhisperTargetIds: () => voice.store.getState().whisperTargetIds,
