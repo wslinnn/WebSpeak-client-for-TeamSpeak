@@ -8,10 +8,10 @@
   .mic-mode-switch button {
     padding-inline: 7px;
   }
-  :deep(.member-panel) {
+  .member-panel {
     padding-inline: 12px;
   }
-  :deep(.member-volume) {
+  .member-volume {
     display: none;
   }
 }
@@ -20,7 +20,7 @@
   .app-shell {
     grid-template-columns: 70px 245px minmax(0, 1fr);
   }
-  :deep(.member-panel) {
+  .member-panel {
     display: none;
   }
   .room-hero {
@@ -43,7 +43,7 @@
   .join-header {
     min-height: 70px;
   }
-  :deep(.header-note) {
+  .header-note {
     display: none;
   }
   .join-content {
@@ -69,7 +69,7 @@
   .join-footer span:last-child {
     margin-left: auto;
   }
-  :deep(.field-grid) {
+  .field-grid {
     gap: 8px;
   }
   .app-shell {
@@ -77,7 +77,7 @@
   }
   .nav-rail,
   .channel-sidebar,
-  :deep(.member-panel) {
+  .member-panel {
     display: none;
   }
   .workspace {
@@ -154,7 +154,7 @@
     background: #e3efec;
     box-shadow: none;
   }
-  :deep(.local-server-select) {
+  .local-server-select {
     padding: 9px 10px;
     font-size: 11px;
   }
@@ -191,10 +191,10 @@
   .chat-panel {
     margin-top: 25px;
   }
-  :deep(.voice-card) {
+  .voice-card {
     min-height: 143px;
   }
-  :deep(.message-row) {
+  .message-row {
     max-width: 92%;
   }
   .mic-mode-switch button {
@@ -204,23 +204,23 @@
   .dock-actions {
     min-width: 75px;
   }
-  :deep(.settings-modal) {
+  .settings-modal {
     max-height: calc(100dvh - 28px);
   }
   .settings-nav {
     display: none;
   }
-  :deep(.settings-content) {
+  .settings-content {
     padding: 24px 20px;
   }
-  :deep(.settings-header) {
+  .settings-header {
     min-height: 62px;
     padding-inline: 20px;
   }
-  :deep(.settings-header h2) {
+  .settings-header h2 {
     font-size: 19px;
   }
-  :deep(.settings-footer) {
+  .settings-footer {
     min-height: 61px;
     padding-inline: 20px;
   }
@@ -230,13 +230,13 @@
   .join-card {
     border-radius: 15px;
   }
-  :deep(.voice-grid) {
+  .voice-grid {
     gap: 8px;
   }
-  :deep(.voice-card) {
+  .voice-card {
     padding-inline: 6px;
   }
-  :deep(.section-counter) {
+  .section-counter {
     display: none;
   }
   .workspace-actions .header-action:first-child {

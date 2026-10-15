@@ -3,7 +3,7 @@ import tseslint from "typescript-eslint";
 // Backend and maintenance scripts. The web workspace has its own config.
 export default tseslint.config(
   {
-    ignores: ["dist/**", "vendor/**", "web/**", "web-react/**", "data/**"],
+    ignores: ["dist/**", "vendor/**", "web/**", "data/**"],
   },
   ...tseslint.configs.recommended.map(config => ({
     ...config,

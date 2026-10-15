@@ -20,72 +20,72 @@
   color: var(--wsd-text);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-panel) {
+.web-client[data-ws-skin="builtin.dark"] .member-panel {
   background: var(--wsd-panel);
   border-color: var(--wsd-border);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.voice-card) {
+.web-client[data-ws-skin="builtin.dark"] .voice-card {
   background: var(--wsd-bg);
   border-color: var(--wsd-border);
   box-shadow: none;
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.voice-card.speaking) {
+.web-client[data-ws-skin="builtin.dark"] .voice-card.speaking {
   border-color: var(--wsd-accent);
   box-shadow: 0 0 12px var(--wsd-accent-soft);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.voice-card > strong) {
+.web-client[data-ws-skin="builtin.dark"] .voice-card > strong {
   color: var(--wsd-text);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.section-heading h2),
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-panel-heading h2),
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-copy strong) {
+.web-client[data-ws-skin="builtin.dark"] .section-heading h2,
+.web-client[data-ws-skin="builtin.dark"] .member-panel-heading h2,
+.web-client[data-ws-skin="builtin.dark"] .member-copy strong {
   color: var(--wsd-text);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.message-meta strong) {
+.web-client[data-ws-skin="builtin.dark"] .message-meta strong {
   color: var(--wsd-text-muted);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.section-kicker),
-.web-client[data-ws-skin="builtin.dark"] :deep(.chat-empty) {
+.web-client[data-ws-skin="builtin.dark"] .section-kicker,
+.web-client[data-ws-skin="builtin.dark"] .chat-empty {
   color: var(--wsd-text-muted);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.section-counter),
-.web-client[data-ws-skin="builtin.dark"] :deep(.message-meta time),
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-copy span) {
+.web-client[data-ws-skin="builtin.dark"] .section-counter,
+.web-client[data-ws-skin="builtin.dark"] .message-meta time,
+.web-client[data-ws-skin="builtin.dark"] .member-copy span {
   color: var(--wsd-text-dim);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.chat-empty strong) {
+.web-client[data-ws-skin="builtin.dark"] .chat-empty strong {
   color: var(--wsd-text);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-presence) {
+.web-client[data-ws-skin="builtin.dark"] .member-presence {
   border-color: var(--wsd-panel);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-row:hover),
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-row:focus-within) {
+.web-client[data-ws-skin="builtin.dark"] .member-row:hover,
+.web-client[data-ws-skin="builtin.dark"] .member-row:focus-within {
   background: var(--wsd-hover);
   box-shadow: none;
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-channel-heading) {
+.web-client[data-ws-skin="builtin.dark"] .member-channel-heading {
   color: var(--wsd-text);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-channel-group.current .member-channel-heading) {
+.web-client[data-ws-skin="builtin.dark"] .member-channel-group.current .member-channel-heading {
   color: var(--wsd-text);
   background: var(--wsd-raised);
   box-shadow: none;
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-channel-group.current .member-channel-heading)::before {
+.web-client[data-ws-skin="builtin.dark"] .member-channel-group.current .member-channel-heading::before {
   position: absolute;
   left: 0;
   top: 5px;
@@ -104,76 +104,76 @@
   color: var(--wsd-text);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-search) {
+.web-client[data-ws-skin="builtin.dark"] .member-search {
   color: var(--wsd-text);
   background: var(--wsd-raised);
   border-color: var(--wsd-border);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.member-search input) {
+.web-client[data-ws-skin="builtin.dark"] .member-search input {
   color: var(--wsd-text);
 }
 
 .web-client[data-ws-skin="builtin.dark"] .chat-panel,
-.web-client[data-ws-skin="builtin.dark"] :deep(.chat-heading) {
+.web-client[data-ws-skin="builtin.dark"] .chat-heading {
   border-color: var(--wsd-border);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.message-composer) {
+.web-client[data-ws-skin="builtin.dark"] .message-composer {
   color: var(--wsd-text);
   background: var(--wsd-raised);
   border-color: var(--wsd-border);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.message-composer :is(input, textarea)) {
+.web-client[data-ws-skin="builtin.dark"] .message-composer :is(input, textarea) {
   color: var(--wsd-text);
   background: transparent;
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.message-composer :is(input, textarea)::placeholder) {
+.web-client[data-ws-skin="builtin.dark"] .message-composer :is(input, textarea)::placeholder {
   color: var(--wsd-text-dim);
 }
 
 /* Status banners: day keeps the pale paper cards; night re-themes them to
  * dimmed semantic tints over the panel color (warn amber / danger red). */
-.web-client[data-ws-skin="builtin.dark"] :deep(.reconnect-banner) {
+.web-client[data-ws-skin="builtin.dark"] .reconnect-banner {
   color: var(--ws-warning);
   border-color: color-mix(in srgb, var(--ws-warning) 35%, transparent);
   background: color-mix(in srgb, var(--ws-warning) 10%, var(--wsd-panel));
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.reconnect-banner.failed) {
+.web-client[data-ws-skin="builtin.dark"] .reconnect-banner.failed {
   color: var(--ws-danger);
   border-color: color-mix(in srgb, var(--ws-danger) 35%, transparent);
   background: color-mix(in srgb, var(--ws-danger) 10%, var(--wsd-panel));
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.reconnect-banner.degraded) {
+.web-client[data-ws-skin="builtin.dark"] .reconnect-banner.degraded {
   color: var(--ws-warning);
   border-color: color-mix(in srgb, var(--ws-warning) 30%, transparent);
   background: color-mix(in srgb, var(--ws-warning) 8%, var(--wsd-panel));
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.poke-banner) {
+.web-client[data-ws-skin="builtin.dark"] .poke-banner {
   color: var(--wsd-text-muted);
   border-color: color-mix(in srgb, var(--ws-warning) 32%, transparent);
   background: color-mix(in srgb, var(--ws-warning) 9%, var(--wsd-panel));
   box-shadow: 0 8px 22px rgba(0, 0, 0, .32);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.poke-banner > .ui-icon) {
+.web-client[data-ws-skin="builtin.dark"] .poke-banner > .ui-icon {
   color: var(--ws-warning);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.poke-banner strong) {
+.web-client[data-ws-skin="builtin.dark"] .poke-banner strong {
   color: color-mix(in srgb, var(--ws-warning) 80%, #fff);
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.poke-banner button) {
+.web-client[data-ws-skin="builtin.dark"] .poke-banner button {
   color: color-mix(in srgb, var(--ws-warning) 55%, var(--wsd-text-muted));
 }
 
-.web-client[data-ws-skin="builtin.dark"] :deep(.poke-banner button:hover) {
+.web-client[data-ws-skin="builtin.dark"] .poke-banner button:hover {
   color: var(--ws-warning);
   background: color-mix(in srgb, var(--ws-warning) 14%, transparent);
 }

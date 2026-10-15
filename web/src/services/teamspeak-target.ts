@@ -1,7 +1,7 @@
 import {
   formatTeamSpeakConnectionTarget,
   parseTeamSpeakConnectionTarget,
-} from "../../../src/domain/teamspeak-connection-target.js";
+} from "@domain/teamspeak-connection-target";
 
 export const DEFAULT_TEAM_SPEAK_PORT = "9987";
 

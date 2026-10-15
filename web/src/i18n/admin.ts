@@ -1,8 +1,8 @@
-import { deCopy as germanCopy } from "./admin/de.js";
-import { enCopy } from "./admin/en.js";
-import { jaCopy as japaneseCopy } from "./admin/ja.js";
-import { ruCopy as russianCopy } from "./admin/ru.js";
-import { zhCopy } from "./admin/zh.js";
+import { deCopy as germanCopy } from "./admin/de";
+import { enCopy } from "./admin/en";
+import { jaCopy as japaneseCopy } from "./admin/ja";
+import { ruCopy as russianCopy } from "./admin/ru";
+import { zhCopy } from "./admin/zh";
 
 export const copy = {
   zh: zhCopy,

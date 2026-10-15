@@ -1,7 +1,7 @@
 @media (max-width: 740px) {
-  :global(html[data-ws-route="webclient"]),
-  :global(html[data-ws-route="webclient"] body),
-  :global(html[data-ws-route="webclient"] #app) {
+  html[data-ws-route="webclient"],
+  html[data-ws-route="webclient"] body,
+  html[data-ws-route="webclient"] #app {
     height: 100dvh;
     height: 100svh;
     min-height: 100dvh;
@@ -108,47 +108,47 @@
   .voice-section {
     margin-top: 21px;
   }
-  :deep(.section-heading) {
+  .section-heading {
     gap: 10px;
   }
-  :deep(.section-heading h2) {
+  .section-heading h2 {
     font-size: 22px;
   }
-  :deep(.voice-grid) {
+  .voice-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
     margin-top: 14px;
   }
-  :deep(.voice-card) {
+  .voice-card {
     position: relative;
     min-height: 136px;
     padding: 18px 8px 14px;
     border-radius: 16px;
   }
-  :deep(.voice-avatar-wrap),
-  :deep(.voice-avatar) {
+  .voice-avatar-wrap,
+  .voice-avatar {
     width: 60px;
     height: 60px;
   }
-  :deep(.voice-avatar-wrap) {
+  .voice-avatar-wrap {
     margin-bottom: 10px;
   }
-  :deep(.voice-avatar) {
+  .voice-avatar {
     font-size: 18px;
   }
   .voice-status {
     width: 21px;
     height: 21px;
   }
-  :deep(.app-shell .voice-card > strong) {
+  .app-shell .voice-card > strong {
     max-width: 100%;
     font-size: 14px;
   }
-  :deep(.app-shell .voice-card > span) {
+  .app-shell .voice-card > span {
     margin-top: 4px;
     font-size: 11px;
   }
-  :deep(.voice-member-action) {
+  .voice-member-action {
     position: absolute;
     top: 7px;
     right: 7px;
@@ -161,10 +161,10 @@
     border-radius: 10px;
     cursor: pointer;
   }
-  :deep(.voice-member-action:hover),
-  :deep(.voice-member-action:active) {
-    color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 14%, var(--surface-1));
+  .voice-member-action:hover,
+  .voice-member-action:active {
+    color: var(--skin-accent);
+    background: color-mix(in srgb, var(--skin-accent) 14%, var(--surface-1));
   }
   .mobile-voice-controls {
     display: flex;
@@ -173,7 +173,7 @@
     margin-top: 14px;
     padding: 8px;
     background: var(--surface-2);
-    border: 1px solid var(--border);
+    border: 1px solid var(--skin-border);
     border-radius: 14px;
   }
   .mobile-voice-toggle,
@@ -185,9 +185,9 @@
     min-height: 44px;
     min-width: 0;
     padding: 0 11px;
-    color: var(--accent);
+    color: var(--skin-accent);
     background: var(--surface-1);
-    border: 1px solid var(--border);
+    border: 1px solid var(--skin-border);
     border-radius: 10px;
     font-size: 12px;
     font-weight: 700;
@@ -200,7 +200,7 @@
   .mobile-more-panel button.muted {
     color: var(--danger);
   }
-  :deep(.app-shell .member-panel.mobile-section-visible) {
+  .app-shell .member-panel.mobile-section-visible {
     display: flex !important;
     flex: 1 1 auto;
     width: 100%;
@@ -212,28 +212,28 @@
     border-right: 0;
     overflow: hidden;
   }
-  :deep(.member-panel-heading) {
+  .member-panel-heading {
     flex: 0 0 auto;
   }
-  :deep(.member-panel-heading h2) {
+  .member-panel-heading h2 {
     font-size: 23px;
   }
-  :deep(.status-button) {
+  .status-button {
     min-height: 34px;
     padding-inline: 10px;
     font-size: 12px;
   }
-  :deep(.member-search) {
+  .member-search {
     flex: 0 0 auto;
     min-height: 44px;
     margin-top: 14px;
     padding: 0 12px;
     border-radius: 11px;
   }
-  :deep(.member-search input) {
+  .member-search input {
     font-size: 15px;
   }
-  :deep(.app-shell .member-panel .member-tree) {
+  .app-shell .member-panel .member-tree {
     flex: 1 1 auto;
     min-height: 0;
     max-height: none;
@@ -242,53 +242,53 @@
     overflow-y: auto;
     scrollbar-gutter: stable;
   }
-  :deep(.member-channel-group) {
+  .member-channel-group {
     padding: 7px 0 12px;
   }
-  :deep(.member-channel-heading) {
+  .member-channel-heading {
     min-height: 44px;
     padding: 0 9px;
     border-radius: 11px;
     font-size: 14px;
   }
-  :deep(.member-channel-heading small) {
+  .member-channel-heading small {
     font-size: 12px;
   }
-  :deep(.member-list) {
+  .member-list {
     gap: 3px;
     margin-top: 5px;
   }
-  :deep(.member-row) {
+  .member-row {
     min-height: 58px;
     margin: 0;
     padding: 7px 7px;
     gap: 9px;
     border-radius: 12px;
   }
-  :deep(.member-avatar) {
+  .member-avatar {
     width: 40px;
     height: 40px;
     border-radius: 12px;
     font-size: 12px;
   }
-  :deep(.member-presence) {
+  .member-presence {
     width: 10px;
     height: 10px;
   }
-  :deep(.member-copy strong) {
+  .member-copy strong {
     font-size: 14px;
   }
-  :deep(.member-copy span) {
+  .member-copy span {
     margin-top: 3px;
     font-size: 12px;
   }
-  :deep(.desktop-audio-dock),
-  :deep(.member-flags),
-  :deep(.member-volume),
+  .desktop-audio-dock,
+  .member-flags,
+  .member-volume,
   .member-panel-tip {
     display: none;
   }
-  :deep(.member-action-button) {
+  .member-action-button {
     display: grid;
     place-items: center;
     width: 38px;
@@ -299,10 +299,10 @@
     border-radius: 10px;
     cursor: pointer;
   }
-  :deep(.member-action-button:hover),
-  :deep(.member-action-button:active) {
-    color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 14%, var(--surface-1));
+  .member-action-button:hover,
+  .member-action-button:active {
+    color: var(--skin-accent);
+    background: color-mix(in srgb, var(--skin-accent) 14%, var(--surface-1));
   }
   .app-shell.mobile-view-chat .workspace-scroll {
     overflow: hidden;
@@ -323,24 +323,24 @@
     padding: 0;
     border-top: 0;
   }
-  :deep(.app-shell.mobile-view-chat .chat-tabs) {
+  .app-shell.mobile-view-chat .chat-tabs {
     flex: 0 0 auto;
     margin-top: 0;
     padding: 10px 0 9px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--skin-border);
     scrollbar-width: none;
   }
-  :deep(.app-shell.mobile-view-chat .chat-tabs::-webkit-scrollbar) {
+  .app-shell.mobile-view-chat .chat-tabs::-webkit-scrollbar {
     display: none;
   }
-  :deep(.app-shell.mobile-view-chat .chat-heading) {
+  .app-shell.mobile-view-chat .chat-heading {
     flex: 0 0 auto;
     padding: 13px 0 9px;
   }
-  :deep(.app-shell.mobile-view-chat .chat-heading h2) {
+  .app-shell.mobile-view-chat .chat-heading h2 {
     font-size: 21px;
   }
-  :deep(.app-shell.mobile-view-chat .message-list) {
+  .app-shell.mobile-view-chat .message-list {
     flex: 1 1 auto;
     min-height: 0;
     max-height: none;
@@ -348,30 +348,30 @@
     overflow-y: auto;
     overscroll-behavior: contain;
   }
-  :deep(.app-shell.mobile-view-chat .message-row) {
+  .app-shell.mobile-view-chat .message-row {
     max-width: 94%;
     gap: 9px;
   }
-  :deep(.app-shell.mobile-view-chat .message-avatar) {
+  .app-shell.mobile-view-chat .message-avatar {
     width: 36px;
     height: 36px;
   }
-  :deep(.app-shell.mobile-view-chat .message-meta strong) {
+  .app-shell.mobile-view-chat .message-meta strong {
     font-size: 12px;
   }
-  :deep(.app-shell.mobile-view-chat .message-bubble) {
+  .app-shell.mobile-view-chat .message-bubble {
     padding: 0;
     font-size: 14px;
   }
-  :deep(.app-shell.mobile-view-chat .message-composer) {
+  .app-shell.mobile-view-chat .message-composer {
     position: relative;
     flex: 0 0 auto;
     min-height: 54px;
     margin: 0 0 4px;
     padding: 7px 8px 7px 13px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--skin-border);
   }
-  :deep(.app-shell.mobile-view-chat .message-composer :is(input, textarea)) {
+  .app-shell.mobile-view-chat .message-composer :is(input, textarea) {
     font-size: 14px;
   }
   .mobile-more-panel {
@@ -397,15 +397,15 @@
     min-height: 52px;
     font-size: 12px;
   }
-  :deep(.member-menu-backdrop) {
+  .member-menu-backdrop {
     position: fixed;
     z-index: var(--ws-z-menu-mask);
     inset: 0;
     display: block;
-    background: rgba(13, 29, 26, .38);
+    background: rgba(12, 14, 16, .38);
     backdrop-filter: blur(2px);
   }
-  :deep(.member-context-menu) {
+  .member-context-menu {
     z-index: var(--ws-z-menu);
     left: 10px !important;
     right: 10px;
@@ -416,13 +416,13 @@
     overflow-y: auto;
     padding: 12px;
     border-radius: 18px;
-    box-shadow: 0 18px 42px rgba(13, 38, 33, .25);
+    box-shadow: 0 18px 42px rgba(12, 14, 16, .25);
   }
-  :deep(.member-menu-header strong) {
+  .member-menu-header strong {
     padding: 4px 8px 11px;
     font-size: 16px;
   }
-  :deep(.member-menu-close) {
+  .member-menu-close {
     display: grid;
     place-items: center;
     width: 36px;
@@ -433,60 +433,60 @@
     background: var(--surface-2);
     border-radius: 10px;
   }
-  :deep(.member-context-menu button) {
+  .member-context-menu button {
     min-height: 50px;
     padding: 8px 10px;
     border-radius: 10px;
     font-size: 14px;
   }
-  :deep(.member-context-menu .member-menu-close) {
+  .member-context-menu .member-menu-close {
     min-height: 36px;
   }
-  :deep(.menu-volume) {
+  .menu-volume {
     padding: 5px 8px 11px;
     font-size: 12px;
   }
-  :deep(.menu-volume input) {
+  .menu-volume input {
     height: 7px;
   }
-  :deep(.modal-backdrop) {
+  .modal-backdrop {
     align-items: flex-end;
     padding: 0;
   }
-  :deep(.settings-modal) {
+  .settings-modal {
     width: 100%;
     max-height: calc(100svh - env(safe-area-inset-top, 0px));
     border-radius: 22px 22px 0 0;
   }
-  :deep(.settings-main) {
+  .settings-main {
     min-height: 0;
     overflow: hidden;
   }
-  :deep(.settings-header) {
+  .settings-header {
     min-height: 64px;
     padding-inline: 18px;
   }
-  :deep(.settings-content) {
+  .settings-content {
     min-height: 0;
     padding: 20px 18px;
     overflow-y: auto;
   }
-  :deep(.settings-footer) {
+  .settings-footer {
     min-height: 68px;
     padding: 8px 18px calc(8px + env(safe-area-inset-bottom, 0px));
   }
-  :deep(.settings-footer .save-button) {
+  .settings-footer .save-button {
     min-height: 48px;
   }
-  :deep(.microphone-control) {
+  .microphone-control {
     align-items: stretch;
     flex-direction: column;
     gap: 10px;
   }
-  :deep(.microphone-control .settings-hint) {
+  .microphone-control .settings-hint {
     max-width: none;
   }
-  :deep(.microphone-toggle) {
+  .microphone-toggle {
     width: 100%;
     min-height: 44px;
   }
@@ -518,7 +518,7 @@
   .join-card h2 {
     font-size: 25px;
   }
-  :deep(.field-grid) {
+  .field-grid {
     grid-template-columns: minmax(0, 1fr) 112px;
   }
   .join-footer {
@@ -527,16 +527,16 @@
 }
 
 @media (max-width: 390px) {
-  .join-page :deep(.header-tools) {
+  .join-page .header-tools {
     gap: 4px;
   }
-  .join-page :deep(.guide-button) {
+  .join-page .guide-button {
     width: 32px;
     min-width: 32px;
     min-height: 32px;
     height: 32px;
   }
-  .join-page :deep(.language-switcher) {
+  .join-page .language-switcher {
     min-width: 62px;
   }
   .workspace-header {
@@ -573,50 +573,50 @@
     width: calc(100% - 20px);
     gap: 6px;
   }
-  .join-page :deep(.brand-lockup) {
+  .join-page .brand-lockup {
     min-width: 0;
     flex: 1 1 auto;
     gap: 7px;
   }
-  .join-page :deep(.brand-mark) {
+  .join-page .brand-mark {
     width: 32px;
     height: 32px;
     border-radius: 9px;
   }
-  .join-page :deep(.brand-lockup strong) {
+  .join-page .brand-lockup strong {
     overflow: hidden;
     font-size: 15px;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .join-page :deep(.brand-lockup small) {
+  .join-page .brand-lockup small {
     display: none;
   }
-  .join-page :deep(.header-tools) {
+  .join-page .header-tools {
     min-width: 0;
     flex: 0 0 auto;
     gap: 2px;
   }
-  .join-page :deep(.guide-button) {
+  .join-page .guide-button {
     width: 28px;
     min-width: 28px;
     min-height: 28px;
     height: 28px;
     padding: 0;
   }
-  .join-page :deep(.guide-button) {
+  .join-page .guide-button {
     justify-content: center;
   }
-  .join-page :deep(.language-switcher) {
+  .join-page .language-switcher {
     min-width: 58px;
   }
 }
 
 @media (max-width: 360px) {
-  .join-page :deep(.brand-lockup > div) {
+  .join-page .brand-lockup > div {
     display: none;
   }
-  .join-page :deep(.brand-lockup) {
+  .join-page .brand-lockup {
     flex: 0 0 32px;
   }
 }

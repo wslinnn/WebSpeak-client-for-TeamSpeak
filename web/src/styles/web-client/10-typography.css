@@ -21,20 +21,20 @@
   font-size: 12.5px;
 }
 
-:deep(.app-shell .section-kicker),
-:deep(.app-shell .section-counter) {
+.app-shell .section-kicker,
+.app-shell .section-counter {
   font-size: 12.5px;
 }
 
-:deep(.app-shell .section-heading h2) {
+.app-shell .section-heading h2 {
   font-size: 25px;
 }
 
-:deep(.app-shell .voice-card > strong) {
+.app-shell .voice-card > strong {
   font-size: 15px;
 }
 
-:deep(.app-shell .voice-card > span) {
+.app-shell .voice-card > span {
   font-size: 12.5px;
 }
 
@@ -42,27 +42,27 @@
   font-size: 17.5px;
 }
 
-:deep(.app-shell .voice-empty) {
+.app-shell .voice-empty {
   font-size: 13.75px;
 }
 
-:deep(.app-shell .chat-empty strong) {
+.app-shell .chat-empty strong {
   font-size: 15px;
 }
 
-:deep(.app-shell .chat-empty span) {
+.app-shell .chat-empty span {
   font-size: 12.5px;
 }
 
-:deep(.app-shell .message-meta strong) {
+.app-shell .message-meta strong {
   font-size: 11px;
 }
 
-:deep(.app-shell .message-meta time) {
+.app-shell .message-meta time {
   font-size: 10px;
 }
 
-:deep(.app-shell .message-composer :is(input, textarea)) {
+.app-shell .message-composer :is(input, textarea) {
   font-size: 15px;
 }
 
@@ -76,78 +76,78 @@
   font-size: 11.25px;
 }
 
-:deep(.app-shell .member-panel-heading h2) {
+.app-shell .member-panel-heading h2 {
   font-size: 23.75px;
 }
 
-:deep(.app-shell .member-search input) {
+.app-shell .member-search input {
   font-size: 13.75px;
 }
 
-:deep(.app-shell .member-channel-heading span) {
+.app-shell .member-channel-heading span {
   font-size: 15px;
 }
 
-:deep(.app-shell .member-channel-heading small) {
+.app-shell .member-channel-heading small {
   font-size: 12.5px;
 }
 
-:deep(.app-shell .member-copy strong) {
+.app-shell .member-copy strong {
   font-size: 12.5px;
 }
 
-:deep(.app-shell .member-copy span),
-:deep(.app-shell .channel-no-members) {
+.app-shell .member-copy span,
+.app-shell .channel-no-members {
   font-size: 11.25px;
 }
 
-:deep(.app-shell .member-empty),
+.app-shell .member-empty,
 .app-shell .member-panel-tip {
   font-size: 12.5px;
 }
 
-:deep(.settings-modal .settings-header h2) {
+.settings-modal .settings-header h2 {
   /* Audio-settings dialog title at its decision value (the 27.5px here used
    * to out-specify the 32px in 05 and silently win). */
   font-size: 32px;
 }
 
-:deep(.settings-modal .settings-section h3) {
+.settings-modal .settings-section h3 {
   font-size: 20px;
 }
 
-:deep(.settings-modal .settings-label),
-:deep(.settings-modal .settings-range-row strong),
-:deep(.settings-modal .settings-error) {
+.settings-modal .settings-label,
+.settings-modal .settings-range-row strong,
+.settings-modal .settings-error {
   font-size: 12.5px;
 }
 
-:deep(.settings-modal .settings-select) {
+.settings-modal .settings-select {
   font-size: 13.75px;
 }
 
-:deep(.settings-modal .mic-test-header strong) {
+.settings-modal .mic-test-header strong {
   font-size: 13.75px;
 }
 
-:deep(.settings-modal .mic-test-header button) {
+.settings-modal .mic-test-header button {
   font-size: 12.5px;
 }
 
-:deep(.settings-modal .meter-labels) {
+.settings-modal .meter-labels {
   font-size: 10px;
 }
 
-:deep(.settings-modal .mode-note) {
+.settings-modal .mode-note {
   font-size: 12.5px;
 }
 
-.join-page :deep(.brand-lockup strong) {
+.join-page .brand-lockup strong {
   font-size: 22.5px;
 }
 
-.join-page :deep(.brand-lockup small),
-.join-page :deep(.header-note) {
+.join-page .brand-lockup small,
+.join-page .header-note {
   font-size: 12.5px;
 }
 
@@ -163,7 +163,7 @@
   font-size: 21.25px;
 }
 
-:deep(.join-page .card-kicker) {
+.join-page .card-kicker {
   font-size: 12.5px;
 }
 
@@ -175,24 +175,24 @@
   font-size: 16.25px;
 }
 
-:deep(.join-page .notice) {
+.join-page .notice {
   font-size: 15px;
 }
 
-:deep(.join-page .field-label) {
+.join-page .field-label {
   font-size: 13.75px;
 }
 
-:deep(.join-page .field-wrap input) {
+.join-page .field-wrap input {
   font-size: 16.25px;
 }
 
-:deep(.join-page .primary-button),
-.join-page :deep(.identity-import-submit) {
+.join-page .primary-button,
+.join-page .identity-import-submit {
   font-size: 15px;
 }
 
-:deep(.join-page .connect-button) {
+.join-page .connect-button {
   font-size: 16.25px;
 }
 

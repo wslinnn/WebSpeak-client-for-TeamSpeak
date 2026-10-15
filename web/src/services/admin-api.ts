@@ -1,10 +1,14 @@
-import { adminResponses, type AdminResponseReader } from "../../../src/shared/admin-responses.js";
-import type { AdminSettingsInput } from "../../../src/shared/admin-inputs.js";
+import { adminResponses, type AdminResponseReader } from "@shared/admin-responses";
+import type { AdminSettingsInput } from "@shared/admin-inputs";
 
 export class AdminApiError extends Error {
-  constructor(readonly code: string, readonly status = 0, message = code) {
+  readonly code: string;
+  readonly status: number;
+  constructor(code: string, status = 0, message = code) {
     super(message);
     this.name = "AdminApiError";
+    this.code = code;
+    this.status = status;
   }
 }
 
@@ -118,7 +122,7 @@ export function createAdminApi(options: AdminApiOptions) {
     deleteSkin: (id: string, signal?: AbortSignal) => request(`/skins/${encodeURIComponent(id)}`, adminResponses.ok, "DELETE", {}, true, signal),
     uploadSkin(file: File, confirmReplace?: (id: string) => boolean, signal?: AbortSignal) {
       return execute(signal, async context => {
-        const { importSkinPack } = await import("./skin-pack.js");
+        const { importSkinPack } = await import("./skin-pack");
         context.assertCurrent();
         const skin = await importSkinPack(file);
         context.assertCurrent();

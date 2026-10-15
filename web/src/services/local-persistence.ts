@@ -5,8 +5,8 @@ const DB_VERSION = 4;
 const CURRENT_IDENTITY_KEY = "current";
 const PREFERENCES_KEY = "singleton";
 
-import type { InstalledSkin } from "./skin-pack.js";
-import type { ChatMessage } from "../../../src/shared/voice-models.js";
+import type { InstalledSkin } from "./skin-pack";
+import type { ChatMessage } from "@shared/voice-models";
 
 const MAX_CHAT_HISTORY_MESSAGES_PER_CONVERSATION = 200;
 

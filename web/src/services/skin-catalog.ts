@@ -1,6 +1,6 @@
-import type { SkinCatalogEntry } from "../../../src/shared/skin-catalog.js";
-import { createSkinOperation, type SkinLoadOptions } from "./skin-operation.js";
-export type { SkinCatalogEntry } from "../../../src/shared/skin-catalog.js";
+import type { SkinCatalogEntry } from "@shared/skin-catalog";
+import { createSkinOperation, type SkinLoadOptions } from "./skin-operation";
+export type { SkinCatalogEntry } from "@shared/skin-catalog";
 
 export const BUILTIN_SKIN_CATALOG: SkinCatalogEntry[] = [
   {

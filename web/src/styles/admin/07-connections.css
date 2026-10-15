@@ -1,99 +1,99 @@
 /* Server settings keep their natural height; the main content area owns scrolling. */
 
-:deep(.server-page .settings-grid) {
+.server-page .settings-grid {
   min-height: auto;
   align-items: start;
   grid-auto-rows: auto;
 }
 
-:deep(.server-page .settings-card) {
+.server-page .settings-card {
   padding: 16px;
   gap: 12px;
 }
 
-:deep(.server-page .settings-card input) {
+.server-page .settings-card input {
   height: 40px;
 }
 
-:deep(.server-page .settings-card .choice) {
+.server-page .settings-card .choice {
   padding: 10px;
   gap: 8px;
 }
 
-:deep(.server-page .settings-card .choice small) {
+.server-page .settings-card .choice small {
   margin-top: 3px;
 }
 
-:deep(.server-page .webrtc-port-fields) {
+.server-page .webrtc-port-fields {
   padding: 12px;
   gap: 8px;
 }
 
-:deep(.connection-list) {
+.connection-list {
   display: grid;
   gap: 7px;
   margin-top: 12px;
 }
 
-:deep(.connection-history-heading) {
+.connection-history-heading {
   display: grid;
   gap: 3px;
   padding: 0 0 6px;
-  border-bottom: 1px solid #edf1ef;
+  border-bottom: 1px solid #ececef;
 }
 
-:deep(.connection-history-heading strong) {
+.connection-history-heading strong {
   font-size: 10px;
 }
 
-:deep(.connection-history-heading small) {
-  color: #899792;
+.connection-history-heading small {
+  color: #8f939b;
   font-size: 8px;
 }
 
-:deep(.connection-row) {
+.connection-row {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
   padding: 8px;
-  background: #f6f9f8;
+  background: #f4f4f5;
   border-radius: 7px;
 }
 
-:deep(.connection-person),
-:deep(.connection-detail) {
+.connection-person,
+.connection-detail {
   min-width: 0;
 }
 
-:deep(.connection-person) {
+.connection-person {
   flex: 1 1 auto;
 }
 
-:deep(.connection-person strong),
-:deep(.connection-person small),
-:deep(.connection-detail small) {
+.connection-person strong,
+.connection-person small,
+.connection-detail small {
   display: block;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
 
-:deep(.connection-person strong) {
+.connection-person strong {
   font-size: 10px;
 }
 
-:deep(.connection-person small) {
+.connection-person small {
   margin-top: 3px;
-  color: #899792;
+  color: #8f939b;
   font-size: 8px;
 }
 
-:deep(.connection-person .connection-route) {
-  color: #5f9189;
+.connection-person .connection-route {
+  color: #8f939b;
   font-weight: 600;
 }
 
-:deep(.connection-detail) {
+.connection-detail {
   display: grid;
   flex: 0 1 58%;
   justify-items: end;
@@ -101,42 +101,42 @@
   text-align: right;
 }
 
-:deep(.connection-detail small) {
-  color: #899792;
+.connection-detail small {
+  color: #8f939b;
   font-size: 8px;
 }
 
-:deep(.connection-status) {
+.connection-status {
   display: inline-flex;
   padding: 3px 6px;
   border-radius: 999px;
-  color: #236c63;
-  background: #e3f3ef;
+  color: #1e7a40;
+  background: rgba(30, 122, 64, .10);
   font-size: 8px;
   font-weight: 800;
 }
 
-:deep(.connection-status.disconnected) {
-  color: #687a74;
-  background: #e9efed;
+.connection-status.disconnected {
+  color: #63696f;
+  background: #e5e7eb;
 }
 
-:deep(.connection-status.failed) {
+.connection-status.failed {
   color: #a34f48;
   background: #fff0ee;
 }
 
-:deep(.connection-status.connecting) {
+.connection-status.connecting {
   color: #8b6a3e;
   background: #fbf1dc;
 }
 
 @media (max-width:520px) {
-  :deep(.connection-row) {
+  .connection-row {
     display: grid;
     gap: 7px;
   }
-  :deep(.connection-detail) {
+  .connection-detail {
     justify-items: start;
     text-align: left;
   }
@@ -160,9 +160,9 @@
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  color: #08766e;
-  background: #e4f3ef;
-  border: 1px solid #cae7e0;
+  color: var(--admin-text);
+  background: var(--admin-raised);
+  border: 1px solid var(--admin-border);
   border-radius: 8px;
   font-size: 11px;
   font-weight: 700;
@@ -170,7 +170,7 @@
 }
 
 .home-link:hover {
-  background: #d8eee9;
+  background: var(--admin-hover, var(--admin-raised));
 }
 
 .language-link {
@@ -187,13 +187,13 @@
 
 /* Flexible fields must be allowed to shrink within responsive columns. */
 
-:deep(.settings-card),
-:deep(.password-row),
-:deep(.password-row>label) {
+.settings-card,
+.password-row,
+.password-row>label {
   min-width: 0;
 }
 
-:deep(.password-actions) {
+.password-actions {
   flex: 0 0 auto;
 }
 
@@ -202,20 +202,20 @@
    2K viewport becomes a 1920px-tall admin shell and clips its lower cards. */
 
 @media (min-width:851px) {
-  :global(html[data-ws-route="admin"]),
-  :global(html[data-ws-route="admin"] body) {
+  html[data-ws-route="admin"],
+  html[data-ws-route="admin"] body {
     height: 100dvh;
     max-height: 100dvh;
   }
-  :global(html[data-ws-route="admin"] #app),
+  html[data-ws-route="admin"] #root,
   .admin-root,
-  :deep(.admin-shell),
+  .admin-shell,
   .admin-sidebar {
     height: calc(100dvh / var(--ui-scale));
     min-height: calc(100dvh / var(--ui-scale));
     max-height: calc(100dvh / var(--ui-scale));
   }
-  :deep(.admin-main) {
+  .admin-main {
     height: 100%;
     min-height: 0;
   }

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import test from "node:test";
-import { AdminApiError, createAdminApi } from "./admin-api.js";
-import { adminResponses } from "../../../src/shared/admin-responses.js";
+import { test } from "vitest";
+import { AdminApiError, createAdminApi } from "./admin-api";
+import { adminResponses } from "@shared/admin-responses";
 import { strToU8, zipSync } from "fflate";
 
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status });
@@ -109,10 +109,10 @@ test("admin mutations read the current CSRF token and encode resource IDs", asyn
   await api.changePassword("test-password");
   token = "replacement-test-token";
   await api.terminateSession("a/b ?");
-  assert.equal(new Headers(calls[0].init.headers).get("x-csrf-token"), "first-test-token");
-  assert.equal(new Headers(calls[1].init.headers).get("x-csrf-token"), token);
-  assert.equal(calls[1].url, "/api/admin/sessions/a%2Fb%20%3F/terminate");
-  assert.equal(calls[0].init.body, JSON.stringify({ newPassword: "test-password" }));
+  assert.equal(new Headers(calls[0]!.init.headers).get("x-csrf-token"), "first-test-token");
+  assert.equal(new Headers(calls[1]!.init.headers).get("x-csrf-token"), token);
+  assert.equal(calls[1]!.url, "/api/admin/sessions/a%2Fb%20%3F/terminate");
+  assert.equal(calls[0]!.init.body, JSON.stringify({ newPassword: "test-password" }));
 });
 
 test("skin uploads preserve the binary body, validate the package and honor replacement cancellation", async () => {

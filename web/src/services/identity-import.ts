@@ -6,9 +6,11 @@ const TEAM_SPEAK_OBFUSCATION_KEY = "b9dfaa7bee6ac57ac7b65f1094a1c155e747327bc2fe
 export type IdentityImportErrorCode = "empty" | "too-large" | "multiple" | "malformed" | "invalid-key" | "unsupported";
 
 export class IdentityImportError extends Error {
-  constructor(readonly code: IdentityImportErrorCode) {
+  readonly code: IdentityImportErrorCode;
+  constructor(code: IdentityImportErrorCode) {
     super(code);
     this.name = "IdentityImportError";
+    this.code = code;
   }
 }
 
@@ -56,7 +58,7 @@ export async function importIdentityText(input: string): Promise<string> {
     const nul = obfuscated.indexOf(0, 20);
     const hashEnd = nul < 0 ? obfuscated.length : nul;
     const digest = new Uint8Array(await requireSubtleCrypto().digest("SHA-1", obfuscated.slice(20, hashEnd)));
-    for (let i = 0; i < 20; i++) obfuscated[i] ^= digest[i]!;
+    for (let i = 0; i < 20; i++) obfuscated[i] = obfuscated[i]! ^ digest[i]!;
 
     xorStaticKey(obfuscated);
     const derBase64 = bytesToAscii(obfuscated);
@@ -92,7 +94,7 @@ export async function exportTeamSpeakIdentity(privateMaterial: string, nickname 
   const nul = obfuscated.indexOf(0, 20);
   const hashEnd = nul < 0 ? obfuscated.length : nul;
   const digest = new Uint8Array(await requireSubtleCrypto().digest("SHA-1", obfuscated.slice(20, hashEnd)));
-  for (let i = 0; i < 20; i++) obfuscated[i] ^= digest[i]!;
+  for (let i = 0; i < 20; i++) obfuscated[i] = obfuscated[i]! ^ digest[i]!;
 
   const identity = `${offset}V${bytesToBase64(obfuscated)}`;
   return `[Identity]\r\nid=WebSpeak\r\nidentity="${identity}"\r\nnickname=${escapeTeamSpeakText(nickname)}\r\nphonetic_nickname=\r\n`;
@@ -276,7 +278,7 @@ function normalizeInteger(value: Uint8Array, size: number): Uint8Array {
   return normalized;
 }
 
-function encodeInteger(value: Uint8Array): Uint8Array {
+function encodeInteger(value: Uint8Array): Uint8Array<ArrayBuffer> {
   let start = 0;
   while (start < value.length - 1 && value[start] === 0) start++;
   const significant = value.slice(start);
@@ -284,11 +286,11 @@ function encodeInteger(value: Uint8Array): Uint8Array {
   return encodeTlv(0x02, positive);
 }
 
-function encodeSequence(values: Uint8Array[]): Uint8Array {
+function encodeSequence(values: Uint8Array[]): Uint8Array<ArrayBuffer> {
   return encodeTlv(0x30, concatBytes(...values));
 }
 
-function encodeTlv(tag: number, value: Uint8Array): Uint8Array {
+function encodeTlv(tag: number, value: Uint8Array): Uint8Array<ArrayBuffer> {
   return concatBytes(new Uint8Array([tag]), encodeDerLength(value.length), value);
 }
 
@@ -300,7 +302,7 @@ function encodeDerLength(length: number): Uint8Array {
 
 function xorStaticKey(bytes: Uint8Array): void {
   const key = new TextEncoder().encode(TEAM_SPEAK_OBFUSCATION_KEY);
-  for (let i = 0; i < Math.min(100, bytes.length); i++) bytes[i] ^= key[i]!;
+  for (let i = 0; i < Math.min(100, bytes.length); i++) bytes[i] = bytes[i]! ^ key[i]!;
 }
 
 function decodeBase64(value: string): Uint8Array {
@@ -332,7 +334,7 @@ function bytesToAscii(bytes: Uint8Array): string {
   return result;
 }
 
-function concatBytes(...parts: Uint8Array[]): Uint8Array {
+function concatBytes(...parts: Uint8Array[]): Uint8Array<ArrayBuffer> {
   const result = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
   let offset = 0;
   for (const part of parts) {

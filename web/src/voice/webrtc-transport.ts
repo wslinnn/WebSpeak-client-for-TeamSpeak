@@ -1,6 +1,6 @@
-import { isSessionDescription, WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS, type WebRtcClientMessage } from "../../../src/shared/webrtc.js";
-import { createMicrophoneMeter, type MicrophoneMeter } from "./microphone-meter.js";
-import { createWebRtcPlayback, type WebRtcPlaybackOptions } from "./webrtc-playback.js";
+import { isSessionDescription, WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS, type WebRtcClientMessage } from "@shared/webrtc";
+import { createMicrophoneMeter, type MicrophoneMeter } from "./microphone-meter";
+import { createWebRtcPlayback, type WebRtcPlaybackOptions } from "./webrtc-playback";
 
 /** The microphone capture controller the sender routes from; the caller owns
  *  its lifetime — it outlives transport restarts. */

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import test from "node:test";
-import { shouldShowMobileGate } from "./mobile-gate.js";
+import { test } from "vitest";
+import { shouldShowMobileGate } from "./mobile-gate";
 
 const phone = {
   userAgent: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Mobile Safari/537.36",

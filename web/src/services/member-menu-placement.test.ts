@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
-import { placeMemberMenu, placeMemberSubmenu } from "./member-menu-placement.js";
+import { test } from "vitest";
+import { placeMemberMenu, placeMemberSubmenu } from "./member-menu-placement";
 
 test("the complete menu stays inside a short desktop window", () => {
   assert.deepEqual(placeMemberMenu({ x: 167, y: 309 }, { width: 188, height: 271 }, { width: 1280, height: 568 }), { x: 167, y: 285 });

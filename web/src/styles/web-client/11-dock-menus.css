@@ -2,7 +2,7 @@
   .app-shell {
     grid-template-columns: minmax(0, 1fr);
   }
-  :deep(.member-panel) {
+  .member-panel {
     display: none;
   }
 }
@@ -14,10 +14,10 @@
   .workspace {
     min-height: 0;
   }
-  :deep(.member-panel) {
+  .member-panel {
     border-left: 0;
   }
-  :deep(.member-tree) {
+  .member-tree {
     margin-top: 10px;
   }
 }
@@ -32,20 +32,20 @@
   .app-shell .room-hero p {
     font-size: 13.75px;
   }
-  :deep(.app-shell .section-heading h2) {
+  .app-shell .section-heading h2 {
     font-size: 21.25px;
   }
-  :deep(.app-shell .message-bubble),
-  :deep(.app-shell .message-composer :is(input, textarea)) {
+  .app-shell .message-bubble,
+  .app-shell .message-composer :is(input, textarea) {
     font-size: 13.75px;
   }
   .app-shell .mic-mode-switch button {
     font-size: 11.25px;
   }
-  :deep(.settings-modal .settings-content) {
+  .settings-modal .settings-content {
     padding: 24px 20px;
   }
-  :deep(.settings-modal .settings-header h2) {
+  .settings-modal .settings-header h2 {
     font-size: 32px;
   }
 }
@@ -53,7 +53,7 @@
 /* Keep the connected workspace sized to the browser viewport and let the
    workspace and member tree own their scroll areas when the window shrinks. */
 
-:global(html[data-ws-route="webclient"] body) {
+html[data-ws-route="webclient"] body {
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -112,22 +112,22 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-:deep(.member-panel) {
+.member-panel {
   grid-column: 2;
   grid-row: 2;
-  border-right: 1px solid #eef2f0;
+  border-right: 1px solid #ececef;
   border-left: 0;
 }
 
-:deep(.voice-avatar.speaking) {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wsd-accent) 55%, transparent), 0 0 14px color-mix(in srgb, var(--wsd-accent) 35%, transparent);
+.voice-avatar.speaking {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wsd-accent) 55%, transparent);
 }
 
 .chat-panel {
   min-height: 0;
 }
 
-:deep(.message-list) {
+.message-list {
   min-height: clamp(150px, 20dvh, 220px);
   max-height: min(360px, 42dvh);
 }
@@ -146,11 +146,11 @@
     grid-row: 2;
     height: auto;
   }
-  :deep(.member-panel) {
+  .member-panel {
     grid-column: 1 / -1;
     grid-row: 3;
     display: flex;
-    border-top: 1px solid #eef2f0;
+    border-top: 1px solid #ececef;
     border-right: 0;
     padding: 16px 18px;
   }
@@ -161,7 +161,7 @@
     flex-wrap: nowrap;
     gap: 6px;
   }
-  :deep(.header-tools) {
+  .header-tools {
     min-width: 0;
     flex: 0 1 auto;
     flex-wrap: nowrap;
@@ -175,24 +175,24 @@
    stays focused on navigation. Mobile keeps its existing controls below the
    voice cards and in the More panel. */
 
-:deep(.header-tools) {
+.header-tools {
   align-items: center;
 }
 
 .header-action,
-:deep(.round-icon) {
+.round-icon {
   line-height: 0;
 }
 
-:deep(.guide-button) {
+.guide-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   min-height: 30px;
   padding: 0 10px;
-  color: var(--wsd-accent);
-  background: var(--wsd-accent-soft);
-  border: 1px solid color-mix(in srgb, var(--wsd-accent) 28%, transparent);
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
   border-radius: 8px;
   font-size: 12px;
   font-weight: 700;
@@ -200,10 +200,8 @@
   cursor: pointer;
 }
 
-:deep(.guide-button:hover) {
-  color: #fff;
-  background: var(--wsd-accent);
-  border-color: var(--wsd-accent);
+.guide-button:hover {
+  background: var(--wsd-hover);
 }
 
 .workspace-actions {
@@ -221,7 +219,7 @@
   margin: 0;
 }
 
-:deep(.desktop-audio-dock) {
+.desktop-audio-dock {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -239,7 +237,7 @@
 
 /* Dock heading: live dot + channel name + the voice-status trigger slot +
  * the round power button (KAAK's four-column heading). */
-:deep(.desktop-audio-dock-heading) {
+.desktop-audio-dock-heading {
   display: grid;
   grid-template-columns: 8px minmax(0, 1fr) 28px 28px;
   align-items: center;
@@ -248,14 +246,14 @@
   min-height: 22px;
 }
 
-:deep(.desktop-audio-dock-dot) {
+.desktop-audio-dock-dot {
   width: 8px;
   height: 8px;
   background: var(--wsd-accent);
   border-radius: 50%;
 }
 
-:deep(.desktop-audio-dock-heading strong) {
+.desktop-audio-dock-heading strong {
   overflow: hidden;
   color: var(--wsd-text);
   font-size: 13px;
@@ -264,7 +262,7 @@
   white-space: nowrap;
 }
 
-:deep(.desktop-audio-dock-power) {
+.desktop-audio-dock-power {
   display: grid;
   place-items: center;
   width: 25px;
@@ -279,15 +277,15 @@
   cursor: pointer;
 }
 
-:deep(.desktop-audio-dock-power:hover),
-:deep(.desktop-audio-dock-power:focus-visible) {
+.desktop-audio-dock-power:hover,
+.desktop-audio-dock-power:focus-visible {
   color: #ff8498;
   background: #3a292b;
 }
 
 /* Voice-status trigger inside the dock: transparent round with an accent
  * waveform glyph drawn by ::before (KAAK); its panel opens upward. */
-:deep(.desktop-audio-dock .performance-trigger) {
+.desktop-audio-dock .performance-trigger {
   display: grid;
   place-items: center;
   width: 32px;
@@ -303,11 +301,11 @@
   font-size: 0;
 }
 
-:deep(.desktop-audio-dock .performance-trigger > *) {
+.desktop-audio-dock .performance-trigger > * {
   display: none;
 }
 
-:deep(.desktop-audio-dock .performance-trigger::before) {
+.desktop-audio-dock .performance-trigger::before {
   content: "";
   display: block;
   width: 17px;
@@ -320,20 +318,20 @@
   background-repeat: no-repeat;
 }
 
-:deep(.desktop-audio-dock .performance-trigger:hover),
-:deep(.desktop-audio-dock .performance-trigger:focus-visible),
-:deep(.desktop-audio-dock .performance-trigger[aria-expanded="true"]) {
+.desktop-audio-dock .performance-trigger:hover,
+.desktop-audio-dock .performance-trigger:focus-visible,
+.desktop-audio-dock .performance-trigger[aria-expanded="true"] {
   color: var(--wsd-accent-hover);
   background: var(--wsd-accent-soft);
   transform: translateY(-1px);
 }
 
-:deep(.desktop-audio-dock .performance-trigger:focus-visible) {
+.desktop-audio-dock .performance-trigger:focus-visible {
   outline: 2px solid var(--wsd-accent);
   outline-offset: 2px;
 }
 
-:deep(.desktop-audio-dock .performance-panel) {
+.desktop-audio-dock .performance-panel {
   top: auto;
   right: auto;
   bottom: calc(100% + 9px);
@@ -347,13 +345,13 @@
  * embedded settings gear) + the accompaniment button; row 2 = labelled audio
  * settings + noise quick toggle + microphone + output (28×23 transparent
  * controls; muted/off states go red with a slash line). */
-:deep(.desktop-audio-dock-share-row) {
+.desktop-audio-dock-share-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 37px;
   gap: 6px;
 }
 
-:deep(.desktop-audio-dock-share) {
+.desktop-audio-dock-share {
   display: flex;
   align-items: stretch;
   min-width: 0;
@@ -361,19 +359,19 @@
   border-radius: 9px;
 }
 
-:deep(.desktop-audio-dock-share:not(.is-stop):hover) {
+.desktop-audio-dock-share:not(.is-stop):hover {
   background: var(--wsd-accent-fill-hover);
 }
 
-:deep(.desktop-audio-dock-share.is-stop) {
+.desktop-audio-dock-share.is-stop {
   background: var(--wsd-danger);
 }
 
-:deep(.desktop-audio-dock-share.is-stop:hover) {
+.desktop-audio-dock-share.is-stop:hover {
   background: color-mix(in srgb, var(--wsd-danger) 85%, #fff);
 }
 
-:deep(.desktop-audio-dock-share-main) {
+.desktop-audio-dock-share-main {
   display: inline-flex;
   flex: 1 1 auto;
   align-items: center;
@@ -392,12 +390,12 @@
   cursor: pointer;
 }
 
-:deep(.desktop-audio-dock-share-main:disabled) {
+.desktop-audio-dock-share-main:disabled {
   opacity: .5;
   cursor: default;
 }
 
-:deep(.desktop-audio-dock-share-gear) {
+.desktop-audio-dock-share-gear {
   display: grid;
   place-items: center;
   flex: 0 0 26px;
@@ -409,11 +407,11 @@
   cursor: pointer;
 }
 
-:deep(.desktop-audio-dock-share-gear:hover) {
+.desktop-audio-dock-share-gear:hover {
   background: rgb(255 255 255 / .16);
 }
 
-:deep(.desktop-audio-dock-accompaniment) {
+.desktop-audio-dock-accompaniment {
   display: grid;
   place-items: center;
   width: 37px;
@@ -427,17 +425,17 @@
   cursor: pointer;
 }
 
-:deep(.desktop-audio-dock-accompaniment:hover),
-:deep(.desktop-audio-dock-accompaniment:focus-visible) {
+.desktop-audio-dock-accompaniment:hover,
+.desktop-audio-dock-accompaniment:focus-visible {
   background: var(--wsd-accent-fill-hover);
 }
 
-:deep(.desktop-audio-dock-accompaniment.active) {
+.desktop-audio-dock-accompaniment.active {
   background: var(--wsd-accent-hover);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 40%, transparent);
 }
 
-:deep(.desktop-audio-dock-controls) {
+.desktop-audio-dock-controls {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 28px 28px 36px;
   gap: 6px;
@@ -446,7 +444,7 @@
   border-top: 1px solid var(--wsd-border);
 }
 
-:deep(.desktop-audio-dock-control) {
+.desktop-audio-dock-control {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -464,29 +462,29 @@
   cursor: pointer;
 }
 
-:deep(.desktop-audio-dock-control:hover),
-:deep(.desktop-audio-dock-control:focus-visible) {
+.desktop-audio-dock-control:hover,
+.desktop-audio-dock-control:focus-visible {
   color: var(--wsd-text);
   background: var(--wsd-hover);
   outline: none;
 }
 
-:deep(.desktop-audio-dock-noise[aria-pressed="true"]) {
+.desktop-audio-dock-noise[aria-pressed="true"] {
   color: #fff;
   background: var(--wsd-accent-fill);
 }
 
-:deep(.desktop-audio-dock-noise[aria-pressed="true"]:hover) {
+.desktop-audio-dock-noise[aria-pressed="true"]:hover {
   background: var(--wsd-accent-fill-hover);
 }
 
-:deep(.desktop-audio-dock-control[data-muted="true"]),
-:deep(.desktop-audio-dock-control[data-off="true"]) {
+.desktop-audio-dock-control[data-muted="true"],
+.desktop-audio-dock-control[data-off="true"] {
   color: var(--wsd-danger);
 }
 
-:deep(.desktop-audio-dock-control[data-muted="true"])::after,
-:deep(.desktop-audio-dock-control[data-off="true"])::after {
+.desktop-audio-dock-control[data-muted="true"]::after,
+.desktop-audio-dock-control[data-off="true"]::after {
   content: "";
   position: absolute;
   left: 50%;
@@ -497,7 +495,7 @@
   transform: translate(-50%, -50%) rotate(-48deg);
 }
 
-:deep(.desktop-audio-dock-settings) {
+.desktop-audio-dock-settings {
   justify-content: flex-start;
   gap: 8px;
   width: auto;
@@ -510,27 +508,27 @@
   line-height: 1;
 }
 
-:deep(.desktop-audio-dock-settings span) {
+.desktop-audio-dock-settings span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-:deep(.settings-hint) {
+.settings-hint {
   margin: -1px 0 19px;
-  color: #8b9994;
+  color: #8f939b;
   font-size: 11px;
 }
 
 @media (max-width: 740px) {
-  :deep(.header-tools) {
+  .header-tools {
     gap: 7px;
   }
-  :deep(.header-note),
-  :deep( .guide-button span) {
+  .header-note,
+   .guide-button span {
     display: none;
   }
-  :deep(.guide-button) {
+  .guide-button {
     width: 32px;
     justify-content: center;
     padding: 0;
@@ -538,11 +536,11 @@
 }
 
 /* The outer conversation title row is ≥981 docked-column furniture. */
-:deep(.chat-conversation-heading) {
+.chat-conversation-heading {
   display: none;
 }
 
-:deep(.chat-tabs) {
+.chat-tabs {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -552,7 +550,7 @@
   padding-bottom: 3px;
 }
 
-:deep(.chat-tabs button) {
+.chat-tabs button {
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -566,19 +564,19 @@
   cursor: pointer;
 }
 
-:deep(.chat-tabs button:hover) {
+.chat-tabs button:hover {
   color: var(--wsd-accent);
   background: var(--wsd-accent-soft);
 }
 
-:deep(.chat-tabs button.active) {
+.chat-tabs button.active {
   color: var(--wsd-accent);
   background: color-mix(in srgb, var(--wsd-accent) 20%, transparent);
   border-color: color-mix(in srgb, var(--wsd-accent) 32%, transparent);
   font-weight: 700;
 }
 
-:deep(.event-row) {
+.event-row {
   display: flex;
   align-items: baseline;
   gap: 12px;
@@ -589,17 +587,17 @@
   line-height: 1.45;
 }
 
-:deep(.event-row time) {
+.event-row time {
   flex: 0 0 auto;
   color: var(--wsd-text-dim);
   font-size: 10px;
 }
 
-:deep(.member-panel-heading) {
+.member-panel-heading {
   align-items: flex-end;
 }
 
-:deep(.status-button) {
+.status-button {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -612,25 +610,25 @@
   cursor: pointer;
 }
 
-:deep(.status-button:hover),
-:deep(.status-button.active) {
+.status-button:hover,
+.status-button.active {
   color: color-mix(in srgb, var(--ws-warning) 72%, var(--wsd-text));
   background: color-mix(in srgb, var(--ws-warning) 12%, var(--wsd-panel));
   border-color: color-mix(in srgb, var(--ws-warning) 35%, transparent);
 }
 
-:deep(.status-dot) {
+.status-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--wsd-accent);
 }
 
-:deep(.status-button.active .status-dot) {
+.status-button.active .status-dot {
   background: var(--ws-warning);
 }
 
-:deep(.member-row) {
+.member-row {
   position: relative;
   padding: 4px 6px;
   margin: -4px -6px;
@@ -638,12 +636,12 @@
   transition: background .16s ease, box-shadow .16s ease;
 }
 
-:deep(.member-row:hover),
-:deep(.member-row:focus-within) {
+.member-row:hover,
+.member-row:focus-within {
   background: var(--wsd-hover);
 }
 
-:deep(.member-context-menu) {
+.member-context-menu {
   position: fixed;
   z-index: var(--ws-z-menu);
   display: grid;
@@ -656,13 +654,13 @@
   box-shadow: 0 14px 35px rgba(0, 0, 0, .18);
 }
 
-:deep(.member-context-menu strong) {
+.member-context-menu strong {
   padding: 4px 8px 7px;
   color: var(--wsd-text);
   font-size: 13px;
 }
 
-:deep(.member-context-menu button) {
+.member-context-menu button {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -676,24 +674,24 @@
   cursor: pointer;
 }
 
-:deep(.member-context-menu button:hover) {
+.member-context-menu button:hover {
   color: var(--wsd-text);
   background: var(--wsd-hover);
 }
 
-:deep(.member-menu-submenu) {
+.member-menu-submenu {
   position: relative;
 }
 
-:deep(.member-menu-submenu-trigger) {
+.member-menu-submenu-trigger {
   width: 100%;
 }
 
-:deep(.member-menu-submenu-arrow) {
+.member-menu-submenu-arrow {
   margin-left: auto;
 }
 
-:deep(.member-submenu-panel) {
+.member-submenu-panel {
   position: absolute;
   z-index: 1;
   top: -8px;
@@ -710,38 +708,38 @@
   box-shadow: 0 14px 35px rgba(0, 0, 0, .18);
 }
 
-:deep(.member-submenu-panel button) {
+.member-submenu-panel button {
   width: 100%;
   min-width: 0;
 }
 
-:deep(.member-submenu-panel button:disabled) {
+.member-submenu-panel button:disabled {
   opacity: .55;
   cursor: default;
 }
 
-:deep(.member-submenu-panel button span) {
+.member-submenu-panel button span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-:deep(.member-submenu-panel button small) {
+.member-submenu-panel button small {
   margin-left: auto;
   color: var(--wsd-text-dim);
   font-size: 10px;
   white-space: nowrap;
 }
 
-:deep(.member-submenu-empty) {
+.member-submenu-empty {
   display: block;
   padding: 8px;
   color: var(--wsd-text-dim);
   font-size: 11px;
 }
 
-:deep(.menu-volume) {
+.menu-volume {
   display: grid;
   gap: 6px;
   padding: 8px;
@@ -750,13 +748,13 @@
   font-size: 10px;
 }
 
-:deep(.menu-volume-value) {
+.menu-volume-value {
   justify-self: end;
   color: var(--wsd-text);
   font-variant-numeric: tabular-nums;
 }
 
-:deep(.menu-volume input) {
+.menu-volume input {
   width: 100%;
   height: 4px;
   appearance: none;
@@ -765,7 +763,7 @@
   cursor: pointer;
 }
 
-:deep(.menu-volume input::-webkit-slider-thumb) {
+.menu-volume input::-webkit-slider-thumb {
   width: 16px;
   height: 16px;
   appearance: none;
@@ -775,7 +773,7 @@
   cursor: pointer;
 }
 
-:deep(.menu-volume input::-moz-range-thumb) {
+.menu-volume input::-moz-range-thumb {
   width: 16px;
   height: 16px;
   border: 2px solid var(--wsd-accent-fill);
@@ -790,11 +788,11 @@
 
 @media (max-width: 740px) {
   /* Touch: a thicker track and a thumb near the 24px hit-target guidance. */
-  :deep(.menu-volume input) {
+  .menu-volume input {
     height: 8px;
   }
-  :deep(.menu-volume input::-webkit-slider-thumb),
-  :deep(.menu-volume input::-moz-range-thumb) {
+  .menu-volume input::-webkit-slider-thumb,
+  .menu-volume input::-moz-range-thumb {
     width: 20px;
     height: 20px;
   }
@@ -853,8 +851,8 @@
   background: #f9eed9;
 }
 
-:deep(.audio-diagnostic),
-:deep(.audio-level-row) {
+.audio-diagnostic,
+.audio-level-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -864,29 +862,29 @@
   font-size: 11px;
 }
 
-:deep(.audio-diagnostic strong),
-:deep(.audio-level-row strong) {
+.audio-diagnostic strong,
+.audio-level-row strong {
   color: var(--wsd-text);
   font-size: 11px;
 }
 
-:deep(.permission-denied) {
+.permission-denied {
   color: var(--wsd-danger) !important;
 }
 
-:deep(.permission-granted) {
+.permission-granted {
   color: var(--wsd-accent) !important;
 }
 
-:deep(.audio-level-track) {
+.audio-level-track {
   height: 7px;
   margin: 7px 0 17px;
   overflow: hidden;
-  background: #e8efec;
+  background: #ececef;
   border-radius: 999px;
 }
 
-:deep(.audio-level-track i) {
+.audio-level-track i {
   display: block;
   height: 100%;
   min-width: 0;
@@ -895,7 +893,7 @@
   transition: width .08s linear;
 }
 
-:deep(.test-audio) {
+.test-audio {
   display: block;
   width: 100%;
   height: 34px;

@@ -1,9 +1,9 @@
-import { getInstalledSkin, saveInstalledSkin } from "./local-persistence.js";
-import type { InstalledSkin } from "./skin-pack.js";
-import { applyTheme, getBuiltinSkinCss, getStoredTheme, isDarkTheme } from "./theme.js";
-import { scopeBuiltinThemeForCustomSkin } from "./skin-cascade.js";
-import { isPublicSkinEnabled } from "./skin-catalog.js";
-import { createSkinOperation, createDownloadSignal, type SkinLoadOptions } from "./skin-operation.js";
+import { getInstalledSkin, saveInstalledSkin } from "./local-persistence";
+import type { InstalledSkin } from "./skin-pack";
+import { applyTheme, getBuiltinSkinCss, getStoredTheme, isDarkTheme } from "./theme";
+import { scopeBuiltinThemeForCustomSkin } from "./skin-cascade";
+import { isPublicSkinEnabled } from "./skin-catalog";
+import { createSkinOperation, createDownloadSignal, type SkinLoadOptions } from "./skin-operation";
 
 export const ACTIVE_SKIN_KEY = "webspeak:active-skin";
 export const BUILTIN_LIGHT_SKIN = "builtin.light";
@@ -74,7 +74,7 @@ async function prepareAndActivate(id: string, expectedVersion: string | undefine
         download.dispose();
       }
       const file = new File([archive], `${id}.wskin`, { type: "application/octet-stream" });
-      const { importSkinPack } = await operation.wait(import("./skin-pack.js"));
+      const { importSkinPack } = await operation.wait(import("./skin-pack"));
       const downloaded = await operation.wait(importSkinPack(file));
       if (downloaded.id !== id) throw new Error("Skin package ID does not match its catalog entry.");
       if (expectedVersion && downloaded.version !== expectedVersion) throw new Error("Skin package version does not match its catalog entry.");
@@ -90,7 +90,7 @@ async function prepareAndActivate(id: string, expectedVersion: string | undefine
 
   let candidateUrls: string[] = [];
   try {
-    const { resolveSkinCssAssets } = await operation.wait(import("./skin-pack.js"));
+    const { resolveSkinCssAssets } = await operation.wait(import("./skin-pack"));
     const compiled = resolveSkinCssAssets(skin.css, skin.assets);
     candidateUrls = compiled.objectUrls;
     operation.check();
@@ -160,8 +160,8 @@ function isVersionCompatible(current: string, minimum: string): boolean {
   const minimumParts = parse(minimum);
   if (!currentParts || !minimumParts) return false;
   for (let index = 0; index < 3; index += 1) {
-    if (currentParts[index] > minimumParts[index]) return true;
-    if (currentParts[index] < minimumParts[index]) return false;
+    if (currentParts[index]! > minimumParts[index]!) return true;
+    if (currentParts[index]! < minimumParts[index]!) return false;
   }
   return true;
 }

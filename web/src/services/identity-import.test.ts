@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createECDH, createHash, webcrypto } from "node:crypto";
-import test from "node:test";
-import { exportTeamSpeakIdentity, extractIdentityNickname, IdentityImportError, importIdentityText } from "./identity-import.js";
+import { test } from "vitest";
+import { exportTeamSpeakIdentity, extractIdentityNickname, IdentityImportError, importIdentityText } from "./identity-import";
 
 if (!globalThis.crypto?.subtle) Object.defineProperty(globalThis, "crypto", { value: webcrypto });
 
@@ -42,11 +42,11 @@ function createReferenceTeamSpeakIni(): { ini: string; material: string } {
   const privateDer = referenceTlv(0x30, sequenceBody);
   const obfuscated = Buffer.from(privateDer.toString("base64"), "ascii");
   const staticKey = Buffer.from("b9dfaa7bee6ac57ac7b65f1094a1c155e747327bc2fe5d51c512023fe54a280201004e90ad1daaae1075d53b7d571c30e063b5a62a4a017bb394833aa0983e6e", "ascii");
-  for (let i = 0; i < Math.min(100, obfuscated.length); i++) obfuscated[i] ^= staticKey[i]!;
+  for (let i = 0; i < Math.min(100, obfuscated.length); i++) obfuscated[i] = obfuscated[i]! ^ staticKey[i]!;
   const nul = obfuscated.indexOf(0, 20);
   const hashEnd = nul < 0 ? obfuscated.length : nul;
   const hash = createHash("sha1").update(obfuscated.subarray(20, hashEnd)).digest();
-  for (let i = 0; i < 20; i++) obfuscated[i] ^= hash[i]!;
+  for (let i = 0; i < 20; i++) obfuscated[i] = obfuscated[i]! ^ hash[i]!;
 
   return {
     material: `${scalar.toString("base64")}:42`,

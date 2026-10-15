@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import test from "node:test";
-import { parseVoiceSessionIntent } from "./session-intent.js";
+import { test } from "vitest";
+import { parseVoiceSessionIntent } from "./session-intent";
 
 test("parseVoiceSessionIntent accepts a well-formed intent payload", () => {
   assert.deepEqual(

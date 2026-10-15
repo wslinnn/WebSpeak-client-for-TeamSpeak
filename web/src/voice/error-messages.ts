@@ -29,6 +29,7 @@ export function normalizedClientErrorCode(value: unknown, fallback = "CONNECTION
 
 export function safeClientErrorDetail(value: unknown): string {
   return String(value ?? "")
+    // eslint-disable-next-line no-control-regex -- 清洗对象就是控制字符本身（网关转发文本的消毒）
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/\s+/g, " ")
     .trim()

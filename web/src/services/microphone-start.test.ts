@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import test from "node:test";
-import { requestMediaBeforeAudioResume } from "./microphone-start.js";
+import { test } from "vitest";
+import { requestMediaBeforeAudioResume } from "./microphone-start";
 
 test("starts the permission prompt before audio resume and does not wait on resume", async () => {
   const calls: string[] = [];

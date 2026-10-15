@@ -1,6 +1,6 @@
-import { reactive, ref } from "vue";
-import type { ServerMessage } from "../../../src/shared/server-messages.js";
-import type { ChannelInfo, ChannelMember, ChatMessage, ServerEvent } from "../../../src/shared/voice-models.js";
+import { createStore } from "zustand/vanilla";
+import type { ServerMessage } from "@shared/server-messages";
+import type { ChannelInfo, ChannelMember, ChatMessage, ServerEvent } from "@shared/voice-models";
 
 interface SessionStateOptions {
   selfId(): number;
@@ -18,15 +18,37 @@ const CHAT_HISTORY_LIMIT = 500;
 // second, and the events tab renders every entry it is handed.
 const SERVER_EVENTS_LIMIT = 500;
 
+export interface PokeNotification {
+  id: string;
+  invokerId: number;
+  invokerUid: string;
+  invokerName: string;
+  message: string;
+  timestamp: number;
+}
+
+/** Public session snapshot. Arrays are replaced (never mutated) on change and
+ *  member/channel objects are swapped for fresh objects when a field changes,
+ *  so consumer memoization can rely on reference identity. */
+export interface VoiceSessionSnapshot {
+  members: ChannelMember[];
+  channels: ChannelInfo[];
+  chatMessages: ChatMessage[];
+  serverEvents: ServerEvent[];
+  pokeNotifications: PokeNotification[];
+  epoch: number;
+  /** Bumped with every roster or chat sync: conversation-key mappings can
+   *  change on both paths (known sender joins / unknown sender appears). */
+  conversationKeysVersion: number;
+}
+
 export function createVoiceSessionState(options: SessionStateOptions) {
-  const epoch = ref(0);
-  const members = reactive<ChannelMember[]>([]);
-  const channels = reactive<ChannelInfo[]>([]);
-  const chatMessages = reactive<ChatMessage[]>([]);
-  const serverEvents = reactive<ServerEvent[]>([]);
-  const pokeNotifications = reactive<{ id: string; invokerId: number; invokerUid: string; invokerName: string; message: string; timestamp: number }[]>([]);
+  const store = createStore<VoiceSessionSnapshot>(() => ({
+    members: [], channels: [], chatMessages: [], serverEvents: [], pokeNotifications: [], epoch: 0,
+    conversationKeysVersion: 0,
+  }));
   let sequence = 0;
-  const memberKeys = reactive(new Map<number, string>());
+  const memberKeys = new Map<number, string>();
   const unknownSenders = new Map<number, string>();
   // Avatars arrive as capability URLs (avatarSnapshot / avatarUpdate) and
   // render as background-image URLs — the browser's HTTP cache absorbs every
@@ -37,6 +59,32 @@ export function createVoiceSessionState(options: SessionStateOptions) {
   // any gateway traffic; a bounded LRU caps a long-lived page's memory.
   const avatars = new Map<string, string>();
   const AVATAR_CACHE_LIMIT = 200;
+
+  // Live mutable working arrays; the public snapshot carries copies so
+  // consumers see one consistent replacement per message.
+  const members: ChannelMember[] = [];
+  const channels: ChannelInfo[] = [];
+  const chatMessages: ChatMessage[] = [];
+  const serverEvents: ServerEvent[] = [];
+  const pokeNotifications: PokeNotification[] = [];
+
+  const syncRoster = (): void => {
+    store.setState({
+      members: [...members],
+      channels: channels.map(channel => ({ ...channel, ...(channel.members ? { members: [...channel.members] } : {}) })),
+      conversationKeysVersion: store.getState().conversationKeysVersion + 1,
+    });
+  };
+  const syncChat = (): void => {
+    store.setState({ chatMessages: [...chatMessages] });
+  };
+  const syncEvents = (): void => {
+    store.setState({ serverEvents: [...serverEvents] });
+  };
+  const syncPokes = (): void => {
+    store.setState({ pokeNotifications: [...pokeNotifications] });
+  };
+
   const getAvatar = (uid: string): string | undefined => {
     const cached = avatars.get(uid);
     if (cached !== undefined) {
@@ -45,14 +93,26 @@ export function createVoiceSessionState(options: SessionStateOptions) {
     }
     return cached;
   };
+  // Member objects are shared between `members` and channel rosters; a field
+  // change swaps in a fresh object at both positions so reference-based
+  // rendering sees the update.
+  const replaceMemberRef = (next: ChannelMember): void => {
+    const index = members.findIndex(candidate => candidate.id === next.id);
+    if (index >= 0) members[index] = next;
+    for (const channel of channels) {
+      const position = channel.members?.findIndex(candidate => candidate.id === next.id) ?? -1;
+      if (position >= 0 && channel.members) channel.members[position] = next;
+    }
+  };
   const applyAvatar = (uid: string, url: string): void => {
     if (avatars.get(uid) === url) return;
     avatars.delete(uid);
     while (avatars.size >= AVATAR_CACHE_LIMIT) avatars.delete(avatars.keys().next().value!);
     avatars.set(uid, url);
     for (const member of members) {
-      if (member.uid === uid && member.avatar !== url) member.avatar = url;
+      if (member.uid === uid && member.avatar !== url) replaceMemberRef({ ...member, avatar: url });
     }
+    syncRoster();
   };
   const storeAvatar = (uid: string, url: string): void => {
     if (avatars.get(uid) === url) return;
@@ -62,7 +122,7 @@ export function createVoiceSessionState(options: SessionStateOptions) {
     probe.onerror = () => { /* keep the initial-letter fallback */ };
     probe.src = url;
   };
-  const nextId = (kind: string) => `${kind}-${epoch.value}-${sequence++}`;
+  const nextId = (kind: string) => `${kind}-${store.getState().epoch}-${sequence++}`;
   const normalize = (member: ChannelMember): ChannelMember => {
     const cached = !member.avatar && member.uid ? getAvatar(member.uid) : undefined;
     return { ...member, ...(cached ? { avatar: cached } : {}), isSelf: member.id === options.selfId() };
@@ -129,19 +189,18 @@ export function createVoiceSessionState(options: SessionStateOptions) {
   function enter(member: ChannelMember): void {
     const index = members.findIndex(candidate => candidate.id === member.id);
     const previous = members[index];
-    const sameIdentity = previous && previous.uid === member.uid;
-    const current = normalize(sameIdentity ? { ...previous, ...member } : member);
+    const sameIdentity = previous !== undefined && previous.uid === member.uid;
+    const current = normalize(sameIdentity && previous ? { ...previous, ...member } : member);
     if (previous && !sameIdentity) {
       options.onMemberRemoved(member.id);
       memberKeys.delete(member.id);
     }
     memberKeys.set(member.id, conversationKey(member.id, member.uid));
     if (index < 0) members.push(current);
-    else members.splice(index, 1, current);
-    const canonical = members[index < 0 ? members.length - 1 : index];
+    else members[index] = current;
     for (const channel of channels) {
       const position = channel.members?.findIndex(candidate => candidate.id === member.id) ?? -1;
-      if (position >= 0) channel.members!.splice(position, 1, canonical);
+      if (position >= 0 && channel.members) channel.members[position] = current;
     }
     options.onMembersChanged();
   }
@@ -150,7 +209,7 @@ export function createVoiceSessionState(options: SessionStateOptions) {
   function unplaceMember(id: number): void {
     for (const channel of channels) {
       const position = channel.members?.findIndex(candidate => candidate.id === id) ?? -1;
-      if (position >= 0) channel.members!.splice(position, 1);
+      if (position >= 0 && channel.members) channel.members.splice(position, 1);
     }
   }
 
@@ -175,6 +234,9 @@ export function createVoiceSessionState(options: SessionStateOptions) {
     replaceMembers(message.members ?? []);
     serverEvents.splice(0, serverEvents.length, ...(message.serverEventLog ?? []));
     pokeNotifications.length = 0;
+    syncRoster();
+    syncEvents();
+    syncPokes();
   }
 
   function receive(message: ServerMessage): boolean {
@@ -183,28 +245,39 @@ export function createVoiceSessionState(options: SessionStateOptions) {
         const { type: _type, channelId, ...member } = message;
         enter(member);
         if (channelId !== undefined) placeMember(member.id, String(channelId));
+        syncRoster();
         break;
       }
-      case "memberLeave": leave(message.id); break;
+      case "memberLeave":
+        leave(message.id);
+        syncRoster();
+        break;
       case "memberUpdated": {
         const member = members.find(candidate => candidate.id === message.id);
         if (!member) break;
-        if (message.nickname !== undefined) member.nickname = message.nickname;
-        if (message.uid !== undefined) member.uid = message.uid;
-        if (message.away !== undefined) member.away = message.away;
-        if (message.awayMessage !== undefined) member.awayMessage = message.awayMessage;
-        if (message.inputMuted !== undefined) member.inputMuted = message.inputMuted;
-        if (message.outputMuted !== undefined) member.outputMuted = message.outputMuted;
-        if (message.channelCommander !== undefined) member.channelCommander = message.channelCommander;
+        const updated: ChannelMember = { ...member };
+        if (message.nickname !== undefined) updated.nickname = message.nickname;
+        if (message.uid !== undefined) updated.uid = message.uid;
+        if (message.away !== undefined) updated.away = message.away;
+        if (message.awayMessage !== undefined) updated.awayMessage = message.awayMessage;
+        if (message.inputMuted !== undefined) updated.inputMuted = message.inputMuted;
+        if (message.outputMuted !== undefined) updated.outputMuted = message.outputMuted;
+        if (message.channelCommander !== undefined) updated.channelCommander = message.channelCommander;
+        replaceMemberRef(updated);
+        syncRoster();
         break;
       }
       case "memberMoved": {
         unplaceMember(message.id);
         if (message.channelId !== undefined) placeMember(message.id, String(message.channelId));
         if (message.id === options.selfId() && message.channelId !== undefined) options.onSelfMoved?.(String(message.channelId));
+        syncRoster();
         break;
       }
-      case "channelList": applyChannels(message.channels); break;
+      case "channelList":
+        applyChannels(message.channels);
+        syncRoster();
+        break;
       case "channelCreated": {
         const incoming = message.channel;
         if (channels.some(channel => channel.id === incoming.id)) break;
@@ -215,18 +288,21 @@ export function createVoiceSessionState(options: SessionStateOptions) {
           return current ? [current] : [];
         });
         channels.push({ ...incoming, members: placed });
+        syncRoster();
         break;
       }
       case "channelUpdated": {
-        const channel = channels.find(candidate => candidate.id === message.id);
-        if (!channel) break;
-        channel.name = message.name;
-        if (message.description !== undefined) channel.description = message.description;
+        const index = channels.findIndex(candidate => candidate.id === message.id);
+        if (index < 0) break;
+        const channel = channels[index]!;
+        channels[index] = { ...channel, name: message.name, ...(message.description !== undefined ? { description: message.description } : {}) };
+        syncRoster();
         break;
       }
       case "channelRemoved": {
         const index = channels.findIndex(channel => channel.id === message.id);
         if (index >= 0) channels.splice(index, 1);
+        syncRoster();
         break;
       }
       case "avatarSnapshot": {
@@ -249,20 +325,24 @@ export function createVoiceSessionState(options: SessionStateOptions) {
           senderId: message.invokerId, senderUid: message.senderUid, invokerName: message.invokerName || "Unknown",
           message: message.message, timestamp: message.timestamp ?? Date.now(),
         });
+        syncChat();
         break;
       }
       case "serverEvent": {
         serverEvents.push(message.event);
         if (serverEvents.length > SERVER_EVENTS_LIMIT) serverEvents.splice(0, serverEvents.length - SERVER_EVENTS_LIMIT);
+        syncEvents();
         break;
       }
-      case "pokeReceived":
+      case "pokeReceived": {
         pokeNotifications.push({ id: nextId("poke"), invokerId: message.invokerId || 0,
           invokerUid: message.invokerUid || "", invokerName: message.invokerName || "Unknown",
           message: message.message, timestamp: message.timestamp ?? Date.now() });
         // Keep the in-session history bounded; the banner list renders the tail.
         if (pokeNotifications.length > 20) pokeNotifications.splice(0, pokeNotifications.length - 20);
+        syncPokes();
         break;
+      }
       default: return false;
     }
     return true;
@@ -275,10 +355,11 @@ export function createVoiceSessionState(options: SessionStateOptions) {
 
   function appendLocal(message: Omit<ChatMessage, "id" | "timestamp" | "isSelf">): void {
     appendChatMessage({ ...message, id: nextId("self"), timestamp: Date.now(), isSelf: true });
+    syncChat();
   }
 
   function reset(): void {
-    epoch.value++;
+    store.setState({ epoch: store.getState().epoch + 1 });
     replaceMembers([]);
     memberKeys.clear();
     unknownSenders.clear();
@@ -286,8 +367,15 @@ export function createVoiceSessionState(options: SessionStateOptions) {
     chatMessages.length = 0;
     serverEvents.length = 0;
     pokeNotifications.length = 0;
+    syncRoster();
+    syncChat();
+    syncEvents();
+    syncPokes();
   }
 
-  return { epoch, members, channels, chatMessages, serverEvents, pokeNotifications, connected, receive, appendLocal, reset,
+  return { store, connected, receive, appendLocal, reset,
+    /** Live working array for non-render consumers (e.g. volume sync inside
+     *  onMembersChanged, which runs before the store snapshot syncs). */
+    membersLive: () => members,
     memberConversationKey: (id: number) => memberKeys.get(id) };
 }

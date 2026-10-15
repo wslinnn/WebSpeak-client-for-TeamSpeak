@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
-import { readFile, readdir } from "node:fs/promises";
-import test from "node:test";
+import { readFile } from "node:fs/promises";
+// jsdom 的全局 URL 以页面地址为基准解析 file: 基准会失败；文件路径解析必须用 node 版。
+import { URL as NodeURL } from "node:url";
+import { test } from "vitest";
 import { strToU8, zipSync } from "fflate";
-import { importSkinPack, resolveSkinCssAssets, SkinPackError } from "./skin-pack.js";
-import { scopeBuiltinThemeForCustomSkin } from "./skin-cascade.js";
+import { importSkinPack, resolveSkinCssAssets, SkinPackError } from "./skin-pack";
+import { scopeBuiltinThemeForCustomSkin } from "./skin-cascade";
 
 const manifest = {
   schemaVersion: 1,
@@ -15,18 +17,6 @@ const manifest = {
   minAppVersion: "0.2.4",
   entry: "skin.css",
 };
-
-// web-client.css is a pure ordered @import manifest (byte-invariant split, report
-// 14 §3); rules live in the shards, so tests assert against the inlined cascade.
-async function readWebClientCss(): Promise<string> {
-  const entry = await readFile(new URL("../styles/web-client.css", import.meta.url), "utf8");
-  const imports = [...entry.matchAll(/^@import "\.\/web-client\/([^"]+)";$/gm)].map(match => match[1]);
-  if (imports.length === 0) return entry;
-  const shards = await Promise.all(
-    imports.map(name => readFile(new URL(`../styles/web-client/${name}`, import.meta.url), "utf8")),
-  );
-  return shards.join("");
-}
 
 test("skin CSS is scoped, local artwork and fonts work, and global names are isolated", async () => {
   const skin = await importSkinPack(makeSkin(`
@@ -83,53 +73,10 @@ test("custom skins can override theme appearance without !important or private c
 });
 
 test("community skins use a scoped light fallback instead of inheriting the night skin", async () => {
-  const lightCss = await readFile(new URL("../skins/builtin/light/skin.css", import.meta.url), "utf8");
+  const lightCss = await readFile(new NodeURL("../skins/builtin/light/skin.css", import.meta.url), "utf8");
   const scoped = scopeBuiltinThemeForCustomSkin(lightCss, "light", "community.example");
   assert.match(scoped, /:where\(\.ws-skin-root\[data-ws-skin="community\.example"\]\) \{\s*color-scheme: light;/);
   assert.match(scoped, /:where\(\.ws-skin-root\[data-ws-skin="community\.example"\]\) \.settings-content/);
-});
-
-async function componentSources(directory: string): Promise<string> {
-  const componentRoot = new URL(directory, import.meta.url);
-  const componentFiles = (await readdir(componentRoot, { recursive: true })).filter(path => path.endsWith(".vue"));
-  return (await Promise.all(componentFiles.map(path => readFile(new URL(path.replaceAll("\\", "/"), componentRoot), "utf8")))).join("\n");
-}
-
-test("all public skin parts are documented and the admin console is outside skin scope", async () => {
-  const [components, adminComponents] = await Promise.all([
-    componentSources("../components/web-client/"), componentSources("../components/admin/"),
-  ]);
-  const [webClient, skinSwitcher, languageSwitcher, admin, documentation] = await Promise.all([
-    readFile(new URL("../views/WebClient.vue", import.meta.url), "utf8"),
-    readFile(new URL("../components/SkinSwitcher.vue", import.meta.url), "utf8"),
-    readFile(new URL("../components/LanguageSwitcher.vue", import.meta.url), "utf8"),
-    readFile(new URL("../views/AdminView.vue", import.meta.url), "utf8"),
-    readFile(new URL("../../../docs/SKIN_DEVELOPMENT.md", import.meta.url), "utf8"),
-  ]);
-  const publicParts = new Set([...`${webClient}\n${components}\n${skinSwitcher}\n${languageSwitcher}`.matchAll(/data-ws-part="([^"]+)"/g)].map((match) => match[1]));
-  for (const part of publicParts) assert.ok(documentation.includes(`\`${part}\``), `Undocumented skin part: ${part}`);
-  assert.match(skinSwitcher, /data-ws-skin-id/);
-  assert.match(skinSwitcher, /data-ws-state/);
-  assert.match(languageSwitcher, /data-ws-language/);
-  assert.doesNotMatch(`${admin}\n${adminComponents}`, /ws-skin-root|data-ws-page=/);
-});
-
-test("public skin and language selectors follow the page theme via tokens", async () => {
-  const [skinSwitcher, languageSwitcher, darkSkin] = await Promise.all([
-    readFile(new URL("../components/SkinSwitcher.vue", import.meta.url), "utf8"),
-    readFile(new URL("../components/LanguageSwitcher.vue", import.meta.url), "utf8"),
-    readFile(new URL("../skins/builtin/dark/skin.css", import.meta.url), "utf8"),
-  ]);
-
-  // 2026-10-14: the old "keep light surfaces in dark mode" contract was
-  // retired after the night-mode dropdown report — both switchers now run on
-  // --wsd-* tokens (day fallbacks keep admin's light look; its [data-theme]
-  // block owns the dark state there).
-  assert.match(skinSwitcher, /\.skin-trigger\s*\{[^}]*background:\s*color-mix\(in srgb, var\(--wsd-accent/);
-  assert.match(skinSwitcher, /\.skin-dropdown\s*\{[^}]*background:\s*var\(--wsd-panel/);
-  assert.match(skinSwitcher, /\.skin-option\s*\{[^}]*color:\s*var\(--wsd-text/);
-  assert.match(languageSwitcher, /\.language-dropdown\s*\{[^}]*background:\s*var\(--wsd-panel/);
-  assert.doesNotMatch(darkSkin, /\.language-switcher\s+\.language-(?:trigger|dropdown|option)/);
 });
 
 test("skin content supports localized interface message overrides and includes the preview as an asset", async () => {
@@ -140,50 +87,10 @@ test("skin content supports localized interface message overrides and includes t
   assert.ok(skin.assets["assets/preview.png"]);
 });
 
-
-test("the activity artwork layer floats above room content without intercepting controls", async () => {
-  const css = await readWebClientCss();
-  assert.match(css, /\.app-shell \.workspace-content\s*\{\s*position: relative;\s*isolation: isolate;/);
-  assert.match(css, /\.voice-activity-artwork\s*\{\s*position: absolute;\s*z-index: 2;\s*inset: -26px 0 -48px;[^}]*pointer-events: none;/);
-  assert.match(css, /\.voice-activity-artwork\s*\{[^}]*transform: perspective\(1100px\) rotateY\(-2\.5deg\) translateZ\(22px\)/);
-  assert.match(css, /:deep\(\.app-shell \.member-panel::before\)\s*\{\s*content: "";\s*position: absolute;\s*z-index: 1;\s*left: -28px;\s*bottom: 18px;\s*width: min\(430px, calc\(100vw - 24px\)\);\s*aspect-ratio: 3 \/ 2;[^}]*perspective\(1100px\) rotateY\(-8deg\)/);
-  assert.match(css, /:deep\(\.app-shell \.chat-empty\[data-ws-state="messages-empty"\]\)\s*\{[^}]*min-height: 210px;\s*padding: 126px 12px 10px;/);
-  assert.match(css, /:deep\(\.app-shell \.chat-panel \.section-heading\),[\s\S]*?:deep\(\.app-shell \.chat-panel \.message-composer\)\s*\{\s*position: relative;\s*z-index: 3;/);
-  assert.match(css, /\.screen-share-player\)?\s*\{[^}]*background: var\(--surface-1\)/);
-  assert.match(css, /\.screen-share-player-exit\)?\s*\{[^}]*z-index: 3;/);
-  assert.match(css, /\.screen-share-player-stage\)?\s*\{[^}]*var\(--accent\)[^}]*var\(--surface-2\)/);
-  assert.match(css, /\.screen-share-player-video\)?\s*\{[^}]*background: var\(--surface-2\)/);
-  assert.match(css, /@media \(min-width: 741px\)\s*\{\s*\/\* The header is one rung on the --ws-z-\* ladder[\s\S]*?\.app-shell \.workspace-header\s*\{\s*position: relative;\s*z-index: var\(--ws-z-header\);/);
-  // Modal masks must sit on a higher ladder rung than the header — the header
-  // once hard-coded z-index: 40 and floated above every dialog backdrop.
-  assert.match(css, /:deep\(\.modal-backdrop\)\s*\{\s*position: fixed;\s*z-index: var\(--ws-z-modal-mask\);/);
-  assert.match(css, /\.web-client\s*\{[^}]*--ws-z-header: 100;[^}]*--ws-z-modal-mask: 400;/);
-});
-
-test("channel empty state removes its bubble ornament and keeps the text-channel label", async () => {
-  const [view, chat] = await Promise.all([
-    readFile(new URL("../components/web-client/ChatPanel.vue", import.meta.url), "utf8"),
-    readFile(new URL("../composables/useWebClientChat.ts", import.meta.url), "utf8"),
-  ]);
-  assert.doesNotMatch(view, /data-ws-state="messages-empty"><div class="chat-empty-icon"/);
-  assert.match(view, /class="section-kicker">\{\{ chatTabLabel \}\}/);
-  assert.match(chat, /tab\.value === "channel" \? t\("textChannel"\)/);
-});
-
-test("homepage motion and room content spacing keep the baseline layout", async () => {
-  const css = await readWebClientCss();
-  // One reduced-motion kill switch covers the whole client (join page, voice
-  // room and dialogs alike) — no per-section carve-outs anymore.
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.web-client \*,\s*\.web-client \*::before,\s*\.web-client \*::after\s*\{\s*animation: none !important;\s*transition-duration: \.01ms !important;/);
-  assert.ok(css.includes("animation: none !important"));
-  assert.doesNotMatch(css, /\.join-page \*, \.join-page \*::before, \.join-page \*::after\s*\{\s*animation: none !important/);
-  assert.ok(css.includes("padding: 0 clamp(12px, 1.4vw, 22px);"), "homepage header contents keep an inset from their container edge");
-  assert.match(css, /\.chat-panel\s*\{\s*margin-top: 34px;\s*padding: 0 clamp\(14px, 1\.8vw, 24px\) 20px;/, "chat children keep horizontal and bottom breathing room");
-  assert.match(css, /\.app-shell \.voice-section \{\s*position: relative;\s*padding: clamp\(14px, 1\.8vw, 24px\);/);
-  assert.match(css, /@media \(max-width: 740px\) \{\s*\.app-shell \.voice-section \{\s*padding: 14px 10px 16px;/);
-  assert.match(css, /\.join-card-waveform i \{[^}]*animation: screen-share-wave 1\.1s ease-in-out infinite alternate;/);
-  assert.match(css, /@keyframes join-card-sonar-ring[\s\S]*?transform: scale\(\.6\);\s*opacity: \.62;[\s\S]*?transform: scale\(1\);\s*opacity: 0;/);
-});
+// The five legacy-anchored tests (documented parts vs. Vue sources, switcher
+// token styling, artwork layering, chat empty state, homepage motion/spacing)
+// stay in the legacy app's suite: their subjects are the old Vue sources and
+// web-client.css. They are re-anchored to the new UI in Phases 3-4.
 
 function makeSkin(css: string, content?: unknown): File {
   const packageFiles: Record<string, Uint8Array> = {

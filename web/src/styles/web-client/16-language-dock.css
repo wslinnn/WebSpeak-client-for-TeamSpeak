@@ -2,20 +2,20 @@
    the Chinese layout unchanged and use a compact type scale for English and
    German so headings, labels, and actions do not force awkward wrapping. */
 
-.web-client.language-en .join-page :deep(.brand-lockup strong),
-.web-client.language-de .join-page :deep(.brand-lockup strong) {
+.web-client.language-en .join-page .brand-lockup strong,
+.web-client.language-de .join-page .brand-lockup strong {
   font-size: 19.8px;
 }
 
-.web-client.language-en .join-page :deep(.brand-lockup small),
-.web-client.language-en .join-page :deep(.header-note),
-.web-client.language-de .join-page :deep(.brand-lockup small),
-.web-client.language-de .join-page :deep(.header-note) {
+.web-client.language-en .join-page .brand-lockup small,
+.web-client.language-en .join-page .header-note,
+.web-client.language-de .join-page .brand-lockup small,
+.web-client.language-de .join-page .header-note {
   font-size: 11px;
 }
 
-.web-client.language-en .join-page :deep(.guide-button),
-.web-client.language-de .join-page :deep(.guide-button) {
+.web-client.language-en .join-page .guide-button,
+.web-client.language-de .join-page .guide-button {
   font-size: 9.7px;
 }
 
@@ -29,8 +29,8 @@
   font-size: 18px;
 }
 
-.web-client.language-en :deep(.join-page .card-kicker),
-.web-client.language-de :deep(.join-page .card-kicker) {
+.web-client.language-en .join-page .card-kicker,
+.web-client.language-de .join-page .card-kicker {
   font-size: 11px;
 }
 
@@ -44,30 +44,30 @@
   font-size: 14.3px;
 }
 
-.web-client.language-en :deep(.join-page .notice),
-.web-client.language-de :deep(.join-page .notice) {
+.web-client.language-en .join-page .notice,
+.web-client.language-de .join-page .notice {
   font-size: 13.2px;
 }
 
-.web-client.language-en :deep(.join-page .field-label),
-.web-client.language-de :deep(.join-page .field-label) {
+.web-client.language-en .join-page .field-label,
+.web-client.language-de .join-page .field-label {
   font-size: 12px;
 }
 
-.web-client.language-en :deep(.join-page .field-wrap input),
-.web-client.language-de :deep(.join-page .field-wrap input) {
+.web-client.language-en .join-page .field-wrap input,
+.web-client.language-de .join-page .field-wrap input {
   font-size: 14.3px;
 }
 
-.web-client.language-en :deep(.join-page .primary-button),
-.web-client.language-de :deep(.join-page .primary-button),
-.web-client.language-en .join-page :deep(.identity-import-submit),
-.web-client.language-de .join-page :deep(.identity-import-submit) {
+.web-client.language-en .join-page .primary-button,
+.web-client.language-de .join-page .primary-button,
+.web-client.language-en .join-page .identity-import-submit,
+.web-client.language-de .join-page .identity-import-submit {
   font-size: 13.2px;
 }
 
-.web-client.language-en :deep(.join-page .connect-button),
-.web-client.language-de :deep(.join-page .connect-button) {
+.web-client.language-en .join-page .connect-button,
+.web-client.language-de .join-page .connect-button {
   font-size: 14.3px;
 }
 
@@ -90,26 +90,26 @@
 }
 
 @media (max-width: 420px) {
-  .web-client.language-en .join-page :deep(.brand-lockup strong),
-  .web-client.language-de .join-page :deep(.brand-lockup strong) {
+  .web-client.language-en .join-page .brand-lockup strong,
+  .web-client.language-de .join-page .brand-lockup strong {
     font-size: 13.2px;
   }
 }
 
 @media (max-width: 740px) {
-  :deep(.performance-trigger) {
+  .performance-trigger {
     width: 36px;
     height: 36px;
     min-height: 36px;
     justify-content: center;
     padding: 0;
   }
-  :deep(.performance-trigger-label),
-  :deep(.performance-trigger small),
-  :deep(.performance-trigger > .ui-icon:last-child) {
+  .performance-trigger-label,
+  .performance-trigger small,
+  .performance-trigger > .ui-icon:last-child {
     display: none;
   }
-  :deep(.performance-panel) {
+  .performance-panel {
     position: fixed;
     top: calc(60px + env(safe-area-inset-top, 0px));
     right: 10px;
@@ -118,12 +118,12 @@
 }
 
 @media (max-width: 390px) {
-  :deep(.performance-trigger) {
+  .performance-trigger {
     width: 32px;
     height: 32px;
     flex-basis: 32px;
   }
-  :deep(.performance-panel) {
+  .performance-panel {
     right: 8px;
     width: min(330px, calc(100vw - 16px));
     padding: 13px;
@@ -145,12 +145,12 @@
         宽度跟随聊天面板内容宽度（chat-panel 水平内边距为 0，
         left/right:0 即与内容宽度完全一致）；chat-panel 作为包含块
         并加 padding-bottom 补偿原占位，避免消息列表被遮挡。 */
-  :deep(.app-shell .member-panel) {
+  .app-shell .member-panel {
     position: relative;
     overflow: visible;
     padding-bottom: calc(18px + 12px + 52px);
   }
-  :deep(.desktop-audio-dock) {
+  .desktop-audio-dock {
     position: absolute;
     z-index: var(--ws-z-raised);
     left: 0;
@@ -164,10 +164,10 @@
     padding-bottom: calc(16px + 48px);
   }
   /* From 741px up the voice-status trigger lives in the dock heading. */
-  :deep(.workspace-actions .network-performance) {
+  .workspace-actions .network-performance {
     display: none;
   }
-  :deep(.app-shell .message-composer) {
+  .app-shell .message-composer {
     position: absolute;
     z-index: 3;
     left: 0;
@@ -177,12 +177,12 @@
   }
 }
 
-:deep(.dock-hover-control) {
+.dock-hover-control {
   position: relative;
   min-width: 0;
 }
 
-:deep(.dock-hover-panel) {
+.dock-hover-panel {
   position: absolute;
   z-index: var(--ws-z-dropdown);
   right: 50%;
@@ -191,7 +191,7 @@
   padding: 13px 14px;
   color: var(--text-primary);
   background: var(--surface-1);
-  border: 1px solid var(--border);
+  border: 1px solid var(--skin-border);
   border-radius: 12px;
   box-shadow: 0 15px 34px color-mix(in srgb, var(--text-primary) 18%, transparent);
   opacity: 0;
@@ -204,7 +204,7 @@
 /* Invisible bridge over the 10px gap between the control and its panel:
    without it the pointer leaves :hover while travelling to the panel and
    the panel closes before the sliders can be reached. */
-:deep(.dock-hover-panel)::before {
+.dock-hover-panel::before {
   content: "";
   position: absolute;
   right: 0;
@@ -213,7 +213,7 @@
   height: 10px;
 }
 
-:deep(.dock-hover-panel::after) {
+.dock-hover-panel::after {
   content: "";
   position: absolute;
   right: auto;
@@ -222,31 +222,31 @@
   width: 10px;
   height: 10px;
   background: var(--surface-1);
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--skin-border);
+  border-bottom: 1px solid var(--skin-border);
   transform: translateX(-50%) rotate(45deg);
 }
 
-:deep(.dock-hover-control:hover .dock-hover-panel),
-:deep(.dock-hover-control:focus-within .dock-hover-panel) {
+.dock-hover-control:hover .dock-hover-panel,
+.dock-hover-control:focus-within .dock-hover-panel {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
   transform: translate(50%, 0);
 }
 
-:deep(.dock-microphone-panel) {
+.dock-microphone-panel {
   width: min(246px, calc(100vw - 32px));
 }
 
-:deep(.dock-slider-heading) {
+.dock-slider-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
 }
 
-:deep(.dock-slider-heading span) {
+.dock-slider-heading span {
   min-width: 0;
   overflow: hidden;
   color: var(--text-muted);
@@ -255,13 +255,13 @@
   white-space: nowrap;
 }
 
-:deep(.dock-slider-heading strong) {
+.dock-slider-heading strong {
   flex: 0 0 auto;
-  color: var(--accent);
+  color: var(--skin-accent);
   font-size: 11px;
 }
 
-:deep(.dock-slider) {
+.dock-slider {
   width: 100%;
   height: 4px;
   margin: 11px 0 1px;
@@ -271,7 +271,7 @@
   cursor: pointer;
 }
 
-:deep(.dock-slider::-webkit-slider-thumb) {
+.dock-slider::-webkit-slider-thumb {
   width: 16px;
   height: 16px;
   appearance: none;
@@ -282,7 +282,7 @@
   cursor: pointer;
 }
 
-:deep(.dock-slider::-moz-range-thumb) {
+.dock-slider::-moz-range-thumb {
   width: 16px;
   height: 16px;
   border: 2px solid var(--wsd-accent-fill);
@@ -292,21 +292,21 @@
   cursor: pointer;
 }
 
-:deep(.dock-panel-divider) {
+.dock-panel-divider {
   height: 1px;
   margin: 12px 0;
-  background: var(--border);
+  background: var(--skin-border);
 }
 
 /* Reuses .audio-level-row/.audio-level-track; trim the dialog-sized bottom
  * margin so the meter sits tight above the panel divider. */
-:deep(.dock-microphone-panel .audio-level-track) {
+.dock-microphone-panel .audio-level-track {
   margin-bottom: 0;
 }
 
-:deep(.dock-switch-row),
-:deep(.mobile-noise-toggle),
-:deep(.desktop-notification-toggle) {
+.dock-switch-row,
+.mobile-noise-toggle,
+.desktop-notification-toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -314,31 +314,31 @@
   cursor: pointer;
 }
 
-:deep(.dock-switch-row > span),
-:deep(.mobile-noise-toggle > span),
-:deep(.desktop-notification-toggle > span) {
+.dock-switch-row > span,
+.mobile-noise-toggle > span,
+.desktop-notification-toggle > span {
   min-width: 0;
 }
 
-:deep(.dock-switch-row strong),
-:deep(.mobile-noise-toggle strong),
-:deep(.desktop-notification-toggle strong) {
+.dock-switch-row strong,
+.mobile-noise-toggle strong,
+.desktop-notification-toggle strong {
   display: block;
   color: var(--text-primary);
   font-size: 11px;
 }
 
-:deep(.mobile-noise-toggle),
-:deep(.desktop-notification-toggle) {
+.mobile-noise-toggle,
+.desktop-notification-toggle {
   margin-bottom: 18px;
   padding: 12px;
   background: var(--surface-2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--skin-border);
   border-radius: 11px;
 }
 
-:deep(.mobile-noise-toggle small),
-:deep(.desktop-notification-toggle small) {
+.mobile-noise-toggle small,
+.desktop-notification-toggle small {
   display: block;
   margin-top: 3px;
   color: var(--text-muted);
@@ -346,9 +346,9 @@
   line-height: 1.4;
 }
 
-:deep(.dock-switch-row input),
-:deep(.mobile-noise-toggle input),
-:deep(.desktop-notification-toggle input) {
+.dock-switch-row input,
+.mobile-noise-toggle input,
+.desktop-notification-toggle input {
   position: relative;
   width: 34px;
   height: 20px;
@@ -356,7 +356,7 @@
   margin: 0;
   padding: 0;
   appearance: none;
-  border: 2px solid var(--border);
+  border: 2px solid var(--skin-border);
   border-radius: 999px;
   outline: none;
   background: var(--surface-2);
@@ -364,9 +364,9 @@
   transition: background .16s ease, border-color .16s ease;
 }
 
-:deep(.dock-switch-row input::before),
-:deep(.mobile-noise-toggle input::before),
-:deep(.desktop-notification-toggle input::before) {
+.dock-switch-row input::before,
+.mobile-noise-toggle input::before,
+.desktop-notification-toggle input::before {
   content: "";
   position: absolute;
   top: 2px;
@@ -378,43 +378,43 @@
   transition: transform .16s ease, background .16s ease;
 }
 
-:deep(.dock-switch-row input:checked),
-:deep(.mobile-noise-toggle input:checked),
-:deep(.desktop-notification-toggle input:checked) {
+.dock-switch-row input:checked,
+.mobile-noise-toggle input:checked,
+.desktop-notification-toggle input:checked {
   border-color: var(--wsd-accent-fill);
   background: var(--wsd-accent-fill);
 }
 
-:deep(.dock-switch-row input:checked::before),
-:deep(.mobile-noise-toggle input:checked::before),
-:deep(.desktop-notification-toggle input:checked::before) {
+.dock-switch-row input:checked::before,
+.mobile-noise-toggle input:checked::before,
+.desktop-notification-toggle input:checked::before {
   background: var(--surface-1);
   transform: translateX(14px);
 }
 
-:deep(.dock-switch-row input:focus-visible),
-:deep(.mobile-noise-toggle input:focus-visible),
-:deep(.desktop-notification-toggle input:focus-visible) {
+.dock-switch-row input:focus-visible,
+.mobile-noise-toggle input:focus-visible,
+.desktop-notification-toggle input:focus-visible {
   outline: 2px solid var(--wsd-accent);
   outline-offset: 2px;
 }
 
-:deep(.member-row) {
+.member-row {
   /* pan-y keeps vertical list scrolling working on touch; only horizontal
      drags start a member move (the desktop HTML5 drag path sets the same). */
   touch-action: pan-y;
 }
 
-:deep(.member-row[draggable="true"]) {
+.member-row[draggable="true"] {
   cursor: grab;
   touch-action: pan-y;
 }
 
-:deep(.member-row[draggable="true"]:active) {
+.member-row[draggable="true"]:active {
   cursor: grabbing;
 }
 
-:deep(.member-row.dragging) {
+.member-row.dragging {
   opacity: .55;
 }
 
@@ -422,7 +422,7 @@
  * around the whole group. The ring is an outline so it survives the current/
  * selected heading rules (which pin their own background and box-shadow);
  * plain rows additionally take the green tint. */
-:deep(.member-channel-group.drag-over .member-channel-heading) {
+.member-channel-group.drag-over .member-channel-heading {
   outline: 1px solid var(--wsd-accent);
   outline-offset: -1px;
   color: var(--wsd-text);

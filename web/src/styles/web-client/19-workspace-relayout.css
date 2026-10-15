@@ -64,13 +64,13 @@
   }
 
   /* Channel pane: the member panel becomes the server column. */
-  :deep(.member-panel) {
+  .member-panel {
     background: var(--wsd-panel);
     border-right: 1px solid var(--wsd-border);
     border-left: 0;
   }
 
-  :deep(.member-server-header) {
+  .member-server-header {
     display: flex;
     flex: 0 0 auto;
     align-items: center;
@@ -80,7 +80,7 @@
     padding: 0 14px;
   }
 
-  :deep(.member-server-header strong) {
+  .member-server-header strong {
     min-width: 0;
     overflow: hidden;
     color: var(--wsd-text);
@@ -91,7 +91,7 @@
     white-space: nowrap;
   }
 
-  :deep(.member-server-menu) {
+  .member-server-menu {
     display: grid;
     place-items: center;
     flex: 0 0 auto;
@@ -105,16 +105,16 @@
     cursor: pointer;
   }
 
-  :deep(.member-server-menu:hover),
-  :deep(.member-server-menu:focus-visible),
-  :deep(.member-server-menu[aria-expanded="true"]) {
+  .member-server-menu:hover,
+  .member-server-menu:focus-visible,
+  .member-server-menu[aria-expanded="true"] {
     color: var(--wsd-text);
     background: var(--wsd-hover);
   }
 
   /* Meta line: static server kind tag + the own presence toggle + the
    * collapsed search toggle (KAAK's two-line header). */
-  :deep(.member-server-meta) {
+  .member-server-meta {
     display: flex;
     flex: 0 0 auto;
     align-items: center;
@@ -123,7 +123,7 @@
     border-bottom: 1px solid var(--wsd-border);
   }
 
-  :deep(.member-server-kind) {
+  .member-server-kind {
     display: inline-flex;
     align-items: center;
     height: 20px;
@@ -136,7 +136,7 @@
     font-weight: 700;
   }
 
-  :deep(.member-search-toggle) {
+  .member-search-toggle {
     display: grid;
     place-items: center;
     flex: 0 0 auto;
@@ -151,22 +151,22 @@
     cursor: pointer;
   }
 
-  :deep(.member-search-toggle:hover),
-  :deep(.member-search-toggle:focus-visible),
-  :deep(.member-search-toggle[aria-expanded="true"]) {
+  .member-search-toggle:hover,
+  .member-search-toggle:focus-visible,
+  .member-search-toggle[aria-expanded="true"] {
     color: var(--wsd-text);
     background: var(--wsd-hover);
   }
 
-  :deep(.member-search) {
+  .member-search {
     display: none;
   }
 
-  :deep(.member-search.search-open) {
+  .member-search.search-open {
     display: flex;
   }
 
-  :deep(.member-server-welcome) {
+  .member-server-welcome {
     display: flex;
     flex: 0 0 auto;
     align-items: flex-start;
@@ -178,7 +178,7 @@
     border-radius: 11px;
   }
 
-  :deep(.member-server-welcome-icon) {
+  .member-server-welcome-icon {
     display: grid;
     flex: 0 0 auto;
     place-items: center;
@@ -189,7 +189,7 @@
     border-radius: 7px;
   }
 
-  :deep(.member-server-welcome strong) {
+  .member-server-welcome strong {
     display: block;
     margin-bottom: 3px;
     color: var(--wsd-text);
@@ -197,7 +197,7 @@
     font-weight: 750;
   }
 
-  :deep(.member-server-welcome p) {
+  .member-server-welcome p {
     max-height: 96px;
     margin: 0;
     overflow-y: auto;
@@ -208,11 +208,11 @@
     white-space: pre-wrap;
   }
 
-  :deep(.member-panel-heading) {
+  .member-panel-heading {
     display: none;
   }
 
-  :deep(.member-group-label) {
+  .member-group-label {
     display: block;
     flex: 0 0 auto;
     padding: 14px 8px 4px;
@@ -300,7 +300,7 @@
     transition: opacity .16s ease, visibility 0s linear .24s;
   }
 
-  :deep(.app-shell > .chat-panel .chat-heading) {
+  .app-shell > .chat-panel .chat-heading {
     flex: 0 0 auto;
     align-items: center;
     justify-content: flex-start;
@@ -308,11 +308,11 @@
     padding-top: 14px;
   }
 
-  :deep(.app-shell > .chat-panel .section-counter) {
+  .app-shell > .chat-panel .section-counter {
     margin-left: auto;
   }
 
-  :deep(.chat-collapse) {
+  .chat-collapse {
     display: grid;
     flex: 0 0 auto;
     place-items: center;
@@ -324,19 +324,19 @@
     border-radius: 9px;
   }
 
-  :deep(.chat-collapse:hover),
-  :deep(.chat-collapse:focus-visible) {
+  .chat-collapse:hover,
+  .chat-collapse:focus-visible {
     color: var(--wsd-text);
     background: var(--wsd-hover);
   }
 
-  :deep(.app-shell > .chat-panel .message-list) {
+  .app-shell > .chat-panel .message-list {
     flex: 1 1 auto;
     min-height: 0;
     max-height: none;
   }
 
-  :deep(.app-shell > .chat-panel .message-composer) {
+  .app-shell > .chat-panel .message-composer {
     flex: 0 0 auto;
   }
 }
@@ -368,22 +368,22 @@
     width: 36px;
     height: 36px;
     padding: 0;
-    color: #102016;
+    color: var(--wsd-accent-contrast);
     background: var(--wsd-accent-fill);
     border-radius: 9px;
-    box-shadow: 0 5px 14px color-mix(in srgb, var(--wsd-accent-fill) 32%, transparent);
+    box-shadow: 0 5px 14px rgba(16, 18, 22, .16);
   }
 
   .chat-reopen:hover,
   .chat-reopen:focus-visible {
-    color: #102016;
+    color: var(--wsd-accent-contrast);
     background: var(--wsd-accent-fill-hover);
   }
 
   /* Channel pane rhythm: children own their padding. The panel itself stops
    * scrolling — the tree scrolls instead, so dock popups (voice status,
    * hover panels) can escape the pane over the stage like KAAK's. */
-  :deep(.member-panel) {
+  .member-panel {
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -391,38 +391,38 @@
     padding: 0 0 14px;
   }
 
-  :deep(.member-server-header) {
+  .member-server-header {
     min-height: 52px;
     padding: 0 16px;
   }
 
-  :deep(.member-panel-heading) {
+  .member-panel-heading {
     padding: 6px 16px 0;
   }
 
-  :deep(.status-button) {
+  .status-button {
     padding: 4px 9px;
     color: var(--wsd-text-muted);
     background: var(--wsd-raised);
     border: 1px solid var(--wsd-border);
   }
 
-  :deep(.status-button:hover) {
+  .status-button:hover {
     color: var(--wsd-text);
     background: var(--wsd-hover);
   }
 
-  :deep(.status-button.active) {
+  .status-button.active {
     color: var(--wsd-text);
     background: var(--wsd-hover);
     border-color: var(--wsd-border);
   }
 
-  :deep(.status-button.active .status-dot) {
+  .status-button.active .status-dot {
     background: var(--wsd-text-dim);
   }
 
-  :deep(.member-search) {
+  .member-search {
     flex: 0 0 auto;
     margin: 10px 16px 0;
     color: var(--wsd-text);
@@ -430,16 +430,16 @@
     border: 1px solid var(--wsd-border);
   }
 
-  :deep(.member-search input) {
+  .member-search input {
     color: var(--wsd-text);
     background: transparent;
   }
 
-  :deep(.member-search input::placeholder) {
+  .member-search input::placeholder {
     color: var(--wsd-text-dim);
   }
 
-  :deep(.member-tree) {
+  .member-tree {
     flex: 1 1 auto;
     min-height: 0;
     margin-top: 4px;
@@ -448,20 +448,20 @@
     scrollbar-gutter: stable;
   }
 
-  :deep(.member-group-label) {
+  .member-group-label {
     padding: 14px 8px 6px;
   }
 
-  :deep(.member-channel-group) {
+  .member-channel-group {
     padding: 2px 0 6px;
     border-bottom: 0;
   }
 
-  :deep(.member-channel-group + .member-channel-group) {
+  .member-channel-group + .member-channel-group {
     margin-top: 2px;
   }
 
-  :deep(.member-channel-heading) {
+  .member-channel-heading {
     position: relative;
     min-height: 38px;
     padding: 0 10px;
@@ -469,18 +469,18 @@
     border-radius: 7px;
   }
 
-  :deep(.member-channel-heading:hover) {
+  .member-channel-heading:hover {
     color: var(--wsd-text);
     background: var(--wsd-hover);
   }
 
-  :deep(.member-channel-group.current .member-channel-heading) {
+  .member-channel-group.current .member-channel-heading {
     color: var(--wsd-text);
     background: var(--wsd-raised);
     box-shadow: none;
   }
 
-  :deep(.member-channel-group.current .member-channel-heading)::before {
+  .member-channel-group.current .member-channel-heading::before {
     position: absolute;
     left: 0;
     top: 5px;
@@ -491,22 +491,22 @@
     border-radius: 0 4px 4px 0;
   }
 
-  :deep(.member-channel-heading span) {
+  .member-channel-heading span {
     color: inherit;
     font-size: 13px;
   }
 
-  :deep(.member-channel-heading small) {
+  .member-channel-heading small {
     color: var(--wsd-text-dim);
     font-size: 12px;
     font-variant-numeric: tabular-nums;
   }
 
-  :deep(.member-channel-group.selected .member-channel-heading) {
+  .member-channel-group.selected .member-channel-heading {
     background: var(--wsd-hover);
   }
 
-  :deep(.member-channel-join-hint) {
+  .member-channel-join-hint {
     flex: 0 0 auto;
     margin-left: 6px;
     color: var(--wsd-accent);
@@ -516,22 +516,22 @@
     white-space: nowrap;
   }
 
-  :deep(.member-channel-fold) {
+  .member-channel-fold {
     color: var(--wsd-text-dim);
   }
 
-  :deep(.member-channel-fold:hover),
-  :deep(.member-channel-group.current .member-channel-fold) {
+  .member-channel-fold:hover,
+  .member-channel-group.current .member-channel-fold {
     color: var(--wsd-text);
     background: var(--wsd-hover);
   }
 
-  :deep(.member-list) {
+  .member-list {
     gap: 2px;
     margin-top: 6px;
   }
 
-  :deep(.member-row) {
+  .member-row {
     display: grid;
     grid-template-columns: 22px minmax(0, 1fr) auto;
     min-height: 29px;
@@ -542,57 +542,57 @@
   /* KAAK rows carry no inline volume: the nickname keeps the full width and
    * the slider lives in the same right-hand cell as the state flags,
    * crossfading in on hover and keyboard focus. */
-  :deep(.member-row .member-flags),
-  :deep(.member-row .member-volume) {
+  .member-row .member-flags,
+  .member-row .member-volume {
     grid-row: 1;
     grid-column: 3;
     align-self: center;
   }
 
-  :deep(.member-row .member-flags) {
+  .member-row .member-flags {
     transition: opacity .14s ease;
   }
 
-  :deep(.member-row .member-volume) {
+  .member-row .member-volume {
     opacity: 0;
     pointer-events: none;
     transition: opacity .14s ease;
   }
 
-  :deep(.member-row:hover .member-flags),
-  :deep(.member-row:focus-within .member-flags) {
+  .member-row:hover .member-flags,
+  .member-row:focus-within .member-flags {
     opacity: 0;
   }
 
-  :deep(.member-row:hover .member-volume),
-  :deep(.member-row:focus-within .member-volume) {
+  .member-row:hover .member-volume,
+  .member-row:focus-within .member-volume {
     opacity: 1;
     pointer-events: auto;
   }
 
-  :deep(.member-avatar) {
+  .member-avatar {
     width: 22px;
     height: 22px;
     border-radius: 50%;
     font-size: 10px;
   }
 
-  :deep(.member-avatar.speaking) {
+  .member-avatar.speaking {
     box-shadow: 0 0 0 2px var(--wsd-accent);
   }
 
-  :deep(.member-presence) {
+  .member-presence {
     border-color: var(--wsd-panel);
     background: var(--wsd-accent);
   }
 
-  :deep(.member-copy strong),
-  :deep(.member-name-button) {
+  .member-copy strong,
+  .member-name-button {
     color: var(--wsd-text);
     font-size: 12px;
   }
 
-  :deep(.member-self-tag) {
+  .member-self-tag {
     margin-left: 5px;
     color: var(--wsd-accent);
     font-size: 10px;
@@ -600,11 +600,11 @@
     font-weight: 700;
   }
 
-  :deep(.member-copy span) {
+  .member-copy span {
     color: var(--wsd-text-dim);
   }
 
-  :deep(.channel-no-members) {
+  .channel-no-members {
     color: var(--wsd-text-dim);
   }
 
@@ -613,20 +613,20 @@
     display: none;
   }
 
-  :deep(.section-heading h2) {
+  .section-heading h2 {
     color: var(--wsd-text);
   }
 
-  :deep(.section-kicker) {
+  .section-kicker {
     color: var(--wsd-text-muted);
   }
 
-  :deep(.section-counter) {
+  .section-counter {
     color: var(--wsd-text-dim);
   }
 
   /* Participant tiles: wide 1.82:1 cards sharing the stage backdrop. */
-  :deep(.app-shell .voice-grid) {
+  .app-shell .voice-grid {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
     align-content: center;
     justify-content: center;
@@ -637,7 +637,7 @@
     padding: 14px 0 16px;
   }
 
-  :deep(.voice-card) {
+  .voice-card {
     display: grid;
     grid-template-rows: minmax(0, 1fr) auto auto;
     width: 100%;
@@ -654,14 +654,14 @@
     transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease;
   }
 
-  :deep(.voice-card:hover) {
+  .voice-card:hover {
     z-index: 3;
     transform: none;
     background: var(--wsd-hover);
     box-shadow: none;
   }
 
-  :deep(.voice-card.speaking) {
+  .voice-card.speaking {
     border-color: color-mix(in srgb, var(--wsd-accent) 53%, transparent);
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--wsd-accent) 13%, transparent);
   }
@@ -669,7 +669,7 @@
   /* Speaking wave marker (bottom right) and microphone state badge (top
    * right), both KAAK card furniture. Transparent on purpose: no baked
    * chip background, so they read on any theme or custom skin. */
-  :deep(.voice-card::after) {
+  .voice-card::after {
     position: absolute;
     right: 12px;
     bottom: 12px;
@@ -689,7 +689,7 @@
     transform-origin: center;
   }
 
-  :deep(.voice-card.speaking::after) {
+  .voice-card.speaking::after {
     display: block;
     animation: voice-speaking-wave .72s ease-in-out infinite alternate;
   }
@@ -697,7 +697,7 @@
   /* Direct-child selector on purpose: the generic status-line rule
    * `.voice-card > span` below in 04-room outranks a bare class rule
    * ((0,2,1) vs (0,2,0)) and would keep this badge position:relative. */
-  :deep(.voice-card > .voice-mic-status) {
+  .voice-card > .voice-mic-status {
     position: absolute;
     top: 10px;
     right: 10px;
@@ -711,26 +711,26 @@
 
   /* Tile enter/leave motion: the base rules repeated so they outrank the
    * ≥981 card transition declared just above. */
-  :deep(.voice-member-move) {
+  .voice-member-move {
     transition: transform .28s cubic-bezier(.22, .61, .36, 1);
   }
 
-  :deep(.voice-member-enter-active),
-  :deep(.voice-member-leave-active) {
+  .voice-member-enter-active,
+  .voice-member-leave-active {
     transition: opacity .2s ease, transform .28s cubic-bezier(.22, .61, .36, 1);
   }
 
-  :deep(.voice-member-enter-from),
-  :deep(.voice-member-leave-to) {
+  .voice-member-enter-from,
+  .voice-member-leave-to {
     opacity: 0;
     transform: translateY(10px) scale(.975);
   }
 
-  :deep(.voice-member-leave-active) {
+  .voice-member-leave-active {
     pointer-events: none;
   }
 
-  :deep(.voice-avatar-wrap) {
+  .voice-avatar-wrap {
     z-index: 0;
     display: grid;
     place-items: center;
@@ -741,7 +741,7 @@
     padding: 10px;
   }
 
-  :deep(.voice-avatar-wrap)::after {
+  .voice-avatar-wrap::after {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -756,12 +756,12 @@
     transform: translate(-50%, -50%);
   }
 
-  :deep(.voice-card.speaking .voice-avatar-wrap)::after {
+  .voice-card.speaking .voice-avatar-wrap::after {
     display: block;
     animation: voice-speaking-ring 1.08s cubic-bezier(.2, .6, .35, 1) infinite;
   }
 
-  :deep(.voice-avatar) {
+  .voice-avatar {
     width: 104px;
     height: 104px;
     font-size: 34px;
@@ -769,34 +769,34 @@
     transition: box-shadow .2s ease;
   }
 
-  :deep(.voice-avatar.speaking) {
+  .voice-avatar.speaking {
     box-shadow: 0 0 0 4px color-mix(in srgb, var(--wsd-accent) 67%, transparent), 0 0 18px color-mix(in srgb, var(--wsd-accent) 33%, transparent);
   }
 
-  :deep(.app-shell .voice-card > strong) {
+  .app-shell .voice-card > strong {
     padding: 0 13px;
     font-size: 14px;
     font-weight: 700;
   }
 
-  :deep(.app-shell .voice-card > span) {
+  .app-shell .voice-card > span {
     margin-top: 0;
     padding: 0 13px 12px;
   }
 
-  :deep(.voice-empty) {
+  .voice-empty {
     color: var(--wsd-text-muted);
     background: var(--wsd-raised);
     border-color: var(--wsd-border);
   }
 
-  :deep(.voice-empty strong) {
+  .voice-empty strong {
     color: var(--wsd-text);
   }
 
   /* Chat column: KAAK conversation — outer title row, bordered tabs, 48px
    * heading with the kicker hidden, message stream, in-flow composer. */
-  :deep(.app-shell > .chat-panel .chat-conversation-heading) {
+  .app-shell > .chat-panel .chat-conversation-heading {
     display: flex;
     flex: 0 0 auto;
     align-items: center;
@@ -806,7 +806,7 @@
     border-bottom: 1px solid var(--wsd-border);
   }
 
-  :deep(.app-shell > .chat-panel .chat-conversation-title) {
+  .app-shell > .chat-panel .chat-conversation-title {
     flex: 1 1 auto;
     overflow: hidden;
     color: var(--wsd-text);
@@ -816,55 +816,55 @@
     white-space: nowrap;
   }
 
-  :deep(.app-shell > .chat-panel .chat-tabs) {
+  .app-shell > .chat-panel .chat-tabs {
     flex: 0 0 auto;
     margin: 0 14px 5px;
     padding: 0 0 8px;
     border-bottom: 1px solid var(--wsd-border);
   }
 
-  :deep(.app-shell > .chat-panel .chat-tabs button) {
+  .app-shell > .chat-panel .chat-tabs button {
     color: var(--wsd-text-muted);
     background: transparent;
     border-color: var(--wsd-border);
   }
 
-  :deep(.app-shell > .chat-panel .chat-tabs button:hover) {
+  .app-shell > .chat-panel .chat-tabs button:hover {
     color: var(--wsd-text);
     background: var(--wsd-hover);
   }
 
-  :deep(.app-shell > .chat-panel .chat-tabs button.active) {
+  .app-shell > .chat-panel .chat-tabs button.active {
     color: var(--wsd-text);
     background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-raised));
     border-color: color-mix(in srgb, var(--wsd-accent) 33%, transparent);
   }
 
-  :deep(.app-shell > .chat-panel .chat-heading) {
+  .app-shell > .chat-panel .chat-heading {
     min-height: 48px;
     padding: 7px 14px 9px;
   }
 
-  :deep(.app-shell > .chat-panel .chat-heading .section-kicker) {
+  .app-shell > .chat-panel .chat-heading .section-kicker {
     display: none;
   }
 
-  :deep(.app-shell > .chat-panel .chat-heading h2) {
+  .app-shell > .chat-panel .chat-heading h2 {
     color: var(--wsd-text);
     font-size: 14px;
   }
 
-  :deep(.app-shell > .chat-panel .chat-heading h2 .ui-icon) {
+  .app-shell > .chat-panel .chat-heading h2 .ui-icon {
     color: var(--wsd-accent);
   }
 
-  :deep(.app-shell > .chat-panel .section-counter) {
+  .app-shell > .chat-panel .section-counter {
     margin-left: auto;
     color: var(--wsd-text-dim);
     font-size: 10px;
   }
 
-  :deep(.app-shell > .chat-panel .message-list) {
+  .app-shell > .chat-panel .message-list {
     flex: 1 1 auto;
     gap: 17px;
     min-height: 0;
@@ -872,29 +872,29 @@
     padding: 15px 18px 14px;
   }
 
-  :deep(.app-shell > .chat-panel .message-row) {
+  .app-shell > .chat-panel .message-row {
     max-width: none;
   }
 
-  :deep(.app-shell > .chat-panel .message-meta) {
+  .app-shell > .chat-panel .message-meta {
     min-height: 20px;
     margin: 0 0 2px;
   }
 
-  :deep(.app-shell > .chat-panel .message-meta strong) {
+  .app-shell > .chat-panel .message-meta strong {
     color: var(--wsd-text-muted);
   }
 
-  :deep(.app-shell > .chat-panel .message-meta time),
-  :deep(.app-shell > .chat-panel .event-row time) {
+  .app-shell > .chat-panel .message-meta time,
+  .app-shell > .chat-panel .event-row time {
     color: var(--wsd-text-dim);
   }
 
-  :deep(.app-shell > .chat-panel .event-row) {
+  .app-shell > .chat-panel .event-row {
     color: var(--wsd-text-muted);
   }
 
-  :deep(.app-shell > .chat-panel .chat-empty) {
+  .app-shell > .chat-panel .chat-empty {
     align-items: flex-start;
     min-height: 0;
     margin: 28px 0 0;
@@ -903,22 +903,22 @@
     line-height: 1.5;
   }
 
-  :deep(.app-shell > .chat-panel .chat-empty-icon) {
+  .app-shell > .chat-panel .chat-empty-icon {
     display: none;
   }
 
-  :deep(.app-shell > .chat-panel .chat-empty strong) {
+  .app-shell > .chat-panel .chat-empty strong {
     display: block;
     color: var(--wsd-text-muted);
     font-size: 12px;
   }
 
-  :deep(.app-shell > .chat-panel .chat-empty span) {
+  .app-shell > .chat-panel .chat-empty span {
     margin-top: 4px;
     font-size: 11px;
   }
 
-  :deep(.app-shell > .chat-panel .message-composer) {
+  .app-shell > .chat-panel .message-composer {
     position: static;
     flex: 0 0 auto;
     margin-top: 8px;
@@ -928,21 +928,21 @@
     border-radius: 9px;
   }
 
-  :deep(.app-shell > .chat-panel .message-composer textarea) {
+  .app-shell > .chat-panel .message-composer textarea {
     color: var(--wsd-text);
     background: transparent;
   }
 
-  :deep(.app-shell > .chat-panel .message-composer textarea::placeholder) {
+  .app-shell > .chat-panel .message-composer textarea::placeholder {
     color: var(--wsd-text-dim);
   }
 
-  :deep(.app-shell > .chat-panel .send-button) {
-    color: #142010;
+  .app-shell > .chat-panel .send-button {
+    color: var(--wsd-accent-contrast);
     background: var(--wsd-accent-fill);
   }
 
-  :deep(.app-shell > .chat-panel .chat-status) {
+  .app-shell > .chat-panel .chat-status {
     flex: 0 0 auto;
     margin: 5px 14px 0;
     color: var(--wsd-text-dim);
@@ -962,11 +962,11 @@
 /* Touch screens have no hover: the volume slider stays visible and the
  * state flags yield (the same states remain in the member context menu). */
 @media (min-width: 981px) and (hover: none) {
-  :deep(.member-row .member-flags) {
+  .member-row .member-flags {
     opacity: 0;
   }
 
-  :deep(.member-row .member-volume) {
+  .member-row .member-volume {
     opacity: 1;
     pointer-events: auto;
   }

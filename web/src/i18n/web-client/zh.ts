@@ -13,6 +13,7 @@ export const zh: Record<string, string> = {
     switchToDarkTheme: "切换到深色主题",
     browserWorkspace: "TeamSpeak 第三方网页客户端",
     secureGateway: "网关在线",
+    gatewayOffline: "网关离线",
     adminConsole: "管理控制台",
     downloadPage: "下载页",
     backToHome: "返回首页",

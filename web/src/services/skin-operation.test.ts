@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
-import { createSkinOperation, createDownloadSignal } from "./skin-operation.js";
+import { describe, it } from "vitest";
+import { createSkinOperation, createDownloadSignal } from "./skin-operation";
 
 const tick = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 

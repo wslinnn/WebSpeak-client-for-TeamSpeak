@@ -1,10 +1,12 @@
-export type Language = "zh" | "en" | "de" | "ru" | "ja";
+// 重语言包聚合：本模块只允许出现在路由级 chunk（web-client/download），
+// 入口图一律引 @/i18n/web-client-language（见该文件头注释）。
+import { de } from "./web-client/de";
+import { en } from "./web-client/en";
+import { ja } from "./web-client/ja";
+import { ru } from "./web-client/ru";
+import { zh } from "./web-client/zh";
 
-import { de } from "./web-client/de.js";
-import { en } from "./web-client/en.js";
-import { ja } from "./web-client/ja.js";
-import { ru } from "./web-client/ru.js";
-import { zh } from "./web-client/zh.js";
+export type { Language } from "./web-client-language";
 
 export const webClientTranslations: Record<string, Record<string, string>> = {
   zh,
@@ -14,12 +16,3 @@ export const webClientTranslations: Record<string, Record<string, string>> = {
   ja,
 };
 
-export function getInitialLanguage(): Language {
-  const stored = localStorage.getItem("webspeak:language");
-  if (stored === "zh" || stored === "en" || stored === "de" || stored === "ru" || stored === "ja") return stored;
-  if (typeof navigator !== "undefined" && navigator.language.toLowerCase().startsWith("zh")) return "zh";
-  if (typeof navigator !== "undefined" && navigator.language.toLowerCase().startsWith("de")) return "de";
-  if (typeof navigator !== "undefined" && navigator.language.toLowerCase().startsWith("ru")) return "ru";
-  if (typeof navigator !== "undefined" && navigator.language.toLowerCase().startsWith("ja")) return "ja";
-  return "en";
-}

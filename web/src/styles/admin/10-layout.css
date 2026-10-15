@@ -1,74 +1,74 @@
 @media (max-width:1050px) {
-  :deep(.target-settings-layout) {
+  .target-settings-layout {
     grid-template-columns: minmax(0,1fr) minmax(0,1fr);
   }
-  :deep(.target-fields),
-  :deep(.target-test-result),
-  :deep(.target-runtime-block) {
+  .target-fields,
+  .target-test-result,
+  .target-runtime-block {
     grid-column: 1/-1;
   }
-  :deep(.target-settings-layout>.password-row) {
+  .target-settings-layout>.password-row {
     grid-column: 1;
   }
-  :deep(.target-settings-layout>.target-test-button) {
+  .target-settings-layout>.target-test-button {
     grid-column: 2;
   }
-  :deep(.access-settings-layout),
-  :deep(.advanced-settings-grid) {
+  .access-settings-layout,
+  .advanced-settings-grid {
     grid-template-columns: minmax(0,1fr);
   }
 }
 
 @media (max-width:850px) {
-  :deep(.server-page .settings-grid) {
+  .server-page .settings-grid {
     grid-template-columns: minmax(0,1fr);
     grid-auto-rows: auto;
     overflow: visible;
   }
-  :deep(.settings-accordion-header) {
+  .settings-accordion-header {
     min-height: 64px;
     gap: 10px;
     padding: 12px 14px;
   }
-  :deep(.settings-accordion-statuses) {
+  .settings-accordion-statuses {
     justify-content: flex-start;
   }
-  :deep(.settings-accordion-content) {
+  .settings-accordion-content {
     padding: 13px 14px 15px;
   }
 }
 
 @media (max-width:560px) {
-  :deep(.settings-accordion-header) {
+  .settings-accordion-header {
     align-items: flex-start;
     flex-wrap: wrap;
   }
-  :deep(.settings-accordion-heading) {
+  .settings-accordion-heading {
     flex-basis: calc(100% - 34px);
   }
-  :deep(.settings-accordion-statuses) {
+  .settings-accordion-statuses {
     order: 3;
     width: 100%;
     padding-right: 25px;
   }
-  :deep(.settings-accordion-header>.ui-icon) {
+  .settings-accordion-header>.ui-icon {
     margin-left: auto;
   }
-  :deep(.target-settings-layout>.password-row),
-  :deep(.target-settings-layout>.target-test-button),
-  :deep(.target-test-result),
-  :deep(.target-runtime-block) {
+  .target-settings-layout>.password-row,
+  .target-settings-layout>.target-test-button,
+  .target-test-result,
+  .target-runtime-block {
     grid-column: 1;
   }
-  :deep(.target-runtime-facts>div:first-child) {
+  .target-runtime-facts>div:first-child {
     grid-column: auto;
   }
-  :deep(.target-settings-layout),
-  :deep(.access-settings-layout),
-  :deep(.advanced-settings-grid) {
+  .target-settings-layout,
+  .access-settings-layout,
+  .advanced-settings-grid {
     gap: 11px;
   }
-  :deep(.access-mode-fieldset .choice) {
+  .access-mode-fieldset .choice {
     padding: 10px;
   }
 }
@@ -76,9 +76,9 @@
 /* Admin layout contract: the desktop shell stays in the viewport, the main
    content is the only page-level scroller, and cards size to their content. */
 
-:global(html[data-ws-route="admin"]),
-:global(html[data-ws-route="admin"] body),
-:global(html[data-ws-route="admin"] #app) {
+html[data-ws-route="admin"],
+html[data-ws-route="admin"] body,
+html[data-ws-route="admin"] #root {
   width: 100%;
   height: 100dvh;
   min-height: 0;
@@ -91,14 +91,14 @@
   overflow: hidden;
 }
 
-:deep(.admin-shell) {
+.admin-shell {
   display: grid;
   min-height: 0;
   grid-template-columns: 236px minmax(0,1fr);
   overflow: hidden;
 }
 
-:deep(.admin-main) {
+.admin-main {
   display: flex;
   min-width: 0;
   min-height: 0;
@@ -137,12 +137,12 @@
   white-space: nowrap;
 }
 
-:deep(.admin-main>.page-alert) {
+.admin-main>.page-alert {
   flex: 0 0 auto;
   margin: 12px clamp(18px,2.4vw,44px) 0;
 }
 
-:deep(.page-content) {
+.page-content {
   display: block;
   flex: 1 1 auto;
   width: 100%;
@@ -166,68 +166,68 @@
   overflow-y: auto;
 }
 
-:deep(.overview-page) {
+.overview-page {
   display: grid;
   align-content: start;
   grid-template-columns: minmax(0,1fr);
   gap: 14px;
 }
 
-:deep(.overview-page .import-notice),
-:deep(.overview-page .metric-grid) {
+.overview-page .import-notice,
+.overview-page .metric-grid {
   margin: 0;
 }
 
-:deep(.overview-page .hero-status) {
+.overview-page .hero-status {
   padding: clamp(18px,2vw,28px);
 }
 
-:deep(.overview-page .metric-grid) {
+.overview-page .metric-grid {
   grid-template-columns: repeat(3,minmax(0,1fr));
   gap: 14px;
 }
 
-:deep(.overview-page .overview-columns) {
+.overview-page .overview-columns {
   display: grid;
   grid-template-columns: minmax(0,1fr);
   align-content: start;
   gap: 14px;
 }
 
-:deep(.overview-page .overview-card) {
+.overview-page .overview-card {
   min-width: 0;
   height: auto;
   min-height: 0;
   overflow: visible;
 }
 
-:deep(.overview-page .target-health-card dl) {
+.overview-page .target-health-card dl {
   grid-template-columns: repeat(3,minmax(0,1fr));
 }
 
-:deep(.overview-page .recent-events-card .event-list) {
+.overview-page .recent-events-card .event-list {
   grid-template-columns: repeat(auto-fit,minmax(min(100%,360px),1fr));
   max-height: none;
   overflow: visible;
 }
 
-:deep(.server-page) {
+.server-page {
   min-width: 0;
 }
 
-:deep(.server-page .settings-grid) {
+.server-page .settings-grid {
   grid-template-columns: minmax(0,1fr);
   align-content: start;
   gap: 12px;
 }
 
-:deep(.server-page .settings-card) {
+.server-page .settings-card {
   height: auto;
   min-height: 0;
   overflow: visible;
 }
 
-:deep(.operations-page) {
+.operations-page {
   display: grid;
   align-content: start;
   gap: 14px;
@@ -238,75 +238,75 @@
   padding-bottom: 0;
 }
 
-:deep(.operations-page .page-heading),
-:deep(.operations-page .system-notice) {
+.operations-page .page-heading,
+.operations-page .system-notice {
   margin: 0;
 }
 
-:deep(.operations-page .operations-grid) {
+.operations-page .operations-grid {
   min-width: 0;
 }
 
-:deep(.operations-primary) {
+.operations-primary {
   grid-template-columns: repeat(auto-fit,minmax(min(100%,400px),1fr));
 }
 
-:deep(.lower-operations) {
+.lower-operations {
   grid-template-columns: repeat(auto-fit,minmax(min(100%,340px),1fr));
   margin-top: 0;
 }
 
-:deep(.operation-card) {
+.operation-card {
   height: auto;
   min-height: 0;
   overflow: visible;
 }
 
-:deep(.operation-empty) {
+.operation-empty {
   min-height: 84px;
 }
 
-:deep(.operations-primary .table-wrap) {
+.operations-primary .table-wrap {
   max-height: min(42vh,420px);
   overflow: auto;
 }
 
-:deep(.operations-primary .invite-list) {
+.operations-primary .invite-list {
   max-height: min(32vh,280px);
   overflow-y: auto;
 }
 
-:deep(.connection-list) {
+.connection-list {
   max-height: min(34vh,280px);
   overflow-y: auto;
 }
 
-:deep(.logs-card .log-list),
-:deep(.audit-card .event-list) {
+.logs-card .log-list,
+.audit-card .event-list {
   max-height: min(38vh,340px);
   overflow-y: auto;
 }
 
-:deep(.logs-card),
-:deep(.audit-card) {
+.logs-card,
+.audit-card {
   min-height: 0;
 }
 
 /* Long log messages should wrap on every screen size instead of widening the
    log card or introducing page-level horizontal scrolling. */
 
-:deep(.logs-card .log-row) {
+.logs-card .log-row {
   min-width: 0;
   max-width: 100%;
 }
 
-:deep(.logs-card .log-row>div) {
+.logs-card .log-row>div {
   min-width: 0;
   flex: 1 1 auto;
 }
 
-:deep(.logs-card .log-row strong),
-:deep(.logs-card .log-row small) {
+.logs-card .log-row strong,
+.logs-card .log-row small {
   overflow-wrap: anywhere;
   white-space: normal;
   word-break: break-word;

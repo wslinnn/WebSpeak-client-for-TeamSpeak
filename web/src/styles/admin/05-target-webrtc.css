@@ -1,206 +1,206 @@
 @media (max-width:850px) {
-  :deep(.operations-grid) {
+  .operations-grid {
     grid-template-columns: 1fr;
   }
-  :deep(.operation-wide) {
+  .operation-wide {
     overflow: hidden;
   }
 }
 
 @media (max-width:520px) {
-  :deep(.operation-card) {
+  .operation-card {
     padding: 18px;
   }
-  :deep(.table-wrap) {
+  .table-wrap {
     margin-left: -18px;
     margin-right: -18px;
     margin-bottom: -18px;
   }
-  :deep(.invite-form-grid),
-  :deep(.diagnostic-list) {
+  .invite-form-grid,
+  .diagnostic-list {
     grid-template-columns: 1fr;
   }
-  :deep(.lower-operations) {
+  .lower-operations {
     margin-top: 14px;
   }
 }
 
-:deep(.target-fields) {
+.target-fields {
   display: grid;
   grid-template-columns: minmax(0,1fr) 132px;
 }
 
-:deep(.webrtc-card .card-help) {
+.webrtc-card .card-help {
   margin: 5px 0 0;
   color: #7e8c88;
   font-size: 10px;
   line-height: 1.5;
 }
 
-:deep(.webrtc-network-field) {
+.webrtc-network-field {
   display: grid;
   gap: 8px;
   margin-top: 16px;
 }
 
-:deep(.toggle-choice) {
+.toggle-choice {
   margin: 0;
 }
 
-:deep(.webrtc-card>.field-help) {
+.webrtc-card>.field-help {
   margin-top: -8px;
 }
 
 @media (max-width:520px) {
-  :deep(.target-fields) {
+  .target-fields {
     grid-template-columns: 1fr;
   }
 }
 
 /* Theme all native scrollbars used by the admin surfaces. */
 
-:global(html[data-ws-route="admin"] *) {
-  scrollbar-color: #8fcfc7 transparent;
+html[data-ws-route="admin"] * {
+  scrollbar-color: #c9cad1 transparent;
   scrollbar-width: thin;
 }
 
-:global(html[data-ws-route="admin"] *::-webkit-scrollbar) {
+html[data-ws-route="admin"] *::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-:global(html[data-ws-route="admin"] *::-webkit-scrollbar-track) {
+html[data-ws-route="admin"] *::-webkit-scrollbar-track {
   background: transparent;
 }
 
-:global(html[data-ws-route="admin"] *::-webkit-scrollbar-thumb) {
+html[data-ws-route="admin"] *::-webkit-scrollbar-thumb {
   background: #a7d9d2;
   background-clip: padding-box;
   border: 2px solid transparent;
   border-radius: 999px;
 }
 
-:global(html[data-ws-route="admin"] *::-webkit-scrollbar-thumb:hover) {
-  background: #6bbab1;
+html[data-ws-route="admin"] *::-webkit-scrollbar-thumb:hover {
+  background: #b6b7be;
   background-clip: padding-box;
   border-width: 1px;
 }
 
-:global(:root[data-ws-route="admin"][data-theme="dark"] *) {
-  scrollbar-color: #438f88 transparent;
+:root[data-ws-route="admin"][data-theme="dark"] * {
+  scrollbar-color: #3f424a transparent;
 }
 
-:global(:root[data-ws-route="admin"][data-theme="dark"] *::-webkit-scrollbar-thumb) {
-  background: #438f88;
+:root[data-ws-route="admin"][data-theme="dark"] *::-webkit-scrollbar-thumb {
+  background: #3f424a;
   border-color: transparent;
 }
 
-:global(:root[data-ws-route="admin"][data-theme="dark"] *::-webkit-scrollbar-thumb:hover) {
-  background: #69c7bc;
+:root[data-ws-route="admin"][data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
+  background: #5f6067;
 }
 
-:deep(.advanced-card) {
+.advanced-card {
   grid-column: 1 / -1;
 }
 
-:deep(.advanced-card .card-help) {
+.advanced-card .card-help {
   margin: 5px 0 0;
   color: #7e8c88;
   font-size: 10px;
   line-height: 1.5;
 }
 
-:deep(.advanced-card .toggle-choice) {
+.advanced-card .toggle-choice {
   margin: 0;
 }
 
-:deep(.welcome-editor) {
+.welcome-editor {
   display: grid;
   gap: 10px;
   padding: 12px;
-  background: #f6f9f8;
-  border: 1px solid #e4efeb;
+  background: #f4f4f5;
+  border: 1px solid #e5e7eb;
   border-radius: 10px;
 }
 
-:deep(.welcome-editor-heading) {
+.welcome-editor-heading {
   display: grid;
   grid-template-columns: minmax(0,1fr) minmax(180px,1fr);
   align-items: end;
   gap: 12px;
 }
 
-:deep(.welcome-editor-heading label) {
+.welcome-editor-heading label {
   min-width: 0;
 }
 
-:deep(.welcome-editor-heading>small) {
+.welcome-editor-heading>small {
   margin: 0;
-  color: #899792;
+  color: #8f939b;
   font-size: 10px;
   line-height: 1.5;
 }
 
-:deep(.welcome-editor select) {
+.welcome-editor select {
   width: 100%;
   height: 40px;
   padding: 0 10px;
-  color: #22332f;
-  background: #fbfdfc;
-  border: 1px solid #dbe7e3;
+  color: #1c1e21;
+  background: #fafafa;
+  border: 1px solid #e5e7eb;
   border-radius: 9px;
   font: inherit;
   font-size: 12px;
   outline: none;
 }
 
-:deep(.welcome-editor select:focus) {
-  border-color: #54bdb2;
-  box-shadow: 0 0 0 3px rgba(84,189,178,.13);
+.welcome-editor select:focus {
+  border-color: var(--admin-accent);
+  box-shadow: 0 0 0 3px rgba(43,92,217,.13);
 }
 
-:deep(.welcome-editor textarea) {
+.welcome-editor textarea {
   background: #fff;
 }
 
-:deep(.webrtc-port-fields) {
+.webrtc-port-fields {
   display: grid;
   gap: 10px;
   padding: 14px;
-  background: #f6f9f8;
-  border: 1px solid #e4efeb;
+  background: #f4f4f5;
+  border: 1px solid #e5e7eb;
   border-radius: 10px;
 }
 
-:deep(.port-fields-heading strong),
-:deep(.port-fields-heading small) {
+.port-fields-heading strong,
+.port-fields-heading small {
   display: block;
 }
 
-:deep(.port-fields-heading strong) {
+.port-fields-heading strong {
   font-size: 11px;
 }
 
-:deep(.port-fields-heading small) {
+.port-fields-heading small {
   margin-top: 4px;
-  color: #899792;
+  color: #8f939b;
   font-size: 10px;
   line-height: 1.45;
 }
 
-:deep(.port-inputs) {
+.port-inputs {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
 
-:deep(.port-inputs label>span) {
+.port-inputs label>span {
   font-size: 10px;
 }
 
-:deep(.port-inputs input:disabled) {
-  color: #70817b;
-  background: #e9f1ee;
+.port-inputs input:disabled {
+  color: #63696f;
+  background: #f4f4f5;
   border-color: #d7e5e1;
   cursor: not-allowed;
   opacity: 1;

@@ -1,4 +1,4 @@
-import type { VoiceAudioBridgeStats } from "../../../src/shared/voice-models.js";
+import type { VoiceAudioBridgeStats } from "@shared/voice-models";
 
 export type AudioPermission = "unknown" | "granted" | "denied";
 

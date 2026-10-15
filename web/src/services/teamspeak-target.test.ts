@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import test from "node:test";
-import { combineTeamSpeakTarget, isValidTeamSpeakPort, splitTeamSpeakTarget, suggestedTeamSpeakPort } from "./teamspeak-target.js";
+import { test } from "vitest";
+import { combineTeamSpeakTarget, isValidTeamSpeakPort, splitTeamSpeakTarget, suggestedTeamSpeakPort } from "./teamspeak-target";
 
 test("nickname fields round-trip without forcing a default port", () => {
   for (const value of ["team eco", "another guild", "A+B & 50%", "literal%20name", "\u4e2d\u6587\u670d\u52a1\u5668"]) {

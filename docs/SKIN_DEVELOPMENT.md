@@ -108,7 +108,7 @@ assets/brand.woff2            # 可选：自带字体
 [data-ws-page="voice"] [data-ws-part="voice.member.avatar"]
 ```
 
-也可以写 `:root { --skin-accent: ... }` 设置皮肤自己的变量；`:root` 会被转换成当前皮肤根。选择器必须包含 `:root`、`[data-ws-page]` 或 `[data-ws-part]`。不要写 `:global()`、`html`、`body` 或 Vue 内部 class 作为公开接口。组件 class 可能随版本调整，`data-ws-part` 才是皮肤作者接口。自定义变量名必须使用 `--skin-` 前缀，不能覆盖 WebSpeak 的内部令牌。
+也可以写 `:root { --skin-accent: ... }` 设置皮肤自己的变量；`:root` 会被转换成当前皮肤根。选择器必须包含 `:root`、`[data-ws-page]` 或 `[data-ws-part]`。不要写 `:global()`、`html`、`body` 或组件内部 class 作为公开接口。组件 class 可能随版本调整，`data-ws-part` 才是皮肤作者接口。自定义变量名必须使用 `--skin-` 前缀，不能覆盖 WebSpeak 的内部令牌。
 
 页面根节点使用 `data-ws-page` 区分 `home` 和 `voice`。使用 `data-ws-state` 选择明确状态，如 `active`、`idle`、`current`、`open`、`closed`、`drag-over`、`dragging`、`speaking`、`connected`、`self`、`mine` 或 `other`。语音成员还提供 `data-ws-speaking="true|false"` 和 `data-ws-self="true|false"`。交互元素会带有 `data-ws-critical="true"`；没有专属部件名称的按钮、链接、输入框、滑块和可拖动成员会使用通用部件 `data-ws-part="control"`，并以 `data-ws-control-kind` 标出 `button`、`link`、`input`、`checkbox`、`range`、`select`、`textarea`、`menuitem` 或 `draggable`。
 
@@ -224,7 +224,7 @@ CSS 被限定在 `.ws-skin-root` 内，管理员页面不会继承皮肤。删�
 ## 制作与验收
 
 1. 新建包目录，按上方示例编写 `manifest.json` 的唯一 `id`、名称、作者、版本和授权。
-2. 只使用本目录公开的 `data-ws-part`、`data-ws-page`、状态属性和包内静态资源。不要依赖 Vue 内部 class。
+2. 只使用本目录公开的 `data-ws-part`、`data-ws-page`、状态属性和包内静态资源。不要依赖组件内部 class。
 3. 使用本地资源编写 `skin.css`；需要改首页文字或公开翻译时补充 `content.json`。
 4. 在包根目录生成 ZIP，再改扩展名为 `.wskin`。PowerShell 示例：
 

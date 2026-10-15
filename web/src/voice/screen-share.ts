@@ -1,6 +1,6 @@
-import { reactive, ref } from "vue";
-import { parseScreenShareStream, parseScreenShareViewers, type ServerMessage } from "../../../src/shared/server-messages.js";
-import { normalizeScreenShareIceServers, type ScreenShareIceServer, type ScreenShareClientMessage, type ScreenShareStreamDescription as ScreenShareStream, type ScreenSharePeerSignal as ScreenShareSignal } from "../../../src/shared/screen-share.js";
+import { createStore } from "zustand/vanilla";
+import { parseScreenShareStream, parseScreenShareViewers, type ServerMessage } from "@shared/server-messages";
+import { normalizeScreenShareIceServers, type ScreenShareIceServer, type ScreenShareClientMessage, type ScreenShareStreamDescription as ScreenShareStream, type ScreenSharePeerSignal as ScreenShareSignal } from "@shared/screen-share";
 
 const SCREEN_SHARE_NEGOTIATION_TIMEOUT_MS = 15_000;
 
@@ -11,8 +11,23 @@ export interface ScreenShareOutputSettings {
   maxBitrate?: number;
 }
 
-export type { ScreenShareCaptureStats, ScreenSharePeerStats, ScreenShareWebRtcStats } from "./screen-share-stats.js";
-import { createScreenShareStats } from "./screen-share-stats.js";
+/** View-facing screen-share state. Stream objects are replaced (never
+ *  mutated) so consumer memoization can rely on reference identity. */
+export interface ScreenShareView {
+  streams: ScreenShareStream[];
+  active: boolean;
+  starting: boolean;
+  activeStreamId: string;
+  viewing: boolean;
+  viewingStreamId: string;
+  remoteStream: MediaStream | null;
+  error: string;
+  errorCode: string;
+  remoteVolume: number;
+}
+
+export type { ScreenShareCaptureStats, ScreenSharePeerStats, ScreenShareWebRtcStats } from "./screen-share-stats";
+import { createScreenShareStats } from "./screen-share-stats";
 
 interface ScreenShareTransport {
   isOpen(): boolean;
@@ -22,16 +37,11 @@ interface ScreenShareTransport {
 /** Owns one session's capture tracks, peers, signaling and diagnostics. */
 export function createScreenShareController(transport: ScreenShareTransport) {
   let screenShareIceServers: RTCIceServer[] = normalizeScreenShareIceServers();
-  const screenShareStreams = reactive<ScreenShareStream[]>([]);
-  const screenShareActive = ref(false);
-  const screenShareStarting = ref(false);
-  const screenShareActiveStreamId = ref("");
-  const screenShareViewing = ref(false);
-  const screenShareViewingStreamId = ref("");
-  const screenShareRemoteStream = ref<MediaStream | null>(null);
-  const screenShareError = ref("");
-  const screenShareErrorCode = ref("");
-  const screenShareRemoteVolume = ref(1);
+  const store = createStore<ScreenShareView>(() => ({
+    streams: [], active: false, starting: false, activeStreamId: "", viewing: false,
+    viewingStreamId: "", remoteStream: null, error: "", errorCode: "", remoteVolume: 1,
+  }));
+  const V = () => store.getState();
   let screenShareLocalStream: MediaStream | null = null;
   // These are encoder/output limits. The display track itself must keep the
   // source resolution so selecting a high-resolution desktop or game window
@@ -45,7 +55,6 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     getPeerRoles: () => screenSharePeerRoles,
     isCurrentPeer,
   });
-  const screenShareWebRtcStats = screenShareStats.stats;
   const screenSharePendingIce = new Map<string, RTCIceCandidateInit[]>();
   const screenSharePeerStreams = new Map<string, MediaStream>();
   const screenSharePeerTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -106,18 +115,15 @@ export function createScreenShareController(transport: ScreenShareTransport) {
   }
 
   function setScreenShareP2PError(message = "直连 P2P 失败，当前网络无法建立浏览器之间的直接连接") {
-    screenShareErrorCode.value = "";
-    screenShareError.value = message;
+    store.setState({ errorCode: "", error: message });
   }
 
   function failScreenSharePeer(peerId: string, message?: string): void {
-    const viewingStream = screenShareStreams.find((stream) => stream.streamId === screenShareViewingStreamId.value && stream.ownerPeerId === peerId);
+    const viewingStream = V().streams.find((stream) => stream.streamId === V().viewingStreamId && stream.ownerPeerId === peerId);
     if (viewingStream) sendScreenShareMessage({ type: "screenShareLeave", streamId: viewingStream.streamId });
     closeScreenSharePeer(peerId);
     if (viewingStream) {
-      screenShareViewing.value = false;
-      screenShareViewingStreamId.value = "";
-      screenShareRemoteStream.value = null;
+      store.setState({ viewing: false, viewingStreamId: "", remoteStream: null });
     }
     setScreenShareP2PError(message);
   }
@@ -139,7 +145,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
       }
     } else {
       peer.addTransceiver("video", { direction: "recvonly" });
-      const stream = screenShareStreams.find((candidate) => candidate.streamId === streamId);
+      const stream = V().streams.find((candidate) => candidate.streamId === streamId);
       if (stream?.audio) peer.addTransceiver("audio", { direction: "recvonly" });
     }
     preferScreenShareCodecs(peer);
@@ -164,8 +170,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
       const remote = event.streams[0] ?? screenSharePeerStreams.get(peerId) ?? new MediaStream();
       if (!event.streams[0]) remote.addTrack(event.track);
       screenSharePeerStreams.set(peerId, remote);
-      screenShareRemoteStream.value = remote;
-      screenShareViewing.value = true;
+      store.setState({ remoteStream: remote, viewing: true });
     };
     peer.onconnectionstatechange = () => {
       if (!isCurrentPeer(peerId, peer)) return;
@@ -266,11 +271,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
 
   async function startScreenShareViewer(stream: ScreenShareStream): Promise<void> {
     closeAllScreenSharePeers();
-    screenShareRemoteStream.value = null;
-    screenShareViewing.value = true;
-    screenShareViewingStreamId.value = stream.streamId;
-    screenShareErrorCode.value = "";
-    screenShareError.value = "";
+    store.setState({ remoteStream: null, viewing: true, viewingStreamId: stream.streamId, errorCode: "", error: "" });
     const peer = createScreenSharePeer(stream.streamId, stream.ownerPeerId, "viewer");
     if (stream.source === "teamspeak") {
       armScreenSharePeerTimer(stream.ownerPeerId);
@@ -294,8 +295,8 @@ export function createScreenShareController(transport: ScreenShareTransport) {
   }
 
   async function startNativeScreenShareViewer(streamId: string, peerId: string): Promise<void> {
-    const stream = screenShareStreams.find((candidate) => candidate.streamId === streamId);
-    if (!stream || stream.source !== "browser" || screenShareActiveStreamId.value !== streamId || stream.ownerPeerId !== screenShareLocalPeerId()) return;
+    const stream = V().streams.find((candidate) => candidate.streamId === streamId);
+    if (!stream || stream.source !== "browser" || V().activeStreamId !== streamId || stream.ownerPeerId !== screenShareLocalPeerId()) return;
     closeScreenSharePeer(peerId);
     const peer = createScreenSharePeer(streamId, peerId, "owner");
     try {
@@ -316,14 +317,12 @@ export function createScreenShareController(transport: ScreenShareTransport) {
   }
 
   async function handleScreenShareSignal(streamId: string, fromPeerId: string, signal: ScreenShareSignal): Promise<void> {
-    const stream = screenShareStreams.find((candidate) => candidate.streamId === streamId);
+    const stream = V().streams.find((candidate) => candidate.streamId === streamId);
     if (!stream) return;
     if (signal.kind === "close") {
       closeScreenSharePeer(fromPeerId);
-      if (screenShareViewingStreamId.value === streamId) {
-        screenShareViewing.value = false;
-        screenShareViewingStreamId.value = "";
-        screenShareRemoteStream.value = null;
+      if (V().viewingStreamId === streamId) {
+        store.setState({ viewing: false, viewingStreamId: "", remoteStream: null });
       }
       return;
     }
@@ -343,7 +342,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
       return;
     }
 
-    if (stream.source === "teamspeak" && screenShareViewingStreamId.value === streamId && fromPeerId === stream.ownerPeerId && signal.kind === "offer") {
+    if (stream.source === "teamspeak" && V().viewingStreamId === streamId && fromPeerId === stream.ownerPeerId && signal.kind === "offer") {
       const peer = screenSharePeers.get(fromPeerId) ?? createScreenSharePeer(streamId, fromPeerId, "viewer");
       if (!signal.sdp) return;
       armScreenSharePeerTimer(fromPeerId);
@@ -363,7 +362,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
       return;
     }
 
-    if (stream.source === "browser" && screenShareActiveStreamId.value === streamId && stream.ownerPeerId === screenShareLocalPeerId() && fromPeerId.startsWith("ts-viewer-") && signal.kind === "answer") {
+    if (stream.source === "browser" && V().activeStreamId === streamId && stream.ownerPeerId === screenShareLocalPeerId() && fromPeerId.startsWith("ts-viewer-") && signal.kind === "answer") {
       const peer = screenSharePeers.get(fromPeerId);
       if (!peer || !signal.sdp) return;
       try {
@@ -391,7 +390,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
       return;
     }
 
-    if (screenShareActiveStreamId.value === streamId && stream.ownerPeerId === screenShareLocalPeerId()) {
+    if (V().activeStreamId === streamId && stream.ownerPeerId === screenShareLocalPeerId()) {
       const peer = screenSharePeers.get(fromPeerId) ?? createScreenSharePeer(streamId, fromPeerId, "owner");
       if (signal.kind !== "offer" || !signal.sdp) return;
       armScreenSharePeerTimer(fromPeerId);
@@ -415,20 +414,19 @@ export function createScreenShareController(transport: ScreenShareTransport) {
   // screenShareStarted event; the active stream's owner id is therefore the
   // only stable local-owner marker available to the browser.
   function screenShareLocalPeerId(): string {
-    const active = screenShareStreams.find((stream) => stream.streamId === screenShareActiveStreamId.value);
+    const active = V().streams.find((stream) => stream.streamId === V().activeStreamId);
     return active?.ownerPeerId ?? "";
   }
 
   async function startScreenShare(audio = true, settings?: ScreenShareOutputSettings): Promise<void> {
-    if (!transport.isOpen() || screenShareActive.value || screenShareStarting.value) return;
+    if (!transport.isOpen() || V().active || V().starting) return;
     if (!navigator.mediaDevices?.getDisplayMedia) {
-      screenShareError.value = "当前浏览器不支持屏幕共享";
+      store.setState({ error: "当前浏览器不支持屏幕共享" });
       return;
     }
-    screenShareErrorCode.value = "";
-    screenShareError.value = "";
+    store.setState({ errorCode: "", error: "" });
     const startGeneration = ++screenShareStartGeneration;
-    screenShareStarting.value = true;
+    store.setState({ starting: true });
     screenShareStartCancelled = false;
     screenShareOutputSettings = settings ?? null;
     let acquiredStream: MediaStream | null = null;
@@ -451,7 +449,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
         windowAudio: "window",
         selfBrowserSurface: "exclude",
       } as unknown as DisplayMediaStreamOptions);
-      if (startGeneration !== screenShareStartGeneration || !screenShareStarting.value || screenShareStartCancelled) {
+      if (startGeneration !== screenShareStartGeneration || !V().starting || screenShareStartCancelled) {
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
@@ -471,79 +469,87 @@ export function createScreenShareController(transport: ScreenShareTransport) {
       if (startGeneration !== screenShareStartGeneration) return;
       screenShareLocalStream = null;
       screenShareOutputSettings = null;
-      screenShareStarting.value = false;
+      store.setState({ starting: false });
       screenSharePendingStartId = "";
       screenShareStartCancelled = false;
-      if (error instanceof DOMException && error.name === "NotAllowedError") screenShareError.value = "你取消了屏幕共享或浏览器未授予权限";
-      else screenShareError.value = "无法开始屏幕共享，请检查浏览器权限";
+      if (error instanceof DOMException && error.name === "NotAllowedError") store.setState({ error: "你取消了屏幕共享或浏览器未授予权限" });
+      else store.setState({ error: "无法开始屏幕共享，请检查浏览器权限" });
     }
   }
 
   function stopScreenShare(): void {
     screenShareStartGeneration += 1;
-    if (screenShareStarting.value) screenShareStartCancelled = true;
-    if (screenShareActive.value && screenShareActiveStreamId.value) sendScreenShareMessage({ type: "screenShareStop", streamId: screenShareActiveStreamId.value });
+    if (V().starting) screenShareStartCancelled = true;
+    if (V().active && V().activeStreamId) sendScreenShareMessage({ type: "screenShareStop", streamId: V().activeStreamId });
     closeAllScreenSharePeers();
     screenShareLocalStream?.getTracks().forEach((track) => track.stop());
     screenShareLocalStream = null;
     screenShareOutputSettings = null;
-    screenShareStarting.value = false;
+    store.setState({ starting: false, active: false, activeStreamId: "" });
     screenSharePendingStartId = "";
     screenShareStartCancelled = false;
-    screenShareActive.value = false;
-    screenShareActiveStreamId.value = "";
   }
 
   function joinScreenShare(streamId: string): void {
-    screenShareErrorCode.value = "";
-    screenShareError.value = "";
-    if (screenShareViewingStreamId.value && screenShareViewingStreamId.value !== streamId) leaveScreenShare();
+    store.setState({ errorCode: "", error: "" });
+    if (V().viewingStreamId && V().viewingStreamId !== streamId) leaveScreenShare();
     screenShareRequestSequence = (screenShareRequestSequence + 1) % 1_000_000;
     sendScreenShareMessage({ type: "screenShareJoin", streamId, requestId: `screen-join-${screenShareRequestSequence}` });
   }
 
   function leaveScreenShare(): void {
-    if (screenShareViewingStreamId.value) sendScreenShareMessage({ type: "screenShareLeave", streamId: screenShareViewingStreamId.value });
+    if (V().viewingStreamId) sendScreenShareMessage({ type: "screenShareLeave", streamId: V().viewingStreamId });
     closeAllScreenSharePeers();
-    screenShareViewing.value = false;
-    screenShareViewingStreamId.value = "";
-    screenShareRemoteStream.value = null;
+    store.setState({ viewing: false, viewingStreamId: "", remoteStream: null });
   }
 
   function stopScreenShareTransport(sendStop: boolean): void {
     screenShareStartGeneration += 1;
-    if (sendStop && screenShareActive.value && screenShareActiveStreamId.value) sendScreenShareMessage({ type: "screenShareStop", streamId: screenShareActiveStreamId.value });
-    if (screenShareStarting.value) screenShareStartCancelled = true;
+    if (sendStop && V().active && V().activeStreamId) sendScreenShareMessage({ type: "screenShareStop", streamId: V().activeStreamId });
+    if (V().starting) screenShareStartCancelled = true;
     closeAllScreenSharePeers();
     screenShareLocalStream?.getTracks().forEach((track) => track.stop());
     screenShareLocalStream = null;
     screenShareOutputSettings = null;
-    screenShareStarting.value = false;
+    store.setState({
+      starting: false, active: false, activeStreamId: "",
+      viewing: false, viewingStreamId: "", remoteStream: null, streams: [],
+    });
     screenSharePendingStartId = "";
     screenShareStartCancelled = false;
-    screenShareActive.value = false;
-    screenShareActiveStreamId.value = "";
-    screenShareViewing.value = false;
-    screenShareViewingStreamId.value = "";
-    screenShareRemoteStream.value = null;
-    screenShareStreams.length = 0;
+  }
+
+  function removeStream(streamId: string): void {
+    const streams = V().streams;
+    if (!streams.some((candidate) => candidate.streamId === streamId)) return;
+    store.setState({ streams: streams.filter((candidate) => candidate.streamId !== streamId) });
   }
 
   function upsertScreenShareStream(raw: unknown): ScreenShareStream | null {
     const stream = parseScreenShareStream(raw);
     if (!stream) return null;
-    const index = screenShareStreams.findIndex((candidate) => candidate.streamId === stream.streamId);
-    if (index >= 0) screenShareStreams.splice(index, 1, stream);
-    else screenShareStreams.push(stream);
+    const streams = V().streams;
+    const index = streams.findIndex((candidate) => candidate.streamId === stream.streamId);
+    const next = [...streams];
+    if (index >= 0) next[index] = stream;
+    else next.push(stream);
+    store.setState({ streams: next });
     return stream;
   }
 
   function handleMessage(msg: ServerMessage): boolean {
     switch (msg.type) {
-      case "screenShareList":
-        screenShareStreams.length = 0;
-        if (Array.isArray(msg.streams)) for (const raw of msg.streams) upsertScreenShareStream(raw);
+      case "screenShareList": {
+        const streams: ScreenShareStream[] = [];
+        if (Array.isArray(msg.streams)) {
+          for (const raw of msg.streams) {
+            const stream = parseScreenShareStream(raw);
+            if (stream) streams.push(stream);
+          }
+        }
+        store.setState({ streams });
         break;
+      }
       case "screenShareStarted": {
         const stream = upsertScreenShareStream(msg.stream);
         if (!stream) break;
@@ -552,45 +558,42 @@ export function createScreenShareController(transport: ScreenShareTransport) {
           const isCurrentStart = Boolean(screenSharePendingStartId) && requestId === screenSharePendingStartId && !screenShareStartCancelled;
           if (!isCurrentStart) {
             sendScreenShareMessage({ type: "screenShareStop", streamId: stream.streamId });
-            const staleIndex = screenShareStreams.findIndex((candidate) => candidate.streamId === stream.streamId);
-            if (staleIndex >= 0) screenShareStreams.splice(staleIndex, 1);
+            removeStream(stream.streamId);
             break;
           }
           screenSharePendingStartId = "";
-          screenShareStarting.value = false;
-          screenShareActive.value = true;
-          screenShareActiveStreamId.value = stream.streamId;
+          store.setState({ starting: false, active: true, activeStreamId: stream.streamId });
         }
         break;
       }
       case "screenShareViewerCount": {
-        const stream = screenShareStreams.find((candidate) => candidate.streamId === String(msg.streamId || ""));
-        if (stream) {
-          if (typeof msg.viewerCount === "number") stream.viewerCount = Math.max(0, Math.floor(msg.viewerCount));
-          if (Array.isArray(msg.viewers)) stream.viewers = parseScreenShareViewers(msg.viewers);
+        const streamId = String(msg.streamId || "");
+        const index = V().streams.findIndex((candidate) => candidate.streamId === streamId);
+        if (index >= 0) {
+          const current = V().streams[index]!;
+          const patched = { ...current };
+          if (typeof msg.viewerCount === "number") patched.viewerCount = Math.max(0, Math.floor(msg.viewerCount));
+          if (Array.isArray(msg.viewers)) patched.viewers = parseScreenShareViewers(msg.viewers);
+          const next = [...V().streams];
+          next[index] = patched;
+          store.setState({ streams: next });
         }
         break;
       }
       case "screenShareStopped": {
         const streamId = String(msg.streamId || "");
-        const index = screenShareStreams.findIndex((candidate) => candidate.streamId === streamId);
-        if (index >= 0) screenShareStreams.splice(index, 1);
-        if (screenShareActiveStreamId.value === streamId) {
+        removeStream(streamId);
+        if (V().activeStreamId === streamId) {
           closeAllScreenSharePeers();
-          screenShareStarting.value = false;
           screenSharePendingStartId = "";
           screenShareStartCancelled = false;
-          screenShareActive.value = false;
-          screenShareActiveStreamId.value = "";
           screenShareLocalStream?.getTracks().forEach((track) => track.stop());
           screenShareLocalStream = null;
           screenShareOutputSettings = null;
+          store.setState({ starting: false, active: false, activeStreamId: "" });
         }
-        if (screenShareViewingStreamId.value === streamId) {
-          closeAllScreenSharePeers();
-          screenShareViewing.value = false;
-          screenShareViewingStreamId.value = "";
-          screenShareRemoteStream.value = null;
+        if (V().viewingStreamId === streamId) {
+          closeAllSharePeersAndViewing();
         }
         break;
       }
@@ -614,51 +617,50 @@ export function createScreenShareController(transport: ScreenShareTransport) {
         if (typeof msg.viewerPeerId === "string") closeScreenSharePeer(msg.viewerPeerId);
         break;
       case "screenShareLeft":
-        if (screenShareViewingStreamId.value === String(msg.streamId || "")) leaveScreenShare();
+        if (V().viewingStreamId === String(msg.streamId || "")) leaveScreenShare();
         break;
-      case "screenShareError":
-        screenShareErrorCode.value = typeof msg.code === "string" ? msg.code : "";
-        screenShareError.value = String(msg.message || "屏幕共享操作失败");
-        if (screenShareStarting.value) {
-          screenShareStarting.value = false;
+      case "screenShareError": {
+        const patch: Partial<ScreenShareView> = {
+          errorCode: typeof msg.code === "string" ? msg.code : "",
+          error: String(msg.message || "屏幕共享操作失败"),
+        };
+        store.setState(patch);
+        if (V().starting) {
           screenSharePendingStartId = "";
           screenShareStartCancelled = false;
           screenShareLocalStream?.getTracks().forEach((track) => track.stop());
           screenShareLocalStream = null;
           screenShareOutputSettings = null;
+          store.setState({ starting: false });
         }
-        if (screenShareViewing.value) {
-          if (screenShareViewingStreamId.value) sendScreenShareMessage({ type: "screenShareLeave", streamId: screenShareViewingStreamId.value });
-          closeAllScreenSharePeers();
-          screenShareViewing.value = false;
-          screenShareViewingStreamId.value = "";
-          screenShareRemoteStream.value = null;
+        if (V().viewing) {
+          if (V().viewingStreamId) sendScreenShareMessage({ type: "screenShareLeave", streamId: V().viewingStreamId });
+          closeAllSharePeersAndViewing();
         }
         break;
+      }
       default: return false;
     }
     return true;
   }
 
+  function closeAllSharePeersAndViewing(): void {
+    closeAllScreenSharePeers();
+    store.setState({ viewing: false, viewingStreamId: "", remoteStream: null });
+  }
+
   return {
-    api: {
-      screenShareStreams,
-      screenShareActive,
-      screenShareStarting,
-      screenShareActiveStreamId,
-      screenShareViewing,
-      screenShareViewingStreamId,
-      screenShareRemoteStream,
-      screenShareError,
-      screenShareErrorCode,
-      screenShareRemoteVolume,
-      screenShareWebRtcStats,
-      startScreenShare,
-      stopScreenShare,
-      joinScreenShare,
-      leaveScreenShare,
-    },
+    store,
+    /** WebRTC 诊断快照 store（每秒采样，见 screen-share-stats.ts）。 */
+    statsStore: screenShareStats.store,
     handleMessage,
+    startScreenShare,
+    stopScreenShare,
+    joinScreenShare,
+    leaveScreenShare,
+    setRemoteVolume(volume: number): void {
+      store.setState({ remoteVolume: volume });
+    },
     setIceServers(servers?: ScreenShareIceServer[]): void {
       screenShareIceServers = normalizeScreenShareIceServers(servers);
     },

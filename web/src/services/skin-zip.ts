@@ -10,9 +10,11 @@ const ZIP_CENTRAL_FILE = 0x02014b50;
 const decoder = new TextDecoder("utf-8", { fatal: true });
 
 export class SkinPackError extends Error {
-  constructor(message: string, readonly code: string) {
+  readonly code: string;
+  constructor(message: string, code: string) {
     super(message);
     this.name = "SkinPackError";
+    this.code = code;
   }
 }
 
@@ -118,7 +120,7 @@ function validateLocalEntries(bytes: Uint8Array, entries: ZipEntryMetadata[], ce
   }
   spans.sort((left, right) => left.start - right.start);
   for (let index = 1; index < spans.length; index += 1) {
-    if (spans[index].start < spans[index - 1].end) throw new SkinPackError("ZIP local file entries overlap.", "SKIN_ZIP_INVALID");
+    if (spans[index]!.start < spans[index - 1]!.end) throw new SkinPackError("ZIP local file entries overlap.", "SKIN_ZIP_INVALID");
   }
 }
 

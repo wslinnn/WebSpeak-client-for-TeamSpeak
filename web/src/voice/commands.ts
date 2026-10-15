@@ -1,4 +1,4 @@
-import type { ClientCommandPayloads, ClientCommandType } from "../../../src/shared/client-commands.js";
+import type { ClientCommandPayloads, ClientCommandType } from "@shared/client-commands";
 
 interface CommandOptions {
   socket(): WebSocket | null;

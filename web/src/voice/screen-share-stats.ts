@@ -1,4 +1,4 @@
-import { reactive } from "vue";
+import { createStore } from "zustand/vanilla";
 
 export interface ScreenShareCaptureStats {
   width: number | null;
@@ -48,7 +48,7 @@ export interface ScreenShareStatsDeps {
  *  per-peer media/candidate parsing plus capture-track geometry, with a
  *  generation guard so a stopped poll can never publish a late sample. */
 export function createScreenShareStats(deps: ScreenShareStatsDeps) {
-  const stats = reactive<ScreenShareWebRtcStats>({ updatedAt: null, capture: null, peers: [] });
+  const store = createStore<ScreenShareWebRtcStats>(() => ({ updatedAt: null, capture: null, peers: [] }));
   const previous = new Map<string, { sampledAt: number; bytes: number | null; frames: number | null }>();
   let timer: ReturnType<typeof setInterval> | null = null;
   let collecting = false;
@@ -172,9 +172,11 @@ export function createScreenShareStats(deps: ScreenShareStatsDeps) {
         return collectPeerStats(peerId, peer, role);
       }));
       if (sample !== generation) return;
-      stats.capture = captureStats();
-      stats.peers = peers.filter((peerStats): peerStats is ScreenSharePeerStats => peerStats !== null);
-      stats.updatedAt = Date.now();
+      store.setState({
+        capture: captureStats(),
+        peers: peers.filter((peerStats): peerStats is ScreenSharePeerStats => peerStats !== null),
+        updatedAt: Date.now(),
+      });
     } finally {
       if (sample === generation) collecting = false;
     }
@@ -194,14 +196,12 @@ export function createScreenShareStats(deps: ScreenShareStatsDeps) {
       timer = null;
     }
     previous.clear();
-    stats.updatedAt = null;
-    stats.capture = null;
-    stats.peers = [];
+    store.setState({ updatedAt: null, capture: null, peers: [] });
   }
 
   function forgetPeer(peerId: string): void {
     previous.delete(peerId);
   }
 
-  return { stats, startPolling, stopPolling, forgetPeer };
+  return { store, startPolling, stopPolling, forgetPeer };
 }

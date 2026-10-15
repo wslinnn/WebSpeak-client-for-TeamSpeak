@@ -1,70 +1,70 @@
-:deep(.operations-page .operations-grid) {
+.operations-page .operations-grid {
   grid-template-columns: minmax(0,1fr);
   align-items: start;
   gap: 14px;
 }
 
-:deep(.operations-page .operations-primary),
-:deep(.operations-page .lower-operations) {
+.operations-page .operations-primary,
+.operations-page .lower-operations {
   grid-template-columns: minmax(0,1fr);
   margin-top: 0;
 }
 
-:deep(.operations-page .operation-card) {
+.operations-page .operation-card {
   height: auto;
   min-height: 0;
   overflow: visible;
 }
 
-:deep(.operations-page .operation-empty) {
+.operations-page .operation-empty {
   min-height: 84px;
 }
 
-:deep(.operations-page .diagnostic-list) {
+.operations-page .diagnostic-list {
   grid-template-columns: repeat(auto-fit,minmax(min(100%,140px),1fr));
 }
 
-:deep(.operations-page .audit-card .event-list) {
+.operations-page .audit-card .event-list {
   grid-template-columns: repeat(auto-fit,minmax(min(100%,260px),1fr));
 }
 
 @media (min-width:1101px) {
-  :deep(.operations-page .invite-form) {
+  .operations-page .invite-form {
     grid-template-columns: minmax(220px,1.2fr) minmax(280px,1fr) auto;
     align-items: end;
     gap: 12px 16px;
   }
-  :deep(.operations-page .invite-form>label) {
+  .operations-page .invite-form>label {
     grid-column: 1;
     grid-row: 1;
   }
-  :deep(.operations-page .invite-form-grid) {
+  .operations-page .invite-form-grid {
     grid-column: 2;
     grid-row: 1;
     align-self: end;
   }
-  :deep(.operations-page .invite-form>.field-help) {
+  .operations-page .invite-form>.field-help {
     grid-column: 1/3;
     grid-row: 2;
   }
-  :deep(.operations-page .invite-form>.primary-button) {
+  .operations-page .invite-form>.primary-button {
     grid-column: 3;
     grid-row: 1;
     white-space: nowrap;
   }
-  :deep(.operations-page .diagnostics-card) {
+  .operations-page .diagnostics-card {
     display: grid;
     grid-template-columns: minmax(0,1fr);
   }
-  :deep(.operations-page .diagnostics-card>header) {
+  .operations-page .diagnostics-card>header {
     grid-column: 1/-1;
   }
-  :deep(.operations-page .diagnostics-card>.diagnostic-list) {
+  .operations-page .diagnostics-card>.diagnostic-list {
     grid-column: 1;
     grid-row: 2;
     grid-template-columns: repeat(5,minmax(0,1fr));
   }
-  :deep(.operations-page .diagnostics-card>.secondary-button) {
+  .operations-page .diagnostics-card>.secondary-button {
     grid-column: 1;
     grid-row: 3;
     justify-self: end;
@@ -73,33 +73,33 @@
 }
 
 @media (max-width:1100px) {
-  :deep(.operations-page .diagnostic-list) {
+  .operations-page .diagnostic-list {
     grid-template-columns: repeat(auto-fit,minmax(min(100%,140px),1fr));
   }
 }
 
 @media (max-width:850px) {
-  :deep(.operations-page .operations-primary),
-  :deep(.operations-page .lower-operations) {
+  .operations-page .operations-primary,
+  .operations-page .lower-operations {
     grid-template-columns: minmax(0,1fr);
   }
-  :deep(.operations-page .invite-form) {
+  .operations-page .invite-form {
     grid-template-columns: minmax(0,1fr);
   }
-  :deep(.operations-page .invite-form>label),
-  :deep(.operations-page .invite-form-grid),
-  :deep(.operations-page .invite-form>.field-help),
-  :deep(.operations-page .invite-form>.primary-button) {
+  .operations-page .invite-form>label,
+  .operations-page .invite-form-grid,
+  .operations-page .invite-form>.field-help,
+  .operations-page .invite-form>.primary-button {
     grid-column: 1;
     grid-row: auto;
   }
-  :deep(.operations-page .diagnostics-card) {
+  .operations-page .diagnostics-card {
     display: block;
   }
 }
 
 @media (max-width:560px) {
-  :deep(.operations-page .diagnostic-list) {
+  .operations-page .diagnostic-list {
     grid-template-columns: minmax(0,1fr);
   }
 }

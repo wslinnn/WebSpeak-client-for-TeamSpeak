@@ -2,7 +2,7 @@ import postcss, { type AtRule, type Declaration, type Node, type Rule } from "po
 import selectorParser from "postcss-selector-parser";
 import valueParser from "postcss-value-parser";
 import { unzipSync } from "fflate";
-import { findSingleRootFolder, inspectZip, SkinPackError } from "./skin-zip.js";
+import { findSingleRootFolder, inspectZip, SkinPackError } from "./skin-zip";
 
 export { SkinPackError };
 
@@ -120,7 +120,7 @@ export async function importSkinPack(file: File): Promise<InstalledSkin> {
     if (!mimeType) throw new SkinPackError(`Unsupported package file: ${path}`, "SKIN_FILE_UNSUPPORTED");
     if (mimeType.startsWith("font/") && bytes.byteLength > MAX_FONT_BYTES) throw new SkinPackError("Fonts must be smaller than 4 MiB.", "SKIN_FONT_SIZE");
     if (mimeType.startsWith("image/") && bytes.byteLength > MAX_IMAGE_BYTES) throw new SkinPackError("Each image must be smaller than 16 MiB.", "SKIN_IMAGE_SIZE");
-    assets[path] = new Blob([bytes], { type: mimeType });
+    assets[path] = new Blob([new Uint8Array(bytes)], { type: mimeType });
   }
 
   let contentData: SkinContent | undefined;
@@ -137,7 +137,7 @@ export async function importSkinPack(file: File): Promise<InstalledSkin> {
     if (!previewBytes || !previewMime?.startsWith("image/") || previewBytes.byteLength > MAX_IMAGE_BYTES) {
       throw new SkinPackError("The preview must be a supported image inside the package.", "SKIN_PREVIEW_INVALID");
     }
-    previewBlob = new Blob([previewBytes], { type: previewMime });
+    previewBlob = new Blob([new Uint8Array(previewBytes)], { type: previewMime });
   }
 
   const compiled = compileSkinCss(decoder.decode(cssBytes), manifest.id, assets);
@@ -314,7 +314,7 @@ function compileSkinCss(source: string, id: string, assets: Record<string, Blob>
             return;
           }
           selector.prepend(selectorParser.combinator({ value: " " }));
-          for (let index = scopeNodes.length - 1; index >= 0; index -= 1) selector.prepend(scopeNodes[index].clone());
+          for (let index = scopeNodes.length - 1; index >= 0; index -= 1) selector.prepend(scopeNodes[index]!.clone());
         });
       }).processSync(rule.selector);
     } catch (error) {
@@ -401,8 +401,8 @@ function targetsOnlyOptionalVisualParts(selector: string): boolean {
   try {
     const parsed = selectorParser().astSync(selector);
     return parsed.nodes.length > 0 && parsed.nodes.every((item) => {
-      if (item.nodes.length !== 1 || item.nodes[0].type !== "attribute") return false;
-      const attribute = item.nodes[0];
+      if (item.nodes.length !== 1 || item.nodes[0]!.type !== "attribute") return false;
+      const attribute = item.nodes[0]!;
       if (attribute.attribute.toLowerCase() !== "data-ws-part" || attribute.operator !== "=") return false;
       const part = (attribute.value ?? "").replace(/^['"]|['"]$/g, "");
       return OPTIONAL_VISUAL_PARTS.has(part);
@@ -500,10 +500,10 @@ function rewriteAssetUrls(value: string, resolve: (path: string) => string): str
 
 function parseSingleFontFamily(value: string): string {
   const parsed = valueParser(value).nodes.filter((node) => node.type !== "space" && node.type !== "comment");
-  if (parsed.length !== 1 || (parsed[0].type !== "string" && parsed[0].type !== "word") || !parsed[0].value.trim()) {
+  if (parsed.length !== 1 || (parsed[0]!.type !== "string" && parsed[0]!.type !== "word") || !parsed[0]!.value.trim()) {
     throw new SkinPackError("@font-face must declare exactly one font family.", "SKIN_FONT_FAMILY");
   }
-  return parsed[0].value.trim();
+  return parsed[0]!.value.trim();
 }
 
 function rewriteScopedNames(value: string, property: string, keyframes: Map<string, string>, fontFamilies: Map<string, string>): string {
@@ -521,7 +521,7 @@ function rewriteScopedNames(value: string, property: string, keyframes: Map<stri
 }
 
 function normalizeAssetPath(raw: string): string {
-  let path = raw.split(/[?#]/, 1)[0];
+  let path = raw.split(/[?#]/, 1)[0]!;
   try { path = decodeURIComponent(path); } catch { throw new SkinPackError("An asset URL contains invalid encoding.", "SKIN_ASSET_PATH"); }
   if (path.startsWith("/") || path.includes("\\") || path.includes("\0") || /^[a-z]:/i.test(path)) throw new SkinPackError("An asset URL must be a relative package path.", "SKIN_ASSET_PATH");
   const segments: string[] = [];

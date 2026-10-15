@@ -21,27 +21,26 @@ WebSpeak connects browser users to TeamSpeak 3 and TeamSpeak 6 through a self-ho
 | `src/server/session-audio.ts` | Per-session PCM encoding, exclusive WebRTC/WebSocket routing, whisper dispatch, bounded egress and audio counters |
 | `src/admin/`, `src/security/`, `src/persistence/` | Administration, access policies, credentials and persistent settings |
 | `vendor/teamspeak-client/` | Vendored build output of `@echosixhiya/teamspeak-client` (MIT); see `vendor/teamspeak-client/VENDOR.md` before upgrading |
-| `web/src/views/` and `web/src/composables/` | Vue pages, connection state, audio controls, chat and screen sharing |
+| `web/src/views/` and `web/src/web-client/` | React pages, connection state, audio controls, chat and screen sharing |
 | `web/src/voice/screen-share.ts` | Per-session screen capture, peer negotiation, cleanup and diagnostics |
 | `web/src/voice/remote-playback.ts` | Per-speaker compatibility decoding, bounded scheduling, volume and resource cleanup |
 | `web/src/voice/microphone-test.ts` | Cancellable recording tests, recorder deadline and playback URL ownership |
 | `web/src/voice/microphone-capture.ts` | Prepared microphone processing graphs, per-context worklet loading, optional RNNoise and independent PCM activation/cleanup |
 | `web/src/voice/audio-sink.ts` | Serialized device routing per audio endpoint, with stale-operation guards |
 | `web/src/voice/accompaniment.ts` | Generation-bound display-audio capture, immediate pending-capture cancellation, ended listeners and committed activity |
-| `web/src/voice/webrtc-input.ts` | Stable WebRTC sender output, microphone gain and transactional accompaniment-source attachment |
 | `web/src/voice/microphone-meter.ts` | Optional per-peer level sampling, owned analysis nodes and timer, partial-failure cleanup and stale-tick rejection |
-| `web/src/voice/webrtc-transport.ts`, `webrtc-playback.ts` | Per-attempt peer negotiation, input/meter ownership, compatibility fallback and independently owned playback elements and retries |
+| `web/src/voice/webrtc-transport.ts`, `webrtc-playback.ts` | Per-attempt peer negotiation, microphone gain, input/meter ownership, compatibility fallback and independently owned playback elements and retries |
 | `web/src/voice/connection.ts`, `commands.ts` | Cancellable ticket acquisition, socket and connection generations, plus per-command acknowledgement deadlines and cleanup |
 | `web/src/voice/session-state.ts` | Reactive directory, chat history, events and notifications; complete versus omitted directory data, session resets and private-conversation identity scopes |
-| `web/src/composables/useWebClientChat.ts`, `useWebClientChannels.ts` | Destination-owned drafts and pending sends, identity-bound private history, and iterative channel-tree projection |
-| `web/src/composables/useWebClientIdentity.ts`, `web/src/components/web-client/IdentityImportDialog.vue` | Page-owned identity reads, parsing, restoration and exports; a presentation dialog with explicit input and action events |
-| `web/src/voice/audio-diagnostics.ts`, `web/src/composables/useWebClientPerformance.ts` | Session-owned diagnostic probes and compatibility counters, browser statistics, comparable sample scopes and cancellable UI polling |
+| `web/src/web-client/chat-controller.ts`, `channel-tree.ts`, `members-controller.ts` | Destination-owned drafts and pending sends, identity-bound private history, and iterative channel-tree projection |
+| `web/src/web-client/home-identity.ts`, `identity-persistence.ts`, `web/src/services/identity-import.ts` | Page-owned identity reads, parsing, restoration and exports; a presentation dialog with explicit input and action events |
+| `web/src/voice/audio-diagnostics.ts`, `web/src/web-client/performance-monitor.ts` | Session-owned diagnostic probes and compatibility counters, browser statistics, comparable sample scopes and cancellable UI polling |
 | `web/src/services/`, `web/src/i18n/`, `web/src/skins/` | Browser persistence, identity import, skin packages and translations |
-| `web/src/composables/usePublicSkin.ts`, `web/src/services/skin-operation.ts` | Shared public-page skin initialization and selection, page ownership, cancellation and bounded loading |
+| `web/src/web-client/skin-controller.ts`, `web/src/services/skin-operation.ts` | Shared public-page skin initialization and selection, page ownership, cancellation and bounded loading |
 | `web/src/services/admin-api.ts`, `admin-requests.ts` | Admin HTTP validation and cancellation, session-bound CSRF and per-feature request ownership, including skin uploads and backup downloads |
-| `web/src/composables/useAdminServerSettings.ts`, `useAdminOperations.ts`, `useAdminSkins.ts` | Admin form merging, probes, operational actions and skin state; the page owns authentication, routing and overview |
+| `web/src/admin/server-settings-controller.ts`, `operations-controller.ts`, `skins-controller.ts` | Admin form merging, probes, operational actions and skin state; the page owns authentication, routing and overview |
 | `web/src/components/admin/` | Server settings, operations and skin presentation; the parent page retains the feature controller instances across subroute changes |
-| `web/src/composables/useAdminI18n.ts`, `web/src/i18n/admin.ts` | Admin formatting and error/status mappings; all five languages explicitly implement the same translation keys |
+| `web/src/hooks/use-i18n.ts`, `web/src/i18n/` | Admin formatting and error/status mappings; all five languages explicitly implement the same translation keys |
 
 ## Connection and control protocol
 

@@ -31,7 +31,7 @@
   gap: 3px;
   width: 52px;
   height: 46px;
-  color: var(--accent);
+  color: var(--skin-accent);
 }
 
 .join-card-waveform i {
@@ -87,7 +87,7 @@
   right: -5px;
   width: 148px;
   height: 148px;
-  color: var(--accent);
+  color: var(--skin-accent);
 }
 
 .join-card-sonar i {
@@ -126,16 +126,25 @@
   backface-visibility: hidden;
 }
 
-.web-client :deep(button:focus-visible),
-.web-client :deep(a:focus-visible),
-.web-client :deep(input:focus-visible),
-.web-client :deep(select:focus-visible),
+.web-client button:focus-visible,
+.web-client a:focus-visible,
+.web-client input:focus-visible,
+.web-client select:focus-visible,
 .web-client textarea:focus-visible {
   outline: 2px solid var(--wsd-accent);
   outline-offset: 2px;
 }
 
-:deep(.message-composer) {
+/* 输入区焦点指示只留外层框（2026-10-14 拍板）：.field-wrap 已有 :focus-within
+   ring，内层再叠自己的 outline 成双框。此条 (0,3,1) 压过上面的 (0,2,1)——旧版
+   两条同特异性、后导入必胜，内层 outline 从未真正被 02 分片的 outline:none 关掉。 */
+.web-client .field-wrap input:focus-visible,
+.web-client .field-wrap select:focus-visible,
+.web-client .field-wrap textarea:focus-visible {
+  outline: none;
+}
+
+.message-composer {
   position: sticky;
   bottom: env(safe-area-inset-bottom, 0px);
   z-index: 3;
@@ -149,25 +158,25 @@
     width: min(100% - 24px, 650px);
     padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   }
-  :deep(.message-composer) {
+  .message-composer {
     margin-bottom: 8px;
   }
-  :deep(.member-context-menu) {
+  .member-context-menu {
     left: 12px !important;
     right: 12px;
     bottom: env(safe-area-inset-bottom, 0px);
     border-radius: 16px 16px 0 0;
     padding: 14px;
   }
-  :deep(.member-context-menu button) {
+  .member-context-menu button {
     min-height: 42px;
     font-size: 13px;
   }
-  :deep(.member-context-menu strong) {
+  .member-context-menu strong {
     padding: 4px 8px 11px;
     font-size: 14px;
   }
-  :deep(.member-submenu-panel) {
+  .member-submenu-panel {
     position: static;
     min-width: 0;
     max-height: 190px;
@@ -176,7 +185,7 @@
     border-radius: 10px;
     box-shadow: none;
   }
-  :deep(.member-submenu-panel button) {
+  .member-submenu-panel button {
     min-height: 42px;
     font-size: 13px;
   }

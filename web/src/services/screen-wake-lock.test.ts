@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vitest";
 import {
   createScreenWakeLockController,
   type ScreenWakeLockApi,
   type ScreenWakeLockSentinelLike,
   type ScreenWakeLockSnapshot,
   type ScreenWakeLockVisibilitySource,
-} from "./screen-wake-lock.js";
+} from "./screen-wake-lock";
 
 class TestSentinel extends EventTarget implements ScreenWakeLockSentinelLike {
   released = false;

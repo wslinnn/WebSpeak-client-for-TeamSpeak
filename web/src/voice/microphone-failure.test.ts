@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import test from "node:test";
-import { normalizeMicrophoneFailure } from "./microphone-failure.js";
+import { test } from "vitest";
+import { normalizeMicrophoneFailure } from "./microphone-failure";
 
 function namedError(name: string): Error {
   const error = new Error("boom");

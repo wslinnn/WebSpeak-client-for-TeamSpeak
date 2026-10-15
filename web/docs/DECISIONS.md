@@ -1,10 +1,10 @@
-# 前端重构决策记录（web-react）
+# 前端重构决策记录
 
 > 上游决策源：仓库根 `.agents/notes/decisions.md`（会话回归不变量 / 否决项 / 条件重开项——其中前端相关条款已并入 `SPEC.md`，此处只记重构专属决策）。行为改动先改 SPEC，拍板记本文。
 
 ## 2026-10-14 · 重构立项拍板（5/5，选择题确认）
 
-1. **仓库策略：同仓 `react-web` 分支 + 平行目录 `web-react/`**。切换时单 commit `git mv` 回 `web/`，后端 `STATIC_DIR` 零改动。理由：保住前端直连 `src/shared/` 的防漂移机制；协议类型分叉复制是比现有怪味更糟的腐化源。react 分支期间定期 rebase master；Vue 侧冻结只修致命 bug。
+1. **仓库策略：同仓 `react-web` 分支 + 平行目录 `web-react/`**。切换时单 commit `git mv` 回 `web/`，后端 `STATIC_DIR` 零改动（已于 2026-10-15 执行）。理由：保住前端直连 `src/shared/` 的防漂移机制；协议类型分叉复制是比现有怪味更糟的腐化源。react 分支期间定期 rebase master；Vue 侧冻结只修致命 bug。
 2. **皮肤系统：契约重置**。`.wskin` 运行时/管理台上传/公开目录/内置亮暗全保留；`data-ws-part` 注册表按新布局重新登记（legacy 177 值清单见 `skin-parts-legacy.md`，仅作参考不作承诺）；旧社区皮肤降级为「尽力兼容」（结构选择器失效不可避免）；KAAK 对齐成果（报告 16-19）转内置主题回填。执行口径：属性钩子（`data-ws-part`/`data-ws-page`/`ws-skin-root`/`data-ws-skin`）从建壳起就带着写；注册表重置在皮肤迁移步统一登记与验收，验收以至少一份真实 `.wskin` 实测为准。
 3. **防劣化门禁：轻量档**。五条机检（max-lines 400 豁免字典/测试/components-ui；services+voice 禁 import react、响应式用 zustand/vanilla；跨包只走 `@shared` 别名；禁裸色值/字号/z-index；data-testid 约定）+ 两条流程纪律（spec 先行；verify 全绿禁 grep 日志代替退出码）。
 4. **工具链：npm + ESLint 9 flat + typescript-eslint + react-hooks + Vitest/RTL**。Node 22、TS 6（与后端同版）、Vite 当期稳定、Tailwind 4 CSS-first、shadcn CLI 当期版。不引 pnpm/oxlint/husky。

@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vitest";
 import {
   BUILTIN_SKIN_CATALOG,
   getPublicDefaultSkinId,
   isPublicSkinEnabled,
   listPublicSkins,
-} from "./skin-catalog.js";
+} from "./skin-catalog";
 
 test("skin catalog always includes the two protected built-ins and exposes only enabled custom skins", async () => {
   const originalFetch = globalThis.fetch;

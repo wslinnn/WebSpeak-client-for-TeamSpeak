@@ -13,6 +13,7 @@ export const en: Record<string, string> = {
     switchToDarkTheme: "Switch to dark theme",
     browserWorkspace: "TeamSpeak in your browser",
     secureGateway: "Gateway online",
+    gatewayOffline: "Gateway offline",
     adminConsole: "Admin console",
     downloadPage: "Downloads",
     backToHome: "Back to home",

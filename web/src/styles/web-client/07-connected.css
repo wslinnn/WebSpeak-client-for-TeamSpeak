@@ -1,22 +1,22 @@
 @media (min-width: 741px) {
-  :deep(.app-shell .voice-grid) {
+  .app-shell .voice-grid {
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   }
 }
 
-:deep(.screen-share-card-button) {
+.screen-share-card-button {
   min-height: 28px;
   font-size: 10px;
 }
 
-:deep(.screen-share-settings-button) {
+.screen-share-settings-button {
   width: 28px;
   min-width: 28px;
   min-height: 28px;
 }
 
 @media (max-width: 740px) {
-  :deep(.screen-share-card-button) {
+  .screen-share-card-button {
     font-size: 9px;
   }
 }
@@ -33,13 +33,13 @@
   min-width: 0;
 }
 
-:deep(.identity-options) {
+.identity-options {
   margin-top: 14px;
   color: var(--wsd-text-muted);
   font-size: 11px;
 }
 
-:deep(.device-setup) {
+.device-setup {
   margin-top: 10px;
   display: flex;
   flex-direction: column;
@@ -54,7 +54,7 @@
  * .identity-action-button base (09) and the ≤420 flex-basis rule (18) — the
  * column wrapper turns any flex-basis into a fixed height, so flex must be
  * zeroed here too. */
-:deep(.device-setup > [data-ws-part="home.device-setup.open"]) {
+.device-setup > [data-ws-part="home.device-setup.open"] {
   display: flex;
   width: 100%;
   min-width: 0;
@@ -68,7 +68,7 @@
   border-radius: 10px;
 }
 
-:deep(.device-setup-hint) {
+.device-setup-hint {
   margin: 0;
   color: var(--wsd-text-muted);
   font-size: 11px;
@@ -76,15 +76,15 @@
 }
 
 /* Mic permission badge states. */
-:deep(.device-setup-hint.ok) {
+.device-setup-hint.ok {
   color: var(--wsd-accent);
 }
 
-:deep(.device-setup-hint.denied) {
+.device-setup-hint.denied {
   color: var(--wsd-danger);
 }
 
-:deep(.cancel-connect-button) {
+.cancel-connect-button {
   justify-self: center;
   min-height: 32px;
   padding: 0 10px;
@@ -94,12 +94,12 @@
   cursor: pointer;
 }
 
-:deep(.cancel-connect-button:hover) {
+.cancel-connect-button:hover {
   color: var(--wsd-accent);
   text-decoration: underline;
 }
 
-:deep(.member-panel) {
+.member-panel {
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -107,7 +107,7 @@
   overflow: hidden;
 }
 
-:deep(.member-tree) {
+.member-tree {
   flex: 1;
   min-height: 0;
   margin-top: 18px;
@@ -115,23 +115,23 @@
   overflow-y: auto;
 }
 
-:deep(.member-channel-group) {
+.member-channel-group {
   padding: 8px 0 14px;
   border-bottom: 1px solid var(--wsd-border);
 }
 
-:deep(.member-channel-group + .member-channel-group) {
+.member-channel-group + .member-channel-group {
   margin-top: 8px;
 }
 
-:deep(.member-channel-heading-row) {
+.member-channel-heading-row {
   display: flex;
   align-items: center;
   gap: 2px;
   width: 100%;
 }
 
-:deep(.member-channel-heading) {
+.member-channel-heading {
   position: relative;
   display: flex;
   align-items: center;
@@ -149,13 +149,13 @@
   transition: color .14s ease, background-color .14s ease;
 }
 
-:deep(.member-channel-heading:hover),
-:deep(.member-channel-group.current .member-channel-heading) {
+.member-channel-heading:hover,
+.member-channel-group.current .member-channel-heading {
   color: var(--wsd-accent);
   background: var(--wsd-accent-soft);
 }
 
-:deep(.member-channel-heading span) {
+.member-channel-heading span {
   min-width: 0;
   flex: 1;
   overflow: hidden;
@@ -165,12 +165,12 @@
   font-weight: 700;
 }
 
-:deep(.member-channel-heading small) {
+.member-channel-heading small {
   color: var(--wsd-text-dim);
   font-size: 10px;
 }
 
-:deep(.member-channel-fold) {
+.member-channel-fold {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
@@ -183,24 +183,24 @@
   cursor: pointer;
 }
 
-:deep(.member-channel-fold:hover),
-:deep(.member-channel-group.current .member-channel-fold) {
+.member-channel-fold:hover,
+.member-channel-group.current .member-channel-fold {
   color: var(--wsd-accent);
   background: var(--wsd-accent-soft);
 }
 
-:deep(.member-channel-fold .ui-icon) {
+.member-channel-fold .ui-icon {
   transition: transform .15s ease;
 }
 
-:deep(.member-channel-group.folded .member-channel-fold .ui-icon) {
+.member-channel-group.folded .member-channel-fold .ui-icon {
   transform: rotate(-90deg);
 }
 
 /* Fold animation: the branch stays mounted and its single grid row
  * interpolates 1fr -> 0fr (display:none cannot transition), with a short
  * fade/offset so collapsed members read as leaving rather than snapping. */
-:deep(.member-channel-branch) {
+.member-channel-branch {
   display: grid;
   grid-template-rows: 1fr;
   min-width: 0;
@@ -210,7 +210,7 @@
   transition: grid-template-rows .15s ease, opacity .14s ease, transform .15s ease, visibility 0s;
 }
 
-:deep(.member-channel-branch[data-expanded="false"]) {
+.member-channel-branch[data-expanded="false"] {
   grid-template-rows: 0fr;
   opacity: 0;
   transform: translateY(-2px);
@@ -218,7 +218,7 @@
   transition: grid-template-rows .15s ease, opacity .14s ease, transform .15s ease, visibility 0s linear .15s;
 }
 
-:deep(.member-channel-branch-content) {
+.member-channel-branch-content {
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -226,26 +226,26 @@
   overflow: hidden;
 }
 
-:deep(.member-channel-group.current .member-channel-heading small) {
+.member-channel-group.current .member-channel-heading small {
   color: var(--wsd-text-muted);
 }
 
-:deep(.member-channel-group .member-list) {
+.member-channel-group .member-list {
   gap: 13px;
   margin: 9px 4px 0 14px;
 }
 
-:deep(.member-volume) {
+.member-volume {
   display: flex;
 }
 
-:deep(.channel-no-members) {
+.channel-no-members {
   margin: 7px 4px 0 31px;
   color: var(--wsd-text-dim);
   font-size: 10px;
 }
 
-:deep(.settings-modal) {
+.settings-modal {
   width: min(760px, 100%);
 }
 
@@ -253,11 +253,11 @@
   display: none;
 }
 
-:deep(.settings-content) {
+.settings-content {
   padding: 30px 42px;
 }
 
-:deep(.settings-select) {
+.settings-select {
   display: block;
   width: 100%;
   min-height: 40px;
@@ -272,24 +272,24 @@
   cursor: pointer;
 }
 
-:deep(.settings-select:focus) {
+.settings-select:focus {
   border-color: var(--wsd-accent);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--wsd-accent) 20%, transparent);
 }
 
-:deep(.settings-select:disabled) {
+.settings-select:disabled {
   cursor: wait;
   opacity: .65;
 }
 
-:deep(.settings-error) {
+.settings-error {
   margin: -9px 0 15px;
   color: var(--wsd-danger);
   font-size: 10px;
   line-height: 1.5;
 }
 
-:deep(.settings-footer) {
+.settings-footer {
   justify-content: flex-end;
 }
 

@@ -37,6 +37,8 @@ export function applyTheme(theme: ThemeMode, options: { preserveCustomSkins?: bo
   // Keep data-theme for the admin console's independent appearance rules.
   // Built-in skin CSS is scoped to public roots and can never restyle /admin.
   root.dataset.theme = theme;
+  // Tailwind 的 dark: 变体钉在 .dark 类上（index.css @custom-variant），与 data-theme 同步。
+  root.classList.toggle("dark", dark);
   if (root.style) root.style.colorScheme = dark ? "dark" : "light";
   if (typeof document.querySelector === "function" && typeof document.createElement === "function" && document.head) {
     let themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
@@ -63,6 +65,7 @@ export function applyTheme(theme: ThemeMode, options: { preserveCustomSkins?: bo
   }
   style.dataset.skinPackage = activeSkin.manifest.id;
   style.textContent = activeSkin.css;
+  notifyThemeListeners();
 }
 
 export function saveTheme(theme: ThemeMode, options: { preserveCustomSkins?: boolean } = {}): void {
@@ -78,6 +81,25 @@ export function isDarkTheme(theme: ThemeMode): boolean {
     : false;
 }
 
+export function getActiveTheme(): ThemeMode {
+  return activeThemeMode;
+}
+
+type ThemeListener = () => void;
+const themeListeners = new Set<ThemeListener>();
+
+/** React 侧响应式的唯一来源：applyTheme/system 翻转后通知订阅者重新读 getActiveTheme。 */
+export function subscribeTheme(listener: ThemeListener): () => void {
+  themeListeners.add(listener);
+  return () => {
+    themeListeners.delete(listener);
+  };
+}
+
+function notifyThemeListeners(): void {
+  for (const listener of themeListeners) listener();
+}
+
 export function nextTheme(theme: ThemeMode): ThemeMode {
   return isDarkTheme(theme) ? "light" : "dark";
 }
@@ -88,6 +110,7 @@ if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
   const systemColorScheme = window.matchMedia("(prefers-color-scheme: dark)");
   const updateSystemSkin = () => {
     if (activeThemeMode === "system") applyTheme("system", { preserveCustomSkins: true });
+    else notifyThemeListeners();
   };
   if (systemColorScheme.addEventListener) systemColorScheme.addEventListener("change", updateSystemSkin);
   else systemColorScheme.addListener?.(updateSystemSkin);

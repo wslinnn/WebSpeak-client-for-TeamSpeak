@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import test from "node:test";
-import { createMobileAwayController, type MobileAwayVisibilitySource } from "./mobile-away.js";
+import { test } from "vitest";
+import { createMobileAwayController, type MobileAwayVisibilitySource } from "./mobile-away";
 
 class TestVisibility extends EventTarget implements MobileAwayVisibilitySource {
   visibilityState = "visible";

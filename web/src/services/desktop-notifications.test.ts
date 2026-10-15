@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vitest";
 import {
   desktopNotificationPermission,
   isDesktopNotificationSupported,
@@ -7,7 +7,7 @@ import {
   requestDesktopNotificationPermission,
   shouldShowBackgroundNotification,
   writeDesktopNotificationSetting,
-} from "./desktop-notifications.js";
+} from "./desktop-notifications";
 
 test("background notifications require opt-in, hidden tab and granted permission", () => {
   assert.equal(shouldShowBackgroundNotification({ settingEnabled: true, documentHidden: true, permission: "granted" }), true);
