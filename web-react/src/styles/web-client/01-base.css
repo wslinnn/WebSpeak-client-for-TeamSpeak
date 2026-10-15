@@ -27,7 +27,10 @@ html[data-ws-route="webclient"] input {
   font: inherit;
 }
 
-html[data-ws-route="webclient"] button {
+/* 按钮基座 reset 只限页内树（.web-client）：Radix portal 挂在 body 上但仍在
+   html[data-ws-route] 作用域内，不加限定会把 shadcn 弹窗按钮的 outline 边框
+   剥掉。:where 保持与原规则相同的特异性（0,1,1），页内级联不变。 */
+:where(html[data-ws-route="webclient"]) .web-client button {
   border: 0;
 }
 
