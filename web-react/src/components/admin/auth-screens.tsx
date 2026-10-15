@@ -1,20 +1,22 @@
-import { AudioWaveformIcon, HouseIcon } from "lucide-react";
+import { HouseIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useStore } from "zustand";
 
-import { LanguageSwitcher } from "@/components/app/language-switcher";
+import { useI18n } from "@/hooks/use-i18n";
+import { LanguageSwitcher } from "@/components/web-client/language-switcher";
 import type { AdminController } from "@/admin/admin-controller";
 import type { AdminMessages } from "@/i18n/admin-messages";
 
 // 旧 AdminView.vue 的 login / change-password 两屏平价（类名保留，样式在 admin.css）。
 export function LoginScreen({ controller, messages }: { controller: AdminController; messages: AdminMessages }) {
+  const { language, setLanguage } = useI18n();
   const { tr } = messages;
   const view = useStore(controller.store);
   return (
     <main className="login-page">
       <section className="login-card">
         <div className="admin-brand centered">
-          <span><AudioWaveformIcon size={24} aria-hidden="true" /></span>
+          <img src="/favicon.jpg" alt="WebSpeak" className="size-[28px] rounded-[8px]" aria-hidden="true" />
           <div><strong>WebSpeak</strong><small>{tr("adminConsole")}</small></div>
         </div>
         <header>
@@ -43,7 +45,7 @@ export function LoginScreen({ controller, messages }: { controller: AdminControl
             <HouseIcon size={15} aria-hidden="true" />
             {tr("backHome")}
           </Link>
-          <LanguageSwitcher menuLabel={tr("languageMenu")} />
+          <LanguageSwitcher language={language} onChange={setLanguage} menuLabel={tr("languageMenu")} />
         </div>
       </section>
     </main>
@@ -51,6 +53,7 @@ export function LoginScreen({ controller, messages }: { controller: AdminControl
 }
 
 export function ChangePasswordScreen({ controller, messages }: { controller: AdminController; messages: AdminMessages }) {
+  const { language, setLanguage } = useI18n();
   const { tr } = messages;
   const view = useStore(controller.store);
   const strength = Math.min(100, Math.max(8, view.newPassword.length * 5 + (/[\s\W]/.test(view.newPassword) ? 15 : 0)));
@@ -58,7 +61,7 @@ export function ChangePasswordScreen({ controller, messages }: { controller: Adm
     <main className="login-page">
       <section className="login-card">
         <div className="admin-brand centered">
-          <span><AudioWaveformIcon size={24} aria-hidden="true" /></span>
+          <img src="/favicon.jpg" alt="WebSpeak" className="size-[28px] rounded-[8px]" aria-hidden="true" />
           <div><strong>WebSpeak</strong><small>{tr("adminConsole")}</small></div>
         </div>
         <header>
@@ -85,7 +88,7 @@ export function ChangePasswordScreen({ controller, messages }: { controller: Adm
           </button>
         </form>
         <p className="security-note">{tr("defaultCredentialNotice")}</p>
-        <LanguageSwitcher menuLabel={tr("languageMenu")} />
+        <LanguageSwitcher language={language} onChange={setLanguage} menuLabel={tr("languageMenu")} />
       </section>
     </main>
   );

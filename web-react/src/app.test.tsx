@@ -45,8 +45,9 @@ test("默认路由渲染 WebClient 壳：皮肤根锚点 + data-ws-page=home + d
     return element;
   }, { timeout: 5000 });
   expect(shell?.getAttribute("data-ws-page")).toBe("home");
-  // 挂载后补的 applyTheme 会把内置皮肤 id 钉到根元素（内置皮肤 CSS 的作用域锚点）。
-  expect(shell?.getAttribute("data-ws-skin")).toMatch(/^builtin\.(light|dark)$/);
+  // 皮肤 id 由 initialize 异步钉到根元素（内置皮肤 CSS 的作用域锚点；挂载即钉的
+  // applyTheme 临时桥已随 P4-7 皮肤接线删除，见 DECISIONS #15）。
+  await waitFor(() => expect(shell?.getAttribute("data-ws-skin")).toMatch(/^builtin\.(light|dark)$/), { timeout: 5000 });
   await waitFor(() => expect(document.documentElement.dataset.wsRoute).toBe("webclient"));
 });
 

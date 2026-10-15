@@ -165,3 +165,21 @@ export function createSkinController(options: SkinControllerOptions = {}) {
 }
 
 export type SkinController = ReturnType<typeof createSkinController>;
+
+// —— 路由级单例（web-client 与 download 页共享一个皮肤状态源）。StrictMode
+// 双挂载与跨页往返都拿同一实例；跨页迟到激活的作废由 skin-runtime 的
+// pendingActivation 守卫承担。appVersion 经注入盒供给（publicConfig 是
+// web-client 控制器内部实例，download 页没有）。 ——
+let webClientSkin: SkinController | null = null;
+let skinAppVersionProvider: (() => string) | null = null;
+
+export function setSkinAppVersionProvider(provider: () => string): void {
+  skinAppVersionProvider = provider;
+}
+
+export function getWebClientSkinController(): SkinController {
+  webClientSkin ??= createSkinController({
+    appVersion: () => skinAppVersionProvider?.() ?? "0.2.6",
+  });
+  return webClientSkin;
+}

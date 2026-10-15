@@ -6,7 +6,7 @@
  */
 
 /* —— LanguageSwitcher —— */
-.web-client .language-switcher {
+.language-switcher {
   position: relative;
   z-index: var(--ws-z-dropdown);
   flex: 0 0 auto;
@@ -17,7 +17,7 @@
   font-family: inherit;
 }
 
-.web-client .language-trigger {
+.language-trigger {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -35,25 +35,25 @@
   transition: color .16s, background .16s, border-color .16s, box-shadow .16s;
 }
 
-.web-client .language-trigger:hover,
-.web-client .language-switcher.open .language-trigger {
+.language-trigger:hover,
+.language-switcher.open .language-trigger {
   color: #fff;
   background: var(--wsd-accent, #4f9e0c);
   border-color: var(--wsd-accent, #4f9e0c);
   box-shadow: 0 7px 16px color-mix(in srgb, var(--wsd-accent, #4f9e0c) 18%, transparent);
 }
 
-.web-client .language-trigger .ui-icon {
+.language-trigger .ui-icon {
   margin-left: auto;
   transition: transform .16s;
 }
 
-.web-client .language-switcher.open .language-trigger .ui-icon {
+.language-switcher.open .language-trigger .ui-icon {
   transform: rotate(180deg);
 }
 
 .web-client .language-current-flag,
-.web-client .language-option-flag {
+.language-option-flag {
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
   line-height: 1;
 }
@@ -66,7 +66,7 @@
   letter-spacing: .02em;
 }
 
-.web-client .language-dropdown {
+.language-dropdown {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
@@ -88,7 +88,7 @@
   animation: language-menu-in .14s ease-out;
 }
 
-.web-client .language-option {
+.language-option {
   display: flex;
   align-items: center;
   align-self: start;
@@ -106,20 +106,20 @@
   transition: color .14s, background .14s, border-color .14s;
 }
 
-.web-client .language-option:hover,
-.web-client .language-option:focus-visible,
-.web-client .language-option.selected {
+.language-option:hover,
+.language-option:focus-visible,
+.language-option.selected {
   color: var(--wsd-accent, #4f9e0c);
   background: color-mix(in srgb, var(--wsd-accent, #4f9e0c) 12%, var(--wsd-panel, #fff));
   border-color: color-mix(in srgb, var(--wsd-accent, #4f9e0c) 28%, var(--wsd-border, #dfe5e8));
 }
 
-.web-client .language-option-flag {
+.language-option-flag {
   flex: 0 0 auto;
   font-size: 17px;
 }
 
-.web-client .language-option-copy {
+.language-option-copy {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -128,26 +128,26 @@
   gap: 8px;
 }
 
-.web-client .language-option strong,
-.web-client .language-option small {
+.language-option strong,
+.language-option small {
   overflow: visible;
   text-overflow: clip;
   white-space: nowrap;
 }
 
-.web-client .language-option strong {
+.language-option strong {
   flex: 0 0 auto;
   font-size: 12px;
 }
 
-.web-client .language-option small {
+.language-option small {
   flex: 0 0 auto;
   color: var(--wsd-text-dim, #91a19c);
   font-size: 10px;
   font-weight: 700;
 }
 
-.web-client .language-option > .ui-icon {
+.language-option > .ui-icon {
   flex: 0 0 auto;
 }
 
@@ -158,7 +158,7 @@
 
 /* Rail tile variant: the trigger turns into a 58px rail tile; the dropdown
    keeps its light surface and opens to the right of the rail. */
-.web-client .language-switcher.tile .language-trigger {
+.language-switcher.tile .language-trigger {
   display: grid;
   place-items: center;
   width: 58px;
@@ -173,31 +173,31 @@
   box-shadow: none;
 }
 
-.web-client .language-switcher.tile .language-trigger:hover,
-.web-client .language-switcher.tile.open .language-trigger {
+.language-switcher.tile .language-trigger:hover,
+.language-switcher.tile.open .language-trigger {
   color: var(--wsd-text);
   background: var(--wsd-hover);
   border-color: transparent;
   box-shadow: none;
 }
 
-.web-client .language-switcher.tile .language-current-flag {
+.language-switcher.tile .language-current-flag {
   font-size: 22px;
 }
 
-.web-client .language-switcher.tile .language-dropdown {
+.language-switcher.tile .language-dropdown {
   right: auto;
   left: 0;
 }
 
 @media (max-width: 520px) {
-  .web-client .language-trigger {
+  .language-trigger {
     min-width: 62px;
     min-height: 30px;
     padding-inline: 7px;
   }
 
-  .web-client .language-dropdown {
+  .language-dropdown {
     width: min(360px, calc(100vw - 16px));
   }
 }

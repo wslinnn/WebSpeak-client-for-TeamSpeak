@@ -1,4 +1,4 @@
-import { ActivityIcon, AudioWaveformIcon, CompassIcon, DoorOpenIcon, InfoIcon, MoonIcon, ServerIcon, ShareIcon, SunIcon, UsersIcon } from "lucide-react";
+import { ActivityIcon, CompassIcon, DoorOpenIcon, InfoIcon, MoonIcon, ServerIcon, ShareIcon, SunIcon, UsersIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useStore } from "zustand";
@@ -9,7 +9,7 @@ import { AdminOperations } from "@/components/admin/operations";
 import { AdminSkins } from "@/components/admin/skins";
 import { ChangePasswordScreen, LoginScreen } from "@/components/admin/auth-screens";
 import { AdminOverview } from "@/components/admin/overview";
-import { LanguageSwitcher } from "@/components/app/language-switcher";
+import { LanguageSwitcher } from "@/components/web-client/language-switcher";
 import { createAdminMessages } from "@/i18n/admin-messages";
 import { useI18n } from "@/hooks/use-i18n";
 import { useThemeMode } from "@/hooks/use-theme";
@@ -22,7 +22,7 @@ import "../styles/admin.css";
 export default function AdminView() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { language } = useI18n();
+  const { language, setLanguage } = useI18n();
   // 控制器只创建一次；当次渲染的 navigate/路径/语言经 bind 注入（无 ref）。
   const [controller] = useState(() => createAdminController({
     navigate: () => { /* bind 前不会被调用（loadAdminView 在 bind 之后） */ },
@@ -84,7 +84,7 @@ export default function AdminView() {
       <div className="admin-shell">
         <aside className="admin-sidebar">
           <div className="admin-brand">
-            <span><AudioWaveformIcon size={22} aria-hidden="true" /></span>
+            <img src="/favicon.jpg" alt="WebSpeak" className="size-[26px] rounded-[7px]" aria-hidden="true" />
             <div><strong>WebSpeak</strong><small>{tr("adminConsole")}</small></div>
           </div>
           <nav>
@@ -134,7 +134,7 @@ export default function AdminView() {
                 {themeDark ? <SunIcon size={17} aria-hidden="true" /> : <MoonIcon size={17} aria-hidden="true" />}
                 <span>{themeDark ? tr("switchToLightTheme") : tr("switchToDarkTheme")}</span>
               </button>
-              <LanguageSwitcher menuLabel={tr("languageMenu")} />
+              <LanguageSwitcher language={language} onChange={setLanguage} menuLabel={tr("languageMenu")} />
             </div>
           </header>
 

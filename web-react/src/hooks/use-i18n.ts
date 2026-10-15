@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { createWebClientMessages } from "@/i18n/messages";
 import { getInitialLanguage, type Language } from "@/i18n/web-client";
 
@@ -12,6 +12,11 @@ export const I18nContext = createContext<I18nContextValue | null>(null);
 
 export function useLanguageState(): I18nContextValue {
   const [language, setLanguage] = useState<Language>(getInitialLanguage);
+  // html lang 随语言同步（旧版根节点 :lang 平价到文档层）。渲染期不得
+  // 改外部值（Compiler 禁），走 effect。
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
   return useMemo<I18nContextValue>(() => ({
     language,
     messages: createWebClientMessages(language),

@@ -15,7 +15,7 @@ import { useI18n } from "@/hooks/use-i18n";
 import { BUILTIN_DARK_SKIN, BUILTIN_LIGHT_SKIN } from "@/services/skin-runtime";
 import { isPublicSkinEnabled } from "@/services/skin-catalog";
 import { resolveSkinHomeCopy, resolveSkinMessages } from "@/web-client/skin-copy";
-import { createSkinController, type SkinController } from "@/web-client/skin-controller";
+import { getWebClientSkinController, setSkinAppVersionProvider } from "@/web-client/skin-controller";
 import { readMobileGateSignals, shouldShowMobileGate, storeMobileGateChoice } from "@/services/mobile-gate";
 import { observeMobileViewport, type MobileViewport } from "@/services/mobile-viewport";
 import {
@@ -43,9 +43,6 @@ export default function WebClient() {  // 控制器随路由组件生灭：离�
   );
 }
 
-// 皮肤控制器路由级单例（见 WebClientRoot 内注释）。
-let webClientSkin: SkinController | null = null;
-
 function WebClientRoot() {
   const voice = useVoiceSession();
   const { language, messages, setLanguage } = useI18n();
@@ -55,16 +52,13 @@ function WebClientRoot() {
 
   // —— 皮肤控制（旧 usePublicSkin + 皮肤消息/首页文案覆盖的根装配）。模块级
   // 单例：StrictMode 双挂载会先 dispose 再重跑 effect，挂在 cleanup 上的
-  // dispose 会让重放的 initialize 因 disposed 直返、skin 永不就绪；voice
-  // session 同款单例纪律，跨页迟到激活由 skin-runtime 的 pendingActivation
-  // 守卫互相作废。 ——
-  const skin = useMemo(() => {
-    webClientSkin ??= createSkinController({ appVersion: () => publicConfig.store.getState().appVersion });
-    return webClientSkin;
-  }, [publicConfig]);
+  // dispose 会让重放的 initialize 因 disposed 直返、skin 永不就绪；download
+  // 页共享同一实例（皮肤状态跨页一致）。 ——
+  const skin = getWebClientSkinController();
   useEffect(() => {
+    setSkinAppVersionProvider(() => publicConfig.store.getState().appVersion);
     void skin.initialize();
-  }, [skin]);
+  }, [skin, publicConfig.store]);
   const skinView = useStore(skin.store);
   const skinOptions = useMemo<SkinOption[]>(() => [
     ...skinView.catalogSkins.map((entry): SkinOption => ({

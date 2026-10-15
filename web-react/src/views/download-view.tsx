@@ -1,9 +1,11 @@
 import { ChevronRightIcon, DownloadIcon, ServerIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { LanguageSwitcher } from "@/components/app/language-switcher";
+import { LanguageSwitcher } from "@/components/web-client/language-switcher";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/hooks/use-i18n";
+import { getWebClientSkinController } from "@/web-client/skin-controller";
+import { useStore } from "zustand";
 import { applyTheme, getStoredTheme } from "@/services/theme";
 import {
   fetchAndroidRelease,
@@ -19,14 +21,17 @@ type ReleaseState =
 // SPEC §17：download 页布局（1060 容器、双卡 auto-fit、640 断点 header 折行）；
 // 视觉走 token 语义类，data-ws-part 钩子按契约重置登记（Phase 4-7 统一注册）。
 export default function DownloadView() {
-  const { messages } = useI18n();
+  const { messages, language, setLanguage } = useI18n();
   const { t } = messages;
   const [releaseState, setReleaseState] = useState<ReleaseState>({ status: "loading" });
 
+  const skin = getWebClientSkinController();
+  const skinView = useStore(skin.store);
   useEffect(() => {
-    // Phase 4-7 皮肤运行时接线前，挂载后补一次 applyTheme：
-    // 内置皮肤 CSS 作用域钉在 .ws-skin-root[data-ws-skin=…] 上，挂载前根元素尚不存在。
+    // 直达 /download 时 html 层 data-theme 尚未落（saveTheme 只在 home 初始化链上
+    // 跑过）：幂等地补一次。皮肤 data-ws-skin 由下方 React 直读单例 store 渲染。
     applyTheme(getStoredTheme());
+    void skin.initialize();
     let cancelled = false;
     fetchAndroidRelease().then((release) => {
       if (!cancelled) setReleaseState(release ? { status: "ready", release } : { status: "unavailable" });
@@ -34,11 +39,11 @@ export default function DownloadView() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [skin]);
 
   const release = releaseState.status === "ready" ? releaseState.release : null;
   return (
-    <main className="download-page ws-skin-root min-h-dvh bg-background px-[clamp(12px,3vw,44px)] pb-11 pt-[clamp(14px,2vw,30px)] text-foreground" data-ws-page="download">
+    <main data-ws-skin={skinView.activeSkinId} className="download-page ws-skin-root min-h-dvh bg-background px-[clamp(12px,3vw,44px)] pb-11 pt-[clamp(14px,2vw,30px)] text-foreground" data-ws-page="download">
       <header className="mx-auto flex max-w-[1060px] flex-wrap items-center justify-between gap-3.5 max-[640px]:flex-col max-[640px]:items-stretch" data-ws-part="download.header">
         <div className="flex min-w-0 items-center gap-2.5" data-ws-part="download.brand">
           <img className="size-[38px] rounded-[11px]" src="/favicon.jpg" alt="WebSpeak" />
@@ -48,7 +53,7 @@ export default function DownloadView() {
           </div>
         </div>
         <div className="flex items-center gap-2 max-[640px]:justify-between">
-          <LanguageSwitcher menuLabel={t("languageMenu")} />
+          <LanguageSwitcher language={language} onChange={setLanguage} menuLabel={t("languageMenu")} />
           <a
             className="inline-flex items-center gap-1.5 rounded-lg border bg-secondary px-3 py-2 text-base hover:bg-accent"
             href="/"
