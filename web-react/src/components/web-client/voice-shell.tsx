@@ -8,6 +8,8 @@ import { AudioDock } from "./audio-dock";
 import { Icon } from "./icon";
 import { MemberActionsMenu } from "./member-actions-menu";
 import { ServerContextMenu } from "./server-context-menu";
+import { SkinSwitcher } from "./skin-switcher";
+import type { SkinSwitcherState } from "./skin-switcher";
 import { VoiceBanners } from "./voice-banners";
 import { VoiceMobileMore } from "./voice-mobile-more";
 import { VoicePerformancePanel } from "./voice-performance-panel";
@@ -57,6 +59,7 @@ interface VoiceShellProps {
   onOpenFavoriteDialog(): void;
   onOpenAudioSettings(): void;
   onVolumeInput(clientId: number, value: number): void;
+  skinSwitcher: SkinSwitcherState;
   t(key: string, variables?: Record<string, string | number>): string;
   showToast(message: string, tone?: "info" | "warn"): void;
 }
@@ -227,6 +230,14 @@ export function VoiceShell(props: VoiceShellProps) {
         <button type="button" className="favorite-server-add" data-ws-part="voice.favorite-server-rail.add" aria-label={t("addFavoriteServer")} title={t("addFavoriteServer")} onClick={props.onOpenFavoriteDialog}>
           <Icon name="plus" size={21} />
         </button>
+        <SkinSwitcher
+          value={props.skinSwitcher.value}
+          options={props.skinSwitcher.options}
+          menuLabel={props.skinSwitcher.menuLabel}
+          tile
+          className="rail-switcher-tile"
+          onChange={props.skinSwitcher.onChange}
+        />
       </aside>
 
       <VoiceWorkspace
@@ -326,7 +337,14 @@ export function VoiceShell(props: VoiceShellProps) {
         )}
       </ChannelMemberPanel>
 
-      {mobileMore && <VoiceMobileMore onLeave={props.onLeave} onOpenAudioSettings={props.onOpenAudioSettings} t={t} />}
+      {mobileMore && (
+        <VoiceMobileMore
+          onLeave={props.onLeave}
+          onOpenAudioSettings={props.onOpenAudioSettings}
+          skinSwitcher={props.skinSwitcher}
+          t={t}
+        />
+      )}
 
       <nav className="mobile-nav" data-ws-part="voice.mobile-nav" aria-label={t("mobileNavigation")}>
         <button type="button" className={props.mobileSection === "channels" ? "active" : ""} aria-current={props.mobileSection === "channels" ? "page" : undefined} onClick={() => selectMobileSection("channels")}>

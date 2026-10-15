@@ -1,16 +1,21 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 
 import "../styles/web-client.css";
 
 import type { FavoriteServerDraft } from "@/components/web-client/favorite-server-dialog";
+import { Icon } from "@/components/web-client/icon";
 import { JoinPage } from "@/components/web-client/join-page";
 import { RootDialogs } from "@/components/web-client/root-dialogs";
+import type { SkinOption } from "@/components/web-client/skin-switcher";
 import { VoiceShell } from "@/components/web-client/voice-shell";
 import { VoiceSessionProvider, useVoiceSession, useVoiceView } from "@/hooks/useVoiceSession";
 import { useI18n } from "@/hooks/use-i18n";
-import { applyTheme, getStoredTheme } from "@/services/theme";
+import { BUILTIN_DARK_SKIN, BUILTIN_LIGHT_SKIN } from "@/services/skin-runtime";
+import { isPublicSkinEnabled } from "@/services/skin-catalog";
+import { resolveSkinHomeCopy, resolveSkinMessages } from "@/web-client/skin-copy";
+import { createSkinController, type SkinController } from "@/web-client/skin-controller";
 import { readMobileGateSignals, shouldShowMobileGate, storeMobileGateChoice } from "@/services/mobile-gate";
 import { observeMobileViewport, type MobileViewport } from "@/services/mobile-viewport";
 import {
@@ -38,12 +43,53 @@ export default function WebClient() {  // 控制器随路由组件生灭：离�
   );
 }
 
+// 皮肤控制器路由级单例（见 WebClientRoot 内注释）。
+let webClientSkin: SkinController | null = null;
+
 function WebClientRoot() {
   const voice = useVoiceSession();
   const { language, messages, setLanguage } = useI18n();
-  const { t, localizedMessage, localizedMicrophoneError, visibleErrorCode } = messages;
+  const { t: translate, localizedMessage, localizedMicrophoneError, visibleErrorCode } = messages;
   const { store, home, publicConfig, favorites, identity, connection, showToast } = useWebClientControllers();
   const config = useStore(publicConfig.store);
+
+  // —— 皮肤控制（旧 usePublicSkin + 皮肤消息/首页文案覆盖的根装配）。模块级
+  // 单例：StrictMode 双挂载会先 dispose 再重跑 effect，挂在 cleanup 上的
+  // dispose 会让重放的 initialize 因 disposed 直返、skin 永不就绪；voice
+  // session 同款单例纪律，跨页迟到激活由 skin-runtime 的 pendingActivation
+  // 守卫互相作废。 ——
+  const skin = useMemo(() => {
+    webClientSkin ??= createSkinController({ appVersion: () => publicConfig.store.getState().appVersion });
+    return webClientSkin;
+  }, [publicConfig]);
+  useEffect(() => {
+    void skin.initialize();
+  }, [skin]);
+  const skinView = useStore(skin.store);
+  const skinOptions = useMemo<SkinOption[]>(() => [
+    ...skinView.catalogSkins.map((entry): SkinOption => ({
+      value: entry.id,
+      label: entry.id === BUILTIN_LIGHT_SKIN ? translate("skinDay") : entry.id === BUILTIN_DARK_SKIN ? translate("skinNight") : entry.name,
+      icon: entry.id === BUILTIN_LIGHT_SKIN ? "sun" : entry.id === BUILTIN_DARK_SKIN ? "moon" : "compass",
+    })),
+    ...skinView.installedSkins
+      .filter((entry) => !skinView.catalogSkins.some((item) => item.id === entry.id) && isPublicSkinEnabled(entry.id))
+      .map((entry): SkinOption => ({ value: entry.id, label: entry.name, icon: "compass" })),
+  ], [skinView.catalogSkins, skinView.installedSkins, translate]);
+  const skinHomeCopy = resolveSkinHomeCopy(skinView.activeSkin, language);
+  const skinMessageOverrides = resolveSkinMessages(skinView.activeSkin, language);
+  const skinSwitcherState = useMemo(() => ({
+    value: skinView.activeSkinId,
+    options: skinOptions,
+    menuLabel: translate("skinSelector"),
+    onChange: (id: string) => void skin.select(id),
+  }), [skinView.activeSkinId, skinOptions, translate, skin]);
+  // 皮肤包可整体替换文案与消息：非空覆盖优先，基线词典兜底（旧 t 包装平价）。
+  const t = useCallback((key: string, variables: Record<string, string | number> = {}) => {
+    const template = skinMessageOverrides[key];
+    if (template === undefined || !template.trim()) return translate(key, variables);
+    return Object.entries(variables).reduce((value, [name, replacement]) => value.replaceAll(`{{${name}}}`, String(replacement)), template);
+  }, [translate, skinMessageOverrides]);
 
   // —— 视图状态 ——
   const [storageAvailable] = useState(() => isLocalPersistenceAvailable());
@@ -121,9 +167,6 @@ function WebClientRoot() {
 
   // —— 挂载序列（旧 onMounted 平价；StrictMode 双挂载下各步幂等） ——
   useEffect(() => {
-    // Phase 4-7 皮肤运行时接线前，挂载后补一次 applyTheme：内置皮肤 CSS 作用域
-    // 钉在 .ws-skin-root[data-ws-skin=…] 上，挂载前根元素尚不存在。
-    applyTheme(getStoredTheme());
     // 显式 join 导航（共享服务器链接、直连参数）优先于陈旧的恢复意图。
     const joinIntentParams = new URLSearchParams(window.location.search);
     if (["server", "tsHost", "target"].some((key) => joinIntentParams.has(key))) clearVoiceSessionIntent();
@@ -220,7 +263,7 @@ function WebClientRoot() {
 
   return (
     <div
-      className={cn("web-client", "ws-skin-root", `language-${language}`, { "keyboard-open": mobileViewport.keyboardOpen })}
+      className={cn("web-client", "ws-skin-root", `language-${language}`, { "skin-initializing": !skinView.skinReady, "keyboard-open": mobileViewport.keyboardOpen })}
       lang={language}
       style={{ "--ws-viewport-height": `${mobileViewport.height}px`, "--ws-viewport-top": `${mobileViewport.top}px` } as CSSProperties}
       data-ws-part="app"
@@ -236,6 +279,7 @@ function WebClientRoot() {
           serverSwitch={inRoom.serverSwitch}
           audioControls={inRoom.audioControls}
           monitor={inRoom.monitor}
+          skinSwitcher={skinSwitcherState}
           language={language}
           isMobileViewport={isMobileViewport}
           mobileSection={inRoom.mobileSection}
@@ -295,7 +339,26 @@ function WebClientRoot() {
           t={t}
           localizedMessage={localizedMessage}
           visibleErrorCode={visibleErrorCode}
+          skin={{ ...skinSwitcherState, homeCopy: skinHomeCopy }}
         />
+      )}
+
+      {/* 根级浮层（皮肤通告）：连接页与进房态都可达（旧 v-if/v-else 分支外平价）。 */}
+      {skinView.recoveryNotice && (
+        <div className="skin-recovery-notice" data-ws-part="app.skin-recovery-notice" role="alert">
+          <span>{t("skinRecoveryNotice")}</span>
+          <button type="button" aria-label={t("close")} onClick={() => skin.store.setState({ recoveryNotice: false })}>
+            <Icon name="close" size={14} />
+          </button>
+        </div>
+      )}
+      {skinView.catalogUnavailableNotice && !skinView.recoveryNotice && (
+        <div className="skin-recovery-notice" data-ws-part="app.skin-catalog-notice" role="alert">
+          <span>{t("skinCatalogUnavailable")}</span>
+          <button type="button" aria-label={t("close")} onClick={() => skin.store.setState({ catalogUnavailableNotice: false })}>
+            <Icon name="close" size={14} />
+          </button>
+        </div>
       )}
 
       <RootDialogs

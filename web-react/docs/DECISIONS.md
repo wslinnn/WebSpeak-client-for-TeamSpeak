@@ -88,6 +88,11 @@
 45. **进 `ref=` 的回调必须顶层 props 直传**：hook bundle 成员写进 `ref={ui.setPlayerElement}` 会触发 React Compiler refs 规则的容器推断——整个 `ui` 被判成 ref，组件内全部 `ui.*` 渲染期读取连坐被拦（改名规避无效，属性访问即触发）；由调用点把稳定回调以独立顶层 props 传入（`screen-share-player.tsx`）。纪律并入 #36/#42 的 Compiler 三条：hook 返回值里凡要进 `ref=` 的函数，单独走 props。
 46. **长命页面 HMR 陈旧假象（走查排障两小时教训）**：dev 页面跨多轮文件编辑存活后，出现「点击不触发 handler + setState 后 fiber props 恒旧值」的假死，全程无 console 报错，直接调用提交的 onClick 也无效——整页 reload + 重进即恢复，且此后全部走查项通过。判定纪律：真浏览器走查一律先整页 reload 再进房，不许在跨编辑会话的旧页面上下结论（grep/计算样式不算数之外再加这条）。
 
+## 2026-10-15 · P4-7 皮肤系统取舍
+
+47. **带生命周期的控制器不得挂在 effect cleanup 上 dispose**：皮肤控制器起初写成 `useEffect(() => { void skin.initialize(); return () => skin.dispose(); }, [skin])`，StrictMode 双挂载先 dispose 再重放 effect，重放的 `initialize()` 因 `disposed` 直返——skinReady 永远 false、skin-initializing 常驻，tsc/单测全绿唯真浏览器可见。改为模块级单例 + 只 initialize 不 dispose（voice.session 同款纪律）；跨页迟到激活的作废由 skin-runtime 层 `pendingActivation` 守卫承担，controller 的 `dispose()` API 保留给单测钉语义。凡 StrictMode 下会「重放即失效」的初始化，评审时先问 cleanup 里删了什么。
+48. **皮肤消息/首页文案覆盖是 t 的包装层**：`useI18n` 的 t 更名为 translate，根视图以 `resolveSkinMessages` 非空覆盖包装出对外 `t`（useCallback 稳定，消费方零改动）；`resolveSkinHomeCopy`/`resolveSkinMessages` 从旧 WebClient 内联函数平移到 `skin-copy.ts`，候选语言序 defaultLocale→界面语言→全量 locale。join 页五处文案（brand/title/titleAccent/description/welcomeTitle/welcomeDescription）走 `homeCopy || 基线`。首页态真浏览器走查：切换/持久化/刷新恢复/根 data-ws-skin 与 data-theme 联动全通；进房 rail 贴牌与移动 more 切换器因远程 TS 服务器 TIMEOUT 未走查（同组件异 CSS 变体，Phase 5 全面冒烟补）。
+
 ## 待办决策（无）
 
 （Phase 4 迁移过程中新产生的取舍记此处，格式：日期 · 决策 · 理由 · 影响面）

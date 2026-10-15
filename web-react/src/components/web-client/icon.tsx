@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
+  Compass,
   Copy,
   DoorOpen,
   Download,
@@ -17,6 +18,7 @@ import {
   Maximize,
   Menu,
   Minimize,
+  Moon,
   MessageSquare,
   Mic,
   MicOff,
@@ -32,6 +34,7 @@ import {
   Settings,
   Shield,
   Star,
+  Sun,
   Users,
   Volume2,
   VolumeX,
@@ -82,6 +85,9 @@ const NAME_MAP = {
   refresh: RefreshCw,
   fullscreen: Maximize,
   "fullscreen-exit": Minimize,
+  sun: Sun,
+  moon: Moon,
+  compass: Compass,
 } as const;
 
 export type IconName = keyof typeof NAME_MAP;

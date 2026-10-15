@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { Icon } from "./icon";
 import { LanguageSwitcher } from "./language-switcher";
+import { SkinSwitcher, type SkinOption } from "./skin-switcher";
 import { cn } from "@/lib/utils";
 import type { Language } from "@/i18n/web-client";
 
@@ -15,11 +16,15 @@ interface JoinHeaderProps {
   language: Language;
   onLanguageChange(language: Language): void;
   languageMenuLabel: string;
+  skinValue: string;
+  skinOptions: SkinOption[];
+  onSkinChange(value: string): void;
+  skinMenuLabel: string;
 }
 
 /** 首页头（旧 WebClientHeader.vue 平价）：品牌锁扣 + 网关状态 + download/admin 链接 +
- *  语言切换器 + ≤740 「更多」折叠。皮肤切换器随 P4-7 皮肤运行时回归（DECISIONS #25）。 */
-export function JoinHeader({ brandName, brandSubtitle, gatewayStatus, downloadLabel, adminLabel, moreLabel, language, onLanguageChange, languageMenuLabel }: JoinHeaderProps) {
+ *  皮肤/语言切换器 + ≤740 「更多」折叠。 */
+export function JoinHeader({ brandName, brandSubtitle, gatewayStatus, downloadLabel, adminLabel, moreLabel, language, onLanguageChange, languageMenuLabel, skinValue, skinOptions, onSkinChange, skinMenuLabel }: JoinHeaderProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   return (
     <header className="join-header" data-ws-part="home.header">
@@ -42,6 +47,13 @@ export function JoinHeader({ brandName, brandSubtitle, gatewayStatus, downloadLa
             <span>{adminLabel}</span>
           </a>
         </div>
+        <SkinSwitcher
+          value={skinValue}
+          options={skinOptions}
+          menuLabel={skinMenuLabel}
+          className="join-skin-switcher"
+          onChange={onSkinChange}
+        />
         <LanguageSwitcher language={language} onChange={onLanguageChange} menuLabel={languageMenuLabel} />
       </div>
       <button
