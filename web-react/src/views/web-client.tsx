@@ -133,6 +133,7 @@ function WebClientRoot() {
   }, [settingsOpen, audioControls]);
   const { dialog: audioSettingsDialog } = useAudioSettingsState({
     audioControls,
+    voice,
     settingsOpen,
     closeSettings: () => setSettingsOpen(false),
     showToast,

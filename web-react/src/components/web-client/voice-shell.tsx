@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useStore } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 import type { StoreApi } from "zustand";
 
 import { ChannelMemberPanel } from "./channel-member-panel";
@@ -18,7 +19,7 @@ import { VoiceWorkspace } from "./voice-workspace";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
 import { useI18n } from "@/hooks/use-i18n";
 import { useStoreOfSpeaking } from "@/hooks/useVoiceSession";
-import type { VoiceSessionController } from "@/voice/session-controller";
+import type { VoiceSessionController, VoiceSessionView } from "@/voice/session-controller";
 import { buildChannelTree, deriveMemberChannels, ensureSelectedChannelId, filterMemberChannels, findCurrentChannel, type TreeChannel } from "@/web-client/channel-tree";
 import { createLongPressContextMenu } from "@/services/long-press-context-menu";
 import { rangeStyle } from "@/web-client/view-utils";
@@ -73,7 +74,9 @@ interface VoiceShellProps {
 export function VoiceShell(props: VoiceShellProps) {
   const i18n = useI18n();
   const { voice, home, chat, membersController, fold, serverSwitch, t } = props;
-  const voiceView = useStore(voice.store);
+  // 整包订阅会让 20–50Hz 的 micLevel 驱动整棵壳重渲——窄选排除电平，坞与设置
+  // 弹窗各自内部订阅；字段集合即本组件渲染实际消费面，新增消费须在此登记。
+  const voiceView = useStore(voice.store, useShallow(selectVoiceShellView));
   const session = useStore(voice.session.store);
   const homeState = useStore(home);
   const speakingIds = useStoreOfSpeaking(voice).speakingIds;
@@ -197,7 +200,7 @@ export function VoiceShell(props: VoiceShellProps) {
               onClickCapture={(event) => railGestures.clickCapture(event.nativeEvent)}
               onContextMenu={(event) => railGestures.contextMenu(event.nativeEvent, server)}
             >
-              <span className="favorite-server-chip-initial" aria-hidden="true">{initialOf(server.label)}</span>
+              <span className="favorite-server-chip-initial" aria-hidden="true">{avatarInitial(server.label)}</span>
               <span className="favorite-server-chip-label">{server.label}</span>
             </button>
           ))}
@@ -227,7 +230,7 @@ export function VoiceShell(props: VoiceShellProps) {
             onClickCapture={(event) => railGestures.clickCapture(event.nativeEvent)}
             onContextMenu={(event) => railGestures.contextMenu(event.nativeEvent, server)}
           >
-            <span className="favorite-server-avatar">{initialOf(server.label)}</span>
+            <span className="favorite-server-avatar">{avatarInitial(server.label)}</span>
             {server.password && <span className="favorite-server-rail-lock"><Icon name="lock" size={9} /></span>}
           </button>
         ))}
@@ -296,7 +299,7 @@ export function VoiceShell(props: VoiceShellProps) {
 
       <ChannelMemberPanel
         members={membersController}
-        serverLabel={connectedServerLabel(voiceView.serverName, railServers, currentAddress)}
+        serverLabel={voiceView.serverName || (railServers.find((server) => server.address === currentAddress)?.label ?? currentAddress)}
         welcomeMessage={voiceView.serverWelcomeMessage}
         filteredMemberChannels={filteredMemberChannels}
         currentChannelId={currentChannel?.id}
@@ -328,9 +331,9 @@ export function VoiceShell(props: VoiceShellProps) {
               echoCancellationEnabled: voiceView.echoCancellationEnabled,
               autoGainControlEnabled: voiceView.autoGainControlEnabled,
               accompanimentActive: voiceView.accompanimentActive,
-              micLevel: voiceView.micLevel,
             }}
             controls={props.audioControls}
+            voice={voice}
             share={{ active: screenShare.state.active, starting: screenShare.state.starting }}
             t={t}
             channelName={currentChannelName}
@@ -408,10 +411,28 @@ export function VoiceShell(props: VoiceShellProps) {
   }
 }
 
-function initialOf(label: string): string {
-  return (label.trim()[0] || "?").toUpperCase();
-}
-
-function connectedServerLabel(serverName: string, favorites: readonly FavoriteServer[], currentAddress: string): string {
-  return serverName || (favorites.find((server) => server.address === currentAddress)?.label ?? currentAddress);
+/** 壳层语音视图切片：刻意不含 micLevel（20–50Hz 写，只订在 AudioDock 与
+ *  设置弹窗自身）；字段集合即 VoiceShell 渲染实际消费面，新增消费须登记。 */
+function selectVoiceShellView(view: VoiceSessionView) {
+  return {
+    tsClientId: view.tsClientId,
+    connecting: view.connecting,
+    reconnecting: view.reconnecting,
+    reconnectFailed: view.reconnectFailed,
+    reconnectAttempt: view.reconnectAttempt,
+    error: view.error,
+    serverName: view.serverName,
+    serverWelcomeMessage: view.serverWelcomeMessage,
+    volumes: view.volumes,
+    whisperTargetIds: view.whisperTargetIds,
+    whisperActive: view.whisperActive,
+    microphoneMuted: view.microphoneMuted,
+    inputVolume: view.inputVolume,
+    outputVolume: view.outputVolume,
+    outputMuted: view.outputMuted,
+    noiseSuppressionEnabled: view.noiseSuppressionEnabled,
+    echoCancellationEnabled: view.echoCancellationEnabled,
+    autoGainControlEnabled: view.autoGainControlEnabled,
+    accompanimentActive: view.accompanimentActive,
+  };
 }

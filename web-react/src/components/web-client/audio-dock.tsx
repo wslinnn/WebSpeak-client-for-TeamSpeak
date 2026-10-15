@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
+import { useStore } from "zustand";
 
 import { Icon } from "./icon";
+import type { VoiceSessionController } from "@/voice/session-controller";
 import { rangeStyle } from "@/web-client/view-utils";
 
 interface AudioDockModel {
@@ -12,7 +14,6 @@ interface AudioDockModel {
   echoCancellationEnabled: boolean;
   autoGainControlEnabled: boolean;
   accompanimentActive: boolean;
-  micLevel: number;
 }
 
 interface AudioDockControls {
@@ -28,6 +29,8 @@ interface AudioDockControls {
 interface AudioDockProps {
   model: AudioDockModel;
   controls: AudioDockControls;
+  /** 电平 20–50Hz 写 store，只订在坞自身——壳层不得因电平跳动重渲。 */
+  voice: VoiceSessionController;
   share: { active: boolean; starting: boolean };
   t(key: string): string;
   channelName: string;
@@ -44,8 +47,9 @@ interface AudioDockProps {
 /** 桌面音频坞（旧 AudioDock.vue 平价）：共享行（开播以持久化预设直发、齿轮开
  *  设置弹窗）、伴奏钮。坞是「我是否被听见」的表面：静音时电平钉零由视图层
  *  displayMicLevel 承担，设置弹窗里仍看得到原始采集电平。 */
-export function AudioDock({ model, controls, share, t, channelName, onSettings, onOutputMute, onDisconnect, onStartShare, onStopShare, onShareSettings, children }: AudioDockProps) {
-  const displayMicLevel = model.microphoneMuted ? 0 : model.micLevel;
+export function AudioDock({ model, controls, voice, share, t, channelName, onSettings, onOutputMute, onDisconnect, onStartShare, onStopShare, onShareSettings, children }: AudioDockProps) {
+  const micLevel = useStore(voice.store, (view) => view.micLevel);
+  const displayMicLevel = model.microphoneMuted ? 0 : micLevel;
   return (
     <div
       className="desktop-audio-dock"

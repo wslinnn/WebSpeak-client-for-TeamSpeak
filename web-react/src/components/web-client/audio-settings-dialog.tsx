@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { useStore } from "zustand";
 
 import { Icon } from "./icon";
 import { useDialogFocus } from "@/web-client/use-dialog-focus";
 import type { AudioControls } from "@/web-client/audio-controls";
+import type { VoiceSessionController } from "@/voice/session-controller";
 import { rangeStyle } from "@/web-client/view-utils";
 
 export interface AudioSettingsModel {
@@ -21,7 +23,6 @@ export interface AudioSettingsModel {
   outputVolume: number;
   voxThreshold: number;
   notificationVolume: number;
-  micLevel: number;
   microphoneTestActive: boolean;
   testAudioUrl: string;
   microphoneError: string;
@@ -31,6 +32,8 @@ export interface AudioSettingsModel {
 interface AudioSettingsDialogProps {
   model: AudioSettingsModel;
   controls: AudioControls;
+  /** 电平 20–50Hz 写 store，只订在弹窗自身（弹窗关闭时不产生任何订阅）。 */
+  voice: VoiceSessionController;
   settingsError: string;
   desktopNotificationsEnabled: boolean;
   onDesktopNotificationsToggle(event: { target: { checked: boolean } }): void;
@@ -43,8 +46,9 @@ interface AudioSettingsDialogProps {
 /** 音频设置弹窗（旧 AudioSettingsDialog.vue 平价）：输入/输出设备、降噪三开关、
  *  输入/Vox/输出/通知四滑杆、麦克风测试电平条、桌面通知开关与音频诊断。页持有
  *  稳定的 voice 视图与控制器，本弹窗只呈现。 */
-export function AudioSettingsDialog({ model, controls, settingsError, desktopNotificationsEnabled, onDesktopNotificationsToggle, onClose, t, localizedMessage, localizedMicrophoneError }: AudioSettingsDialogProps) {
+export function AudioSettingsDialog({ model, controls, voice, settingsError, desktopNotificationsEnabled, onDesktopNotificationsToggle, onClose, t, localizedMessage, localizedMicrophoneError }: AudioSettingsDialogProps) {
   const { dialogRef, onDialogKeydown } = useDialogFocus<HTMLElement>({ close: onClose });
+  const micLevel = useStore(voice.store, (view) => view.micLevel);
   const [testAudioError, setTestAudioError] = useState("");
   const testAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -66,7 +70,7 @@ export function AudioSettingsDialog({ model, controls, settingsError, desktopNot
     setTestAudioError(t("testPlaybackFailed", { code: mediaError?.code ?? 0 }));
   }
 
-  const micMeterBars = Math.round(model.micLevel * controls.meterBars);
+  const micMeterBars = Math.round(micLevel * controls.meterBars);
   const dialogError = testAudioError || settingsError;
 
   return (
@@ -200,9 +204,9 @@ export function AudioSettingsDialog({ model, controls, settingsError, desktopNot
                 onChange={(event) => controls.onVoxThreshold({ target: event.target as HTMLInputElement })}
               /><div className="audio-level-row"
                 ><span>{t("micLevel")}</span
-                ><strong>{Math.round(model.micLevel * 100)}%</strong></div
+                ><strong>{Math.round(micLevel * 100)}%</strong></div
               ><div className="audio-level-track"
-                ><i style={{ width: `${Math.round(model.micLevel * 100)}%` }}></i></div
+                ><i style={{ width: `${Math.round(micLevel * 100)}%` }}></i></div
               ><div className="mic-test"
                 ><div className="mic-test-header"
                   ><strong>{t("microphoneTest")}</strong

@@ -6,9 +6,12 @@ import { AudioSettingsDialog, type AudioSettingsModel } from "@/components/web-c
 import { desktopNotificationPermission, readDesktopNotificationSetting, requestDesktopNotificationPermission, writeDesktopNotificationSetting } from "@/services/desktop-notifications";
 import { useVoiceView } from "@/hooks/useVoiceSession";
 import type { AudioControls } from "@/web-client/audio-controls";
+import type { VoiceSessionController } from "@/voice/session-controller";
 
 interface AudioSettingsStateOptions {
   audioControls: AudioControls;
+  /** 电平只订在弹窗自身；根视图持 controller 仅为传递。 */
+  voice: VoiceSessionController;
   settingsOpen: boolean;
   closeSettings(): void;
   showToast(message: string, tone?: "info" | "warn"): void;
@@ -21,7 +24,7 @@ interface AudioSettingsStateOptions {
  *  弹窗模型切片、设置错误、桌面通知开关（借手势要权限、被拒回退落盘）。渲染的
  *  弹窗元素经 dialog 返回——弹窗在模板根部两态可达。 */
 export function useAudioSettingsState(options: AudioSettingsStateOptions) {
-  const { audioControls, settingsOpen, closeSettings, showToast, t, localizedMessage, localizedMicrophoneError } = options;
+  const { audioControls, voice, settingsOpen, closeSettings, showToast, t, localizedMessage, localizedMicrophoneError } = options;
   const audioModel = useVoiceAudioSettingsModel();
   const audioSettingsError = useStore(audioControls.store).settingsError;
   const [desktopNotificationsEnabled, setDesktopNotificationsEnabled] = useState(() => readDesktopNotificationSetting());
@@ -48,6 +51,7 @@ export function useAudioSettingsState(options: AudioSettingsStateOptions) {
     <AudioSettingsDialog
       model={audioModel}
       controls={audioControls}
+      voice={voice}
       settingsError={audioSettingsError}
       desktopNotificationsEnabled={desktopNotificationsEnabled}
       onDesktopNotificationsToggle={handleDesktopNotificationsToggle}
@@ -78,7 +82,6 @@ function useVoiceAudioSettingsModel(): AudioSettingsModel {
     outputVolume: view.outputVolume,
     voxThreshold: view.voxThreshold,
     notificationVolume: view.notificationVolume,
-    micLevel: view.micLevel,
     microphoneTestActive: view.microphoneTestActive,
     testAudioUrl: view.testAudioUrl,
     microphoneError: view.microphoneError,
