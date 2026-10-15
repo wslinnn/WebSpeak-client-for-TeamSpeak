@@ -32,10 +32,13 @@
   --wsd-success: #1e7a40;
   --wsd-warning: #8a5d0b;
   --wsd-danger: #bb3f38;
+  --wsd-danger-contrast: #ffffff;
   /* Shared modal veil; night keeps the same neutral dark. */
   --wsd-backdrop: rgba(12, 14, 16, .52);
   --wsd-radius: 9px;
-  --wsd-font: "PingFang SC", "Microsoft YaHei New", 微软雅黑, "Microsoft Yahei", "Microsoft JhengHei", 宋体, SimSun, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* Geist 是应用字体（index.css @fontsource 加载）：拉丁/数字走 Geist，CJK
+   * 落到系统苹方/雅黑——与 admin、download 同一拉丁字形，品牌字标不再分叉。 */
+  --wsd-font: 'Geist Variable', 'PingFang SC', 'Microsoft YaHei', 微软雅黑, 'Microsoft JhengHei', sans-serif;
 }
 
 .web-client[data-ws-skin="builtin.dark"],
@@ -58,6 +61,7 @@
   --wsd-success: #4cc27a;
   --wsd-warning: #e2b36c;
   --wsd-danger: #ee8a82;
+  --wsd-danger-contrast: #131316;
   --wsd-backdrop: rgba(12, 14, 16, .52);
 }
 
