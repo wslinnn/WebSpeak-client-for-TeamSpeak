@@ -93,6 +93,12 @@
 47. **带生命周期的控制器不得挂在 effect cleanup 上 dispose**：皮肤控制器起初写成 `useEffect(() => { void skin.initialize(); return () => skin.dispose(); }, [skin])`，StrictMode 双挂载先 dispose 再重放 effect，重放的 `initialize()` 因 `disposed` 直返——skinReady 永远 false、skin-initializing 常驻，tsc/单测全绿唯真浏览器可见。改为模块级单例 + 只 initialize 不 dispose（voice.session 同款纪律）；跨页迟到激活的作废由 skin-runtime 层 `pendingActivation` 守卫承担，controller 的 `dispose()` API 保留给单测钉语义。凡 StrictMode 下会「重放即失效」的初始化，评审时先问 cleanup 里删了什么。
 48. **皮肤消息/首页文案覆盖是 t 的包装层**：`useI18n` 的 t 更名为 translate，根视图以 `resolveSkinMessages` 非空覆盖包装出对外 `t`（useCallback 稳定，消费方零改动）；`resolveSkinHomeCopy`/`resolveSkinMessages` 从旧 WebClient 内联函数平移到 `skin-copy.ts`，候选语言序 defaultLocale→界面语言→全量 locale。join 页五处文案（brand/title/titleAccent/description/welcomeTitle/welcomeDescription）走 `homeCopy || 基线`。首页态真浏览器走查：切换/持久化/刷新恢复/根 data-ws-skin 与 data-theme 联动全通；进房 rail 贴牌与移动 more 切换器因远程 TS 服务器 TIMEOUT 未走查（同组件异 CSS 变体，Phase 5 全面冒烟补）。
 
+## 2026-10-15 · 切换前独立审计（四子 agent 交叉评审）修复批
+
+49. **React Compiler 构建转换启用**（拍板）：此前只有 ESLint 侧 Compiler 派生规则生效，自动 memo 化零收益。`vite.config.ts` 开 `react({ compiler: { logDiagnostics: true } })` + devDependencies 装 `oxc-transform-react`（plugin-react v6 的 Rust 实现）；转换产物走 `react/compiler-runtime` 的 `_c` 缓存（bundle 内特征符号 `memo_cache_sentinel`）。4 个组件豁免（良性，维持原状）：`views/web-client.tsx`/`use-dialog-focus.ts` 的仅挂载语义 effect（`eslint-disable exhaustive-deps` 即触发 Suppression）、`voice-shell.tsx`/`channel-member-panel.tsx` 的 return 后函数声明提升（Compiler Todo）。异常组件的逃生口是文件级 `"use no compiler"` 指令。logDiagnostics 保持开：新豁免构建期可见。
+50. **皮肤调色板迁 `--skin-` 命名空间**：内置皮肤曾借 `--accent`/`--border` 别名向平移 CSS 供色（Vue 时代无冲突，shadcn 接入后与 token 名相撞——download `hover:bg-accent` 误吃品牌绿）。两份内置 skin.css 的定义与平移 CSS 全部消费方（124 处）统一改名 `--skin-accent/--skin-border`，与 skin-pack 校验器对社区包的「自定义变量必须 `--skin-` 前缀」强制约定对齐；shadcn 的 `--accent/--border` 归 index.css。admin 的 2 处同名消费本就落 index.css 语义（admin 不跟随皮肤），不改。相关：基座 `html[data-ws-route] button{border:0}` 是未分层 CSS 会压过 portal 内容的分层工具类，已 `:where()` 限定 `.web-client` 页内树且特异性 (0,1,1) 不变——portal 弹窗按钮边框恢复。
+51. **语言包只进路由级 chunk**：入口图一律引 `@/i18n/web-client-language`（Language 类型 + getInitialLanguage 切片）；五语言包聚合（`@/i18n/web-client`）与 `createWebClientMessages` 只允许被路由级代码引用，消费经 `useWebClientMessages()`（模块级单例动态 import + effect 订阅，就绪前视图渲染 null）。禁止把语言包静态引回入口图（曾致 index chunk 多扛 ~85KB 源码）。RTL 测试在 beforeAll `loadTranslations()` 预热（vitest 首次按需转译秒级，不占测试计时器）。
+
 ## 待办决策（无）
 
 （Phase 4 迁移过程中新产生的取舍记此处，格式：日期 · 决策 · 理由 · 影响面）
