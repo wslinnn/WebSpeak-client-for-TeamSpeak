@@ -84,8 +84,9 @@ export function VoiceShell(props: VoiceShellProps) {
   const switchState = useStore(serverSwitch.store);
   // 折叠集合经订阅进渲染（直接 getState 是一次性快照，toggle 后 UI 不更新）。
   const foldedChannels = useStore(fold.store).folded;
+  // 避让规则由 data-performance-open 驱动（18-artwork-promise.css 中等视口让位）。
+  const performancePanelOpen = useStore(props.monitor.store, (view) => view.panelOpen);
   const screenShare = useScreenShareUi(voice);
-  const isSpeaking = (member: { id: number }) => speakingIds.has(member.id);
 
   const chatTab = homeState.chatTab;
   const [chatCollapsed, setChatCollapsed] = useState(() => localStorage.getItem("webspeak:chat-collapsed") === "1");
@@ -160,7 +161,7 @@ export function VoiceShell(props: VoiceShellProps) {
     <div
       className={cn("app-shell", `mobile-view-${props.mobileSection}`)}
       data-chat-collapsed={chatCollapsed ? "true" : "false"}
-      data-performance-open="false"
+      data-performance-open={performancePanelOpen ? "true" : "false"}
       data-ws-part="voice.shell"
       onClick={() => membersController.closeMemberMenu()}
     >
@@ -314,7 +315,7 @@ export function VoiceShell(props: VoiceShellProps) {
         currentAddress={currentAddress}
         onSwitchServer={props.onSwitchServer}
         onSelectChannel={props.onSelectChannel}
-        isSpeaking={isSpeaking}
+        isSpeaking={(member) => speakingIds.has(member.id)}
         onVolumeInput={props.onVolumeInput}
         rangeStyle={rangeStyle}
         switcherHost={document.querySelector<HTMLElement>(".web-client")}
