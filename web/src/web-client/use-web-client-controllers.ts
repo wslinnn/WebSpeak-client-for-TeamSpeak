@@ -127,7 +127,7 @@ export function useWebClientControllers() {
     }
     prefill();
     return store.subscribe(prefill);
-  }, [store, publicConfig]);
+  }, [store, publicConfig, voice.store]);
 
   return { voice, store, home, publicConfig, favorites, identity, connection, identityPersistence, showToast };
 }
