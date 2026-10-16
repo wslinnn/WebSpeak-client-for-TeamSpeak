@@ -4,6 +4,7 @@ import { useStore } from "zustand";
 
 import { Icon } from "./icon";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
+import { currentUiScale } from "@/app/ui-scale";
 import type { MembersController } from "@/web-client/members-controller";
 import type { TreeChannel } from "@/web-client/channel-tree";
 import type { ChannelMember } from "@shared/voice-models";
@@ -81,7 +82,9 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
     const rect = trigger.getBoundingClientRect();
     const left = Math.max(8, Math.min(rect.right - menuEl.offsetWidth, window.innerWidth - menuEl.offsetWidth - 8));
     const top = Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - menuEl.offsetHeight - 8));
-    setSwitcherStyle({ left: `${left}px`, top: `${top}px` });
+    // 矩形是视觉像素；面板 teleport 进 .web-client 缩放子树，写入前换算。
+    const scale = currentUiScale();
+    setSwitcherStyle({ left: `${left / scale}px`, top: `${top / scale}px` });
     menuEl.focus();
   }, []);
 

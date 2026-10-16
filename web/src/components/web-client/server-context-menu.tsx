@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Icon } from "./icon";
+import { currentUiScale } from "@/app/ui-scale";
 import { placeMemberMenu } from "@/services/member-menu-placement";
 import type { FavoriteServer } from "@/services/local-persistence";
 
@@ -43,9 +44,11 @@ export function ServerContextMenu({ server, position, part, inRoom, t, onSwitch,
       { width: menu.offsetWidth, height: menu.offsetHeight },
       { width: window.innerWidth, height: window.innerHeight },
     );
-    // 定位是外部系统更新：直接改样式，不走 setState。
-    menu.style.left = `${point.x}px`;
-    menu.style.top = `${point.y}px`;
+    // 定位是外部系统更新：直接改样式，不走 setState。矩形是视觉像素，
+    // .web-client 缩放子树内的内联坐标按未缩放像素解释，写入前换算。
+    const scale = currentUiScale();
+    menu.style.left = `${point.x / scale}px`;
+    menu.style.top = `${point.y / scale}px`;
     menu.focus();
   }, [position, host]);
 

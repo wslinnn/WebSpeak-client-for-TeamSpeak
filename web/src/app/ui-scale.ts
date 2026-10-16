@@ -21,3 +21,11 @@ export function installUiScale(): () => void {
   window.addEventListener("resize", applyUiScale, { passive: true });
   return () => window.removeEventListener("resize", applyUiScale);
 }
+
+/** 运行时读取当前 --ui-scale（#root zoom 的换算系数）。getBoundingClientRect
+ *  返回视觉像素，而缩放子树内的内联 left/top 按未缩放像素解释——摆位写入前
+ *  须除以该系数（member-actions-menu 的既有模式收编共享）。 */
+export function currentUiScale(): number {
+  if (typeof document === "undefined") return 1;
+  return Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--ui-scale")) || 1;
+}

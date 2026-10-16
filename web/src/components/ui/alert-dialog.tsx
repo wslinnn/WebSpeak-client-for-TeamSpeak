@@ -21,8 +21,14 @@ function AlertDialogTrigger({
 function AlertDialogPortal({
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Portal>) {
+  // 挂进 #root：继承根节点 --ui-scale 缩放上下文。挂 body 会让确认框在
+  // 高分屏（zoom>1）上不跟随整体放大，与主界面比例割裂。
   return (
-    <AlertDialogPrimitive.Portal data-slot="alert-dialog-portal" {...props} />
+    <AlertDialogPrimitive.Portal
+      data-slot="alert-dialog-portal"
+      container={typeof document === "undefined" ? undefined : document.getElementById("root")}
+      {...props}
+    />
   )
 }
 

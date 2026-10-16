@@ -1,3 +1,5 @@
+import { currentUiScale } from "../app/ui-scale";
+
 // Shared dropdown placement for the skin/language switchers. Menus anchored
 // to a trigger near a screen or container edge overflow whatever anchors
 // them; these helpers clamp into the viewport (and any clipping ancestor)
@@ -33,13 +35,15 @@ export function placeDropdownBesideTile(rootEl: HTMLElement, dropdownEl: HTMLEle
   const rootRect = rootEl.getBoundingClientRect();
   const width = dropdownEl.offsetWidth;
   const height = dropdownEl.offsetHeight;
+  const scale = currentUiScale();
   let left = rootRect.right + 8;
   if (left + width > window.innerWidth - VIEWPORT_MARGIN) left = Math.max(VIEWPORT_MARGIN, rootRect.left - width - 8);
   let top = rootRect.top;
   if (top + height > window.innerHeight - VIEWPORT_MARGIN) top = Math.max(VIEWPORT_MARGIN, window.innerHeight - VIEWPORT_MARGIN - height);
   dropdownEl.style.position = "fixed";
-  dropdownEl.style.left = `${left}px`;
-  dropdownEl.style.top = `${top}px`;
+  // 矩形是视觉像素；缩放子树内的内联坐标按未缩放像素解释，写入前换算。
+  dropdownEl.style.left = `${left / scale}px`;
+  dropdownEl.style.top = `${top / scale}px`;
   dropdownEl.style.right = "auto";
 }
 
@@ -90,7 +94,9 @@ export function placeDropdownClamped(rootEl: HTMLElement, dropdownEl: HTMLElemen
   const viewportTop = placeAbove
     ? Math.max(topBound, rootRect.top - MENU_GAP - height)
     : rootRect.bottom + MENU_GAP;
-  dropdownEl.style.left = `${Math.round(menuLeft - rootRect.left)}px`;
-  dropdownEl.style.top = `${Math.round(viewportTop - rootRect.top)}px`;
+  // 输出与 rootRect 同基准的视觉像素增量；缩放子树内换算成本地像素。
+  const scale = currentUiScale();
+  dropdownEl.style.left = `${Math.round((menuLeft - rootRect.left) / scale)}px`;
+  dropdownEl.style.top = `${Math.round((viewportTop - rootRect.top) / scale)}px`;
   dropdownEl.style.right = "auto";
 }
