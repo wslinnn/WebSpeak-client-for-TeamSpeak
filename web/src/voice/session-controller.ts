@@ -19,6 +19,7 @@ import { parseServerMessage } from "@shared/server-messages";
 import type { ChatMessage } from "@shared/voice-models";
 import type { ClientCommandPayloads, ClientCommandType } from "@shared/client-commands";
 import { loadLocalPreferences, saveLocalPreferences } from "../services/local-persistence";
+import { splitTeamSpeakTarget } from "../services/teamspeak-target";
 import { closeErrorCode, closeReason, connectionFailureMessage, joinTicketReason, normalizedClientErrorCode, safeClientErrorCode, safeClientErrorDetail } from "./error-messages";
 
 export type { MicrophoneProcessingSettings } from "./microphone-capture";
@@ -222,6 +223,9 @@ export function createVoiceSessionController() {
   // A pending browser-reconnect timer must not fire into a disposed page.
   // React hosts call dispose() from their teardown effect; tests may skip it.
   let lastConnection: { target: string; channel: string; nickname: string; serverPassword: string; identity?: string; rememberIdentity: boolean } | null = null;
+  // 展示用目标（无凭据）：随 reconnect intent 持久化，刷新恢复后首页
+  // store（header 收藏匹配 / 折叠记忆 serverKey）才有真实目标可回填。
+  let lastConnectTarget: { address: string; port: string } | null = null;
   // Browser-level reconnect: when the gateway WebSocket itself drops (network
   // loss, proxy timeout, server restart) the reconnect ticket restores the
   // whole session. Delays mirror the gateway's
@@ -1051,6 +1055,7 @@ export function createVoiceSessionController() {
   function connect(target: string, channel: string, nickname: string, serverPassword = "", identity = "", rememberIdentity = false): void {
     disconnect(true);
     lastConnection = { target, channel, nickname, serverPassword, ...(identity ? { identity } : {}), rememberIdentity };
+    lastConnectTarget = splitTeamSpeakTarget(target);
     patch({
       identityMaterial: identity,
       error: "",
@@ -1094,7 +1099,11 @@ export function createVoiceSessionController() {
   // --- Browser-level reconnect machinery ---------------------------------
   function storeReconnectTicket(token: string): void {
     reconnectTicket = token;
-    writeVoiceSessionIntent({ reconnectToken: token, savedAt: Date.now() });
+    writeVoiceSessionIntent({
+      reconnectToken: token,
+      savedAt: Date.now(),
+      ...(lastConnectTarget ? { target: lastConnectTarget } : {}),
+    });
   }
 
   function dropReconnectTicket(): void {
@@ -1168,6 +1177,9 @@ export function createVoiceSessionController() {
     if (V().connected || V().connecting || V().reconnecting) return false;
     const intent = readVoiceSessionIntent();
     if (!intent) return false;
+    // 本加载从未 connect 过：目标只能来自上次会话的 intent，续票成功后
+    // storeReconnectTicket 才能把同一目标写回 intent。
+    if (intent.target) lastConnectTarget = intent.target;
     reconnectTicket = intent.reconnectToken;
     patch({
       error: "", errorCode: "", retryNotUntil: 0, reconnectFailed: false, reconnectAttempt: 0, reconnecting: true,

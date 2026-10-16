@@ -327,8 +327,13 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
           entry!.serverInfo = info;
           sendJson({ type: "serverInfo", ...info });
         }
-      } catch {
-        // Optional decoration: restricted or missing serverinfo is fine.
+      } catch (error: unknown) {
+        // 缺 serverinfo 只影响欢迎卡与服务器名展示，但失败必须留痕：静默
+        // 会让「header 裸奔成裸地址」被误判成权限问题而查错方向。
+        deps.logger.warn({
+          entryId,
+          err: error instanceof Error ? error.message : String(error),
+        }, "TeamSpeak serverinfo lookup failed");
       }
     };
 

@@ -115,6 +115,10 @@ export function useWebClientControllers() {
   // fixed 模式无服务器页签：管理员目标与收藏就绪后自动补记忆密码，进房保持一键。
   useEffect(() => {
     function prefill(): void {
+      // 会话进行中（含刷新恢复）不回填：open+屏蔽预填模式会把 host 清成
+      // ""，覆盖恢复意图带回的真实目标（member-server-header 裸奔事故）。
+      const voiceSnapshot = voice.store.getState();
+      if (voiceSnapshot.connected || voiceSnapshot.connecting || voiceSnapshot.reconnecting) return;
       const snapshot = store.getState();
       if (publicConfig.store.getState().accessMode !== "fixed" || snapshot.serverPassword) return;
       const id = combineTeamSpeakTarget(snapshot.serverHost, snapshot.serverPort).trim().toLocaleLowerCase();

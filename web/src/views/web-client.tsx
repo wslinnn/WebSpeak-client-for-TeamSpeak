@@ -30,7 +30,7 @@ import {
 } from "@/services/local-persistence";
 import type { FavoriteServer } from "@/services/local-persistence";
 import { combineTeamSpeakTarget, splitTeamSpeakTarget } from "@/services/teamspeak-target";
-import { clearVoiceSessionIntent } from "@/voice/session-intent";
+import { clearVoiceSessionIntent, readVoiceSessionIntent } from "@/voice/session-intent";
 import { useInRoomControllers } from "@/web-client/use-inroom-controllers";
 import { useAudioSettingsState } from "@/web-client/use-audio-settings";
 import { useWebClientControllers } from "@/web-client/use-web-client-controllers";
@@ -223,7 +223,14 @@ function WebClientRoot() {
     // 显式 join 导航（共享服务器链接、直连参数）优先于陈旧的恢复意图。
     const joinIntentParams = new URLSearchParams(window.location.search);
     if (["server", "tsHost", "target"].some((key) => joinIntentParams.has(key))) clearVoiceSessionIntent();
-    else voice.tryResumeVoiceSession();
+    else {
+      // 恢复意图携带的展示目标回填首页 store：URL 参数/网关预填与真实目标
+      // 无关（open+屏蔽预填甚至把 host 清成 ""），不回填则 header 裸奔成
+      // ":9987"、收藏匹配与折叠记忆 serverKey 全部落空。
+      const intent = readVoiceSessionIntent();
+      if (intent?.target) store.setState({ serverHost: intent.target.address, serverPort: intent.target.port });
+      voice.tryResumeVoiceSession();
+    }
     void voice.watchMicrophonePermission();
     void publicConfig.loadPublicConfig();
     void identity.restore(async () => {

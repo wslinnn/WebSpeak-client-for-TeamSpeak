@@ -6,9 +6,26 @@
 
 const INTENT_STORAGE_KEY = "webspeak:voice-session";
 
+export interface VoiceSessionIntentTarget {
+  address: string;
+  port: string;
+}
+
 export interface VoiceSessionIntent {
   reconnectToken: string;
   savedAt: number;
+  /** 展示用目标（仅 host:port，无凭据）：刷新恢复后回填首页 store，
+   *  member-server-header 的收藏匹配、折叠记忆 serverKey、fixed 模式密码
+   *  预填都以真实目标为准。可缺省——旧存量 intent 按无目标处理。 */
+  target?: VoiceSessionIntentTarget;
+}
+
+function parseIntentTarget(value: unknown): VoiceSessionIntentTarget | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.address !== "string" || !record.address || record.address.length > 255) return null;
+  if (typeof record.port !== "string" || !/^\d{1,5}$/.test(record.port)) return null;
+  return { address: record.address, port: record.port };
 }
 
 /** Pure shape check so callers never trust an arbitrary stored value. */
@@ -22,7 +39,9 @@ export function parseVoiceSessionIntent(value: unknown): VoiceSessionIntent | nu
     const savedAt = record.savedAt;
     if (typeof token !== "string" || token.length < 8 || token.length > 128) return null;
     if (typeof savedAt !== "number" || !Number.isFinite(savedAt)) return null;
-    return { reconnectToken: token, savedAt };
+    const target = record.target === undefined ? null : parseIntentTarget(record.target);
+    if (record.target !== undefined && !target) return null;
+    return { reconnectToken: token, savedAt, ...(target ? { target } : {}) };
   } catch {
     return null;
   }
