@@ -971,3 +971,50 @@
     pointer-events: auto;
   }
 }
+
+/* —— 741–980 三栏带（拍板）：rail + 成员面板全高侧栏 + 工作区（语音卡+聊天）。
+ * 旧带是多时代叠床架屋（11 号单列隐藏成员面板、16 号把成员面板当坞的包含块
+ * 且预留高度不足必然遮挡）；本块按级联次序统一收编：成员面板右移为全高侧栏，
+ * 坞收进工作区右下，聊天走 workspace 内 ChatPanel（<981 分支）不变。 */
+@media (min-width: 741px) and (max-width: 980px) {
+  .app-shell {
+    grid-template-columns: 86px minmax(225px, 255px) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .app-shell .favorite-server-rail {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .app-shell .member-panel {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    min-height: 0;
+    overflow: visible;
+    padding: 16px 18px;
+    border-top: 0;
+    border-right: 1px solid var(--skin-border);
+  }
+
+  .app-shell .member-tree {
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .app-shell .workspace {
+    position: relative;
+    grid-column: 3;
+    grid-row: 2;
+    height: auto;
+    min-height: 0;
+  }
+
+  /* 坞回到文档流（≥981 同语义）：挂在成员面板末尾，永不遮挡列表。 */
+  .app-shell .desktop-audio-dock {
+    position: static;
+    width: auto;
+    margin: 10px 0 0;
+  }
+}
