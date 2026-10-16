@@ -65,7 +65,7 @@
 }
 
 .section-counter {
-  color: #87928e;
+  color: var(--wsd-text-dim);
   font-size: 10px;
 }
 
@@ -217,10 +217,8 @@
 
 .chat-heading {
   padding-top: 25px;
-}
-
-.chat-heading h2 .ui-icon {
-  color: var(--wsd-accent);
+  /* 标题/眉题已删（⑧拍板）：行内只剩计数器，右对齐。 */
+  justify-content: flex-end;
 }
 
 .message-list {

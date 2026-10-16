@@ -164,15 +164,8 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
           {t("eventLog")}
         </button>
       </div>
+      {/* 标题/眉题已删（⑧拍板：页签行已表达位置语义）；计数器保留。 */}
       <div className="section-heading chat-heading" data-ws-part="voice.chat.heading">
-        <div>
-          <span className="section-kicker">{chat.tabLabel()}</span>
-          <h2>
-            <Icon name={tab === "server" ? "server" : tab === "events" ? "bell" : tab === "private" ? "message" : "hash"} size={20} />
-            {" "}
-            {chat.title()}
-          </h2>
-        </div>
         <span className="section-counter">
           {tab === "events"
             ? t("eventCount", { count: serverEvents.length })
