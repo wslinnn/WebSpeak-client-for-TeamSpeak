@@ -747,8 +747,8 @@
     left: 50%;
     z-index: 0;
     display: none;
-    width: 116px;
-    height: 116px;
+    width: min(116px, 100%);
+    height: min(116px, 100%);
     border: 2px solid color-mix(in srgb, var(--wsd-accent) 53%, transparent);
     border-radius: 50%;
     content: "";
@@ -761,9 +761,15 @@
     animation: voice-speaking-ring 1.08s cubic-bezier(.2, .6, .35, 1) infinite;
   }
 
+  /* 头像随磁贴缩放、上限 104：卡片宽随工作区列流动（aspect-ratio 1.82），
+   * 固定 104px 在窄工作区会盖住名字/状态。1.82 宽卡的约束边是行高，
+   * 故以高度驱动、aspect-ratio 定形；真浏览器探针验证 480/340/280/205
+   * 四档全部不压字、保持正圆。 */
   .voice-avatar {
-    width: 104px;
-    height: 104px;
+    width: auto;
+    height: min(104px, 100%);
+    max-width: 100%;
+    aspect-ratio: 1;
     font-size: 34px;
     box-shadow: 0 0 0 4px var(--wsd-border);
     transition: box-shadow .2s ease;
