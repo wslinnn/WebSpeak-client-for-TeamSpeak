@@ -84,7 +84,7 @@ export const de: Record<string, string> = {
   identityImportErrorUnsupported: "Dieser Browser unterstützt die sichere lokale Identitätsverarbeitung nicht.",
   localPersistenceUnavailable: "Dauerhafter Browserspeicher ist nicht verfügbar; diese Sitzung verwendet eine temporäre Identität.",
   favoriteServers: "Favoriten",
-  saveFavorite: "Als Favorit speichern",
+  saveFavorite: "Speichern",
   removeFavoriteNamed: "{{name}} aus Favoriten entfernen",
   switchToServer: "Zu {{name}} wechseln",
   currentServerBadge: "Aktueller Server",

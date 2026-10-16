@@ -126,7 +126,7 @@ export const ru: Record<string, string> = {
   identityImportErrorUnsupported: "Браузер не поддерживает безопасную криптографию для локального разбора личности.",
   enterVoice: "Войти в голосовое пространство",
   connectionAuthorized: "Данные подключения используются только для этой голосовой сессии",
-  saveFavorite: "Сохранить в избранное",
+  saveFavorite: "Сохранить",
   removeFavoriteNamed: "Удалить {{name}} из избранного",
   switchToServer: "Переключиться на {{name}}",
   currentServerBadge: "Текущий сервер",

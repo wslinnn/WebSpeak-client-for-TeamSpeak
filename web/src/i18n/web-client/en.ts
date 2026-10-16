@@ -82,7 +82,7 @@ export const en: Record<string, string> = {
     identityImportErrorUnsupported: "This browser does not support the secure cryptography needed to parse identities locally.",
     localPersistenceUnavailable: "Persistent browser storage is unavailable; this session will use an ephemeral identity.",
     favoriteServers: "Favorites",
-    saveFavorite: "Save favorite",
+    saveFavorite: "Save",
   removeFavoriteNamed: "Remove {{name}} from favorites",
     switchToServer: "Switch to {{name}}",
     currentServerBadge: "Current server",

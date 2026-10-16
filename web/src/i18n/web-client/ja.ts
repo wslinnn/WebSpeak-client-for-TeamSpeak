@@ -126,7 +126,7 @@ export const ja: Record<string, string> = {
   identityImportErrorUnsupported: "このブラウザは ID のローカル解析に必要な安全な暗号機能に対応していません。",
   enterVoice: "音声スペースに参加",
   connectionAuthorized: "接続情報は今回の音声セッションでのみ使用されます",
-  saveFavorite: "お気に入りに保存",
+  saveFavorite: "保存",
   removeFavoriteNamed: "{{name}} をお気に入りから削除",
   switchToServer: "{{name}} に切り替え",
   currentServerBadge: "現在のサーバー",

@@ -82,7 +82,7 @@ export const zh: Record<string, string> = {
     identityImportErrorUnsupported: "此浏览器不支持本地身份解析所需的安全加密功能。",
     localPersistenceUnavailable: "当前浏览器无法使用持久化存储，本次将使用临时身份。",
     favoriteServers: "常用服务器",
-    saveFavorite: "保存到常用",
+    saveFavorite: "保存",
     removeFavoriteNamed: "移除常用 {{name}}",
     switchToServer: "切换到 {{name}}",
     currentServerBadge: "当前服务器",
