@@ -586,8 +586,7 @@
     background: var(--wsd-accent);
   }
 
-  .member-copy strong,
-  .member-name-button {
+  .member-copy strong {
     color: var(--wsd-text);
     font-size: 12px;
   }

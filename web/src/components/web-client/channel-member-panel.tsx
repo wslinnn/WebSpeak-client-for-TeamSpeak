@@ -287,13 +287,10 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
                               <span className="member-presence" />
                             </div>
                             <div className="member-copy" data-ws-part="voice.member-row.copy">
-                              {member.isSelf ? (
-                                <strong>{member.nickname}<em className="member-self-tag">{t("you")}</em></strong>
-                              ) : (
-                                <button type="button" className="member-name-button" aria-label={t("moreMemberOptions")} onClick={(event) => { event.stopPropagation(); members.openMemberActions(member); }}>
-                                  {members.memberDisplayName(member)}
-                                </button>
-                              )}
+                              <strong>
+                                {member.isSelf ? member.nickname : members.memberDisplayName(member)}
+                                {member.isSelf && <em className="member-self-tag">{t("you")}</em>}
+                              </strong>
                               {(member.away === true || speaking) && <span>{member.away === true ? t("away") : t("speaking")}</span>}
                             </div>
                             <div className="member-flags" data-ws-part="voice.member-row.flags" aria-label={t("memberStates")}>
