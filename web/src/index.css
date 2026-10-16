@@ -212,3 +212,11 @@
 [data-sonner-toaster] {
   z-index: var(--ws-z-toast);
 }
+
+/* 以 1920×1080 参考视口整体缩放应用（旧 App.vue 平价）：字号/间距/控件/图标
+ * 同步放大，高分屏不再「一切显小」。--ui-scale 由 main.tsx 的 installUiScale
+ * 维护（仅视口双向 ≥ 基线时 >1，上限 1.5）；whisper 面板与右键菜单的
+ * calc(x / var(--ui-scale)) 公式依赖本缩放上下文。 */
+#root {
+  zoom: var(--ui-scale);
+}
