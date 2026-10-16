@@ -35,11 +35,15 @@ export function LanguageSwitcher({ language, onChange, menuLabel, tile, classNam
   }, [tile]);
 
   const toggle = useCallback(() => {
-    setOpen((wasOpen) => {
-      if (!wasOpen) queueMicrotask(placeDropdown);
-      return !wasOpen;
-    });
-  }, [placeDropdown]);
+    setOpen((wasOpen) => !wasOpen);
+  }, []);
+
+  // 提交后定位（SkinSwitcher 同款）：queueMicrotask 会抢在 React 提交前执行，
+  // dropdownRef 还是 null 直接跳过——首次点开的下拉保持 CSS 默认 absolute 定位，
+  // 在 rail 里被 overflow 裁剪、被工作区盖住，二次点击才恢复正常。
+  useEffect(() => {
+    if (open) placeDropdown();
+  }, [open, placeDropdown]);
 
   function armClickGuard(): void {
     if (clickGuardArmed.current) return;
