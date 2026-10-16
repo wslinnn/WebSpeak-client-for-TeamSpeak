@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useStore } from "zustand";
 
@@ -74,7 +74,7 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
 
   useEffect(() => () => stopAutoScroll(), []);
 
-  function updateSwitcherPlacement(): void {
+  const updateSwitcherPlacement = useCallback(() => {
     const menuEl = switcherMenuRef.current;
     const trigger = switcherTriggerRef.current;
     if (!menuEl || !trigger) return;
@@ -83,20 +83,25 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
     const top = Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - menuEl.offsetHeight - 8));
     setSwitcherStyle({ left: `${left}px`, top: `${top}px` });
     menuEl.focus();
-  }
+  }, []);
+
+  // 提交后摆位（语言切换器⑥同款）：queueMicrotask 抢在 React 提交前执行、
+  // ref 为 null 直接跳过——首次点开的切换器面板没有坐标，看起来就是点不开。
+  useEffect(() => {
+    if (switcherOpen) updateSwitcherPlacement();
+  }, [switcherOpen, updateSwitcherPlacement]);
 
   function toggleSwitcher(): void {
-    setSwitcherOpen((open) => {
-      if (!open) queueMicrotask(updateSwitcherPlacement);
-      return !open;
-    });
+    setSwitcherOpen((open) => !open);
   }
 
+  // 搜索框聚焦同理：等挂载提交后再 focus。
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
+
   function toggleSearch(): void {
-    setSearchOpen((open) => {
-      if (!open) queueMicrotask(() => searchInputRef.current?.focus());
-      return !open;
-    });
+    setSearchOpen((open) => !open);
   }
 
   const searchActive = props.query.trim().length > 0;
