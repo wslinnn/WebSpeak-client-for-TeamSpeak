@@ -185,6 +185,16 @@
   border-color: var(--wsd-accent);
 }
 
+/* 当前服务器瓦片：点击是设计内 no-op（⑦拍板=禁用观感），不提供 hover 交互反馈。 */
+.favorite-server-button[data-ws-state="current"] {
+  cursor: default;
+}
+
+.favorite-server-button[data-ws-state="current"]:hover,
+.favorite-server-button[data-ws-state="current"]:focus-visible {
+  background: var(--wsd-raised);
+}
+
 .favorite-server-button.active::before {
   position: absolute;
   left: -16px;

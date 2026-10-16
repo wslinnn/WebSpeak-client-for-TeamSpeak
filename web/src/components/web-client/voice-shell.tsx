@@ -204,7 +204,7 @@ export function VoiceShell(props: VoiceShellProps) {
               data-ws-part="voice.favorite-server-chip"
               aria-pressed={server.address === currentAddress}
               disabled={Boolean(switchState.pending) || voiceView.connecting}
-              title={server.label}
+              title={server.address === currentAddress ? `${server.label} · ${t("currentServerBadge")}` : server.label}
               aria-label={t("switchToServer", { name: server.label })}
               onClick={() => props.onSwitchServer(server)}
               onPointerDown={(event) => railGestures.pointerDown(event.nativeEvent, server)}
@@ -234,7 +234,7 @@ export function VoiceShell(props: VoiceShellProps) {
             data-ws-state={server.address === currentAddress ? "current" : "idle"}
             aria-pressed={server.address === currentAddress}
             disabled={Boolean(switchState.pending) || voiceView.connecting}
-            title={`${server.label}\n${server.address}`}
+            title={server.address === currentAddress ? `${server.label}\n${server.address}\n${t("currentServerBadge")}` : `${server.label}\n${server.address}`}
             aria-label={t("switchToServer", { name: server.label })}
             onClick={() => props.onSwitchServer(server)}
             onPointerDown={(event) => railGestures.pointerDown(event.nativeEvent, server)}

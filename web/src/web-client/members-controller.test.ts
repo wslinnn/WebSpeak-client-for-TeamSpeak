@@ -19,7 +19,7 @@ function harness(channels: Partial<TreeChannel>[] = [], whisperIds: number[] = [
       getCurrentChannel: () => undefined,
     moveClient: vi.fn(async () => undefined),
     setWhisperTargets: (ids) => whispers.setState({ ids }),
-    sendPoke: vi.fn(),
+    sendPoke: vi.fn(async () => undefined),
     setAway: vi.fn(),
     stopWhisperTalk: vi.fn(),
     getWhisperTargetIds: () => new Set(whispers.getState().ids),
@@ -77,7 +77,7 @@ describe("members controller（成员交互）", () => {
   });
 
   it("a cancelled or empty poke prompt sends nothing", () => {
-    const sendPoke = vi.fn();
+    const sendPoke = vi.fn(async () => undefined);
     const tree = buildChannelTree([], 1) as TreeChannel[];
     const toasts: string[] = [];
     const controller = createMembersController({
@@ -99,6 +99,37 @@ describe("members controller（成员交互）", () => {
     expect(toasts).toEqual([]);
   });
 
+  it("a delivered poke toasts success; a rejected one surfaces the gateway error", async () => {
+    let outcome: Promise<void> = Promise.resolve();
+    const sendPoke = vi.fn(() => outcome);
+    const tree = buildChannelTree([], 1) as TreeChannel[];
+    const toasts: Array<[string, string?]> = [];
+    const controller = createMembersController({
+      getChannels: () => tree,
+      getCurrentChannel: () => undefined,
+      moveClient: vi.fn(async () => undefined),
+      setWhisperTargets: () => {},
+      sendPoke,
+      setAway: () => {},
+      stopWhisperTalk: () => {},
+      getWhisperTargetIds: () => new Set(),
+      localizedMessage: (message) => message,
+      showToast: (message, tone) => toasts.push([message, tone]),
+      t: (key) => key,
+      prompt: () => "hi",
+    });
+    controller.pokeMember({ id: 9, nickname: "Nine" });
+    await outcome;
+    expect(sendPoke).toHaveBeenCalledWith(9, "hi");
+    expect(toasts.at(-1)?.[0]).toBe("pokeSent");
+
+    // 应答式失败：网关原因（权限/离线/超时）直接成为警告 toast，不再静默。
+    outcome = Promise.reject(new Error("PERMISSION_DENIED"));
+    controller.pokeMember({ id: 9, nickname: "Nine" });
+    await outcome.catch(() => {});
+    expect(toasts.at(-1)).toEqual(["PERMISSION_DENIED", "warn"]);
+  });
+
   it("moving a member within its own channel is a silent no-op; success toasts otherwise", async () => {
     const moveClient = vi.fn(async () => undefined);
     const tree = buildChannelTree([
@@ -111,7 +142,7 @@ describe("members controller（成员交互）", () => {
       getCurrentChannel: () => undefined,
       moveClient,
       setWhisperTargets: () => {},
-      sendPoke: () => {},
+      sendPoke: async () => {},
       setAway: () => {},
       stopWhisperTalk: () => {},
       getWhisperTargetIds: () => new Set(),
@@ -138,7 +169,7 @@ describe("members controller（成员交互）", () => {
       getCurrentChannel: () => undefined,
       moveClient: vi.fn(async () => undefined),
       setWhisperTargets: () => {},
-      sendPoke: () => {},
+      sendPoke: async () => {},
       setAway,
       stopWhisperTalk: () => {},
       getWhisperTargetIds: () => new Set(),

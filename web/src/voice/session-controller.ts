@@ -1459,8 +1459,11 @@ export function createVoiceSessionController() {
       { scope: "private", targetId, conversationId: String(clientId), conversationKey: key, conversationName: member.nickname });
   }
 
-  function sendPoke(clientId: number, message = ""): void {
-    sendCmd("poke", { clientId, message: message.trim().slice(0, 200) });
+  function sendPoke(clientId: number, message = ""): Promise<void> {
+    // 应答式（家规：状态变更命令一律 sendCommandAndWait）：fire-and-forget 发出去的
+    // poke 没有 requestId，网关错误帧（权限拒绝/成员已离线）会被静默丢弃——
+    // 发送端看到「已发送」但对端毫无动静。失败现在会走到调用方的 catch。
+    return sendCommandAndWait("poke", { clientId, message: message.trim().slice(0, 200) });
   }
 
   function setAway(away: boolean, message = ""): void {

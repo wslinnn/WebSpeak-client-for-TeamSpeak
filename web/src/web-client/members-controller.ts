@@ -34,7 +34,7 @@ interface Options {
   getCurrentChannel(): TreeChannel | undefined;
   moveClient(clientId: number, targetChannelId: string): Promise<void>;
   setWhisperTargets(clientIds: number[]): void;
-  sendPoke(clientId: number, message: string): void;
+  sendPoke(clientId: number, message: string): Promise<void>;
   setAway(away: boolean, message: string): void;
   onManualStatusChange?(): void;
   stopWhisperTalk(): void;
@@ -226,8 +226,14 @@ export function createMembersController(options: Options) {
     // 触发「已发送」toast。
     const message = prompt(options.t("pokeMessagePrompt"), "");
     if (message === null || !message.trim()) return;
-    options.sendPoke(member.id, message);
-    options.showToast(options.t("pokeSent"));
+    // 应答式：成功才报「已发送」，失败把网关原因（权限/离线/超时）直接亮出来。
+    options.sendPoke(member.id, message).then(
+      () => options.showToast(options.t("pokeSent")),
+      (error: unknown) => options.showToast(
+        error instanceof Error && error.message ? error.message : options.t("pokeFailed"),
+        "warn",
+      ),
+    );
   }
 
   function copyMemberName(member: ChannelMember): void {
