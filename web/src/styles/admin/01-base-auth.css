@@ -144,8 +144,10 @@ label small {
   line-height: 1.5;
 }
 
-input,
-textarea {
+/* 裸元素选择器必须 data-ws-route 门控：admin 分块 CSS 一经加载全局常驻，
+ * 不门控会泄漏到客户端页（曾致首页 join 输入框双层聚焦环）。 */
+html[data-ws-route="admin"] input,
+html[data-ws-route="admin"] textarea {
   width: 100%;
   padding: 11px 12px;
   color: #1c1e21;
@@ -157,17 +159,17 @@ textarea {
   outline: none;
 }
 
-input {
+html[data-ws-route="admin"] input {
   height: 43px;
 }
 
-input:focus,
-textarea:focus {
+html[data-ws-route="admin"] input:focus,
+html[data-ws-route="admin"] textarea:focus {
   border-color: var(--admin-accent);
   box-shadow: 0 0 0 3px rgba(43,92,217,.13);
 }
 
-textarea {
+html[data-ws-route="admin"] textarea {
   resize: vertical;
 }
 
@@ -399,3 +401,155 @@ fieldset {
   }
 }
 
+
+/* —— LanguageSwitcher（共享 web-client 组件）的 admin 作用域样式 ——
+ * 组件类样式住在 web-client 分块（21-components），admin 分块拿不到；
+ * 这里按其几何用 --admin-* token 重建（明暗随 09-token 块自动翻转）。
+ * 21-components 头注所述「admin 有自己的切换器样式」即本段。 */
+.language-switcher {
+  position: relative;
+  z-index: var(--ws-z-dropdown);
+  flex: 0 0 auto;
+  color: var(--admin-accent);
+  font-family: inherit;
+}
+
+.language-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 70px;
+  min-height: 32px;
+  padding: 0 9px;
+  color: var(--admin-accent);
+  background: color-mix(in srgb, var(--admin-accent) 12%, var(--admin-surface));
+  border: 1px solid color-mix(in srgb, var(--admin-accent) 28%, var(--admin-border));
+  border-radius: 8px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: color .16s, background .16s, border-color .16s, box-shadow .16s;
+}
+
+.language-trigger:hover,
+.language-switcher.open .language-trigger {
+  color: var(--admin-accent-contrast);
+  background: var(--admin-accent);
+  border-color: var(--admin-accent);
+  box-shadow: 0 7px 16px rgba(16, 18, 22, .12);
+}
+
+.language-trigger .ui-icon {
+  margin-left: auto;
+  transition: transform .16s;
+}
+
+.language-switcher.open .language-trigger .ui-icon {
+  transform: rotate(180deg);
+}
+
+.language-current-flag,
+.language-option-flag {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  line-height: 1;
+}
+
+.language-current-flag {
+  font-size: 15px;
+}
+
+.language-current-code {
+  letter-spacing: .02em;
+}
+
+.language-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: var(--ws-z-menu);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(38px, max-content);
+  align-items: start;
+  align-content: start;
+  gap: 3px;
+  width: min(360px, calc(100vw - 16px));
+  height: auto;
+  max-height: none;
+  padding: 7px;
+  overflow: visible;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 13px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, .18), 0 3px 8px rgba(0, 0, 0, .07);
+  animation: admin-language-menu-in .14s ease-out;
+}
+
+.language-option {
+  display: flex;
+  align-items: center;
+  align-self: start;
+  min-width: 0;
+  gap: 8px;
+  min-height: 38px;
+  padding: 6px 8px;
+  color: var(--admin-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: color .14s, background .14s, border-color .14s;
+}
+
+.language-option:hover,
+.language-option:focus-visible,
+.language-option.selected {
+  color: var(--admin-accent);
+  background: color-mix(in srgb, var(--admin-accent) 12%, var(--admin-surface));
+  border-color: color-mix(in srgb, var(--admin-accent) 28%, var(--admin-border));
+}
+
+.language-option-flag {
+  flex: 0 0 auto;
+  font-size: 17px;
+}
+
+.language-option-copy {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  min-width: 0;
+  flex: 1;
+  gap: 8px;
+}
+
+.language-option strong,
+.language-option small {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.language-option strong {
+  flex: 0 0 auto;
+  font-size: 12px;
+}
+
+.language-option small {
+  flex: 0 0 auto;
+  color: var(--admin-muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.language-option > .ui-icon {
+  flex: 0 0 auto;
+}
+
+@keyframes admin-language-menu-in {
+  from { opacity: 0; transform: translateY(-4px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}

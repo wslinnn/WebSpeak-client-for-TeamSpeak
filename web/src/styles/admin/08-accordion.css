@@ -108,8 +108,7 @@
 }
 
 .settings-summary-chip i.active {
-  background: #50c879;
-  box-shadow: 0 0 0 3px color-mix(in srgb,#50c879 16%,transparent);
+  background: var(--admin-accent);
 }
 
 .settings-accordion-content {

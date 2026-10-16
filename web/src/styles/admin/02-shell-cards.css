@@ -90,9 +90,8 @@
 .running-dot {
   width: 7px;
   height: 7px;
-  background: #55d17a;
+  background: var(--admin-accent);
   border-radius: 50%;
-  box-shadow: 0 0 0 4px #e5f8ea;
 }
 
 .page-content {
