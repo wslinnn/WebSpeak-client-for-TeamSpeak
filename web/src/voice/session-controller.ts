@@ -230,7 +230,7 @@ export function createVoiceSessionController() {
   // loss, proxy timeout, server restart) the reconnect ticket restores the
   // whole session. Delays mirror the gateway's
   // own TeamSpeak-reconnect pacing; after the budget the user retries manually.
-  const BROWSER_RECONNECT_DELAYS_MS = [1_000, 2_000, 4_000, 8_000, 15_000];
+  const BROWSER_RECONNECT_DELAYS_MS = [1_000, 2_000, 4_000];
   const BROWSER_RECONNECTABLE_CLOSE_CODES = new Set([1006, 1011, 4004]);
   const BROWSER_TERMINAL_CLOSE_CODES = new Set([4001, 4002, 4003, 4005]);
   // reconnectFailed codes that cannot succeed unchanged: automatic resume must

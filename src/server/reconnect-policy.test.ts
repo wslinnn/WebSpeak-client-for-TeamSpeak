@@ -7,8 +7,8 @@ test("reconnect backoff has bounded jitter and stops growing for repeated failur
   assert.equal(reconnectDelayMs(1, () => 0), 900);
   assert.equal(reconnectDelayMs(1, () => 1), 1_100);
   assert.equal(reconnectDelayMs(2, () => 0.5), 2_000);
-  assert.equal(reconnectDelayMs(100, () => 0), 27_000);
-  assert.equal(reconnectDelayMs(100, () => 1), 33_000);
+  assert.equal(reconnectDelayMs(100, () => 0), 3_600);
+  assert.equal(reconnectDelayMs(100, () => 1), 4_400);
   assert.equal(reconnectDelayMs(0, () => 0.5), 1_000);
 });
 

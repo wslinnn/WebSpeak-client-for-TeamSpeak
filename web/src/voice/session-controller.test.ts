@@ -502,9 +502,9 @@ test("browser reconnect budget exhaustion raises the failure banner and drops th
     assert.ok(sessionStore.getItem("webspeak:voice-session"), "a connected session stores its resume intent");
     socket.close(1006);
     assert.equal(V().reconnecting, true);
-    // Five budgeted attempts (1s..15s), each dying again, exhaust the schedule;
-    // the sixth schedule call abandons instead of arming another timer.
-    for (let attempt = 0; attempt < 5; attempt++) {
+    // Three budgeted attempts (1/2/4s), each dying again, exhaust the schedule;
+    // the fourth schedule call abandons instead of arming another timer.
+    for (let attempt = 0; attempt < 3; attempt++) {
       vi.advanceTimersByTime(20_000);
       await nextTurn();
       const next = TestSocket.instances.at(-1);

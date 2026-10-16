@@ -1,6 +1,8 @@
 import type { WebSpeakError } from "../errors.js";
 
-export const RECONNECT_DELAYS_MS = [1_000, 2_000, 4_000, 8_000, 15_000, 30_000, 30_000] as const;
+// 1/2/4s 三轮（2026-10-15 拍板）：配 8s 拨号超时，断线到失败约 15s，
+// 不再拖满窗口——自用部署以快速失败换恢复成功率。
+export const RECONNECT_DELAYS_MS = [1_000, 2_000, 4_000] as const;
 export const RECONNECT_WINDOW_MS = 5 * 60_000;
 
 export function reconnectDelayMs(attempt: number, random = Math.random): number {
