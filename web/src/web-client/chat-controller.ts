@@ -129,17 +129,20 @@ export function createChatController(options: Options) {
     if (tab() === "events") return options.t("eventLog");
     return recipient()?.nickname ?? conversations().find((conversation) => conversation.key === state().privateConversationKey)?.name ?? options.t("privateMessage");
   }
-  function placeholder(): string {
-    return tab() === "private" ? options.t("privateMessagePlaceholder") : tab() === "server" ? options.t("serverMessagePlaceholder") : options.t("sendMessagePlaceholder");
+  // status/placeholder 在面板渲染期取值：t 由组件传入活体翻译（控制器捕获的
+  // tLive 首帧是身份回退，会把裸键名画上屏——liveI18nBox 的 effect 换算救不了
+  // 渲染路径）。事件路径的 toast/错误文案仍走 tLive，首帧陈旧无影响。
+  function placeholder(t: (key: string, variables?: Record<string, string | number>) => string): string {
+    return tab() === "private" ? t("privateMessagePlaceholder") : tab() === "server" ? t("serverMessagePlaceholder") : t("sendMessagePlaceholder");
   }
   function canSend(): boolean {
     return options.voice.getState().connected && !state().sending && tab() !== "events" && (tab() !== "private" || Boolean(recipient()));
   }
-  function status(): string {
-    if (state().sendError) return options.t(state().sendError);
-    if (state().sending) return options.t("chatSending");
-    if (!options.voice.getState().connected) return options.t("chatNotConnected");
-    if (tab() === "private" && !recipient()) return options.t("chatTargetUnavailable");
+  function status(t: (key: string, variables?: Record<string, string | number>) => string): string {
+    if (state().sendError) return t(state().sendError);
+    if (state().sending) return t("chatSending");
+    if (!options.voice.getState().connected) return t("chatNotConnected");
+    if (tab() === "private" && !recipient()) return t("chatTargetUnavailable");
     return "";
   }
 

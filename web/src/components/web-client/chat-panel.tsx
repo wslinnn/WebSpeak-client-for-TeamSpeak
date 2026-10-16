@@ -247,7 +247,7 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
             onCompositionStart={() => setComposing(true)}
             onCompositionEnd={() => setComposing(false)}
             onKeyDown={onComposerKeydown}
-            placeholder={chat.placeholder()}
+            placeholder={chat.placeholder(t)}
             aria-label={t("messageInput")}
           />
           {chatState.messageDraft.length > 450 && (
@@ -264,8 +264,8 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
           </button>
         </form>
       )}
-      {chat.status() && (
-        <p className="chat-status" data-ws-part="voice.chat.status" role="status">{chat.status()}</p>
+      {chat.status(t) && (
+        <p className="chat-status" data-ws-part="voice.chat.status" role="status">{chat.status(t)}</p>
       )}
     </section>
   );
