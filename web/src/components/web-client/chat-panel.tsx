@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
+import { useShallow } from "zustand/react/shallow";
 
 import { Icon } from "./icon";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
@@ -55,6 +56,11 @@ function resolveMessageAvatar(message: ChatMessage, members: ChannelMember[]): s
  *  store 订阅；草稿与提交纪律在 chat-controller。 */
 export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidden, collapsible, serverEvents, members, onListElement, onCollapse, t }: ChatPanelProps) {
   const chatState = useStore(chat.store);
+  // title/conversations/visibleMessages/canSend/status 跨读 session/voice store，
+  // 但那些变化不动本组件任何 prop——React Compiler 的 props memo 会跳过重渲，
+  // 表现为刷新后历史/私聊页签消失、标题不更新。这里显式订阅两个 store 的相关切片。
+  useStore(chat.sessionStore, useShallow((state) => ({ chatMessages: state.chatMessages, members: state.members, epoch: state.epoch })));
+  useStore(chat.voiceStore, (state) => state.connected);
   const conversations = chat.conversations();
   const visibleMessages = chat.visibleMessages();
   const [composing, setComposing] = useState(false);

@@ -314,6 +314,11 @@ export function createChatController(options: Options) {
 
   return {
     store,
+    /** title/conversations/visibleMessages/canSend 跨读本 store 与 voice store
+     *  （Vue computed 自动跨 store 追踪的等价物）——视图必须显式订阅两者，
+     *  否则 React Compiler 按 props memo 会漏掉消息/连接态变化（⑧）。 */
+    sessionStore: options.session,
+    voiceStore: options.voice,
     setTab,
     setDraft: (text: string) => patch({ messageDraft: text }),
     conversations,
