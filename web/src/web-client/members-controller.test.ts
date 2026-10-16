@@ -76,27 +76,44 @@ describe("members controller（成员交互）", () => {
     expect(toasts.at(-1)?.[0]).toBe("setWhisperTarget");
   });
 
-  it("a cancelled or empty poke prompt sends nothing", () => {
-    const sendPoke = vi.fn(async () => undefined);
+  it("a cancelled poke prompt sends nothing; an empty message is a valid poke", async () => {
     const tree = buildChannelTree([], 1) as TreeChannel[];
     const toasts: string[] = [];
-    const controller = createMembersController({
+    const cancelled = createMembersController({
       getChannels: () => tree,
       getCurrentChannel: () => undefined,
       moveClient: vi.fn(async () => undefined),
       setWhisperTargets: () => {},
-      sendPoke,
+      sendPoke: vi.fn(async () => undefined),
       setAway: () => {},
       stopWhisperTalk: () => {},
       getWhisperTargetIds: () => new Set(),
       localizedMessage: (message) => message,
       showToast: (message) => toasts.push(message),
       t: (key) => key,
-      prompt: () => "   ",
+      prompt: () => null,
     });
-    controller.pokeMember({ id: 9, nickname: "Nine" });
-    expect(sendPoke).not.toHaveBeenCalled();
+    cancelled.pokeMember({ id: 9, nickname: "Nine" });
     expect(toasts).toEqual([]);
+
+    // 空文本是合法 poke（TS 允许空消息）：只有「取消」拦截，空串照发。
+    const sendEmpty = vi.fn(async () => undefined);
+    const empty = createMembersController({
+      getChannels: () => tree,
+      getCurrentChannel: () => undefined,
+      moveClient: vi.fn(async () => undefined),
+      setWhisperTargets: () => {},
+      sendPoke: sendEmpty,
+      setAway: () => {},
+      stopWhisperTalk: () => {},
+      getWhisperTargetIds: () => new Set(),
+      localizedMessage: (message) => message,
+      showToast: (message) => toasts.push(message),
+      t: (key) => key,
+      prompt: () => "",
+    });
+    empty.pokeMember({ id: 9, nickname: "Nine" });
+    expect(sendEmpty).toHaveBeenCalledWith(9, "");
   });
 
   it("a delivered poke toasts success; a rejected one surfaces the gateway error", async () => {

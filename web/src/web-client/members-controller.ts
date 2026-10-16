@@ -222,10 +222,10 @@ export function createMembersController(options: Options) {
   }
 
   function pokeMember(member: ChannelMember): void {
-    // 取消与空输入都不发送：空 poke 网关本来就会拒绝，取消的 prompt 绝不能
-    // 触发「已发送」toast。
+    // 只有「取消」不发送；空文本是合法 poke（TS 允许空消息），旧守卫把空串
+    // 一并拦掉是错误继承——应答式失败本来就会把网关原因亮出来，无需前端预拦。
     const message = prompt(options.t("pokeMessagePrompt"), "");
-    if (message === null || !message.trim()) return;
+    if (message === null) return;
     // 应答式：成功才报「已发送」，失败把网关原因（权限/离线/超时）直接亮出来。
     options.sendPoke(member.id, message).then(
       () => options.showToast(options.t("pokeSent")),
