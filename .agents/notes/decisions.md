@@ -36,6 +36,7 @@
 
 ## 条件重开项及触发器
 
+- 屏幕共享信令内容校验（报告 21 S4，2026-10-17 评估后暂不实施）：授权与对端定向已有，剩余暴露是「授权发布者让观看端浏览器向其发布者指定地址发 STUN」——观看端本就与发布者做 ICE 连通性检查（P2P 语义），浏览器侧无放大风险；网关侧 SDP candidate 改写成本中等且有破坏 ICE 语义之险。触发器：屏共需要支持跨信任域观看（如公开直播形态）时重评。
 - 头像换新检测（cacheKey 失效）：成员换头像后旧图残留到网关重启/LRU 淘汰。URL 化后检测路径已明确且廉价——`fileTransferInitDownload` 一次命令往返返回 size/mtime，按 uid 比对元数据即可发现变化（重下→内容 hash 翻新→新 URL 增量推送，浏览器自动拉新）；等真实场景反馈再立项。
 - 更强上行降噪模型（DeepFilterNet/DTLN 等，形态参考本机 tsweb/Newt-Desktop 的模型选择+强度记忆）：CPU 换音质，契合「最佳音质」优先级；当前 RNNoise 够用时不动。
 - T10 Opus-over-WS：诊断 `voiceTransports.compatRatio` 持续 >5%。
@@ -98,5 +99,6 @@
 ## 2026-10-17 拍板（样式统一节奏 / 浮层 token 口径 / 远端候选策略 / 重连限流语义）
 
 - **浮层 token 口径 = 皮肤可染面**：同类浮层（switcher 下拉/右键菜单/dock 悬浮卡/性能面板）未来统一为 `.ws-popup` 配方时，底/边挂 `--surface-*`+`--skin-border`（自定义皮肤可染），不挂固定的 `--wsd-*`——与 16/15 号分片的 dock/性能面板现状一致。**组件样式迁移（报告 22 §2.2 批 1-3）整体暂缓未开工**，批次表与红线仍然有效，开工时按此口径执行。
-- **WebRTC 远端候选地址策略（S1 落地，勿"收紧"）**：`webrtc-config.ts isAcceptableRemoteIceCandidate` 只拒环回/本网 0/链路本地（含云 metadata 169.254.169.254）/组播/保留段/非 IP 主机名（mDNS）/IPv4-mapped 与 ::dotted 变体；**RFC1918/CGNAT/公网单播/ULA 有意保留**——自托管 LAN 部署里合法浏览器的 host 候选就是私网地址，一并拒绝会让整条 WebRTC 路径静默退化到 WS 兼容传输。拦在 werift `iceFilterCandidatePair`（建对即拒、零出站包），rtp-lab 同钩子；`webrtc-config.test` 钉住全表。入站 STUN 反射（`iceFilterStunResponse`）未做，仍开放。
+- **WebRTC 远端候选地址策略（S1 落地，勿"收紧"）**：`webrtc-config.ts isAcceptableRemoteIceCandidate` 只拒环回/本网 0/链路本地（含云 metadata 169.254.169.254）/组播/保留段/非 IP 主机名（mDNS）/IPv4-mapped 与 ::dotted 变体；**RFC1918/CGNAT/公网单播/ULA 有意保留**——自托管 LAN 部署里合法浏览器的 host 候选就是私网地址，一并拒绝会让整条 WebRTC 路径静默退化到 WS 兼容传输。拦在 werift `iceFilterCandidatePair`（建对即拒、零出站包），rtp-lab 同钩子；`webrtc-config.test` 钉住全表。入站 STUN 反射已随 `iceFilterStunResponse` 关闭（清账批，只对带 MESSAGE-INTEGRITY 的请求回签名响应）。
+- **批次 4 语义口径（2026-10-17 落地，勿无意回改）**：S2——请求派生的 WebRTC 公共 host 只在 `trustProxy` 时采信转发头、且永不为它做 DNS 解析（管理员 publicHost 例外）；S3——单对端（IPv6 聚 /64）并发会话上限 10，超限关闭码 **4006 PEER_SESSION_LIMIT**，前端按终态处理（不烧重连预算）；S5——皮肤包/预览按字节令牌桶（满桶首下载恒放行是合法首次下载的保障，304 零计费），参数 24MiB/4MiB 桶 + 8MiB/分回填；F8——播放侧说话指示轮询 350ms 是边沿延迟与 getStats 频率的既定折中；F9——语言包按语言各自成 chunk，切换语言时保留旧包渲染到新包就绪（不闪键名）；L5——resume 票 attach 失败回落同连接重建而非 4001；S4 屏共信令内容校验评估后列条件重开（见下）。
 - **重连限流语义（F5 落地）**：429 不消耗 1/2/4 秒重连预算（独立上限 3 次，超限回落普通预算防无限重试），延迟取网关 `Retry-After`（加入票 429 现已带该头与 `retryAfterMs`）；浏览器侧重连延迟加 ±20% 抖动——群体重连共享限流键（同 NAT、反代漏设 TRUST_PROXY）不再同拍互踩。
