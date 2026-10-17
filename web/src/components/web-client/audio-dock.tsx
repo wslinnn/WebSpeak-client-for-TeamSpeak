@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 
 import { Icon } from "./icon";
+import { currentUiScale } from "@/app/ui-scale";
 import { MAX_INPUT_VOLUME, type VoiceSessionController } from "@/voice/session-controller";
 import { rangeStyle } from "@/web-client/view-utils";
 
@@ -73,7 +74,16 @@ function DockHoverControl({ part, label, button, panelClassName, panelPart, chil
   const openUp = (): void => {
     cancelClose();
     const rect = controlRef.current?.getBoundingClientRect();
-    if (rect) setAnchor({ left: rect.left + rect.width / 2, bottom: window.innerHeight - rect.top + 10 });
+    if (rect) {
+      // 触发钮矩形是视觉像素（#root zoom 缩放子树，4K 下 --ui-scale 可达 1.5），
+      // portal 面板的 fixed 内联坐标按未缩放像素解释——写入前除以 ui-scale
+      // （member-actions-menu 同款，跳过这步大屏面板会偏右/出屏）。
+      const scale = currentUiScale();
+      setAnchor({
+        left: (rect.left + rect.width / 2) / scale,
+        bottom: (window.innerHeight - rect.top) / scale + 10,
+      });
+    }
     setOpen(true);
   };
   const scheduleClose = (): void => {

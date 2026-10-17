@@ -4,6 +4,7 @@ import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 
 import { Icon } from "./icon";
+import { currentUiScale } from "@/app/ui-scale";
 import { useVoiceView } from "@/hooks/useVoiceSession";
 import type { VoiceSessionController } from "@/voice/session-controller";
 import { computeVoiceStats, type PerformanceMonitor, type VoiceAudioStats } from "@/web-client/performance-monitor";
@@ -55,15 +56,21 @@ export function VoicePerformancePanel({ monitor, voice, t }: VoicePerformancePan
 
   // 面板 portal 到 .web-client 根（坞挂进成员面板后 overflow:hidden 会裁掉
   // 向下展开的面板，2026-10-17 取证）；fixed 锚定触发钮向上展开。触发钮靠
-  // 屏幕左缘时 380px 面板会出屏，钳到屏内（宽度与 15-performance.css 同源）。
+  // 屏幕左缘时 380px 面板会出屏，钳到屏内。触发钮矩形是视觉像素（#root zoom
+  // 缩放子树，4K 下 --ui-scale 可达 1.5），fixed 内联坐标按未缩放像素解释——
+  // 写入前除以 ui-scale（member-actions-menu 同款），否则大屏面板会飞出屏。
   useEffect(() => {
     if (!open) return;
     const rect = triggerRef.current?.getBoundingClientRect();
     if (rect) {
-      const panelWidth = 380;
-      const idealRight = window.innerWidth - rect.right;
-      const maxRight = window.innerWidth - panelWidth - 8;
-      setAnchor({ right: Math.max(8, Math.min(idealRight, maxRight)), bottom: window.innerHeight - rect.top + 10 });
+      const scale = currentUiScale();
+      const viewportWidth = window.innerWidth / scale;
+      const idealRight = (window.innerWidth - rect.right) / scale;
+      const maxRight = viewportWidth - 380 - 8;
+      setAnchor({
+        right: Math.max(8, Math.min(idealRight, maxRight)),
+        bottom: (window.innerHeight - rect.top) / scale + 10,
+      });
     }
   }, [open]);
 
