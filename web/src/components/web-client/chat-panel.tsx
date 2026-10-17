@@ -148,7 +148,7 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
   return (
     <section className={mobileHidden ? "chat-panel mobile-section-hidden" : "chat-panel"} data-ws-part="voice.chat">
       <div className="chat-conversation-heading" data-ws-part="voice.chat.title-row">
-        <strong className="chat-conversation-title">{chat.tabLabel()}</strong>
+        <strong className="chat-conversation-title">{chat.tabLabel(t)}</strong>
         {collapsible && (
           <button type="button" className="chat-collapse" data-ws-part="voice.chat.collapse" title={t("closeChat")} aria-label={t("closeChat")} onClick={onCollapse}>
             <Icon name="close" size={14} />

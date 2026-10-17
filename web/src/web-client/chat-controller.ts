@@ -120,14 +120,17 @@ export function createChatController(options: Options) {
     return messages.filter((message) => message.scope === "channel" && (!message.targetId || message.targetId === "0" || !channelId || message.targetId === channelId));
   }
 
-  function tabLabel(): string {
-    return tab() === "channel" ? options.t("textChannel") : tab() === "server" ? options.t("serverChat") : tab() === "private" ? options.t("privateMessage") : options.t("eventLog");
+  // 渲染期取值与 status/placeholder 同法：t 由组件传入活体翻译。控制器捕获的
+  // tLive 首帧是身份回退（直连恢复/早进房时即停留该态），tabLabel 曾把裸键名
+  // 「textChannel」常驻画上屏。
+  function tabLabel(t: (key: string, variables?: Record<string, string | number>) => string): string {
+    return tab() === "channel" ? t("textChannel") : tab() === "server" ? t("serverChat") : tab() === "private" ? t("privateMessage") : t("eventLog");
   }
-  function title(): string {
-    if (tab() === "channel") return options.t("channelChat", { channel: options.getCurrentChannelName() });
-    if (tab() === "server") return options.t("serverChat");
-    if (tab() === "events") return options.t("eventLog");
-    return recipient()?.nickname ?? conversations().find((conversation) => conversation.key === state().privateConversationKey)?.name ?? options.t("privateMessage");
+  function title(t: (key: string, variables?: Record<string, string | number>) => string): string {
+    if (tab() === "channel") return t("channelChat", { channel: options.getCurrentChannelName() });
+    if (tab() === "server") return t("serverChat");
+    if (tab() === "events") return t("eventLog");
+    return recipient()?.nickname ?? conversations().find((conversation) => conversation.key === state().privateConversationKey)?.name ?? t("privateMessage");
   }
   // status/placeholder 在面板渲染期取值：t 由组件传入活体翻译（控制器捕获的
   // tLive 首帧是身份回退，会把裸键名画上屏——liveI18nBox 的 effect 换算救不了
