@@ -15,17 +15,6 @@ export declare class Client {
     /** @internal */ logger: Logger;
     /** @internal */ nickname: string;
     /** @internal */ clid: number;
-    /** @internal */ serverHandshakeInfo: {
-        name?: string;
-        welcomeMessage?: string;
-    } | null;
-    /** Server identity captured from the `initserver` connect handshake.
-     *  Permission-free (the `serverinfo` command needs
-     *  b_virtualserver_info_view); absent fields were absent in the handshake. */
-    get serverHandshake(): {
-        name?: string;
-        welcomeMessage?: string;
-    } | null;
     constructor(identity: Identity, addr: string, nickname: string, options?: ClientOptions);
     get status(): ClientStatus;
     /** @internal */

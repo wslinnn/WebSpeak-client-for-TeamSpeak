@@ -163,12 +163,7 @@ function B(e, t) {
 }
 function V(e, t) {
 	let n = t.aclid ?? t.clid ?? "", r = n ? parseInt(n, 10) : 0;
-	r > 0 && (e.clid = r, e.handler.setClientID(r));
-	let i = t.virtualserver_name, a = t.virtualserver_welcomemessage;
-	(i !== void 0 || a !== void 0) && (e.serverHandshakeInfo = {
-		...i === void 0 ? {} : { name: i },
-		...a === void 0 ? {} : { welcomeMessage: a }
-	}), e.logger.info("connected to server", { selfId: e.clid }), e._markConnected(), setImmediate(() => {
+	r > 0 && (e.clid = r, e.handler.setClientID(r)), e.logger.info("connected to server", { selfId: e.clid }), e._markConnected(), setImmediate(() => {
 		let t = T("clientupdate", {
 			client_input_muted: "0",
 			client_output_muted: "0"
@@ -369,7 +364,7 @@ function ce(e, t) {
 		type: e.params.client_type === void 0 ? r?.type ?? 0 : Y(e.params.client_type),
 		serverGroups: a === void 0 ? r?.serverGroups ?? [] : a ? a.split(",") : []
 	};
-	return e.params.client_away !== void 0 && (o.away = e.params.client_away === "1"), e.params.client_away_message !== void 0 && (o.awayMessage = e.params.client_away_message), e.params.client_input_muted !== void 0 && (o.inputMuted = e.params.client_input_muted === "1"), e.params.client_output_muted !== void 0 && (o.outputMuted = e.params.client_output_muted === "1"), e.params.client_is_channel_commander !== void 0 && (o.channelCommander = e.params.client_is_channel_commander === "1"), e.params.client_flag_avatar !== void 0 && (o.avatarFlag = e.params.client_flag_avatar === "1"), n !== 0 && t.set(n, o), {
+	return e.params.client_away !== void 0 && (o.away = e.params.client_away === "1"), e.params.client_away_message !== void 0 && (o.awayMessage = e.params.client_away_message), e.params.client_input_muted !== void 0 && (o.inputMuted = e.params.client_input_muted === "1"), e.params.client_output_muted !== void 0 && (o.outputMuted = e.params.client_output_muted === "1"), e.params.client_is_channel_commander !== void 0 && (o.channelCommander = e.params.client_is_channel_commander === "1"), n !== 0 && t.set(n, o), {
 		kind: "clientUpdated",
 		event: { info: o }
 	};
@@ -531,10 +526,6 @@ var ye = class {
 	logger;
 	nickname;
 	clid = 0;
-	serverHandshakeInfo = null;
-	get serverHandshake() {
-		return this.serverHandshakeInfo;
-	}
 	#e;
 	#t;
 	#n;

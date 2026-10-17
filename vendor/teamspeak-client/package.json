@@ -1,6 +1,6 @@
 {
   "name": "@echosixhiya/teamspeak-client",
-  "version": "0.2.5",
+  "version": "0.2.4",
   "description": "TeamSpeak 3/6 client SDK for Node.js — vendored build output",
   "keywords": [
     "client",
