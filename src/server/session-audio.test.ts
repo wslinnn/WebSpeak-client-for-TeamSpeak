@@ -135,6 +135,23 @@ test("backpressure drops bursts above 4096 bytes and resumes without a retained 
   assert.equal(f.audio.egressPeakBufferedBytes, 4_097);
 });
 
+test("the per-client egress table prunes speakers silent for ten minutes (报告 21 L7)", () => {
+  const f = fixture();
+  // 越过 256 键阈值：257 个不同说话人，全部活跃。
+  for (let clientId = 2; clientId <= 258; clientId++) {
+    f.state.now = clientId; // 每个说话人带自己的时间戳
+    f.transport.receiveTeamSpeak(f.remote(clientId));
+  }
+  assert.equal(Object.keys(f.audio.egressFramesByClient).length, 257);
+  // 时钟推进过 10 分钟 TTL：旧键（2..257）过期被清，258 刚说完话保留。
+  f.state.now = 610_000;
+  f.transport.receiveTeamSpeak(f.remote(258));
+  const surviving = Object.keys(f.audio.egressFramesByClient);
+  assert.deepEqual(surviving, ["258"]);
+  // 保留键的计数连续：新帧只 +1，不重置。
+  assert.equal(f.audio.egressFramesByClient["258"], 2);
+});
+
 test("WebRTC downlink owns egress without a duplicate WebSocket packet", () => {
   const f = fixture();
   const received: TSVoiceData[] = [];

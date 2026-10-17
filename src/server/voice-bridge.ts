@@ -1,5 +1,5 @@
 import { ScreenShareCoordinator } from "./screen-share-coordinator.js";
-import { snapshotAudioStats, type AudioFlowStats } from "./audio-stats.js";
+import { snapshotAudioStats, snapshotAudioStatus, type AudioFlowStats } from "./audio-stats.js";
 export type { AudioFlowStats } from "./audio-stats.js";
 import type { ServerMessage } from "../shared/server-messages.js";
 import { WebSocketServer, WebSocket } from "ws";
@@ -253,7 +253,9 @@ export class VoiceBridge {
       reason,
       ...(entry.connectionFailureCode ? { failureCode: entry.connectionFailureCode } : {}),
       durationSeconds: Math.max(0, Math.floor((Date.now() - entry.session.createdAt) / 1000)),
-      audio: { ...entry.audio },
+      // 紧凑投影：不带 egressFramesByClient 全表（报告 21 附加项——teardown 日志
+      // 曾把按客户端计数表整份拷进日志行）；全量快照仍走管理台诊断。
+      audio: snapshotAudioStatus(entry),
     }, "Client session torn down");
   }
 

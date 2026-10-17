@@ -19,6 +19,11 @@ const INVALID_FRAME_CLOSE_THRESHOLD = 20;
 // instead of paying Opus encoding for garbage.
 const FRAME_RATE_LIMIT_PER_SECOND = 100;
 const FRAME_FLOOD_CLOSE_DROPS = 200;
+// L7（报告 21）：egressFramesByClient 按 说话者 键只增不减——满编服务器跑一天
+// 会把每个会话的统计表养到数千键。超过阈值时清掉 10 分钟没说话的键；活跃键
+// 每帧刷新时间戳，不受影响。
+const EGRESS_CLIENT_PRUNE_THRESHOLD = 256;
+const EGRESS_CLIENT_TTL_MS = 10 * 60_000;
 
 export interface VoiceEncoder {
   encode(frame: Buffer): Buffer;
@@ -48,6 +53,7 @@ export class SessionAudioTransport {
   private frameTokensAt: number;
   private floodWindowStart: number | null = null;
   private floodWindowDrops = 0;
+  private readonly egressClientLastSeen = new Map<string, number>();
 
   constructor(private readonly options: SessionAudioOptions, encoder: VoiceEncoder, private readonly clock: () => number = Date.now) {
     this.encoder = encoder;
@@ -179,6 +185,8 @@ export class SessionAudioTransport {
     stats.egressLastAt = now;
     const key = String(data.clientId);
     stats.egressFramesByClient[key] = (stats.egressFramesByClient[key] ?? 0) + 1;
+    this.egressClientLastSeen.set(key, now);
+    if (this.egressClientLastSeen.size > EGRESS_CLIENT_PRUNE_THRESHOLD) this.pruneEgressClients(now);
     const peer = this.options.peer();
     if (peer) {
       try { peer.pushTeamSpeakVoice(data); stats.egressFrames++; }
@@ -200,6 +208,14 @@ export class SessionAudioTransport {
       stats.egressSentFirstAt ??= sentAt;
       stats.egressSentLastAt = sentAt;
     } catch { stats.egressDroppedFrames++; }
+  }
+
+  private pruneEgressClients(now: number): void {
+    for (const [key, seenAt] of this.egressClientLastSeen) {
+      if (now - seenAt < EGRESS_CLIENT_TTL_MS) continue;
+      this.egressClientLastSeen.delete(key);
+      delete this.options.audio.egressFramesByClient[key];
+    }
   }
 
   close(): void {
