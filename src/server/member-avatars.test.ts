@@ -238,3 +238,28 @@ test("avatar LRU cache evicts the least recently read entry beyond capacity", ()
   assert.equal(cache.has("a"), false);
   assert.equal(cache.get("missing"), undefined);
 });
+
+test("scheduleReload force-redownloads an existing avatar and honors the per-uid cooldown", async t => {
+  const f = fixture(t);
+  f.add(1, "user-1");
+  f.state.load = async () => avatar("one");
+  f.loader.schedule();
+  await f.tick();
+  const initialUrl = f.urlOf("user-1");
+  assert.ok(initialUrl, "initial download caches the avatar");
+  const callsAfterInitial = f.calls.length;
+
+  // 同一 uid 换了头像：定向重载绕过「已有 URL 跳过」与 attempted 台账。
+  f.state.load = async () => avatar("two");
+  f.loader.scheduleReload("user-1");
+  await f.tick();
+  assert.equal(f.calls.length, callsAfterInitial + 1, "targeted reload runs one extra transfer");
+  assert.notEqual(f.urlOf("user-1"), initialUrl, "the replaced bytes get a fresh content-hashed URL");
+  assert.deepEqual(f.published.at(-1), { uid: "user-1", url: f.urlOf("user-1") }, "the new URL is published");
+
+  // per-uid 冷却：10s 内的重复触发不再发起传输。
+  const callsAfterReload = f.calls.length;
+  f.loader.scheduleReload("user-1");
+  await f.tick();
+  assert.equal(f.calls.length, callsAfterReload, "the cooldown swallows the repeat trigger");
+});

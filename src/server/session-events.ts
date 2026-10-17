@@ -152,6 +152,10 @@ export class SessionEventCoordinator {
       }
     });
     this.listenDirectory("clientUpdated", info => {
+      // 头像信号（25 号一期）：通知携带 client_flag_avatar=true 时定向重载该
+      // 成员头像——成员设置/移除头像的唯一带内信号（缺席=未变化），加载器
+      // 自带 per-uid 冷却；触发在补丁分支之前，窗口挂起也不丢信号。
+      if (info.avatarFlag === true && info.uid) this.avatars.scheduleReload(info.uid);
       // 注意：这里不 flush 挂起窗口——连续 update 就该并入同一窗口；其他目录
       // 事件的 flush-at-top 已保证跨事件类型的 delta 次序。
       const { merged, channelChanged } = this.directory.applyClientUpdated(info);

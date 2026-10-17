@@ -1,5 +1,9 @@
 import type { TSClientAvatar } from "./ts-client.js";
 
+/** 同一 uid 的定向重载冷却：notifyclientupdated 可短时连发，防止打爆
+ *  TeamSpeak 文件传输通道。 */
+const RELOAD_COOLDOWN_MS = 10_000;
+
 interface AvatarMember {
   id: number;
   uid: string;
@@ -33,6 +37,10 @@ export class MemberAvatarLoader {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private batch: symbol | null = null;
   private readonly attempted = new Map<string, "absent" | "error">();
+  private reloadTimer: ReturnType<typeof setTimeout> | null = null;
+  private reloadBatch: symbol | null = null;
+  private readonly reloadPending = new Set<string>();
+  private readonly reloadCooldown = new Map<string, number>();
   private closed = false;
 
   constructor(private readonly options: MemberAvatarOptions) {}
@@ -126,10 +134,69 @@ export class MemberAvatarLoader {
     }
   }
 
+  /** 25 号一期：目录通知携带头像标志时的定向重载。绕过 attempted 台账与
+   *  「已有 URL 跳过」的去重（头像可能已更换，字节变了内容 hash 才会变），
+   *  per-uid 冷却防 notify 风暴；与常规批共用 batch 槽位防并发传输。 */
+  scheduleReload(uid: string, delayMs = 0): void {
+    if (this.closed || !uid) return;
+    const now = Date.now();
+    if (now - (this.reloadCooldown.get(uid) ?? 0) < RELOAD_COOLDOWN_MS) return;
+    this.reloadCooldown.set(uid, now);
+    this.attempted.delete(uid);
+    this.reloadPending.add(uid);
+    if (this.reloadTimer !== null) return;
+    this.reloadTimer = setTimeout(() => {
+      this.reloadTimer = null;
+      void this.runReloadBatch();
+    }, delayMs);
+    this.reloadTimer.unref?.();
+  }
+
+  private async runReloadBatch(): Promise<void> {
+    if (this.closed || this.batch !== null || this.reloadPending.size === 0) {
+      // 常规批占用时稍后重试，避免丢弃待重载身份。
+      if (this.reloadPending.size > 0) this.scheduleReload([...this.reloadPending][0], 250);
+      return;
+    }
+    const batch = Symbol("avatar reload batch");
+    this.batch = batch;
+    const isCurrent = () => this.batch === batch && this.isCurrent();
+    const uids = [...this.reloadPending];
+    this.reloadPending.clear();
+    try {
+      for (const uid of uids) {
+        if (!isCurrent()) return;
+        const member = [...this.options.members.values()].find((candidate) => candidate.uid === uid);
+        if (!member) continue;
+        try {
+          const loaded = await this.options.load(member.id, member.uid);
+          if (!isCurrent()) return;
+          const stored = loaded !== null && this.options.store(uid, loaded.data);
+          if (stored) {
+            const url = this.options.avatarUrl(uid);
+            if (url) this.options.publish(uid, url);
+          } else {
+            this.attempted.set(uid, "absent");
+          }
+        } catch (error: unknown) {
+          if (!isCurrent()) return;
+          this.attempted.set(uid, "error");
+          this.options.onError(member.id, uid, error);
+        }
+      }
+    } finally {
+      if (this.batch === batch) this.batch = null;
+    }
+  }
+
   reset(): void {
     if (this.timer !== null) clearTimeout(this.timer);
+    if (this.reloadTimer !== null) clearTimeout(this.reloadTimer);
     this.timer = null;
+    this.reloadTimer = null;
     this.batch = null;
+    this.reloadPending.clear();
+    this.reloadCooldown.clear();
     // The ledger is view-local: a new TeamSpeak connection retries absent
     // identities (the member may have set an avatar) and errored transfers
     // alike, while the shared cache keeps serving positives without a second
