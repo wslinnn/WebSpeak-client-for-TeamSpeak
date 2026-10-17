@@ -247,7 +247,8 @@ export function createVoiceSessionController() {
   /** ±20% 抖动：共享限流键（同 NAT、反代漏设 TRUST_PROXY）的群体重连不再同拍敲门。 */
   const jitteredReconnectDelay = (baseMs: number): number => Math.round(baseMs * (0.8 + Math.random() * 0.4));
   const BROWSER_RECONNECTABLE_CLOSE_CODES = new Set([1006, 1011, 4004]);
-  const BROWSER_TERMINAL_CLOSE_CODES = new Set([4001, 4002, 4003, 4005]);
+  // 4006（单网络并发上限，报告 21 S3）在本网络缓解前重连必然再撞墙，按终态处理。
+  const BROWSER_TERMINAL_CLOSE_CODES = new Set([4001, 4002, 4003, 4005, 4006]);
   // reconnectFailed codes that cannot succeed unchanged: automatic resume must
   // stop offering the session after these and leave the next move to the user.
   const TERMINAL_RECONNECT_FAILURE_CODES = new Set([

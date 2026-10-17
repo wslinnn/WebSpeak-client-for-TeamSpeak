@@ -93,6 +93,7 @@ const CONNECTION_FAILURE_MESSAGES: Record<string, string> = {
   GATEWAY_SESSION_ENDED: "语音网关会话意外结束，请重新进入语音空间",
   TEAM_SPEAK_CLIENT_UNAVAILABLE: "语音网关未能创建 TeamSpeak 客户端（服务器可能已关闭或地址不可达），请确认服务器地址或稍后重试",
   RECONNECT_INVALID: "语音会话票据缺失或已过期，请返回列表重新进入语音空间",
+  PEER_SESSION_LIMIT: "同一网络的并发语音连接已达上限，请关闭本网络下多余的连接后重试",
 };
 
 export function joinTicketReason(code: string, detail?: unknown): string {
@@ -110,12 +111,13 @@ export function joinTicketReason(code: string, detail?: unknown): string {
 }
 
 // 网关关闭码 → 前端可解释错误码的映射：4000-4003 是网关/会话级，4004/4005 是
-// TeamSpeak 拒绝与身份冲突，1006/1011 是传输级掉线，绝不能
-// 被误当成 TeamSpeak 服务器拒绝。
+// TeamSpeak 拒绝与身份冲突，4006 是单网络并发上限（报告 21 S3），
+// 1006/1011 是传输级掉线，绝不能被误当成 TeamSpeak 服务器拒绝。
 /**
  * Gateway close codes. 4000-4003 are gateway/session level, 4004/4005 are a
- * TeamSpeak rejection and an identity conflict,
- * and 1006 is a transport-level drop that must not be blamed on TeamSpeak.
+ * TeamSpeak rejection and an identity conflict, 4006 is the per-network
+ * concurrency cap, and 1006 is a transport-level drop that must not be blamed
+ * on TeamSpeak.
  */
 const GATEWAY_CLOSE_CODE_CODES: Record<number, string> = {
   4000: "CONNECTION_FAILED",
@@ -124,6 +126,7 @@ const GATEWAY_CLOSE_CODE_CODES: Record<number, string> = {
   4003: "IDENTITY_REJECTED",
   4004: "SERVER_REJECTED",
   4005: "IDENTITY_IN_USE",
+  4006: "PEER_SESSION_LIMIT",
   1006: "GATEWAY_NETWORK_LOST",
   1011: "GATEWAY_SESSION_ENDED",
 };

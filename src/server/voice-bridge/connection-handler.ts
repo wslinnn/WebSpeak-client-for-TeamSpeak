@@ -1,6 +1,7 @@
 import { WebSocket } from "ws";
 import type { IncomingMessage } from "node:http";
 import { identityFromString } from "@echosixhiya/teamspeak-client";
+import { MAX_SESSIONS_PER_PEER } from "../../constants.js";
 import { TSClient } from "../ts-client.js";
 import type { Logger as LoggerType } from "../../logger.js";
 import { clientConnectionFailureCode, describeTeamSpeakError, normalizeTeamSpeakError } from "../../errors.js";
@@ -20,7 +21,7 @@ import { createAudioFlowStats } from "../audio-stats.js";
 import { SessionAudioTransport } from "../session-audio.js";
 import { createVoiceEncoder } from "../opus-codec.js";
 import { CommandRateLimiter, shouldReportRateLimit } from "../command-rate-limit.js";
-import { resolveClientAddress } from "../client-ip.js";
+import { resolveClientAddress, rateLimitPeerKey } from "../client-ip.js";
 import type { ScreenShareCoordinator } from "../screen-share-coordinator.js";
 import type { SessionManager } from "../session-manager.js";
 import type { IdentityLeaseStore } from "../identity-lease.js";
@@ -147,10 +148,16 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
     }
     const entryId = `w-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
     let entry: WebClientEntry | null = null;
+    // S3（报告 21）：per-IP(/64) 并发会话上限，键与限流同源（client-ip 聚合）。
     const session = deps.sessionManager.admit(entryId, async (reason) => {
       if (entry) await deps.cleanupEntry(entry, reason);
-    });
+    }, rateLimitPeerKey(clientIp));
     if (!session) {
+      if (deps.sessionManager.rejectReason === "peer-limit") {
+        deps.logger.warn({ clientIp, max: MAX_SESSIONS_PER_PEER }, "Per-peer session limit reached");
+        ws.close(4006, "PEER_SESSION_LIMIT");
+        return;
+      }
       deps.logger.warn({ max: deps.sessionManager.maxSessions }, "Max clients reached");
       ws.close(4004, "GATEWAY_FULL");
       return;

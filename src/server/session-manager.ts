@@ -1,4 +1,4 @@
-import { canAcceptSession, MAX_ACTIVE_SESSIONS } from "../constants.js";
+import { canAcceptSession, MAX_ACTIVE_SESSIONS, MAX_SESSIONS_PER_PEER } from "../constants.js";
 
 export type ConnectionState =
   | "idle"
@@ -63,6 +63,7 @@ export class ManagedSession {
   constructor(
     readonly id: string,
     private readonly cleanup: SessionCleanup,
+    readonly peerKey = "",
   ) {}
 
   get state(): ConnectionState {
@@ -96,15 +97,29 @@ export class ManagedSession {
 
 export class SessionManager {
   private readonly sessions = new Map<string, ManagedSession>();
+  private readonly peerCounts = new Map<string, number>();
   private accepting = true;
   private peak = 0;
   private created = 0;
 
-  admit(id: string, cleanup: SessionCleanup): ManagedSession | null {
-    if (!this.accepting || !canAcceptSession(this.sessions.size)) return null;
+  /** S3：最近一次 admit 失败的原因（gateway-full=全局槽满，peer-limit=单对端
+   *  并发上限）。admit 保持返回 null 的旧形状，调用方在 null 时读这里区分。 */
+  rejectReason: "gateway-full" | "peer-limit" | null = null;
+
+  admit(id: string, cleanup: SessionCleanup, peerKey = ""): ManagedSession | null {
+    this.rejectReason = null;
+    if (!this.accepting || !canAcceptSession(this.sessions.size)) {
+      this.rejectReason = "gateway-full";
+      return null;
+    }
+    if (peerKey && (this.peerCounts.get(peerKey) ?? 0) >= MAX_SESSIONS_PER_PEER) {
+      this.rejectReason = "peer-limit";
+      return null;
+    }
     if (this.sessions.has(id)) throw new Error(`Session already exists: ${id}`);
-    const session = new ManagedSession(id, cleanup);
+    const session = new ManagedSession(id, cleanup, peerKey);
     this.sessions.set(id, session);
+    if (peerKey) this.peerCounts.set(peerKey, (this.peerCounts.get(peerKey) ?? 0) + 1);
     this.created++;
     this.peak = Math.max(this.peak, this.sessions.size);
     return session;
@@ -135,6 +150,11 @@ export class SessionManager {
     if (!session) return;
     await session.teardown(reason);
     this.sessions.delete(id);
+    if (session.peerKey) {
+      const remaining = (this.peerCounts.get(session.peerKey) ?? 1) - 1;
+      if (remaining <= 0) this.peerCounts.delete(session.peerKey);
+      else this.peerCounts.set(session.peerKey, remaining);
+    }
   }
 
   async shutdown(reason: SessionTeardownReason = "gateway-shutdown"): Promise<void> {

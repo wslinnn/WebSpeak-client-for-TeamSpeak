@@ -93,3 +93,43 @@ test("shutdown stops admission immediately and waits for every cleanup even when
   assert.equal(manager.activeCount, 0);
   assert.equal(reasons.length, 2);
 });
+
+test("admission caps concurrent sessions per peer key and releases the budget on teardown (报告 21 S3)", async () => {
+  const manager = new SessionManager();
+  for (let index = 0; index < 10; index++) {
+    assert.ok(manager.admit(`s-${index}`, async () => {}, "lan-peer"));
+  }
+  assert.equal(manager.admit("s-over", async () => {}, "lan-peer"), null);
+  assert.equal(manager.rejectReason, "peer-limit");
+  // 另一对端不受影响；无键的 admit（旧测试/内部路径）也不受影响。
+  assert.ok(manager.admit("other-peer", async () => {}, "other-peer"));
+  assert.ok(manager.admit("no-key", async () => {}));
+  // 重连场景：先 admit 后拆前驱的瞬时不占新预算——拆除一个后立刻可再进。
+  await manager.teardown("s-0", "superseded");
+  assert.ok(manager.admit("s-successor", async () => {}, "lan-peer"));
+  assert.equal(manager.rejectReason, null);
+  // 全量清空后预算归零，可再次进满（不用 shutdown——它会永久关闭准入）。
+  for (let index = 0; index < 10; index++) {
+    await manager.teardown(`s-${index}`, "client-disconnect");
+    await manager.teardown("other-peer", "client-disconnect");
+    await manager.teardown("no-key", "client-disconnect");
+  }
+  await manager.teardown("s-successor", "client-disconnect");
+  assert.equal(manager.activeCount, 0);
+  for (let index = 0; index < 10; index++) {
+    assert.ok(manager.admit(`r-${index}`, async () => {}, "lan-peer"));
+  }
+  for (let index = 0; index < 10; index++) {
+    await manager.teardown(`r-${index}`, "client-disconnect");
+  }
+});
+
+test("global capacity exhaustion reports gateway-full, distinct from the per-peer cap", async () => {
+  const manager = new SessionManager();
+  for (let index = 0; index < manager.maxSessions; index++) {
+    assert.ok(manager.admit(String(index), async () => {}, `peer-${index}`));
+  }
+  assert.equal(manager.admit("overflow", async () => {}, "another-peer"), null);
+  assert.equal(manager.rejectReason, "gateway-full");
+  await manager.shutdown();
+});
