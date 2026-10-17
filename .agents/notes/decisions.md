@@ -51,7 +51,7 @@
 
 ## 待拍板
 
-- 上游式「复制服务器/频道链接」（?server=&channel=）是否补回（默认不做，做则放 more 面板守住 header 图标数）。
+- **样式级联 @layer 化立项**（报告 24）：四阶段方案，阶段 1「每分片一层、顺序照旧」可证明行为保持，附两项预期内结构增强（皮肤结构性胜出、reduced-motion 不再可被皮肤 !important 反杀）；总量 1-1.5 天当量。拍板范围：只做阶段 1 / 阶段 1+2 / 暂不。（「复制服务器/频道链接」已于 2026-10-17 拍板维持不做，移入下方拍板节。）
 
 ## 工作区 KAAK 对齐二轮不变量（2026-10-13 拍板并实施，`b5d403a…064ffc8`，跳过项补批 `7885065…62cd062`；细节见 history.md / 报告 17）
 
@@ -102,3 +102,12 @@
 - **WebRTC 远端候选地址策略（S1 落地，勿"收紧"）**：`webrtc-config.ts isAcceptableRemoteIceCandidate` 只拒环回/本网 0/链路本地（含云 metadata 169.254.169.254）/组播/保留段/非 IP 主机名（mDNS）/IPv4-mapped 与 ::dotted 变体；**RFC1918/CGNAT/公网单播/ULA 有意保留**——自托管 LAN 部署里合法浏览器的 host 候选就是私网地址，一并拒绝会让整条 WebRTC 路径静默退化到 WS 兼容传输。拦在 werift `iceFilterCandidatePair`（建对即拒、零出站包），rtp-lab 同钩子；`webrtc-config.test` 钉住全表。入站 STUN 反射已随 `iceFilterStunResponse` 关闭（清账批，只对带 MESSAGE-INTEGRITY 的请求回签名响应）。
 - **批次 4 语义口径（2026-10-17 落地，勿无意回改）**：S2——请求派生的 WebRTC 公共 host 只在 `trustProxy` 时采信转发头、且永不为它做 DNS 解析（管理员 publicHost 例外）；S3——单对端（IPv6 聚 /64）并发会话上限 10，超限关闭码 **4006 PEER_SESSION_LIMIT**，前端按终态处理（不烧重连预算）；S5——皮肤包/预览按字节令牌桶（满桶首下载恒放行是合法首次下载的保障，304 零计费），参数 24MiB/4MiB 桶 + 8MiB/分回填；F8——播放侧说话指示轮询 350ms 是边沿延迟与 getStats 频率的既定折中；F9——语言包按语言各自成 chunk，切换语言时保留旧包渲染到新包就绪（不闪键名）；L5——resume 票 attach 失败回落同连接重建而非 4001；S4 屏共信令内容校验评估后列条件重开（见下）。
 - **重连限流语义（F5 落地）**：429 不消耗 1/2/4 秒重连预算（独立上限 3 次，超限回落普通预算防无限重试），延迟取网关 `Retry-After`（加入票 429 现已带该头与 `retryAfterMs`）；浏览器侧重连延迟加 ±20% 抖动——群体重连共享限流键（同 NAT、反代漏设 TRUST_PROXY）不再同拍互踩。
+
+## 2026-10-17 二轮拍板（样式迁移开工 / F3 深度 / 复制链接 / rtp-lab）
+
+- **「复制服务器/频道链接」维持不做**（正式拍板，待拍板区清空）：自用 fork 价值有限；重开须用户明说。
+- **rtp-lab 保留**：默认关零运行时成本、S7+L4 已加固，是「听不到声音」类故障唯一的分段定位工具（诊断基建三件套之一）。
+- **F3 目录事件收敛=一级+二级落地**（评估见 reports/23）：一级——clientUpdated 走不了增量时并入 200ms 本地重建合并窗口（delta 相对窗口起点计算；其他目录事件 flush-at-top 保跨事件次序）；二级——成员已知+频道未变+无挂起窗口时走字段级增量补丁（members 与频道名册共享引用替换，通知未携带的字段按未变化跳过），每 50 次补丁拉一次全量 clientlist 校准漂移。**三级（跨会话共享目录）仍按报告 23 触发器待实测**。勿在窗口挂起期间打增量补丁（会与 flush 出重复 delta）。
+- **组件样式迁移批 1-3 解除暂缓并落地**（报告 22 §2.1 A 案）：配方章落在 21-components 顶部——支柱尺寸修饰 `.size-sm/md/lg`（30/36/44）+ web-client 版 `.secondary-button` 中性面 + `.ws-popup` 浮层配方（**:where(.ws-popup) 零特异性**，底/边=皮肤可染面 `--surface-1`+`--skin-border`，定位/宽度/z 阶梯仍归各面板）+ `.ws-menu-item` 菜单项基准（成员菜单规格）+ `.ws-icon-btn` 三档（28/32/36，逐类迁移待真机走查）。单点按钮类不删名，降级为「状态/布局修饰钩子」（whisper-ptt 的 active、cancel-connect 的居中、clear-local 的危险 hover 等）。**target-test-button 豁免**：实为 admin 命名空间子选择器规则（admin/08/10/11），按 §0 admin 豁免不迁。
+- **真浏览器抽查揪出两个潜伏死规则（勿回退）**：①`01-base` 的 `html[data-ws-route] button { font: inherit }`（0,1,1）长期压过裸类按钮规则的 font-size/weight——text-button 的 11px/600、primary 系 12px/700 对 button 元素一直是死值；已在配方章以 route-scoped（0,2,1）钉回。②同一 reset 的 `border: 0` 压掉 `.secondary-button` 描边；同法钉回。教训入红线：给裸类按钮规则加字体/描边，必须查 `font: inherit`/`border: 0` 两个基座 reset 的特异性。
+- **RTL 视图测试增厚起步**：join-header 部件钩子契约 + 支柱类名断言（`join-header.test.tsx`）；skin part 视觉基线重钉与移动端走查仍待真机。
