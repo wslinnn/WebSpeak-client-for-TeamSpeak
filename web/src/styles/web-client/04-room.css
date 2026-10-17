@@ -367,10 +367,8 @@
 
 /* 输入区焦点指示只留外层药丸（镜像 .field-wrap:focus-within，2026-10-14
    拍板的补遗）：全局 :focus-visible 的 outline 在圆角容器内部画成一圈
-   矩形。(0,3,1) 压过 12-join-card 的全局 (0,2,1)，不依赖分片导入顺序。 */
-.web-client .message-composer :is(input, textarea):focus-visible {
-  outline: none;
-}
+   矩形。输入内层的 focus-visible outline 由 21 号分片统一杀灭（w21 > w12，
+   本分片在 w04 已压不住 12 号的键盘焦点环——特异性不再跨层）。 */
 
 .message-composer:focus-within {
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--wsd-accent) 35%, transparent);

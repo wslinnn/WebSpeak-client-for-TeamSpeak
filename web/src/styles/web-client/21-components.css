@@ -701,3 +701,13 @@
     box-sizing: border-box;
   }
 }
+
+/* —— 输入内层焦点环统一杀灭（w21 > w04/w12，报告 24 阶段 2 同法迁层） ——
+ * 文字频道 composer 与首页 field-wrap 的焦点指示只留外层容器框
+ * （.message-composer/.field-wrap 的 :focus-within ring）；内层 input/textarea
+ * 若再画自己的 focus-visible outline 就是双框。杀灭规则必须住在晚于键盘焦点环
+ * （12 号，w12）的层里——特异性不跨层，留在 w04 的原版已被 12 号反压
+ * （2026-10-17 双框回归，用户手动点击取证：内层 outline 2px solid accent-55%）。 */
+.web-client .message-composer :is(input, textarea):focus-visible {
+  outline: none;
+}
