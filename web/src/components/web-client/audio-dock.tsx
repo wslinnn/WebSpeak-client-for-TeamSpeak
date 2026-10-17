@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useStore } from "zustand";
 
 import { Icon } from "./icon";
-import type { VoiceSessionController } from "@/voice/session-controller";
+import { MAX_INPUT_VOLUME, type VoiceSessionController } from "@/voice/session-controller";
 import { rangeStyle } from "@/web-client/view-utils";
 
 interface AudioDockModel {
@@ -149,10 +149,10 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
               className="dock-slider"
               type="range"
               min={0}
-              max={100}
+              max={MAX_INPUT_VOLUME * 100}
               step={5}
               value={model.inputVolume * 100}
-              style={rangeStyle(model.inputVolume, 1)}
+              style={rangeStyle(model.inputVolume, MAX_INPUT_VOLUME)}
               aria-label={t("inputVolume")}
               onChange={(event) => controls.onInputVolume({ target: event.target })}
             />

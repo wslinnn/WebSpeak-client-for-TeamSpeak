@@ -29,6 +29,10 @@ export type { ScreenShareStreamDescription as ScreenShareStream, ScreenShareView
 export type { ChannelMember, ChannelInfo, ChatMessage, ServerEvent, VoiceAudioBridgeStats } from "@shared/voice-models";
 export type { VoiceSessionSnapshot, PokeNotification } from "./session-state";
 
+/** 麦克风音量上限（2.0 = 200%/+6 dB）。>1 时上行脱离直连旁路、走处理图增益，
+ *  采集图的限幅器负责防削波。 */
+export const MAX_INPUT_VOLUME = 2;
+
 export interface VoiceState {
   connected: boolean;
   connecting: boolean;
@@ -501,7 +505,7 @@ export function createVoiceSessionController() {
       committedAutoGainControlEnabled = preferences.autoGainControlEnabled;
     }
     if (typeof preferences.voxThreshold === "number") next.voxThreshold = clamp(preferences.voxThreshold, 0.001, 0.08);
-    if (typeof preferences.inputGain === "number") next.inputVolume = Math.max(0, Math.min(1, preferences.inputGain));
+    if (typeof preferences.inputGain === "number") next.inputVolume = Math.max(0, Math.min(MAX_INPUT_VOLUME, preferences.inputGain));
     if (typeof preferences.outputVolume === "number") next.outputVolume = Math.max(0, Math.min(1, preferences.outputVolume));
     if (!outputDeviceTouched) {
       if (!V().selectedOutputDeviceId) next.selectedOutputDeviceId = preferences.preferredOutputDeviceId ?? "";
@@ -1657,7 +1661,7 @@ export function createVoiceSessionController() {
   }
 
   function setInputVolume(volume: number): void {
-    patch({ inputVolume: Math.max(0, Math.min(1, volume)) });
+    patch({ inputVolume: Math.max(0, Math.min(MAX_INPUT_VOLUME, volume)) });
     applyUplinkGate();
     applyUplinkRouting();
     void saveAudioPreferences();

@@ -58,6 +58,7 @@ export function createMicrophoneCaptureFactory() {
     let denoiser: RnnoiseWorkletNode | null = null;
     let destination: MediaStreamAudioDestinationNode | null = null;
     let gain: GainNode | null = null;
+    let limiter: DynamicsCompressorNode | null = null;
     let silent: GainNode | null = null;
     let worklet: AudioWorkletNode | null = null;
     let script: ScriptProcessorNode | null = null;
@@ -81,6 +82,7 @@ export function createMicrophoneCaptureFactory() {
       stopCapture();
       if (denoiser) { clean(() => denoiser!.destroy()); clean(() => denoiser!.disconnect()); }
       if (source) clean(() => source!.disconnect());
+      if (limiter) clean(() => limiter!.disconnect());
       if (accompanimentSource) clean(() => accompanimentSource!.disconnect());
       if (destination) {
         clean(() => destination!.disconnect());
@@ -123,7 +125,19 @@ export function createMicrophoneCaptureFactory() {
       gain = ctx.createGain();
       gain.gain.value = options.volume;
       processedSource.connect(gain);
-      gain.connect(destination);
+      // Chain limiter (threshold -1 dB, hard knee, 20:1): keeps >100% boost
+      // from hard-clipping the Opus/int16 paths. Below threshold it is
+      // effectively transparent and it never applies volume — gain stays the
+      // only volume stage on the uplink (voice.md 单增益铁律). The accompaniment
+      // tap still bypasses gain and limiter alike.
+      limiter = ctx.createDynamicsCompressor();
+      limiter.threshold.value = -1;
+      limiter.knee.value = 0;
+      limiter.ratio.value = 20;
+      limiter.attack.value = 0.001;
+      limiter.release.value = 0.12;
+      gain.connect(limiter);
+      limiter.connect(destination);
       silent = ctx.createGain();
       silent.gain.value = 0;
       if (supportsWorklet) {
@@ -147,7 +161,7 @@ export function createMicrophoneCaptureFactory() {
         script.onaudioprocess = event => onSamples(event.inputBuffer.getChannelData(0));
       }
       const capture = worklet ?? script!;
-      gain.connect(capture);
+      limiter.connect(capture);
       capture.connect(silent);
       silent.connect(ctx.destination);
       assertCurrent();

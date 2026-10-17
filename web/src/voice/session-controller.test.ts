@@ -6,6 +6,7 @@
 import assert from "node:assert/strict";
 import { setImmediate as nextTurn } from "node:timers/promises";
 import { afterEach, beforeEach, test, vi } from "vitest";
+import type { LocalPreferences } from "../services/local-persistence";
 import { createVoiceSessionController, type VoiceSessionController } from "./session-controller";
 import {
   AudioContextStub,
@@ -36,6 +37,24 @@ import {
 // Defer to wave 2: chat ack pipeline, audio devices, accompaniment, mic test,
 // playback decoders, WebRTC negotiation, screen-share signaling details.
 
+// 偏好持久化在 node 测试环境无 IndexedDB：换内存桩，让「存→新控制器取」的
+// 偏好往返（如 >100% 麦克风增益恢复）可测；其余导出保持原实现。
+const preferenceStore = vi.hoisted(() => ({ current: undefined as LocalPreferences | undefined }));
+vi.mock("../services/local-persistence", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/local-persistence")>();
+  type Preferences = Parameters<typeof actual.saveLocalPreferences>[0];
+  return {
+    ...actual,
+    async loadLocalPreferences(): Promise<Preferences> {
+      return preferenceStore.current ?? { schemaVersion: 1, volumesByUid: {} };
+    },
+    async saveLocalPreferences(preferences: Preferences): Promise<void> {
+      const base = preferenceStore.current ?? { schemaVersion: 1, volumesByUid: {} };
+      preferenceStore.current = { ...base, ...preferences, volumesByUid: { ...base.volumesByUid, ...preferences.volumesByUid } };
+    },
+  };
+});
+
 let voice: VoiceSessionController;
 
 const V = () => voice.view();
@@ -43,6 +62,7 @@ const S = () => voice.session.store.getState();
 
 beforeEach(() => {
   installVoiceStubs();
+  preferenceStore.current = undefined;
   voice = createVoiceSessionController();
 });
 
@@ -585,6 +605,28 @@ test("a rate-limited reconnect honours Retry-After without burning the reconnect
     vi.useRealTimers();
   }
   void AudioContextStub;
+});
+
+test("input volume boosts to 200% with clamps and survives the preference round-trip", async () => {
+  voice.setInputVolume(1.5);
+  assert.equal(V().inputVolume, 1.5);
+  voice.setInputVolume(3);
+  assert.equal(V().inputVolume, 2, "boost clamps at the 200% ceiling");
+  voice.setInputVolume(-1);
+  assert.equal(V().inputVolume, 0);
+
+  // 存/取往返：>100% 的增益持久化后原样恢复，不得被钳回 100%（麦克风音量增强）。
+  voice.setInputVolume(1.5);
+  await nextTurn();
+  await nextTurn();
+  const second = createVoiceSessionController();
+  try {
+    await nextTurn();
+    await nextTurn();
+    assert.equal(second.view().inputVolume, 1.5, "a stored >100% gain restores as-is");
+  } finally {
+    second.disconnect();
+  }
 });
 
 // --- Wave 2A: device switching, processing toggles, enumeration fallbacks ---

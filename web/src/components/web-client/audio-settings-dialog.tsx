@@ -4,7 +4,7 @@ import { useStore } from "zustand";
 import { Icon } from "./icon";
 import { useDialogFocus } from "@/web-client/use-dialog-focus";
 import type { AudioControls } from "@/web-client/audio-controls";
-import type { VoiceSessionController } from "@/voice/session-controller";
+import { MAX_INPUT_VOLUME, type VoiceSessionController } from "@/voice/session-controller";
 import { rangeStyle } from "@/web-client/view-utils";
 
 export interface AudioSettingsModel {
@@ -184,10 +184,10 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
                 className="settings-range"
                 type="range"
                 min={0}
-                max={100}
+                max={MAX_INPUT_VOLUME * 100}
                 step={5}
                 value={model.inputVolume * 100}
-                style={rangeStyle(model.inputVolume, 1)}
+                style={rangeStyle(model.inputVolume, MAX_INPUT_VOLUME)}
                 aria-label={t("inputVolume")}
                 onChange={(event) => controls.onInputVolume({ target: event.target as HTMLInputElement })}
               /><div className="settings-range-row"

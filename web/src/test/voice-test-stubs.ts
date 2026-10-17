@@ -128,6 +128,13 @@ export class AudioContextStub extends EventTarget {
     return node;
   }
   createGain() { const node = new AudioNodeStub(); AudioContextStub.gains.push(node); return node; }
+  createDynamicsCompressor() {
+    // 参数面与真实 DynamicsCompressorNode 对齐：mic-capture 只读写 .value。
+    return Object.assign(new AudioNodeStub(), {
+      threshold: { value: -24 }, knee: { value: 30 }, ratio: { value: 12 },
+      attack: { value: 0.003 }, release: { value: 0.25 }, reduction: 0,
+    });
+  }
   createAnalyser() {
     // Silent by default: the multi-track playback polls each slot analyser
     // for speaking detection, and empty samples keep every slot quiet.
