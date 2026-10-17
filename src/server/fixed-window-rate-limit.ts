@@ -1,5 +1,5 @@
 const WINDOW_MS = 60 * 1000;
-const DEFAULT_MAX_DOWNLOADS = 10;
+const DEFAULT_MAX_REQUESTS = 10;
 
 interface PeerWindow {
   startedAt: number;
@@ -7,15 +7,15 @@ interface PeerWindow {
 }
 
 /**
- * Bounds skin archive downloads (each up to 20 MB, minutes of airtime on a
- * 3 Mbit/s uplink) so one peer cannot monopolize the gateway's egress by
- * re-fetching packages in a loop. The window quota is configurable because
- * avatar fetches are the same shape but burst N-at-once per page load.
+ * Per-peer fixed-window request budget, shared by the unauthenticated bulk
+ * endpoints whose payloads are either tiny (avatar bytes) or expensive per
+ * hit (RTP-lab offers each spin up a peer connection with native Opus
+ * encoders). Byte-shaped payloads use ByteBucketRateLimiter instead.
  */
-export class SkinDownloadRateLimiter {
+export class FixedWindowRateLimiter {
   private readonly peers = new Map<string, PeerWindow>();
 
-  constructor(private readonly maxTrackedPeers = 1024, private readonly maxDownloads = DEFAULT_MAX_DOWNLOADS) {}
+  constructor(private readonly maxTrackedPeers = 1024, private readonly maxRequests = DEFAULT_MAX_REQUESTS) {}
 
   allow(peer: string, now = Date.now()): boolean {
     const current = this.peers.get(peer);
@@ -29,7 +29,7 @@ export class SkinDownloadRateLimiter {
       this.peers.set(peer, { startedAt: now, requests: 1 });
       return true;
     }
-    if (current.requests >= this.maxDownloads) return false;
+    if (current.requests >= this.maxRequests) return false;
     current.requests += 1;
     return true;
   }

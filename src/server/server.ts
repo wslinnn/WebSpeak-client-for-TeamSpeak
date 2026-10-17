@@ -18,7 +18,8 @@ import { AdminSessionStore } from "../admin/admin-session.js";
 import { isSafeOpenTargetForPrefill, resolveSafeOpenTarget } from "../security/open-target-policy.js";
 import { identityFromString } from "@echosixhiya/teamspeak-client";
 import { JoinRateLimiter } from "./join-rate-limit.js";
-import { SkinDownloadRateLimiter } from "./skin-download-rate-limit.js";
+import { ByteBucketRateLimiter } from "./byte-bucket-rate-limit.js";
+import { FixedWindowRateLimiter } from "./fixed-window-rate-limit.js";
 import { rateLimitPeerKey, resolveClientAddress } from "./client-ip.js";
 import { createProxyHint } from "./proxy-hint.js";
 import type { ServerPasswordGuard } from "./server-password-guard.js";
@@ -139,11 +140,14 @@ export function createWebServer(options: WebServerOptions): WebServer {
   const voiceBridge = new VoiceBridge(options.voiceBridgeOptions, logger);
   const adminSessions = new AdminSessionStore();
   const joinRateLimiter = new JoinRateLimiter();
-  const skinDownloadLimiter = new SkinDownloadRateLimiter();
-  const skinPreviewLimiter = new SkinDownloadRateLimiter();
+  // S5（报告 21）：皮肤包/预览按字节记账（满桶首下载恒放行，持续回填 8MiB/分
+  // ≈ 1.1Mbps，把单对端压到 3Mbps 上行的公平份额）；桶容量覆盖单包 20MiB 上限。
+  const skinPackageLimiter = new ByteBucketRateLimiter(24 * 1024 * 1024, 8 * 1024 * 1024);
+  const skinPreviewLimiter = new ByteBucketRateLimiter(4 * 1024 * 1024, 8 * 1024 * 1024);
   // A page fetches one avatar per roster member on first sight; the window
-  // quota covers the 100-session roster burst with room for reloads.
-  const avatarLimiter = new SkinDownloadRateLimiter(1024, 240);
+  // quota covers the 100-session roster burst with room for reloads. Avatars
+  // are tiny, so a per-request count still bounds them fairly.
+  const avatarLimiter = new FixedWindowRateLimiter(1024, 240);
   const startedAt = Date.now();
   // Limiter key for a request: the client IP when trust proxy is configured,
   // otherwise the socket address, aggregated to a /64 for IPv6.
@@ -214,11 +218,8 @@ export function createWebServer(options: WebServerOptions): WebServer {
   app.get("/api/skins/:id/package", async (request, response) => {
     const id = typeof request.params.id === "string" ? request.params.id : "";
     // Skins are unauthenticated downloads of up to 20 MB; without a per-peer
-    // bound a looping client monopolizes the 3 Mbit/s uplink for minutes.
-    if (!skinDownloadLimiter.allow(peerKey(request))) {
-      response.status(429).json({ ok: false, code: "RATE_LIMITED" });
-      return;
-    }
+    // byte budget a looping client monopolizes the 3 Mbit/s uplink for minutes
+    // (报告 21 S5: count-based limiting let 10×20MiB/min ≈ 27Mbps through).
     const archive = await options.skinRegistry?.readArchive(id);
     if (!archive) {
       response.status(404).json({ ok: false, code: "SKIN_NOT_FOUND" });
@@ -228,9 +229,21 @@ export function createWebServer(options: WebServerOptions): WebServer {
     // it, so browsers may revalidate with the content hash instead of paying
     // for the full download again.
     const etag = `"${createHash("sha256").update(archive).digest("hex").slice(0, 32)}"`;
+    const revalidated = request.headers["if-none-match"] === etag;
+    // A 304 answer is a few hundred bytes and must stay free, or legit caching
+    // clients would burn their budget on revalidations.
+    if (!revalidated) {
+      const peer = peerKey(request);
+      if (!skinPackageLimiter.allow(peer, archive.length)) {
+        const retryAfterMs = skinPackageLimiter.blockedForMs(peer, archive.length);
+        response.setHeader("Retry-After", String(Math.max(1, Math.ceil(retryAfterMs / 1000))));
+        response.status(429).json({ ok: false, code: "RATE_LIMITED", retryAfterMs });
+        return;
+      }
+    }
     response.setHeader("Cache-Control", "public, max-age=300");
     response.setHeader("ETag", etag);
-    if (request.headers["if-none-match"] === etag) {
+    if (revalidated) {
       response.status(304).end();
       return;
     }
@@ -243,15 +256,17 @@ export function createWebServer(options: WebServerOptions): WebServer {
   app.get("/api/skins/:id/preview", async (request, response) => {
     const id = typeof request.params.id === "string" ? request.params.id : "";
     // Previews are unauthenticated images up to the per-file skin asset cap;
-    // bound them like packages so a looping client cannot monopolize the
-    // 3 Mbit/s uplink either.
-    if (!skinPreviewLimiter.allow(peerKey(request))) {
-      response.status(429).json({ ok: false, code: "RATE_LIMITED" });
-      return;
-    }
+    // bound them by bytes like packages (报告 21 S5).
     const preview = await options.skinRegistry?.readPreview(id);
     if (!preview) {
       response.status(404).end();
+      return;
+    }
+    const peer = peerKey(request);
+    if (!skinPreviewLimiter.allow(peer, preview.bytes.length)) {
+      const retryAfterMs = skinPreviewLimiter.blockedForMs(peer, preview.bytes.length);
+      response.setHeader("Retry-After", String(Math.max(1, Math.ceil(retryAfterMs / 1000))));
+      response.status(429).json({ ok: false, code: "RATE_LIMITED", retryAfterMs });
       return;
     }
     response.setHeader("Cache-Control", "public, max-age=300");
