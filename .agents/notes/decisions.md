@@ -94,3 +94,9 @@
 - **聊天列=舞台色**：≥981 聊天列背景 `--wsd-bg`（KAAK 明度关系：聊天与舞台同色、成员面板独立一档、rail 最深）；与舞台间 1px 分隔线保留。
 - **成员行右列叠放**：≥981 行为 grid 三列（22px / minmax(0,1fr) / auto），状态旗标与音量滑杆同格叠放——默认旗标、hover/focus-within 交叉淡入滑杆；触屏（hover:none）滑杆常驻旗标让位。行 min-height 29px、头像缩进与频道名对齐（padding-left 20px）勿动。
 - **头部两行制分隔线在 meta 行下**（KAAK divider 位于名称行+meta 行整体之后），勿移回名称行下。
+
+## 2026-10-17 拍板（样式统一节奏 / 浮层 token 口径 / 远端候选策略 / 重连限流语义）
+
+- **浮层 token 口径 = 皮肤可染面**：同类浮层（switcher 下拉/右键菜单/dock 悬浮卡/性能面板）未来统一为 `.ws-popup` 配方时，底/边挂 `--surface-*`+`--skin-border`（自定义皮肤可染），不挂固定的 `--wsd-*`——与 16/15 号分片的 dock/性能面板现状一致。**组件样式迁移（报告 22 §2.2 批 1-3）整体暂缓未开工**，批次表与红线仍然有效，开工时按此口径执行。
+- **WebRTC 远端候选地址策略（S1 落地，勿"收紧"）**：`webrtc-config.ts isAcceptableRemoteIceCandidate` 只拒环回/本网 0/链路本地（含云 metadata 169.254.169.254）/组播/保留段/非 IP 主机名（mDNS）/IPv4-mapped 与 ::dotted 变体；**RFC1918/CGNAT/公网单播/ULA 有意保留**——自托管 LAN 部署里合法浏览器的 host 候选就是私网地址，一并拒绝会让整条 WebRTC 路径静默退化到 WS 兼容传输。拦在 werift `iceFilterCandidatePair`（建对即拒、零出站包），rtp-lab 同钩子；`webrtc-config.test` 钉住全表。入站 STUN 反射（`iceFilterStunResponse`）未做，仍开放。
+- **重连限流语义（F5 落地）**：429 不消耗 1/2/4 秒重连预算（独立上限 3 次，超限回落普通预算防无限重试），延迟取网关 `Retry-After`（加入票 429 现已带该头与 `retryAfterMs`）；浏览器侧重连延迟加 ±20% 抖动——群体重连共享限流键（同 NAT、反代漏设 TRUST_PROXY）不再同拍互踩。
