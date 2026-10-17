@@ -52,6 +52,8 @@ npm --prefix web ci --no-audit --no-fund
 - JSX/CSS 格式化改动与行为改动分开。
 - 浮层层级必须取 `--ws-z-*` 阶梯变量（web-client.css 顶部定义，admin.css 同值副本：raised 10 / header 100 / dropdown 200 / menu-mask 300 / menu 310 / modal-mask 400 / toast 500），禁止裸 z-index 数字——header 曾硬编码 z-index:40 压在弹窗遮罩上；`isolation: isolate` 容器内部的 1/2/3 局部小阶梯除外。
 - web-client 样式已 @layer 化（报告 24 方案，2026-10-17 落地）：`web-client.css` manifest 每条 `@import` 挂 `layer(wNN-主题)`，层序=导入序=顶部声明语句序（`web-client-manifest.test.ts` 钉住结构，新增分片必须同步层名）。级联裁决靠层序不靠特异性：**后层胜前层，特异性只在同层内裁决**；未分层规则（皮肤运行时注入）无条件胜过所有层；分层 `!important` 强于未分层 `!important`——15 处应用侧锁（reduced-motion 无障碍、小屏定位/几何/交互锁、权限状态语义色）对皮肤结构性生效。要在早层规则之上生效：落更晚的层（web-client-mobile=w22 恒最后）或把规则迁入目标分片的层（如语言变体字排自 16 号迁 21 号），**抬特异性跨层无效**。
+- **important 锁单源化**（报告 26，2026-10-18 起）：层化后跨层 important 按**早层胜**裁决——同一元素族的重要锁若散居多层，早层锁会静默压掉晚层锁（曾致 ≤740 成员面板开关整体失效）。同一锁面只允许住在一层；新增 important 锁前先跑 `reports/layer-tools/layer-conflict-scan.mjs` 查互撞；互撞修法=晚层合并（同层内特异性/顺序裁决）或删除早层锁，**`:where()` 降级只适用同层**（跨层时 (0,0,0) 照样被晚层赢）。状态限定优先用 `:not()`/类切换而非多把锁。
+- **冒烟门禁**（2026-10-18 起）：每批 UI 改动推送前先过门禁——`web:build` 后沙箱网关实测，**先核对浏览器实载 JS 产物文件名与本地构建一致**（防测到旧进程/旧缓存），再跑 4 视口档（1280/1000/760/390）×日夜间×首页/进房的手摆 DOM 探针（getComputedStyle）与走查，全绿才推。部署后靠用户回报是欠债回路；房间态真机走查（真实 TS 会话）仍是门禁盲区，部署侧需顺带看一眼。
 - 皮肤命名空间约束：`.ws-skin-root` 的 `data-ws-skin` 是自定义皮肤 CSS 的作用域锚点（内置皮肤样式按 `[data-ws-skin="builtin.*"]` 高特异性命中），皮肤激活后任何 `applyTheme/saveTheme` 都必须传 `preserveCustomSkins: true`，否则属性被刷回内置皮肤、自定义皮肤整体失效且刷新后才恢复——皮肤切换失效 bug 的根因；社区皮肤的 CSS 是未分层 `<style>`，**结构性强于全部分层应用样式**（不再依赖注入次序，@layer 化后由级联结构保证），注入位置仍勿动（清理/复用逻辑依赖 ID 与次序）。
 - 频道/成员等状态变更命令一律走应答式 `sendCommandAndWait` 并在失败时回滚本地乐观状态（错误对象携带 `code` 供分支处理）——`switchChannel` 曾因 fire-and-forget 导致界面漂移到未进入的频道且无任何提示。
 - 皮肤开发遵循 `docs/SKIN_DEVELOPMENT.md` 与 `.agents/skills/webspeak-skin-development` 技能。
