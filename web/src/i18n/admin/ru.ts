@@ -103,7 +103,7 @@ export const ruCopy = {
   inviteCreatedEvent: "Приглашение создано",
   inviteRevokedEvent: "Приглашение отозвано",
   inviteConsumedEvent: "Приглашение использовано",
-  invalidWebRtcPortRangeError: "Диапазон UDP-портов WebRTC некорректен. Используйте 1024–65535; начальный порт не может быть больше конечного.",
+  invalidWebRtcPortRangeError: "Диапазон UDP-портов WebRTC некорректен. Используйте 1024–65535; начальный порт не может быть больше конечного, а диапазон должен охватывать минимум 200 портов (100 сессий × 2 на сессию).",
   webRtcPortLockedError: "WebRTC включён. Сначала отключите его и сохраните настройки, затем изменяйте диапазон портов.",
   invalidTargetError: "Некорректный адрес сервера TeamSpeak.",
   icmpUnavailableError: "В текущей среде выполнения недоступна утилита ICMP ping.",

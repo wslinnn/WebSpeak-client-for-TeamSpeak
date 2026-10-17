@@ -26,7 +26,7 @@ export const zhCopy = {
     inviteCreatedEvent: "邀请已创建",
     inviteRevokedEvent: "邀请已撤销",
     inviteConsumedEvent: "邀请已使用",
-    invalidWebRtcPortRangeError: "WebRTC UDP 端口范围无效，请填写 1024–65535 且起始端口不能大于结束端口。",
+    invalidWebRtcPortRangeError: "WebRTC UDP 端口范围无效：需在 1024–65535 内、起始端口不大于结束端口，且跨度至少 200 个端口（100 会话 × 每会话 2 个）。",
     webRtcPortLockedError: "WebRTC 已开启，请先关闭并保存后再修改端口范围。",
     invalidTargetError: "TeamSpeak 服务器地址格式无效。",
     icmpUnavailableError: "当前运行环境没有可用的 ICMP Ping 工具。",

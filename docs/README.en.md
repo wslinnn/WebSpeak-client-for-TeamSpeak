@@ -57,7 +57,7 @@ These features are optional. WebSpeak continues to work with the compatibility v
 WebRTC moves browser voice to a realtime media path and also enables desktop accompaniment. The current WebSpeak gateway provides it directly; no separate media server is required.
 
 1. Sign in at `/admin` and open **Advanced settings** on the **Servers** page.
-2. While WebRTC is disabled, choose the UDP start and end ports. The default range is `40000–40099`.
+2. While WebRTC is disabled, choose the UDP start and end ports. The default range is `40000–41999`.
 3. Allow the complete UDP range in the WebSpeak host's security group and firewall.
 4. Enable **WebRTC** and save. New visitors will negotiate WebRTC; unsupported browsers and networks fall back to the compatibility transport.
 
@@ -187,7 +187,7 @@ Building `@discordjs/opus` requires Python, Make, and a C/C++ toolchain.
 | TeamSpeak network | The WebSpeak host must reach the target TeamSpeak server; the default voice port is `9987`. |
 | Web network | The service uses `3040/TCP`; public deployments should expose the page and WebSocket through an HTTPS reverse proxy. |
 | IPv6 | Write literal targets as `[2001:db8::1]#9987`. The host/container needs routed IPv6, IPv6 enabled in the OS and Node.js, and the relevant firewall rules. |
-| WebRTC | The default range is `40000–40099/UDP`; allow it and disable WebRTC before changing the range. |
+| WebRTC | The default range is `40000–41999/UDP`; allow it and disable WebRTC before changing the range. |
 | Remembered identity | One browser identity can hold one active remembered connection. Disable it for parallel connections or use another browser profile. |
 | Accompaniment | Desktop only and requires WebRTC. Enable audio sharing when selecting a window or tab. |
 | Data | Docker data is in `webspeak-data`; release packages and source installs use `data/`. Back up before upgrades. |

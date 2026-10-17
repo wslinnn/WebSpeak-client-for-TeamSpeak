@@ -103,7 +103,7 @@ export const jaCopy = {
   inviteCreatedEvent: "招待が作成されました",
   inviteRevokedEvent: "招待が取り消されました",
   inviteConsumedEvent: "招待が使用されました",
-  invalidWebRtcPortRangeError: "WebRTC UDP ポート範囲が正しくありません。1024–65535 の範囲で、開始ポートを終了ポート以下にしてください。",
+  invalidWebRtcPortRangeError: "WebRTC UDP ポート範囲が正しくありません。1024–65535 の範囲で、開始ポートを終了ポート以下にし、少なくとも 200 ポート（100 セッション × 2 ポート）を確保してください。",
   webRtcPortLockedError: "WebRTC が有効です。ポート範囲を変更する前に無効にして保存してください。",
   invalidTargetError: "TeamSpeak サーバーのアドレス形式が正しくありません。",
   icmpUnavailableError: "現在の実行環境では ICMP Ping ツールを利用できません。",

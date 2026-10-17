@@ -15,7 +15,7 @@ import { probeTeamSpeak, TeamSpeakProbeError } from "../server/teamspeak-probe.j
 import { pingTeamSpeakHost } from "../server/network-probe.js";
 import { normalizeVoiceMediaHost, normalizeVoiceStunServer } from "../shared/voice-ice.js";
 import type { WebRtcAudioOptions } from "../server/webrtc-audio.js";
-import { DEFAULT_WEBRTC_UDP_PORT_RANGE, WEBRTC_UDP_PORT_MAX, WEBRTC_UDP_PORT_MIN } from "../server/webrtc-config.js";
+import { DEFAULT_WEBRTC_UDP_PORT_RANGE, MIN_WEBRTC_UDP_PORT_RANGE_PORTS, WEBRTC_UDP_PORT_MAX, WEBRTC_UDP_PORT_MIN } from "../server/webrtc-config.js";
 import { DEFAULT_WELCOME_TEXTS, resolveWelcomeTexts } from "../site-copy.js";
 
 export interface ConnectionPolicy {
@@ -285,6 +285,15 @@ export class AdminService {
     }
     if (webRtcUdpStart > webRtcUdpEnd) {
       throw new AdminInputError("INVALID_WEBRTC_PORT_RANGE", "WebRTC UDP start port must not exceed the end port");
+    }
+    // 跨度校验只在「本次真的改了范围」时执行：已存在的窄范围沿用不阻塞其它设置保存，
+    // 但不再允许把范围改到低于会话上限可承载的跨度（报告 21 F2）。
+    const rangeChanged = webRtcUdpStart !== current.webRtcUdpStart || webRtcUdpEnd !== current.webRtcUdpEnd;
+    if (rangeChanged && webRtcUdpEnd - webRtcUdpStart + 1 < MIN_WEBRTC_UDP_PORT_RANGE_PORTS) {
+      throw new AdminInputError(
+        "INVALID_WEBRTC_PORT_RANGE",
+        `WebRTC UDP port range must span at least ${MIN_WEBRTC_UDP_PORT_RANGE_PORTS} ports (sessions x sockets per session)`,
+      );
     }
     if (current.webRtcEnabled && (webRtcUdpStart !== current.webRtcUdpStart || webRtcUdpEnd !== current.webRtcUdpEnd)) {
       throw new AdminInputError("WEBRTC_PORT_LOCKED", "Disable WebRTC and save before changing its UDP port range");

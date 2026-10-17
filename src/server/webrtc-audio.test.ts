@@ -3,7 +3,19 @@ import test from "node:test";
 import { createSocket } from "node:dgram";
 import pino from "pino";
 import { RTCPeerConnection, MediaStreamTrack, useOPUS, usePCMU, type RtpPacket } from "werift";
-import { pinOpusCodecParameters, WebRtcAudioSession, type WebRtcAudioStats } from "./webrtc-audio.js";
+import type { Logger } from "../logger.js";
+import { countIceCandidates, pinOpusCodecParameters, WebRtcAudioSession, type WebRtcAudioStats } from "./webrtc-audio.js";
+
+function recordingLogger() {
+  const warnings: Array<{ payload: Record<string, unknown>; message: string }> = [];
+  const logger = {
+    debug() {}, info() {},
+    warn(payload: Record<string, unknown>, message: string) { warnings.push({ payload, message }); },
+    error() {},
+    child() { return logger; },
+  } as unknown as Logger;
+  return { logger, warnings };
+}
 
 function sessionOptions(overrides: Partial<ConstructorParameters<typeof WebRtcAudioSession>[0]> = {}) {
   return {
@@ -255,4 +267,45 @@ test("codec parameter pinning merges browser parameters and overrides conflictin
   assert.equal(pinOpusCodecParameters("minptime=10;useinbandfec=1;maxaveragebitrate=32000;usedtx=1"), "minptime=10;useinbandfec=1;maxaveragebitrate=60000;usedtx=0");
   assert.equal(pinOpusCodecParameters(undefined), "maxaveragebitrate=60000;usedtx=0");
   assert.equal(pinOpusCodecParameters(""), "maxaveragebitrate=60000;usedtx=0");
+});
+
+test("countIceCandidates reads a=candidate lines regardless of line endings", () => {
+  const sdp = "v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\na=candidate:1 1 UDP 2122252543 192.168.1.10 40000 typ host\r\na=candidate:2 1 UDP 2122252543 127.0.0.1 40001 typ host\r\n";
+  assert.equal(countIceCandidates(sdp), 2);
+  assert.equal(countIceCandidates("v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n"), 0);
+});
+
+test("an answer without ICE candidates raises a warning naming the port range", async t => {
+  const { logger, warnings } = recordingLogger();
+  const session = new WebRtcAudioSession(sessionOptions({ connectionId: "no-candidates", logger, udpPortRange: [40000, 41999] }));
+  const source = new RTCPeerConnection({ iceServers: [], codecs: { audio: [useOPUS()] } });
+  t.after(async () => { await session.close(); await source.close(); });
+  source.addTransceiver("audio", { direction: "sendrecv" });
+  const offer = await source.createOffer();
+  // 模拟「每块地址都拿不到端口」：werift 的收集失败被逐地址吞掉后，answer 没有任何候选。
+  Object.defineProperty(session.peer, "localDescription", {
+    value: { type: "answer", sdp: "v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n" },
+    configurable: true,
+  });
+  try {
+    const answer = await session.createAnswer({ type: "offer", sdp: offer.sdp });
+    assert.equal(countIceCandidates(answer.sdp), 0);
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0]!.message, /no ICE candidates/);
+    assert.deepEqual(warnings[0]!.payload.portRange, [40000, 41999]);
+  } finally {
+    delete (session.peer as unknown as Record<string, unknown>).localDescription;
+  }
+});
+
+test("a normally negotiated answer carries ICE candidates and does not warn", async t => {
+  const { logger, warnings } = recordingLogger();
+  const session = new WebRtcAudioSession(sessionOptions({ connectionId: "normal", logger }));
+  const source = new RTCPeerConnection({ iceServers: [], codecs: { audio: [useOPUS()] } });
+  t.after(async () => { await session.close(); await source.close(); });
+  source.addTransceiver("audio", { direction: "sendrecv" });
+  const offer = await source.createOffer();
+  const answer = await session.createAnswer({ type: "offer", sdp: offer.sdp });
+  assert.ok(countIceCandidates(answer.sdp) > 0);
+  assert.equal(warnings.length, 0);
 });

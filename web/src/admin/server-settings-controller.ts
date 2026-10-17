@@ -47,7 +47,7 @@ export function emptyServerForm(): ServerForm {
   return {
     address: "", port: "9987", serverPassword: "", passwordAction: "keep", hasPassword: false,
     accessMode: "fixed", siteName: "WebSpeak", welcomeText: "", welcomeTextEn: "", welcomeTextDe: "", welcomeTextRu: "", welcomeTextJa: "",
-    welcomeDefaults: { ...DEFAULT_WELCOME_TEXTS }, webRtcPublicHost: "", webRtcIpv6Enabled: false, webRtcStunServer: "", webRtcEnabled: false, webRtcUdpStart: 40000, webRtcUdpEnd: 40099,
+    welcomeDefaults: { ...DEFAULT_WELCOME_TEXTS }, webRtcPublicHost: "", webRtcIpv6Enabled: false, webRtcStunServer: "", webRtcEnabled: false, webRtcUdpStart: 40000, webRtcUdpEnd: 41999,
     lastTestAt: null, lastTestLatencyMs: null,
   };
 }

@@ -73,7 +73,7 @@ export const deCopy = {
   inviteCreatedEvent: "Einladung erstellt",
   inviteRevokedEvent: "Einladung widerrufen",
   inviteConsumedEvent: "Einladung verwendet",
-  invalidWebRtcPortRangeError: "Der WebRTC-UDP-Portbereich ist ungültig. Verwende 1024–65535; der Startport darf nicht größer als der Endport sein.",
+  invalidWebRtcPortRangeError: "Der WebRTC-UDP-Portbereich ist ungültig. Verwende 1024–65535; der Startport darf nicht größer als der Endport sein, und der Bereich muss mindestens 200 Ports umfassen (100 Sitzungen × 2 pro Sitzung).",
   webRtcPortLockedError: "WebRTC ist aktiviert. Deaktiviere es und speichere zuerst, bevor du den Portbereich änderst.",
   invalidTargetError: "Die TeamSpeak-Serveradresse ist ungültig.",
   icmpUnavailableError: "In der Laufzeitumgebung ist kein ICMP-Ping-Tool verfügbar.",

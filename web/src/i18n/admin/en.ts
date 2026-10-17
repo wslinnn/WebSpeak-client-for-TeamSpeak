@@ -26,7 +26,7 @@ export const enCopy = {
     inviteCreatedEvent: "Invite created",
     inviteRevokedEvent: "Invite revoked",
     inviteConsumedEvent: "Invite used",
-    invalidWebRtcPortRangeError: "The WebRTC UDP port range is invalid. Use 1024–65535 with the start no greater than the end.",
+    invalidWebRtcPortRangeError: "The WebRTC UDP port range is invalid. Use 1024–65535 with the start no greater than the end, and span at least 200 ports (100 sessions × 2 per session).",
     webRtcPortLockedError: "WebRTC is enabled. Turn it off and save before changing the port range.",
     invalidTargetError: "The TeamSpeak server address is invalid.",
     icmpUnavailableError: "The runtime does not provide an ICMP ping tool.",

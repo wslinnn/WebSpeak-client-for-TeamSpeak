@@ -26,6 +26,17 @@ const DEFAULT_WEBRTC_OPUS_PAYLOAD_TYPE = 111;
 // speakers than slots the least recently active voice stream stops.
 const MAX_DOWNSTREAM_SLOTS = 16;
 
+/** Local ICE candidates in an answer SDP. werift fills `media.iceCandidates`
+ *  from the gathered transports, so a count of zero means gathering produced
+ *  nothing: port-range exhaustion, address filtering or a bind failure — each
+ *  of which silently degrades the session to the compatibility transport
+ *  (报告 21 F2). Exported for tests. */
+export function countIceCandidates(sdp: string): number {
+  let count = 0;
+  for (const line of sdp.split("\n")) if (line.startsWith("a=candidate:")) count += 1;
+  return count;
+}
+
 // WebRTC is served by the WebSpeak process itself. The default range is also
 // published by the bundled Docker Compose file; advanced administrators can
 // change it in the admin console before enabling WebRTC.
@@ -90,6 +101,7 @@ interface DownstreamSlot {
 export class WebRtcAudioSession {
   readonly peer: RTCPeerConnection;
   private readonly logger: LoggerType;
+  private readonly udpPortRange: [number, number];
   private readonly onVoiceFrame: (data: Buffer, codec: 4 | 5) => void;
   private readonly onVoiceRoutes: (slots: readonly number[]) => void;
   private readonly uplink: ReturnType<RTCPeerConnection["addTransceiver"]>;
@@ -131,6 +143,7 @@ export class WebRtcAudioSession {
 
     const iceAdditionalHostAddresses = options.publicAddresses ?? (options.publicHost ? [options.publicHost] : undefined);
     const udpPortRange = options.udpPortRange ?? WEBRTC_UDP_PORT_RANGE;
+    this.udpPortRange = udpPortRange;
     this.peer = new RTCPeerConnection({
       // Both audio routes carry Opus; accepting PCMU would label Opus output
       // as another codec and silently discard the peer's incoming audio.
@@ -244,6 +257,15 @@ export class WebRtcAudioSession {
     const description = this.peer.localDescription;
     if (!description) throw new Error("WebRTC answer was not created");
     if (description.type !== "answer" && description.type !== "offer") throw new Error("Unexpected WebRTC answer type");
+    // 候选量为零不是「稍后补齐」：werift 在 setLocalDescription 里已完成收集，answer
+    // 就是浏览器唯一能拿到的候选来源。werift 对拿不到端口的地址只写 debug 日志，这里
+    // 把它转成可观测告警，避免静默回退兼容传输而无从排查（报告 21 F2）。
+    if (countIceCandidates(description.sdp) === 0) {
+      // connectionId 已由 logger 的 child 绑定携带。
+      this.logger.warn({
+        portRange: this.udpPortRange,
+      }, "WebRTC answer carries no ICE candidates; check the UDP port range, address bindings and firewall");
+    }
     return { type: description.type, sdp: description.sdp };
   }
 
