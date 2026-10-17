@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 
 import { Icon } from "./icon";
@@ -42,6 +44,73 @@ interface AudioDockProps {
   onShareSettings(): void;
   /** status 位渲染性能面板触发器（旧 #status slot 平价）。 */
   children?: ReactNode;
+}
+
+const CLOSE_DELAY_MS = 80;
+
+/* 坞内悬浮控件：面板 portal 到 .web-client 根并以 fixed 锚定触发钮。坞挂进
+ * 成员面板后，面板的 overflow:hidden 会把向上/向下伸出的浮层整段裁掉——
+ * portal 出去是唯一不受裁切的位置（2026-10-17 取证，报告 24 连带批）。 */
+function DockHoverControl({ part, label, button, panelClassName, panelPart, children }: {
+  part: string;
+  label: string;
+  button: ReactNode;
+  panelClassName: string;
+  panelPart: string;
+  children: ReactNode;
+}) {
+  const controlRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const closeTimer = useRef<number | null>(null);
+  const [open, setOpen] = useState(false);
+  const [anchor, setAnchor] = useState({ left: 0, bottom: 0 });
+  const cancelClose = (): void => {
+    if (closeTimer.current !== null) {
+      window.clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+  const openUp = (): void => {
+    cancelClose();
+    const rect = controlRef.current?.getBoundingClientRect();
+    if (rect) setAnchor({ left: rect.left + rect.width / 2, bottom: window.innerHeight - rect.top + 10 });
+    setOpen(true);
+  };
+  const scheduleClose = (): void => {
+    cancelClose();
+    closeTimer.current = window.setTimeout(() => setOpen(false), CLOSE_DELAY_MS);
+  };
+  // 键盘焦点进出走 focus/blur 冒泡：relatedTarget 仍落在控件或面板内就不收。
+  const keepIfInside = (next: EventTarget | null): boolean => Boolean(
+    next instanceof Element && (controlRef.current?.contains(next) || panelRef.current?.contains(next)),
+  );
+  useEffect(() => cancelClose, []);
+  return (
+    <div
+      ref={controlRef}
+      className="dock-hover-control"
+      data-ws-part={part}
+      onMouseEnter={openUp}
+      onMouseLeave={scheduleClose}
+      onFocus={(event) => { if (!keepIfInside(event.relatedTarget)) openUp(); }}
+      onBlur={(event) => { if (!keepIfInside(event.relatedTarget)) scheduleClose(); }}
+    >
+      {button}
+      {open && createPortal(
+        <div
+          ref={panelRef}
+          className={`dock-hover-panel ws-popup ${panelClassName}`}
+          data-ws-part={panelPart}
+          role="dialog"
+          aria-label={label}
+          style={{ left: anchor.left, bottom: anchor.bottom }}
+          onMouseEnter={cancelClose}
+          onMouseLeave={scheduleClose}
+        >{children}</div>,
+        document.querySelector<HTMLElement>(".web-client") ?? document.body,
+      )}
+    </div>
+  );
 }
 
 /** 桌面音频坞（旧 AudioDock.vue 平价）：共享行（开播以持久化预设直发、齿轮开
@@ -122,112 +191,106 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
           aria-label={t("noiseSuppression")}
           onClick={() => void controls.onNoiseSuppressionToggle({ target: { checked: !model.noiseSuppressionEnabled } })}
         ><Icon name="waveform" size={18} /></button>
-        <div
-          className="dock-hover-control"
-          data-ws-part="voice.audio-dock.microphone"
+        <DockHoverControl
+          part="voice.audio-dock.microphone"
+          label={t("microphone")}
+          panelClassName="dock-microphone-panel"
+          panelPart="voice.audio-dock.microphone-panel"
+          button={
+            <button
+              type="button"
+              className="desktop-audio-dock-control"
+              data-muted={model.microphoneMuted ? "true" : undefined}
+              title={model.microphoneMuted ? t("unmuteMic") : t("muteMic")}
+              aria-label={model.microphoneMuted ? t("microphoneMuted") : t("microphoneActive")}
+              aria-pressed={!model.microphoneMuted}
+              onClick={controls.toggleMicrophone}
+            ><Icon name="mic" size={18} /></button>
+          }
         >
-          <button
-            type="button"
-            className="desktop-audio-dock-control"
-            data-muted={model.microphoneMuted ? "true" : undefined}
-            title={model.microphoneMuted ? t("unmuteMic") : t("muteMic")}
-            aria-label={model.microphoneMuted ? t("microphoneMuted") : t("microphoneActive")}
-            aria-pressed={!model.microphoneMuted}
-            onClick={controls.toggleMicrophone}
-          ><Icon name="mic" size={18} /></button>
-          <div
-            className="dock-hover-panel dock-microphone-panel ws-popup"
-            data-ws-part="voice.audio-dock.microphone-panel"
-            role="dialog"
-            aria-label={t("microphone")}
+          <div className="dock-slider-heading"
+            ><span>{t("inputVolume")}</span
+            ><strong>{Math.round(model.inputVolume * 100)}%</strong></div
           >
-            <div className="dock-slider-heading"
-              ><span>{t("inputVolume")}</span
-              ><strong>{Math.round(model.inputVolume * 100)}%</strong></div
-            >
-            <input
-              className="dock-slider"
-              type="range"
-              min={0}
-              max={MAX_INPUT_VOLUME * 100}
-              step={5}
-              value={model.inputVolume * 100}
-              style={rangeStyle(model.inputVolume, MAX_INPUT_VOLUME)}
-              aria-label={t("inputVolume")}
-              onChange={(event) => controls.onInputVolume({ target: event.target })}
-            />
-            <div className="audio-level-row"
-              ><span>{t("micLevel")}</span
-              ><strong>{Math.round(displayMicLevel * 100)}%</strong></div
-            >
-            <div className="audio-level-track dock-level-track"
-              ><i style={{ width: `${Math.round(displayMicLevel * 100)}%` }}></i></div>
-            <div className="dock-panel-divider"></div>
-            <label className="dock-switch-row"
-              ><span
-                ><strong>{t("noiseSuppression")}</strong></span
-              ><input
-                type="checkbox"
-                checked={model.noiseSuppressionEnabled}
-                aria-label={t("noiseSuppression")}
-                onChange={(event) => controls.onNoiseSuppressionToggle({ target: event.target })}
-            /></label>
-            <label className="dock-switch-row"
-              ><span
-                ><strong>{t("echoCancellation")}</strong></span
-              ><input
-                type="checkbox"
-                checked={model.echoCancellationEnabled}
-                aria-label={t("echoCancellation")}
-                onChange={(event) => controls.onEchoCancellationToggle({ target: event.target })}
-            /></label>
-            <label className="dock-switch-row"
-              ><span
-                ><strong>{t("autoGainControl")}</strong></span
-              ><input
-                type="checkbox"
-                checked={model.autoGainControlEnabled}
-                aria-label={t("autoGainControl")}
-                onChange={(event) => controls.onAutoGainControlToggle({ target: event.target })}
-            /></label>
-          </div>
-        </div>
-        <div
-          className="dock-hover-control"
-          data-ws-part="voice.audio-dock.output"
+          <input
+            className="dock-slider"
+            type="range"
+            min={0}
+            max={MAX_INPUT_VOLUME * 100}
+            step={5}
+            value={model.inputVolume * 100}
+            style={rangeStyle(model.inputVolume, MAX_INPUT_VOLUME)}
+            aria-label={t("inputVolume")}
+            onChange={(event) => controls.onInputVolume({ target: event.target })}
+          />
+          <div className="audio-level-row"
+            ><span>{t("micLevel")}</span
+            ><strong>{Math.round(displayMicLevel * 100)}%</strong></div
+          >
+          <div className="audio-level-track dock-level-track"
+            ><i style={{ width: `${Math.round(displayMicLevel * 100)}%` }}></i></div>
+          <div className="dock-panel-divider"></div>
+          <label className="dock-switch-row"
+            ><span
+              ><strong>{t("noiseSuppression")}</strong></span
+            ><input
+              type="checkbox"
+              checked={model.noiseSuppressionEnabled}
+              aria-label={t("noiseSuppression")}
+              onChange={(event) => controls.onNoiseSuppressionToggle({ target: event.target })}
+          /></label>
+          <label className="dock-switch-row"
+            ><span
+              ><strong>{t("echoCancellation")}</strong></span
+            ><input
+              type="checkbox"
+              checked={model.echoCancellationEnabled}
+              aria-label={t("echoCancellation")}
+              onChange={(event) => controls.onEchoCancellationToggle({ target: event.target })}
+          /></label>
+          <label className="dock-switch-row"
+            ><span
+              ><strong>{t("autoGainControl")}</strong></span
+            ><input
+              type="checkbox"
+              checked={model.autoGainControlEnabled}
+              aria-label={t("autoGainControl")}
+              onChange={(event) => controls.onAutoGainControlToggle({ target: event.target })}
+          /></label>
+        </DockHoverControl>
+        <DockHoverControl
+          part="voice.audio-dock.output"
+          label={t("overallVolume")}
+          panelClassName="dock-output-panel"
+          panelPart="voice.audio-dock.output-panel"
+          button={
+            <button
+              type="button"
+              className="desktop-audio-dock-control"
+              data-muted={model.outputMuted ? "true" : undefined}
+              title={model.outputMuted ? t("unmuteOutput") : t("muteOutput")}
+              aria-label={model.outputMuted ? t("unmuteOutput") : t("muteOutput")}
+              aria-pressed={!model.outputMuted}
+              onClick={onOutputMute}
+            ><Icon name="volume" size={18} /></button>
+          }
         >
-          <button
-            type="button"
-            className="desktop-audio-dock-control"
-            data-muted={model.outputMuted ? "true" : undefined}
-            title={model.outputMuted ? t("unmuteOutput") : t("muteOutput")}
-            aria-label={model.outputMuted ? t("unmuteOutput") : t("muteOutput")}
-            aria-pressed={!model.outputMuted}
-            onClick={onOutputMute}
-          ><Icon name="volume" size={18} /></button>
-          <div
-            className="dock-hover-panel dock-output-panel ws-popup"
-            data-ws-part="voice.audio-dock.output-panel"
-            role="dialog"
+          <div className="dock-slider-heading"
+            ><span>{t("overallVolume")}</span
+            ><strong>{Math.round(model.outputVolume * 100)}%</strong></div
+          >
+          <input
+            className="dock-slider"
+            type="range"
+            min={0}
+            max={100}
+            step={5}
+            value={model.outputVolume * 100}
+            style={rangeStyle(model.outputVolume, 1)}
             aria-label={t("overallVolume")}
-          >
-            <div className="dock-slider-heading"
-              ><span>{t("overallVolume")}</span
-              ><strong>{Math.round(model.outputVolume * 100)}%</strong></div
-            >
-            <input
-              className="dock-slider"
-              type="range"
-              min={0}
-              max={100}
-              step={5}
-              value={model.outputVolume * 100}
-              style={rangeStyle(model.outputVolume, 1)}
-              aria-label={t("overallVolume")}
-              onChange={(event) => controls.onOutputVolume({ target: event.target })}
-            />
-          </div>
-        </div>
+            onChange={(event) => controls.onOutputVolume({ target: event.target })}
+          />
+        </DockHoverControl>
       </div>
     </div>
   );
