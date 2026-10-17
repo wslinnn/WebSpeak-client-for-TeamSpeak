@@ -305,12 +305,9 @@
   font-size: 12px;
 }
 
-.favorite-switch-banner .reconnect-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
+/* 切换横幅的紧凑 reconnect-copy（2px 行距）已迁入 21 号层（26 号 B 级）：
+ * 层化后 08/09 号 generic .reconnect-copy（10px/4px）按层序压过本层 (0,2,0)
+ * 特化规则，横幅被撑松——特异性不跨层，迁层按层序裁决。 */
 
 .workspace-header {
   display: flex;

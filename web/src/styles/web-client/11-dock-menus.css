@@ -266,54 +266,11 @@ html[data-ws-route="webclient"] body {
   background: #3a292b;
 }
 
-/* Voice-status trigger inside the dock: transparent round with an accent
- * waveform glyph drawn by ::before (KAAK); its panel opens upward. */
-.desktop-audio-dock .performance-trigger {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
-  min-height: 32px;
-  padding: 0;
-  overflow: hidden;
-  color: var(--wsd-accent);
-  background: transparent;
-  border: 0;
-  border-radius: 50%;
-  font-size: 0;
-}
-
-.desktop-audio-dock .performance-trigger > * {
-  display: none;
-}
-
-.desktop-audio-dock .performance-trigger::before {
-  content: "";
-  display: block;
-  width: 17px;
-  height: 14px;
-  background:
-    linear-gradient(currentColor, currentColor) 0 100% / 3px 4px,
-    linear-gradient(currentColor, currentColor) 5px 100% / 3px 7px,
-    linear-gradient(currentColor, currentColor) 10px 100% / 3px 10px,
-    linear-gradient(currentColor, currentColor) 15px 100% / 3px 14px;
-  background-repeat: no-repeat;
-}
-
-.desktop-audio-dock .performance-trigger:hover,
-.desktop-audio-dock .performance-trigger:focus-visible,
-.desktop-audio-dock .performance-trigger[aria-expanded="true"] {
-  color: var(--wsd-accent-hover);
-  background: var(--wsd-accent-soft);
-  transform: translateY(-1px);
-}
-
-.desktop-audio-dock .performance-trigger:focus-visible {
-  outline: 2px solid var(--wsd-accent);
-  outline-offset: 2px;
-}
-
+/* Voice-status trigger 样式族已迁入 21 号层（26 号 B 级）：层化后 15/16 号的
+ * generic .performance-trigger 文本草丸按层序压过本层 (0,2,0) 特化规则，
+ * 坞内 KAAK 波形触发器被染色药丸顶替——特异性不跨层，迁层按层序裁决。
+ * 面板几何（317 行）留下：宽度已单源到 15 号 380px（与组件 JS 钳制耦合），
+ * 窄档由 16 号接管，其余属性与 15 号无冲突。 */
 .desktop-audio-dock .performance-panel {
   top: auto;
   right: auto;

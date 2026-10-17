@@ -377,10 +377,11 @@
   cursor: pointer;
 }
 
-.member-server-switcher-item:hover,
-.member-server-switcher-item:focus-visible {
+/* :focus-visible 不再参与本规则（原与 :hover 合写 outline:none，(0,2,0) 在
+ * 晚层压掉 12 号键盘焦点环 (0,2,1)——特异性不跨层，键盘焦点环静态丢失）。
+ * 鼠标点击本就不触发 :focus-visible，无需杀灭；键盘焦点交还 12 号统一 2px 环。 */
+.member-server-switcher-item:hover {
   background: var(--wsd-hover, #e9eef0);
-  outline: none;
 }
 
 .member-server-switcher-item[data-ws-state="current"] {
@@ -710,4 +711,82 @@
  * （2026-10-17 双框回归，用户手动点击取证：内层 outline 2px solid accent-55%）。 */
 .web-client .message-composer :is(input, textarea):focus-visible {
   outline: none;
+}
+
+/* 设备设置入口钮：从 07 号迁入（26 号 A 级同族）。该钮夹在两个全高表单字段
+ * 之间，必须用紧凑 36px 规格而不是继承 .identity-action-button 药丸；直接
+ * 子级 part 锚在本层按层序压过 18 号 ≤420 的 flex 短式（特异性不跨层，
+ * 留在 w07 时按钮在窄屏被撑回 120px 高）——列向容器会把任何 flex-basis
+ * 变成定高，所以 flex 必须在此一并清零。 */
+.device-setup > [data-ws-part="home.device-setup.open"] {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+
+/* 坞内语音状态触发器（自 11 号迁入，26 号 B 级）：KAAK 透明圆钮 + ::before
+ * 波形 glyph，子元素（图标/文字标签）隐去；15/16 号的 generic 文本草丸规则
+ * 在晚层，本族必须住在它们之后才能按层序胜出。 */
+.desktop-audio-dock .performance-trigger {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  overflow: hidden;
+  color: var(--wsd-accent);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  font-size: 0;
+}
+
+.desktop-audio-dock .performance-trigger > * {
+  display: none;
+}
+
+.desktop-audio-dock .performance-trigger::before {
+  content: "";
+  display: block;
+  width: 17px;
+  height: 14px;
+  background:
+    linear-gradient(currentColor, currentColor) 0 100% / 3px 4px,
+    linear-gradient(currentColor, currentColor) 5px 100% / 3px 7px,
+    linear-gradient(currentColor, currentColor) 10px 100% / 3px 10px,
+    linear-gradient(currentColor, currentColor) 15px 100% / 3px 14px;
+  background-repeat: no-repeat;
+}
+
+.desktop-audio-dock .performance-trigger:hover,
+.desktop-audio-dock .performance-trigger:focus-visible,
+.desktop-audio-dock .performance-trigger[aria-expanded="true"] {
+  color: var(--wsd-accent-hover);
+  background: var(--wsd-accent-soft);
+  transform: translateY(-1px);
+}
+
+.desktop-audio-dock .performance-trigger:focus-visible {
+  outline: 2px solid var(--wsd-accent);
+  outline-offset: 2px;
+}
+
+/* 切换横幅的紧凑文案列（自 03 号迁入，26 号 B 级）：08/09 号 generic
+ * .reconnect-copy 的 10px/4px 行距在晚层，横幅紧凑 2px 间距必须住在它们
+ * 之后；其他横幅实例（重连/降级）不受影响，继续吃 generic 规则。 */
+.favorite-switch-banner .reconnect-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }

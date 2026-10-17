@@ -47,26 +47,9 @@
   gap: 6px;
 }
 
-/* The device-setup entry sits between full-height form fields, so it rides on
- * the compact tap-target size (36px) instead of the identity-action pill it
- * would otherwise inherit; without this it renders as an 80px pill wedged
- * between two large inputs. The direct-child part hook outranks the shared
- * .identity-action-button base (09) and the ≤420 flex-basis rule (18) — the
- * column wrapper turns any flex-basis into a fixed height, so flex must be
- * zeroed here too. */
-.device-setup > [data-ws-part="home.device-setup.open"] {
-  display: flex;
-  width: 100%;
-  min-width: 0;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 36px;
-  padding: 0 12px;
-  font-size: 13px;
-  border-radius: 10px;
-}
+/* device-setup 紧凑钮规则已迁入 21 号层（@layer 化后特异性不再跨层，
+ * 原 (0,2,0) 压不过 18 号 ≤420 的 .identity-action-button flex 短式，
+ * 按钮在窄屏被撑回 120px 高药丸——迁层后按层序压制，见 26 号报告）。 */
 
 .device-setup-hint {
   margin: 0;
