@@ -214,8 +214,14 @@ export function createVoiceSessionController() {
         abandonBrowserReconnect();
         return;
       }
-      // Transient exchange failures (offline, rate limit, timeout) get the
-      // next slot in the reconnect budget.
+      if (errorCode === "RATE_LIMITED") {
+        // 网关限流不是会话故障：按 Retry-After 等窗口过去，且不消耗重连预算
+        // （盲重试会在群体重连里把预算烧光并弹假失败横幅——报告 21 F5）。
+        scheduleBrowserReconnect({ throttled: true, retryAfterMs: typeof retryAfterMs === "number" ? retryAfterMs : 0 });
+        return;
+      }
+      // Transient exchange failures (offline, timeout) get the next slot in the
+      // reconnect budget.
       scheduleBrowserReconnect();
     },
   });
@@ -231,6 +237,11 @@ export function createVoiceSessionController() {
   // whole session. Delays mirror the gateway's
   // own TeamSpeak-reconnect pacing; after the budget the user retries manually.
   const BROWSER_RECONNECT_DELAYS_MS = [1_000, 2_000, 4_000];
+  // 限流（429）不计入 1/2/4 秒重连预算：延迟改由网关 Retry-After 决定，但设独立
+  // 上限——持续限流最终仍回落普通预算，不让重连无限续命（报告 21 F5）。
+  const MAX_THROTTLED_RECONNECTS = 3;
+  /** ±20% 抖动：共享限流键（同 NAT、反代漏设 TRUST_PROXY）的群体重连不再同拍敲门。 */
+  const jitteredReconnectDelay = (baseMs: number): number => Math.round(baseMs * (0.8 + Math.random() * 0.4));
   const BROWSER_RECONNECTABLE_CLOSE_CODES = new Set([1006, 1011, 4004]);
   const BROWSER_TERMINAL_CLOSE_CODES = new Set([4001, 4002, 4003, 4005]);
   // reconnectFailed codes that cannot succeed unchanged: automatic resume must
@@ -244,6 +255,7 @@ export function createVoiceSessionController() {
   let reconnectTicket = "";
   let browserReconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let browserReconnectActive = false;
+  let throttledReconnects = 0;
   let connectedThisLoad = false;
   const storedVolumesByUid: Record<string, number> = {};
   let microphoneStartPromise: Promise<void> | null = null;
@@ -1117,24 +1129,33 @@ export function createVoiceSessionController() {
       browserReconnectTimer = null;
     }
     browserReconnectActive = false;
+    throttledReconnects = 0;
   }
 
-  function scheduleBrowserReconnect(): void {
+  function scheduleBrowserReconnect(options: { throttled?: boolean; retryAfterMs?: number } = {}): void {
     if (!reconnectTicket || V().connected || V().reconnectFailed) {
       browserReconnectActive = false;
       return;
     }
     if (browserReconnectTimer !== null) return;
-    patch({ reconnecting: true, connecting: false, reconnectAttempt: V().reconnectAttempt + 1 });
-    if (V().reconnectAttempt > BROWSER_RECONNECT_DELAYS_MS.length) {
+    const retryAfterMs = Math.max(0, options.retryAfterMs ?? 0);
+    const throttled = options.throttled === true && throttledReconnects < MAX_THROTTLED_RECONNECTS;
+    if (throttled) throttledReconnects += 1;
+    // 限流重试停在当前档位（不消耗 1/2/4 秒预算），其余尝试逐档递增。
+    const attempt = throttled ? Math.max(1, V().reconnectAttempt) : V().reconnectAttempt + 1;
+    patch({ reconnecting: true, connecting: false, reconnectAttempt: attempt });
+    if (attempt > BROWSER_RECONNECT_DELAYS_MS.length) {
       abandonBrowserReconnect();
       return;
     }
-    const delay = BROWSER_RECONNECT_DELAYS_MS[V().reconnectAttempt - 1]!;
+    // 限流档以 Retry-After 为准（仍加抖动：同一限流窗口的客户端别同拍再来）。
+    const base = throttled
+      ? Math.max(retryAfterMs, BROWSER_RECONNECT_DELAYS_MS[0]!)
+      : BROWSER_RECONNECT_DELAYS_MS[attempt - 1]!;
     browserReconnectTimer = setTimeout(() => {
       browserReconnectTimer = null;
       attemptBrowserReconnect();
-    }, delay);
+    }, jitteredReconnectDelay(base));
   }
 
   function attemptBrowserReconnect(): void {
@@ -1246,6 +1267,7 @@ export function createVoiceSessionController() {
         });
         syncVoiceTransport();
         browserReconnectActive = false;
+        throttledReconnects = 0;
         connectedThisLoad = true;
         // Fresh ticket per connection: it is what a reload or the next drop
         // will exchange, so it must replace the consumed previous one.

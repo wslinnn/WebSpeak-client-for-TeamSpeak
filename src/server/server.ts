@@ -295,8 +295,13 @@ export function createWebServer(options: WebServerOptions): WebServer {
       response.status(503).json({ ok: false, code: "NOT_INITIALIZED" });
       return;
     }
-    if (!joinRateLimiter.allow(peerKey(request))) {
-      response.status(429).json({ ok: false, code: "RATE_LIMITED" });
+    const peer = peerKey(request);
+    if (!joinRateLimiter.allow(peer)) {
+      // 重连预算与限流窗口的对抗必须可退出：429 带 Retry-After/retryAfterMs，
+      // 浏览器据此等待而不是盲重试烧光重连预算（报告 21 F5）。
+      const blockedForMs = joinRateLimiter.blockedForMs(peer);
+      response.setHeader("Retry-After", String(Math.max(1, Math.ceil(blockedForMs / 1000))));
+      response.status(429).json({ ok: false, code: "RATE_LIMITED", retryAfterMs: blockedForMs });
       return;
     }
     const body = isRecord(request.body) ? request.body : {};

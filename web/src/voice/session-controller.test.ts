@@ -521,6 +521,72 @@ test("browser reconnect budget exhaustion raises the failure banner and drops th
   void AudioContextStub;
 });
 
+test("browser reconnect delays carry ±20% jitter inside the 1/2/4s tiers", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    const random = vi.spyOn(Math, "random").mockReturnValue(0);
+    const socket = await connect();
+    socket.receive({ type: "connected", tsClientId: 1, reconnectTicket: "ticket-1" });
+    // 首档下限：1s × 0.8——799ms 之前不得重试，到点必重试。
+    socket.close(1006);
+    vi.advanceTimersByTime(799);
+    await nextTurn();
+    assert.equal(TestSocket.instances.length, 1, "the jittered first delay must not fire before 800ms");
+    vi.advanceTimersByTime(1);
+    await nextTurn();
+    assert.equal(TestSocket.instances.length, 2);
+    // 二档上限：2s × 1.2——2399ms 之前不得重试，到点必重试。
+    random.mockReturnValue(1);
+    TestSocket.instances.at(-1)!.close(1006);
+    vi.advanceTimersByTime(2_399);
+    await nextTurn();
+    assert.equal(TestSocket.instances.length, 2, "the jittered second delay must not fire before 2400ms");
+    vi.advanceTimersByTime(1);
+    await nextTurn();
+    assert.equal(TestSocket.instances.length, 3);
+  } finally {
+    vi.useRealTimers();
+  }
+  void AudioContextStub;
+});
+
+test("a rate-limited reconnect honours Retry-After without burning the reconnect budget", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    vi.spyOn(Math, "random").mockReturnValue(0.5); // 抖动系数 1.0：延迟即基准值，断言可精确到毫秒
+    const socket = await connect();
+    socket.receive({ type: "connected", tsClientId: 1, reconnectTicket: "ticket-1" });
+    let throttled = true;
+    vi.stubGlobal("fetch", async () => {
+      if (throttled) {
+        throttled = false;
+        return { ok: false, status: 429, json: async () => ({ ok: false, code: "RATE_LIMITED", retryAfterMs: 45_000 }) };
+      }
+      return { ok: true, json: async () => ({ ticket: "ticket-after-throttle" }) };
+    });
+    socket.close(1006);
+    assert.equal(V().reconnectAttempt, 1);
+    // 第一次尝试落在 1s 档、被网关限流：预算不动，下一档改等 Retry-After。
+    vi.advanceTimersByTime(1_000);
+    await nextTurn();
+    assert.equal(V().reconnectAttempt, 1, "a throttle must not consume the 1/2/4s reconnect budget");
+    assert.equal(V().reconnecting, true);
+    assert.equal(V().reconnectFailed, false);
+    assert.equal(V().errorCode, "RATE_LIMITED");
+    // Retry-After 未到之前不得再敲网关（否则 429 只会继续烧预算）。
+    vi.advanceTimersByTime(44_999);
+    await nextTurn();
+    assert.equal(TestSocket.instances.length, 1, "the throttled retry must wait out Retry-After");
+    vi.advanceTimersByTime(1);
+    await nextTurn();
+    assert.equal(TestSocket.instances.length, 2, "the retry opens a socket once the window has passed");
+    assert.equal(V().reconnectFailed, false);
+  } finally {
+    vi.useRealTimers();
+  }
+  void AudioContextStub;
+});
+
 // --- Wave 2A: device switching, processing toggles, enumeration fallbacks ---
 
 const availableDevices = [

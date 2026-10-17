@@ -29,6 +29,17 @@ export class JoinRateLimiter {
     return true;
   }
 
+  /** Remaining window time for a peer that is currently blocked, in milliseconds
+   *  (0 when the peer is not throttled). The join endpoint reports this as
+   *  Retry-After so a reconnecting browser can wait instead of burning its
+   *  reconnect budget on blind retries (报告 21 F5). */
+  blockedForMs(peer: string, now = Date.now()): number {
+    const current = this.peers.get(peer);
+    if (!current || current.requests < MAX_REQUESTS) return 0;
+    const remaining = WINDOW_MS - (now - current.startedAt);
+    return remaining > 0 ? remaining : 0;
+  }
+
   private prune(now: number): void {
     for (const [peer, window] of this.peers) {
       if (now - window.startedAt >= WINDOW_MS) this.peers.delete(peer);
