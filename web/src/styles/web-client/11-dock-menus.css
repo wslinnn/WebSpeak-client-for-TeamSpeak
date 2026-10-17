@@ -630,11 +630,6 @@ html[data-ws-route="webclient"] body {
   display: grid;
   min-width: 236px;
   gap: 3px;
-  padding: 8px;
-  background: var(--wsd-raised);
-  border: 1px solid var(--wsd-border);
-  border-radius: 11px;
-  box-shadow: 0 14px 35px rgba(0, 0, 0, .18);
 }
 
 .member-context-menu strong {
@@ -643,24 +638,7 @@ html[data-ws-route="webclient"] body {
   font-size: 13px;
 }
 
-.member-context-menu button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 34px;
-  padding: 7px 9px;
-  color: var(--wsd-text-muted);
-  background: transparent;
-  border-radius: 6px;
-  font-size: 12px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.member-context-menu button:hover {
-  color: var(--wsd-text);
-  background: var(--wsd-hover);
-}
+/* 菜单项观感走 .ws-menu-item 配方（21-components 顶部）。 */
 
 .member-menu-submenu {
   position: relative;
@@ -683,12 +661,7 @@ html[data-ws-route="webclient"] body {
   min-width: 220px;
   max-height: min(420px, calc(100vh - 24px));
   gap: 3px;
-  padding: 8px;
   overflow-y: auto;
-  background: var(--wsd-raised);
-  border: 1px solid var(--wsd-border);
-  border-radius: 11px;
-  box-shadow: 0 14px 35px rgba(0, 0, 0, .18);
 }
 
 .member-submenu-panel button {

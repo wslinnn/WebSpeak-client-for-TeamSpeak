@@ -64,6 +64,50 @@ html[data-ws-route="webclient"] .text-button {
   font-weight: 600;
 }
 
+/* —— 浮层配方（报告 22 §2.1 批 2；底/边=皮肤可染面，2026-10-17 拍板） ——
+ * .ws-popup 只含表面（底/边/圆角/阴影/内边距/前景色）；定位、宽度与 z 阶梯
+ * （dropdown 200 / menu 310 各归其位）仍由各面板自身规则承担。:where 让配方
+ * 保持零特异性——面板自身的档位规则（如移动层触摸档 12px/18px）按原样胜出，
+ * 面板没写的属性才落到配方。改浮层观感改这里。 */
+:where(.ws-popup) {
+  padding: 8px;
+  color: var(--text-primary);
+  background: var(--surface-1);
+  border: 1px solid var(--skin-border);
+  border-radius: 11px;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, .18);
+}
+
+/* 菜单项基准（原成员菜单规格）：状态/布局差异（danger、禁用、ellipsis）由
+ * 修饰类或面板内后代规则承担。 */
+.ws-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 7px 9px;
+  color: var(--wsd-text-muted);
+  background: transparent;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ws-menu-item:hover {
+  color: var(--wsd-text);
+  background: var(--wsd-hover);
+}
+
+.ws-menu-item.danger {
+  color: var(--wsd-danger);
+}
+
+/* (0,1,1)：胜过 font:inherit（同特异性、本分片在后），又不压过移动层
+ * `.member-context-menu button`（同特异性、更晚导入）的触摸字体档。 */
+html[data-ws-route="webclient"] :where(.ws-menu-item) {
+  font-size: 12px;
+}
+
 /* —— LanguageSwitcher —— */
 .language-switcher {
   position: relative;

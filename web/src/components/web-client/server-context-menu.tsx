@@ -71,7 +71,7 @@ export function ServerContextMenu({ server, position, part, inRoom, t, onSwitch,
       />
       <div
         ref={menuRef}
-        className="server-context-menu"
+        className="server-context-menu ws-popup"
         data-ws-part={part}
         role="menu"
         tabIndex={-1}
@@ -79,16 +79,16 @@ export function ServerContextMenu({ server, position, part, inRoom, t, onSwitch,
       >
         <strong className="server-context-menu-title">{server.label}</strong>
         {inRoom && (
-          <button role="menuitem" type="button" onClick={() => act("switch")}>
+          <button role="menuitem" type="button" className="ws-menu-item" onClick={() => act("switch")}>
             <Icon name="volume" size={15} />
             <span>{t("switchToServer", { name: server.label })}</span>
           </button>
         )}
-        <button role="menuitem" type="button" onClick={() => act("edit")}>
+        <button role="menuitem" type="button" className="ws-menu-item" onClick={() => act("edit")}>
           <Icon name="settings" size={15} />
           <span>{t("serverMenuEdit")}</span>
         </button>
-        <button role="menuitem" type="button" className="danger" onClick={() => act("removeFavorite")}>
+        <button role="menuitem" type="button" className="ws-menu-item danger" onClick={() => act("removeFavorite")}>
           <Icon name="star" size={15} />
           <span>{t("removeFavoriteNamed", { name: server.label })}</span>
         </button>

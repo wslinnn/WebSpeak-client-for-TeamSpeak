@@ -103,7 +103,7 @@ export function LanguageSwitcher({ language, onChange, menuLabel, tile, classNam
       </button>
 
       {open && (
-        <div ref={dropdownRef} id="language-menu" className="language-dropdown" data-ws-part="language.menu" role="listbox" aria-label={menuLabel} onClick={(event) => event.stopPropagation()}>
+        <div ref={dropdownRef} id="language-menu" className="language-dropdown ws-popup" data-ws-part="language.menu" role="listbox" aria-label={menuLabel} onClick={(event) => event.stopPropagation()}>
           {LANGUAGE_OPTIONS.map((option) => (
             <button
               key={option.value}

@@ -89,7 +89,7 @@ export function VoicePerformancePanel({ monitor, voice, t }: VoicePerformancePan
       ><Icon name="chevron-down" size={13} /></button>
       {open && (
         <section
-          className="performance-panel"
+          className="performance-panel ws-popup"
           data-ws-part="voice.performance.panel"
           role="dialog"
           aria-label={t("voiceStatus")}

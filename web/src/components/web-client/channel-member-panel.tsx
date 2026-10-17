@@ -342,7 +342,7 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
           <div className="member-server-switcher-backdrop" data-ws-part="voice.server-switcher-backdrop" onClick={() => setSwitcherOpen(false)} />
           <div
             ref={switcherMenuRef}
-            className="member-server-switcher"
+            className="member-server-switcher ws-popup"
             data-ws-part="voice.server-switcher"
             role="menu"
             tabIndex={-1}

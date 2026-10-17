@@ -136,7 +136,7 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
             onClick={controls.toggleMicrophone}
           ><Icon name="mic" size={18} /></button>
           <div
-            className="dock-hover-panel dock-microphone-panel"
+            className="dock-hover-panel dock-microphone-panel ws-popup"
             data-ws-part="voice.audio-dock.microphone-panel"
             role="dialog"
             aria-label={t("microphone")}
@@ -206,7 +206,7 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
             onClick={onOutputMute}
           ><Icon name="volume" size={18} /></button>
           <div
-            className="dock-hover-panel dock-output-panel"
+            className="dock-hover-panel dock-output-panel ws-popup"
             data-ws-part="voice.audio-dock.output-panel"
             role="dialog"
             aria-label={t("overallVolume")}

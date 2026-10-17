@@ -92,7 +92,7 @@ export function MemberActionsMenu({ members, isMobileViewport, volumes, whisperT
       {isMobileViewport && (
         <div className="member-menu-backdrop" data-ws-part="voice.context-menu-backdrop" onClick={() => members.closeMemberMenu()} />
       )}
-      <div ref={menuRef} className="member-context-menu" data-ws-part="voice.context-menu" style={menuStyle} onClick={(event) => event.stopPropagation()}>
+      <div ref={menuRef} className="member-context-menu ws-popup" data-ws-part="voice.context-menu" style={menuStyle} onClick={(event) => event.stopPropagation()}>
         <div className="member-menu-header" data-ws-part="voice.context-menu.header">
           <strong>{member.nickname}</strong>
           <button type="button" className="member-menu-close" aria-label={t("close")} onClick={() => members.closeMemberMenu()}>
@@ -113,28 +113,28 @@ export function MemberActionsMenu({ members, isMobileViewport, volumes, whisperT
           />
           <strong className="menu-volume-value">{Math.round(volume * 100)}%</strong>
         </label>
-        <button type="button" onClick={() => { onPrivateChat(member.id); members.closeMemberMenu(); }}>
+        <button type="button" className="ws-menu-item" onClick={() => { onPrivateChat(member.id); members.closeMemberMenu(); }}>
           <Icon name="message" size={15} />
           {" "}
           {t("privateMessage")}
         </button>
-        <button type="button" onClick={() => { members.pokeMember(member); members.closeMemberMenu(); }}>
+        <button type="button" className="ws-menu-item" onClick={() => { members.pokeMember(member); members.closeMemberMenu(); }}>
           <Icon name="bell" size={15} />
           {" "}
           {t("poke")}
         </button>
-        <button type="button" onClick={() => { members.toggleWhisperTarget(member); members.closeMemberMenu(); }}>
+        <button type="button" className="ws-menu-item" onClick={() => { members.toggleWhisperTarget(member); members.closeMemberMenu(); }}>
           <Icon name="mic" size={15} />
           {" "}
           {whisperTargetIds.has(member.id) ? t("removeWhisperTarget") : t("setWhisperTarget")}
         </button>
-        <button type="button" onClick={() => { members.copyMemberName(member); members.closeMemberMenu(); }}>
+        <button type="button" className="ws-menu-item" onClick={() => { members.copyMemberName(member); members.closeMemberMenu(); }}>
           <Icon name="copy" size={15} />
           {" "}
           {t("copyNickname")}
         </button>
         <div className="member-menu-submenu" onMouseEnter={() => { if (!isMobileViewport) { members.store.setState({ memberMoveMenuOpen: true }); hoverOpenedRef.current = true; } }}>
-          <button type="button" className="member-menu-submenu-trigger" aria-expanded={menu.memberMoveMenuOpen} onClick={() => {
+          <button type="button" className="member-menu-submenu-trigger ws-menu-item" aria-expanded={menu.memberMoveMenuOpen} onClick={() => {
             // 悬停已打开时点击不再关闭（旧版开合抵消是反直觉平价，用户拍板改掉）。
             if (hoverOpenedRef.current && menu.memberMoveMenuOpen) return;
             hoverOpenedRef.current = false;
@@ -146,16 +146,16 @@ export function MemberActionsMenu({ members, isMobileViewport, volumes, whisperT
             <Icon name="chevron-right" size={13} className="member-menu-submenu-arrow" />
           </button>
           {menu.memberMoveMenuOpen && (
-            <div ref={submenuRef} style={submenuStyle} className="member-submenu-panel" data-ws-part="voice.context-menu.move-submenu" onClick={(event) => event.stopPropagation()}>
+            <div ref={submenuRef} style={submenuStyle} className="member-submenu-panel ws-popup" data-ws-part="voice.context-menu.move-submenu" onClick={(event) => event.stopPropagation()}>
               {currentChannel && (
-                <button type="button" disabled={sameChannel} onClick={() => members.moveMemberDirect(member, currentChannel.id)}>
+                <button type="button" className="ws-menu-item" disabled={sameChannel} onClick={() => members.moveMemberDirect(member, currentChannel.id)}>
                   <Icon name="users" size={15} />
                   <span>{t("moveMemberMyChannel")}</span>
                   <small>{currentChannel.name}</small>
                 </button>
               )}
               {otherChannels.map((targetChannel) => (
-                <button key={targetChannel.id} type="button" onClick={() => members.moveMemberDirect(member, targetChannel.id)}>
+                <button key={targetChannel.id} type="button" className="ws-menu-item" onClick={() => members.moveMemberDirect(member, targetChannel.id)}>
                   <Icon name="volume" size={15} />
                   <span>{targetChannel.name}</span>
                 </button>
