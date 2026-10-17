@@ -8,7 +8,7 @@
 
 - **上行**：answer fmtp 钉 `maxaveragebitrate=60000;usedtx=0`（60k 在 TS quality 10 的 7.71KiB/s 预算内、64k 会被服务器裁包；fmtp 只是上限，浏览器端 applyAnswer 后对音频 sender `setParameters` maxBitrate=60000 配套才生效；不设 stereo——上行 mono，stereo 声明只会分薄码率）。
 - **下行**：每说话人一条 RTP 流。网关预开 16 条 sendonly 槽轨（浏览器 offer 预开同数 recvonly 免重协商；超出的 m-line answer inactive 防恶意 offer 放大），TS 原始 Opus 包 payload 一字节不动，只重写 seq/timestamp（帧时长经 RFC 6716 TOC 解析，`opus-frame.ts` 覆盖 SILK/hybrid/CELT×code 0-3，已用 @discordjs/opus 60k 全档真实编码包逐帧验证解析正确）、marker 标流首包、随机起点防跨流关联；说话人 LRU 占槽、绑定经 voiceRoute 消息下发。
-- **上行链（2026-10-14 重构，`0583362`）**：采集图单层化 source→[RNNoise]→gain→destination——gain 全链唯一（兼容 PCM worklet 分接同源，旧双层图曾把音量平方施加），webrtc-input 已删；**R/G 模式**：降噪关+音量 100%+无伴奏+无麦测试 → 原始轨 replaceTrack 直连 sender（免疫 context 挂起类故障），否则 processedStream；麦克风测试经增益门控广播（原始轨保持 live 供录制，track.enabled 门控会录到静音）；共享 AudioContext 带 resume 看门狗。回归不变量见下节。
+- **上行链（2026-10-14 重构，`0583362`；2026-10-17 加限幅器与增益上限）**：采集图单层化 source→[RNNoise]→gain→[限幅器]→destination——gain 全链唯一音量级（兼容 PCM 分接同源，旧双层图曾把音量平方施加），限幅器（DynamicsCompressor 阈值 -1dB/硬拐点/20:1）只防 >100% 增益削波、不施加音量，伴奏分接绕过两者；webrtc-input 已删；**音量上限 200%**（`MAX_INPUT_VOLUME`，>1 脱离 R/G 直连走处理图）；**R/G 模式**：降噪关+音量 100%+无伴奏+无麦测试 → 原始轨 replaceTrack 直连 sender（免疫 context 挂起类故障），否则 processedStream；麦克风测试经增益门控广播（原始轨保持 live 供录制，track.enabled 门控会录到静音）；共享 AudioContext 带 resume 看门狗。回归不变量见下节。
 - **槽位池 12→16**（`4f08c2b`）：`DOWNSTREAM_SLOTS`（前端）/`MAX_DOWNSTREAM_SLOTS`（网关）成对扩容；voiceRoute 校验上限本就 ≤16；新旧混跑时多余 m-line 按 inactive 降级。槽位语义：每听众 16 路并发预算，LRU 淘汰最久未说话者；成员音量是本地渲染参数，不影响他人听感、不影响说话者上行。
 - **网关 mixer 全套已删**：音频 CPU 趋零，`setMemberVolume` 网关命令与 `voiceActivity` 事件随删。
 - **voice-bridge 已拆分**：DetachedSessionPool / createVoiceRtc / createVoiceConnectionHandler 三模块（拆分记录见 `.agents/notes/history.md`）。
@@ -37,7 +37,7 @@
 
 ## 回归不变量
 
-- **上行单增益铁律**（2026-10-14 上行重构）：输入音量只施加在采集图唯一的 gain 上一处（destination 在增益后，WebRTC 上行与兼容 PCM 共享该级）。**禁止再建第二层增益/destination**——旧双层图曾把音量平方（0.5×0.5=0.25）。
+- **上行单增益铁律**（2026-10-14 上行重构）：输入音量只施加在采集图唯一的 gain 上一处（destination 在增益后，WebRTC 上行与兼容 PCM 共享该级）。**禁止再建第二层增益/destination**——旧双层图曾把音量平方（0.5×0.5=0.25）。链上限幅器（2026-10-17，>100% 增强防削波）不是第二增益：它不施加音量，勿往里加 makeup/音量语义。
 - **R/G 上行模式**：降噪关+音量 100%+无伴奏+无麦测试 → 原始轨经 `setUplinkStream` 直连 sender（绕过整个 WebAudio 图，免疫 context 挂起——Newt-Desktop 同款教训「WebAudio Destination 挂起→0 字节上行」）；任一条件成立回 processedStream。切换走 sender.replaceTrack，无重协商。**bypass 条件必须包含 !microphoneTestActive**——麦测试的广播门控靠增益，raw 直连会绕过门控。
 - **麦测试不广播**：测试激活期间上行由采集增益静音（MediaRecorder 直接 tap 原始轨，禁止用 track.enabled 门控——那会让测试录到静音）；测试结束恢复用户音量。
 - **stopCapture 只拆 PCM 分接（worklet/script/silent），不得动 gain**：transport 每次 start 都调 stopPcm→stopCapture，拆增益会杀死上行音量控制（2026-10-14 单增益化时踩过，测试抓到）。
