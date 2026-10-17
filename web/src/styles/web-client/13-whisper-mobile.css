@@ -256,6 +256,20 @@ html[data-ws-route="webclient"] #app {
   overflow-y: auto;
 }
 
+/* 桌面档（≥741；≤740 的宽度归 06 号移动布局，勿上提）：滚动容器在 padding box
+ * 边缘裁切子元素绘制，join-card 右缘紧贴本容器右边，卡片 52px 扩散阴影被拦腰
+ * 裁断——右缘生硬竖向色差（左缘距容器边 700px 无恙，故只有右侧突兀）。
+ * 容器外扩 40px（宽度 +80、padding 等量补偿）让裁切边界移入页边，阴影完整落地；
+ * margin-left 按 02 号原居中偏移（(100%-1240)/2 与 32px 取大）减 40 推导，
+ * 内容列逐像素回到原位；右侧 margin 保持 02 号的 auto 吸收外扩溢出。滚动兜底不变。 */
+@media (min-width: 741px) {
+  .join-content {
+    margin-left: calc(max((100% - 1240px) / 2, 32px) - 40px);
+    width: min(1320px, calc(100% + 16px));
+    padding-inline: 40px;
+  }
+}
+
 /* Desktop zoom compensation. main.ts sets --ui-scale (>1 only on large
    viewports) and App.vue applies zoom:var(--ui-scale) on #app. html/body stay
    pinned to the real viewport (100dvh) while the zoomed roots divide their
