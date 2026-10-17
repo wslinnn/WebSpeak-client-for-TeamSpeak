@@ -1,7 +1,10 @@
 import express from "express";
 import { MediaStreamTrack, RtpHeader, RtpPacket, RTCPeerConnection, useOPUS } from "werift";
 import { isSessionDescription } from "../shared/webrtc.js";
+import { isSameOrigin } from "../security/same-origin.js";
 import { isAcceptableRemoteIceCandidate } from "./webrtc-config.js";
+import { FixedWindowRateLimiter } from "./fixed-window-rate-limit.js";
+import { rateLimitPeerKey, resolveClientAddress } from "./client-ip.js";
 import { OpusEncoder } from "./opus-codec.js";
 import type { WebRtcAudioOptions } from "./webrtc-audio.js";
 import type { Logger as LoggerType } from "../logger.js";
@@ -28,6 +31,11 @@ const TONE_PCM = 960; // 20 ms at 48 kHz.
 /** How long a disconnected lab session lingers before its peer is reaped. */
 const DISCONNECT_REAP_MS = 10_000;
 
+/** L4/S7（报告 21）：offer 后一直连不上的会话（浏览器中途关页、ICE 全败）在
+ *  此期限内没有进入 connected 就整套回收——不回收则 20ms 时钟与 2 个原生
+ *  Opus 编码器随会话对象一起滞留。 */
+const NEVER_CONNECTED_REAP_MS = 30_000;
+
 export interface RtpLabOptions {
   logger: LoggerType;
   /** The production WebRTC transport config: without the same UDP port range
@@ -52,6 +60,15 @@ export function mountRtpLabIfEnabled(app: express.Express, options: RtpLabOption
   const logger = options.logger.child({ component: "rtp-lab" });
   const webrtc = options.webrtc;
   const sessions = new Set<RtpLabSession>();
+  // S7（报告 21）：端点是匿名的，每次 offer 都要建整套 peer + 原生编码器——
+  // 按对端限一口，防单机循环打爆内存与端口预算。
+  const offerLimiter = new FixedWindowRateLimiter(256, 6);
+  const peerKey = (request: express.Request): string =>
+    rateLimitPeerKey(resolveClientAddress(
+      request.socket.remoteAddress,
+      request.headers["x-forwarded-for"],
+      false,
+    ));
 
   app.get("/_rtp-lab", (_request, response) => {
     response.setHeader("content-type", "text/html; charset=utf-8");
@@ -67,6 +84,15 @@ export function mountRtpLabIfEnabled(app: express.Express, options: RtpLabOption
   });
 
   app.post("/_rtp-lab/offer", express.json({ limit: "512kb" }), async (request, response) => {
+    // S7：同源 + 每对端限流。匿名端点的最低门槛——跨源一律拒。
+    if (!isSameOrigin(request)) {
+      response.status(403).json({ error: "cross-origin rejected" });
+      return;
+    }
+    if (!offerLimiter.allow(peerKey(request))) {
+      response.status(429).json({ error: "too many lab offers" });
+      return;
+    }
     try {
       // The body is the full session description object ({type:"offer",sdp}),
       // matching what isSessionDescription validates for the voice path.
@@ -87,6 +113,10 @@ export function mountRtpLabIfEnabled(app: express.Express, options: RtpLabOption
   });
 
   app.post("/_rtp-lab/mode", express.json({ limit: "4kb" }), (request, response) => {
+    if (!isSameOrigin(request)) {
+      response.status(403).json({ error: "cross-origin rejected" });
+      return;
+    }
     const body = request.body as Partial<LabMode> | undefined;
     const mode: LabMode = {
       channels: body?.channels === 1 ? 1 : 2,
@@ -101,12 +131,14 @@ export function mountRtpLabIfEnabled(app: express.Express, options: RtpLabOption
 
 class RtpLabSession {
   private readonly peer: RTCPeerConnection;
+  private readonly logger: LoggerType;
   private readonly slot: MediaStreamTrack;
   private readonly monoEncoder = new OpusEncoder(48_000, 1);
   private readonly stereoEncoder = new OpusEncoder(48_000, 2);
   private readonly clock: ReturnType<typeof setInterval>;
   private readonly closedPromise: Promise<void>;
   private disconnectWatchdog: ReturnType<typeof setTimeout> | null = null;
+  private connectWatchdog: ReturnType<typeof setTimeout> | null = null;
   private mode: LabMode = { ...DEFAULT_MODE };
   private sequenceNumber = (Math.random() * 0x10000) | 0;
   private timestamp = (Math.random() * 0x1_0000_0000) >>> 0;
@@ -114,6 +146,7 @@ class RtpLabSession {
   private pairGapUntil = 0;
 
   constructor(logger: LoggerType, webrtc?: WebRtcAudioOptions) {
+    this.logger = logger;
     // Mirrors the production voice path's ICE config: without the same UDP
     // port range and public address the lab candidates are unreachable
     // behind a container port mapping.
@@ -141,6 +174,10 @@ class RtpLabSession {
       this.peer.onconnectionstatechange = () => {
         const state = this.peer.connectionState;
         logger.info({ state, slotSsrc: downlink.sender.ssrc }, "lab connection state");
+        if (state === "connected" && this.connectWatchdog) {
+          clearTimeout(this.connectWatchdog);
+          this.connectWatchdog = null;
+        }
         if (state === "connected" && this.disconnectWatchdog) {
           clearTimeout(this.disconnectWatchdog);
           this.disconnectWatchdog = null;
@@ -160,6 +197,13 @@ class RtpLabSession {
     });
     this.clock = setInterval(() => this.tick(), 20);
     this.clock.unref?.();
+    // L4（报告 21）：终态统一收掉 20ms 时钟与两个看门狗——否则时钟闭包把整个
+    // 会话（含 2 个原生 Opus 编码器）钉在内存里，仅调试模式可达但真实泄漏。
+    void this.closedPromise.then(() => {
+      if (this.disconnectWatchdog) clearTimeout(this.disconnectWatchdog);
+      if (this.connectWatchdog) clearTimeout(this.connectWatchdog);
+      clearInterval(this.clock);
+    });
   }
 
   setMode(mode: LabMode): void {
@@ -167,10 +211,23 @@ class RtpLabSession {
   }
 
   async accept(offer: { type: "offer"; sdp: string }): Promise<string> {
-    await this.peer.setRemoteDescription({ type: "offer", sdp: offer.sdp });
-    const answer = await this.peer.createAnswer();
-    await this.peer.setLocalDescription(answer);
-    return this.peer.localDescription!.sdp;
+    // 从未 connected 的会话（浏览器拿到 answer 前关页、ICE 全败）到期整套回收。
+    this.connectWatchdog = setTimeout(() => {
+      if (this.peer.connectionState === "connected") return;
+      this.logger.warn("lab session never reached connected; reaping");
+      void this.peer.close().catch(() => undefined);
+    }, NEVER_CONNECTED_REAP_MS);
+    this.connectWatchdog.unref?.();
+    try {
+      await this.peer.setRemoteDescription({ type: "offer", sdp: offer.sdp });
+      const answer = await this.peer.createAnswer();
+      await this.peer.setLocalDescription(answer);
+      return this.peer.localDescription!.sdp;
+    } catch (error) {
+      // offer 解析/协商失败：立即回收，别让 30s 看门狗兜底拖着一个死会话。
+      void this.peer.close().catch(() => undefined);
+      throw error;
+    }
   }
 
   get closed(): Promise<void> {

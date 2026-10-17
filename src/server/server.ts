@@ -16,6 +16,7 @@ import { createAdminRouter } from "../admin/admin-router.js";
 import type { AdminService } from "../admin/admin-service.js";
 import { AdminSessionStore } from "../admin/admin-session.js";
 import { isSafeOpenTargetForPrefill, resolveSafeOpenTarget } from "../security/open-target-policy.js";
+import { isSameOrigin } from "../security/same-origin.js";
 import { identityFromString } from "@echosixhiya/teamspeak-client";
 import { JoinRateLimiter } from "./join-rate-limit.js";
 import { ByteBucketRateLimiter } from "./byte-bucket-rate-limit.js";
@@ -476,14 +477,4 @@ export function createWebServer(options: WebServerOptions): WebServer {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function isSameOrigin(request: express.Request): boolean {
-  const origin = request.header("origin");
-  const host = request.header("host");
-  try {
-    return Boolean(origin && host && new URL(origin).host === host);
-  } catch {
-    return false;
-  }
 }
