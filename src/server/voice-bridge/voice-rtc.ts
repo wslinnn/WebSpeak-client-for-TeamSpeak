@@ -1,3 +1,5 @@
+import { isIP } from "node:net";
+
 import { WebSocket } from "ws";
 import type { Logger as LoggerType } from "../../logger.js";
 import type { ServerMessage } from "../../shared/server-messages.js";
@@ -61,12 +63,18 @@ export function createVoiceRtc(deps: VoiceRtcDeps) {
     let peer: WebRtcAudioSession | null = null;
     const isCurrentPeer = (): boolean => isCurrent() && peer !== null && entry.webrtc === peer;
     try {
-      const publicAddresses = await resolveVoiceMediaAddresses(config.publicHost || entry.webrtcPublicHost, config.ipv6Enabled === true);
+      // S2（报告 21）：网关只替管理员显式配置的 publicHost 代做 DNS 解析；
+      // 请求派生的主机名不触发解析（否则客户端可借 Host 头把网关当内网
+      // DNS 探针、把解析结果读回 answer SDP），仅接受已是 IP 字面量的值。
+      const configuredHost = config.publicHost || "";
+      const requestHost = entry.webrtcPublicHost ?? "";
+      const mediaHost = configuredHost || (isIP(requestHost) ? requestHost : "");
+      const publicAddresses = await resolveVoiceMediaAddresses(mediaHost, config.ipv6Enabled === true);
       if (!isCurrent()) return;
       peer = deps.createWebRtcSession({
         connectionId: entry.id,
         publicAddresses,
-        ...(config.publicHost || entry.webrtcPublicHost ? { publicHost: config.publicHost || entry.webrtcPublicHost } : {}),
+        ...(mediaHost ? { publicHost: mediaHost } : {}),
         ipv6Enabled: config.ipv6Enabled,
         stunServer: config.stunServer,
         udpPortRange: config.udpPortRange,

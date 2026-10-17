@@ -70,11 +70,14 @@ function resolveClientIp(request: IncomingMessage, trustProxy: boolean): string 
   );
 }
 
-function resolveWebRtcPublicHost(request: IncomingMessage): string | undefined {
-  const origin = firstHeader(request.headers.origin);
-  const forwardedHost = firstHeader(request.headers["x-forwarded-host"]);
-  const directHost = firstHeader(request.headers.host);
-  for (const candidate of [origin, forwardedHost, directHost]) {
+function resolveWebRtcPublicHost(request: IncomingMessage, trustProxy: boolean): string | undefined {
+  // S2（报告 21）：转发头只在声明了可信反代时采信，与 client-ip.ts 的语义
+  // 对齐；直连部署只看 Host。请求派生的值在 voice-rtc 里还只允许 IP 字面量
+  // ——网关不替客户端触发 DNS 解析。
+  const candidates = trustProxy
+    ? [firstHeader(request.headers.origin), firstHeader(request.headers["x-forwarded-host"]), firstHeader(request.headers.host)]
+    : [firstHeader(request.headers.host)];
+  for (const candidate of candidates) {
     const host = normalizeWebRtcHost(candidate);
     if (host) return host;
   }
@@ -131,7 +134,7 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
     const { target, serverPassword, nickname } = connection;
     const channelName = connection.channel;
     const clientIp = resolveClientIp(req, deps.options.trustProxy === true);
-    const webrtcPublicHost = resolveWebRtcPublicHost(req);
+    const webrtcPublicHost = resolveWebRtcPublicHost(req, deps.options.trustProxy === true);
     let identity;
     try {
       identity = connection.identity ? identityFromString(connection.identity) : undefined;
