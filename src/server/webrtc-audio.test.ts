@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createSocket } from "node:dgram";
 import pino from "pino";
-import { RTCPeerConnection, MediaStreamTrack, useOPUS, usePCMU, type RtpPacket } from "werift";
+import { RTCPeerConnection, MediaStreamTrack, useOPUS, usePCMU, type CandidatePair, type RtpPacket } from "werift";
 import type { Logger } from "../logger.js";
 import { countIceCandidates, pinOpusCodecParameters, WebRtcAudioSession, type WebRtcAudioStats } from "./webrtc-audio.js";
 
@@ -308,4 +308,31 @@ test("a normally negotiated answer carries ICE candidates and does not warn", as
   const answer = await session.createAnswer({ type: "offer", sdp: offer.sdp });
   assert.ok(countIceCandidates(answer.sdp) > 0);
   assert.equal(warnings.length, 0);
+});
+
+test("the peer wires the remote candidate policy and probe primitives are refused", async t => {
+  const session = new WebRtcAudioSession(sessionOptions({ connectionId: "policy" }));
+  t.after(() => session.close());
+  const filter = session.peer.config.iceFilterCandidatePair;
+  assert.ok(filter, "iceFilterCandidatePair must be configured");
+  const pairOf = (host: string, port: number) => ({ remoteCandidate: { host, port } } as CandidatePair);
+  assert.equal(filter(pairOf("192.168.1.10", 40000)), true, "LAN host candidates stay usable");
+  assert.equal(filter(pairOf("127.0.0.1", 5900)), false, "loopback is never probed");
+  assert.equal(filter(pairOf("169.254.169.254", 80)), false, "cloud metadata is never probed");
+  assert.equal(filter(pairOf("relay.attacker.example", 5353)), false, "hostnames are never resolved");
+});
+
+test("an offer with policy-rejected candidates logs one warning with samples", async t => {
+  const { logger, warnings } = recordingLogger();
+  const session = new WebRtcAudioSession(sessionOptions({ connectionId: "policy-warn", logger }));
+  const source = new RTCPeerConnection({ iceServers: [], codecs: { audio: [useOPUS()] } });
+  t.after(async () => { await session.close(); await source.close(); });
+  source.addTransceiver("audio", { direction: "sendrecv" });
+  const offer = await source.createOffer();
+  const sdp = `${offer.sdp}a=candidate:probe 1 udp 2130706431 127.0.0.1 5900 typ host\r\n`;
+  const answer = await session.createAnswer({ type: "offer", sdp });
+  assert.ok(countIceCandidates(answer.sdp) > 0, "the legit candidates still produce a working answer");
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0]!.message, /address policy/);
+  assert.deepEqual(warnings[0]!.payload.samples, ["127.0.0.1"]);
 });

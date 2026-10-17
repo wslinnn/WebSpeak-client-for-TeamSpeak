@@ -8,7 +8,7 @@ import {
 } from "werift";
 import type { Logger as LoggerType } from "../logger.js";
 import type { TSVoiceData } from "./ts-client.js";
-import { WEBRTC_UDP_PORT_RANGE } from "./webrtc-config.js";
+import { isAcceptableRemoteIceCandidate, WEBRTC_UDP_PORT_RANGE } from "./webrtc-config.js";
 import { opusFrameDurationMs } from "./opus-frame.js";
 import { WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS, type WebRtcSessionDescription } from "../shared/webrtc.js";
 export type { WebRtcSessionDescription } from "../shared/webrtc.js";
@@ -153,6 +153,8 @@ export class WebRtcAudioSession {
       iceUseIpv6: options.ipv6Enabled === true,
       iceUseTcp: false,
       icePortRange: [...udpPortRange] as [number, number],
+      // S1（报告 21）：被地址策略拒绝的远端候选不建对、不产生任何出站包。
+      iceFilterCandidatePair: pair => isAcceptableRemoteIceCandidate(pair.remoteCandidate.host, pair.remoteCandidate.port),
       ...(iceAdditionalHostAddresses ? { iceAdditionalHostAddresses } : {}),
     });
     this.peer.onconnectionstatechange = () => {
@@ -195,8 +197,29 @@ export class WebRtcAudioSession {
     };
   }
 
+  /** S1 的可观测面：出站由 iceFilterCandidatePair 兜底拦下，这里在会话层留一条
+   *  痕迹，方便排查「某客户端为什么连不上媒体」或确认恶意构造（数量 + 至多两个
+   *  样本地址；地址本就来自该客户端自己的 SDP）。 */
+  private noteRejectedRemoteCandidates(sdp: string): void {
+    let rejected = 0;
+    const samples: string[] = [];
+    for (const rawLine of sdp.split("\n")) {
+      const line = rawLine.trim();
+      if (!line.startsWith("a=candidate:")) continue;
+      // SDP 候选行：a=candidate:<foundation> <component> <transport> <priority> <address> <port> typ <type>
+      const parts = line.split(/\s+/);
+      if (isAcceptableRemoteIceCandidate(parts[4] ?? "", Number(parts[5]))) continue;
+      rejected += 1;
+      if (samples.length < 2) samples.push(parts[4] || line.slice(0, 48));
+    }
+    if (rejected > 0) {
+      this.logger.warn({ rejected, samples }, "Offer contains remote ICE candidates rejected by the address policy");
+    }
+  }
+
   async createAnswer(offer: WebRtcSessionDescription): Promise<WebRtcSessionDescription> {
     if (this.closed) throw new Error("WebRTC session is closed");
+    this.noteRejectedRemoteCandidates(offer.sdp);
     await this.peer.setRemoteDescription(offer);
     // The uplink m-line binds to the eagerly created transceiver; the
     // remaining audio m-lines from the offer form the downstream slot pool.

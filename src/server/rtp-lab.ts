@@ -1,6 +1,7 @@
 import express from "express";
 import { MediaStreamTrack, RtpHeader, RtpPacket, RTCPeerConnection, useOPUS } from "werift";
 import { isSessionDescription } from "../shared/webrtc.js";
+import { isAcceptableRemoteIceCandidate } from "./webrtc-config.js";
 import { OpusEncoder } from "./opus-codec.js";
 import type { WebRtcAudioOptions } from "./webrtc-audio.js";
 import type { Logger as LoggerType } from "../logger.js";
@@ -125,6 +126,8 @@ class RtpLabSession {
       iceUseTcp: false,
       ...(webrtc?.udpPortRange ? { icePortRange: [...webrtc.udpPortRange] as [number, number] } : {}),
       ...(publicAddresses ? { iceAdditionalHostAddresses: publicAddresses } : {}),
+      // S1（报告 21）：调试端点与主路径共享出网面，远端候选走同一地址策略。
+      iceFilterCandidatePair: pair => isAcceptableRemoteIceCandidate(pair.remoteCandidate.host, pair.remoteCandidate.port),
     });
     // Downlink only: one sendonly transceiver fed with the synthetic track.
     // The sender owns SSRC/payloadType/RTCP; writeRtp packets carry placeholders.
