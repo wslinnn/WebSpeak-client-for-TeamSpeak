@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 
 import { Icon } from "./icon";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
 import type { ChatController, ChatScrollerAspect } from "@/web-client/chat-controller";
+import { formatTime, resolveMessageAvatar } from "@/web-client/view-utils";
 import type { ChannelMember, ChatMessage, ServerEvent } from "@shared/voice-models";
 import type { Language } from "@/i18n/web-client";
 import type { WebClientChatTab } from "@/web-client/home-store";
@@ -39,29 +40,79 @@ function isGroupedMessage(messages: readonly ChatMessage[], index: number): bool
   return current.timestamp - previous.timestamp < MESSAGE_GROUP_WINDOW_MS;
 }
 
-function formatClock(timestamp: number, language: Language): string {
-  const locale = language === "zh" ? "zh-CN" : language === "de" ? "de-DE" : language === "ru" ? "ru-RU" : language === "ja" ? "ja-JP" : "en-US";
-  return new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(timestamp);
+interface ChatMessageListProps {
+  chat: ChatController;
+  members: ChannelMember[];
+  language: Language;
+  t: (key: string, variables?: Record<string, string | number>) => string;
 }
 
-function resolveMessageAvatar(message: ChatMessage, members: ChannelMember[]): string {
-  const member = members.find((candidate) =>
-    (typeof message.senderId === "number" && candidate.id === message.senderId)
-    || (Boolean(message.senderUid) && candidate.uid === message.senderUid),
+/** 消息行独立成 memo 组件：输入框受控，草稿每敲一字面板必重渲，但本组件 props
+ *  （chat/members/language/t 引用）不随草稿变，memo 拦下整列重建——否则每次按键
+ *  重跑时间格式化与头像解析（报告 21 F1：500 行 ≈35ms/按键）。 */
+const ChatMessageList = memo(function ChatMessageList({ chat, members, language, t }: ChatMessageListProps) {
+  // 消息/成员/代际跨读 session store，必须显式订阅（React Compiler 的 props memo
+  // 会漏）；订阅自持在 memo 内，父面板重渲被拦下时列表变化仍能自行更新。
+  useStore(chat.sessionStore, useShallow((state) => ({ chatMessages: state.chatMessages, members: state.members, epoch: state.epoch })));
+  const visibleMessages = chat.visibleMessages();
+  return (
+    <>
+      {visibleMessages.map((message, index) => {
+        const grouped = isGroupedMessage(visibleMessages, index);
+        // 合并行不渲染头像：解析（O(成员数) find）只在首行做（报告 21 F1）。
+        const avatar = grouped ? "" : resolveMessageAvatar(message, members);
+        return (
+          <article
+            key={message.id}
+            className={message.isSelf ? "message-row mine" : grouped ? "message-row grouped" : "message-row"}
+            data-ws-part="voice.chat.message"
+            data-ws-state={message.isSelf ? "mine" : "other"}
+          >
+            {!grouped ? (
+              <div
+                className="message-avatar"
+                data-ws-part="voice.chat.message-avatar"
+                style={avatarStyle(message.invokerName, Boolean(message.isSelf), avatar)}
+              >
+                {avatar ? "" : avatarInitial(message.invokerName)}
+              </div>
+            ) : (
+              <div className="message-avatar message-avatar-spacer" aria-hidden="true" />
+            )}
+            <div className="message-body" data-ws-part="voice.chat.message-body">
+              {!grouped && (
+                <div className="message-meta">
+                  <strong>{message.isSelf ? t("you") : message.invokerName}</strong>
+                  <time>{formatTime(message.timestamp, language)}</time>
+                </div>
+              )}
+              <div className="message-bubble" data-ws-part="voice.chat.message-bubble">{message.message}</div>
+            </div>
+          </article>
+        );
+      })}
+    </>
   );
-  return member?.avatar ?? "";
-}
+});
 
 /** 聊天面板（旧 ChatPanel.vue 平价）：页签行/标题/消息列表/输入区。控制器状态经
  *  store 订阅；草稿与提交纪律在 chat-controller。 */
 export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidden, collapsible, serverEvents, members, onListElement, onCollapse, t }: ChatPanelProps) {
-  const chatState = useStore(chat.store);
+  // 草稿/发送态用窄选择器：整店订阅会让 chat store 的任何变化都重渲面板；sending/
+  // sendError 不直接读，留在选择器里只为驱动 canSend/status 的重算。
+  const chatUi = useStore(chat.store, useShallow((state) => ({
+    messageDraft: state.messageDraft,
+    sending: state.sending,
+    sendError: state.sendError,
+    privateConversationKey: state.privateConversationKey,
+  })));
   // title/conversations/visibleMessages/canSend/status 跨读 session/voice store，
   // 但那些变化不动本组件任何 prop——React Compiler 的 props memo 会跳过重渲，
   // 表现为刷新后历史/私聊页签消失、标题不更新。这里显式订阅两个 store 的相关切片。
   useStore(chat.sessionStore, useShallow((state) => ({ chatMessages: state.chatMessages, members: state.members, epoch: state.epoch })));
   useStore(chat.voiceStore, (state) => state.connected);
   const conversations = chat.conversations();
+  // 计数与空态判断用；行渲染在 ChatMessageList 内自算（那里的数组不能每渲新建）。
   const visibleMessages = chat.visibleMessages();
   const [composing, setComposing] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -79,7 +130,7 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
-  }, [chatState.messageDraft]);
+  }, [chatUi.messageDraft]);
 
   function onComposerKeydown(event: React.KeyboardEvent<HTMLTextAreaElement>): void {
     if (event.key !== "Enter") return;
@@ -91,7 +142,7 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
     // Shift+Enter 保留换行；Enter 发送。
     if (event.shiftKey) return;
     event.preventDefault();
-    if (chat.canSend() && chatState.messageDraft.trim()) void chat.submitMessage();
+    if (chat.canSend() && chatUi.messageDraft.trim()) void chat.submitMessage();
   }
 
   return (
@@ -132,7 +183,7 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
           {t("serverChat")}
         </button>
         {conversations.map((conversation) => {
-          const active = tab === "private" && chatState.privateConversationKey === conversation.key;
+          const active = tab === "private" && chatUi.privateConversationKey === conversation.key;
           return (
             <button
               key={conversation.key}
@@ -177,7 +228,7 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
           <div>
             {serverEvents.map((event) => (
               <article key={event.id} className="event-row" data-ws-part="voice.chat.event">
-                <time>{formatClock(event.timestamp, language)}</time>
+                <time>{formatTime(event.timestamp, language)}</time>
                 <span>{event.message}</span>
               </article>
             ))}
@@ -195,39 +246,7 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
             <span>{tab === "private" ? t("privateChatStartLead") : t("chatStartLead")}</span>
           </div>
         ) : (
-          visibleMessages.map((message, index) => {
-            const grouped = isGroupedMessage(visibleMessages, index);
-            const avatar = resolveMessageAvatar(message, members);
-            return (
-              <article
-                key={message.id}
-                className={message.isSelf ? "message-row mine" : grouped ? "message-row grouped" : "message-row"}
-                data-ws-part="voice.chat.message"
-                data-ws-state={message.isSelf ? "mine" : "other"}
-              >
-                {!grouped ? (
-                  <div
-                    className="message-avatar"
-                    data-ws-part="voice.chat.message-avatar"
-                    style={avatarStyle(message.invokerName, Boolean(message.isSelf), avatar)}
-                  >
-                    {avatar ? "" : avatarInitial(message.invokerName)}
-                  </div>
-                ) : (
-                  <div className="message-avatar message-avatar-spacer" aria-hidden="true" />
-                )}
-                <div className="message-body" data-ws-part="voice.chat.message-body">
-                  {!grouped && (
-                    <div className="message-meta">
-                      <strong>{message.isSelf ? t("you") : message.invokerName}</strong>
-                      <time>{formatClock(message.timestamp, language)}</time>
-                    </div>
-                  )}
-                  <div className="message-bubble" data-ws-part="voice.chat.message-bubble">{message.message}</div>
-                </div>
-              </article>
-            );
-          })
+          <ChatMessageList chat={chat} members={members} language={language} t={t} />
         )}
       </div>
       {tab !== "events" && (
@@ -238,7 +257,7 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
         >
           <textarea
             ref={composerRef}
-            value={chatState.messageDraft}
+            value={chatUi.messageDraft}
             onChange={(event) => chat.setDraft(event.target.value)}
             rows={1}
             maxLength={MESSAGE_MAX_LENGTH}
@@ -250,13 +269,13 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
             placeholder={chat.placeholder(t)}
             aria-label={t("messageInput")}
           />
-          {chatState.messageDraft.length > 450 && (
-            <span className="composer-count" aria-live="off">{MESSAGE_MAX_LENGTH - chatState.messageDraft.length}</span>
+          {chatUi.messageDraft.length > 450 && (
+            <span className="composer-count" aria-live="off">{MESSAGE_MAX_LENGTH - chatUi.messageDraft.length}</span>
           )}
           <button
             className="send-button"
             type="submit"
-            disabled={!chat.canSend() || !chatState.messageDraft.trim()}
+            disabled={!chat.canSend() || !chatUi.messageDraft.trim()}
             title={t("send")}
             aria-label={t("send")}
           >

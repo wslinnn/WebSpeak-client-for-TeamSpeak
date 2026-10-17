@@ -11,9 +11,22 @@ export function rangeStyle(value: number, max: number): Record<string, string> {
   };
 }
 
+function localeOf(language: Language): string {
+  return language === "zh" ? "zh-CN" : language === "de" ? "de-DE" : language === "ru" ? "ru-RU" : language === "ja" ? "ja-JP" : "en-US";
+}
+
+/** 按语言缓存时钟格式化器：Intl.DateTimeFormat 构造昂贵（500 次构造+格式化 ≈35ms，
+ *  复用 ≈0.4ms——报告 21 F1），消息列表每次按键重建时这里是热点。格式化器无状态，
+ *  跨渲染/跨组件共享安全。 */
+const timeFormatters = new Map<Language, Intl.DateTimeFormat>();
+
 export function formatTime(timestamp: number, language: Language): string {
-  const locale = language === "zh" ? "zh-CN" : language === "de" ? "de-DE" : language === "ru" ? "ru-RU" : language === "ja" ? "ja-JP" : "en-US";
-  return new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit" }).format(timestamp);
+  let formatter = timeFormatters.get(language);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(localeOf(language), { hour: "2-digit", minute: "2-digit" });
+    timeFormatters.set(language, formatter);
+  }
+  return formatter.format(timestamp);
 }
 
 /** 消息头像：按发送者 uid 优先匹配成员头像。 */
