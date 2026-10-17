@@ -340,6 +340,16 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
         sendJson({ type: "serverInfo", ...entry!.serverInfo });
         return;
       }
+      // 首选来源：连接握手（initserver）携带的 virtualserver_name/welcomemessage
+      // ——对每个客户端免权限；serverinfo 命令需要 b_virtualserver_info_view，
+      // 受限服务器对普通客户端拒授（2026-10-17 部署日志 insufficient client
+      // permissions id=2568 实锤）。握手未下发时才尝试 serverinfo 增强。
+      const handshake = tsClient.getServerHandshake?.() ?? null;
+      if (handshake?.name && initialStateSent) {
+        entry!.serverInfo = { name: handshake.name, welcomeMessage: handshake.welcomeMessage ?? "" };
+        sendJson({ type: "serverInfo", ...entry!.serverInfo });
+        return;
+      }
       try {
         const rows = await tsClient.execCommandWithResponse("serverinfo", 3000);
         const info = parseServerInfoRow(rows[0]);
