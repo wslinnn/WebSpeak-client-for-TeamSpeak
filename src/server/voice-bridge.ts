@@ -263,6 +263,11 @@ export class VoiceBridge {
     this.detachedPool.sweepDetachedSessions(now);
   }
 
+  /** One full heartbeat pass (sweep + ping loop). Public for tests. */
+  heartbeatTick(now: number): void {
+    this.detachedPool.heartbeatTick(now);
+  }
+
   private resolveConnection(url: URL): JoinTicketPayload | null {
     const token = url.searchParams.get("ticket");
     return token ? this.options.joinTickets.consume(token) : null;

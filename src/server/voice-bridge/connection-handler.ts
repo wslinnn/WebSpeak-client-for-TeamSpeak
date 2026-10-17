@@ -366,6 +366,10 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       entry!.ws = next;
       entry!.detached = false;
       entry!.detachedAt = undefined;
+      // The stale liveness flag belongs to the dead socket: a drop before the
+      // last pong (RST, silent proxy drop) would otherwise make the next tick
+      // terminate this fresh socket, which never received a ping to answer.
+      entry!.isAlive = true;
       entry!.reconnectTicketToken = deps.options.reconnectTickets?.issue(currentConnection, entryId);
       bindSocketHandlers(next);
       try {

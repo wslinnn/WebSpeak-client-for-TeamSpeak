@@ -332,6 +332,38 @@ test("a dropped browser socket keeps the TeamSpeak session and a resume reattach
   assert.equal(f.bridge.getActiveCount(), 0);
 });
 
+test("a resumed socket gets a fresh heartbeat grace instead of dying on the next tick", { timeout: 5_000 }, async t => {
+  const reconnectTickets = new ReconnectTicketStore();
+  const f = await fixture(t, { bridgeOptions: { reconnectTickets } });
+  const entry = [...f.entries.values()][0]! as DetachableEntry & { isAlive: boolean };
+  // The drop arrives before the last tick's pong (RST, silent proxy drop):
+  // liveness is already false while the TeamSpeak session stays healthy.
+  entry.isAlive = false;
+  f.socket.close(1001, "going away");
+  await once(f.socket, "close");
+  await waitFor(() => entry.detached === true);
+
+  const token = (JSON.parse(f.messages[0]!.data.toString()) as { reconnectTicket?: string }).reconnectTicket;
+  const record = reconnectTickets.consume(token!);
+  assert.ok(record);
+  const resumeTicket = f.tickets.create({ ...record.payload, resumeOfEntryId: record.entryId });
+  const secondSocket = new WebSocket(`ws://127.0.0.1:${f.port}/ws/voice?ticket=${resumeTicket}`);
+  const secondFirst = once(secondSocket, "message");
+  await once(secondSocket, "open");
+  const second = JSON.parse((await secondFirst)[0].toString()) as { type: string };
+  assert.equal(second.type, "connected");
+
+  // The stale flag belonged to the dead socket: the resumed socket must be
+  // armed again so the tick pings it instead of tearing the session down.
+  f.bridge.heartbeatTick(Date.now());
+  await waitFor(() => entry.isAlive === true);
+  assert.equal(secondSocket.readyState, WebSocket.OPEN, "a resumed socket must survive the next heartbeat tick");
+  assert.equal(f.sdk.disconnected, false, "the kept TeamSpeak session must survive the tick");
+  assert.equal(f.bridge.getActiveCount(), 1);
+  secondSocket.close(1000, "done");
+  await once(secondSocket, "close");
+});
+
 test("a resumed view is re-served cached avatars without a second TeamSpeak transfer", { timeout: 5_000 }, async t => {
   const reconnectTickets = new ReconnectTicketStore();
   let downloads = 0;

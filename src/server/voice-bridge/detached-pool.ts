@@ -66,23 +66,27 @@ export class DetachedSessionPool {
 
   startHeartbeat(): void {
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
-    this.heartbeatTimer = setInterval(() => {
-      this.sweepDetachedSessions(Date.now());
-      for (const entry of this.deps.entries.values()) {
-        // Detached sessions hold no live socket to ping; the sweep above owns
-        // their lifecycle.
-        if (entry.detached) continue;
-        if (entry.ws.readyState !== WebSocket.OPEN) continue;
-        if (!entry.isAlive) {
-          entry.ws.terminate();
-          void this.deps.teardown(entry.id, "heartbeat-timeout");
-          continue;
-        }
-        entry.isAlive = false;
-        entry.ws.ping();
-      }
-    }, HEARTBEAT_INTERVAL_MS);
+    this.heartbeatTimer = setInterval(() => this.heartbeatTick(Date.now()), HEARTBEAT_INTERVAL_MS);
     this.heartbeatTimer.unref?.();
+  }
+
+  /** One heartbeat pass: release kept sessions nobody claimed, then ping every
+   *  attached socket and drop the ones whose previous pong never arrived. */
+  heartbeatTick(now: number): void {
+    this.sweepDetachedSessions(now);
+    for (const entry of this.deps.entries.values()) {
+      // Detached sessions hold no live socket to ping; the sweep above owns
+      // their lifecycle.
+      if (entry.detached) continue;
+      if (entry.ws.readyState !== WebSocket.OPEN) continue;
+      if (!entry.isAlive) {
+        entry.ws.terminate();
+        void this.deps.teardown(entry.id, "heartbeat-timeout");
+        continue;
+      }
+      entry.isAlive = false;
+      entry.ws.ping();
+    }
   }
 
   stop(): void {
