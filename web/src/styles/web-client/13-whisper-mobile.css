@@ -37,19 +37,9 @@
   white-space: nowrap;
 }
 
+/* whisper-ptt-button（报告 22 批 1）：观感迁入 .primary-button.size-md
+ * （02-join 支柱 + 21-components 配方），本类只保留指针交互约束与按下态。 */
 .whisper-ptt-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 36px;
-  padding: 0 12px;
-  color: var(--wsd-accent-contrast);
-  background: var(--wsd-accent-fill);
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
   touch-action: none;
   user-select: none;
 }

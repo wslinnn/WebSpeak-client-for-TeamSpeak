@@ -63,7 +63,7 @@ export function WhisperControls({ targets, active, enabled, controls, onClear, t
       >{t("clearWhisperTargets")}</button>
       <button
         type="button"
-        className="whisper-ptt-button"
+        className="primary-button size-md whisper-ptt-button"
         {...(engaged ? { "aria-pressed": true } : { "aria-pressed": false })}
         onPointerDown={(event) => { event.preventDefault(); if (enabled) controls.onWhisperPttDown(event.nativeEvent); }}
         onPointerUp={(event) => { event.preventDefault(); controls.onWhisperPttUp(event.nativeEvent); }}

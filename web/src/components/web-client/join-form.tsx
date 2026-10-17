@@ -251,7 +251,7 @@ export function JoinForm(props: JoinFormProps) {
         {!connecting && <Icon name="chevron-right" size={17} />}
       </button>
       {connecting && (
-        <button type="button" className="cancel-connect-button" onClick={props.onDisconnect}>
+        <button type="button" className="text-button cancel-connect-button" onClick={props.onDisconnect}>
           {t("cancel")}
         </button>
       )}

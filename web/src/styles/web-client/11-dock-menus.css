@@ -184,25 +184,8 @@ html[data-ws-route="webclient"] body {
   line-height: 0;
 }
 
-.guide-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 30px;
-  padding: 0 10px;
-  color: var(--wsd-text);
-  background: var(--wsd-raised);
-  border: 1px solid var(--wsd-border);
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.guide-button:hover {
-  background: var(--wsd-hover);
-}
+/* guide-button（报告 22 批 1）：观感迁入 .secondary-button.size-sm（21-components
+ * 配方章），本类只保留状态/布局钩子与下方响应式压缩档。 */
 
 .workspace-actions {
   align-items: center;

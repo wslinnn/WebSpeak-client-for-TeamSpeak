@@ -39,11 +39,11 @@ export function JoinHeader({ brandName, brandSubtitle, gatewayStatus, downloadLa
       <div className="header-tools" data-ws-part="home.header-tools">
         <div className="header-note" data-ws-part="home.gateway-status"><span className="tiny-dot"></span> {gatewayStatus}</div>
         <div className={cn("header-links", { open: moreOpen })}>
-          <a className="guide-button" href="/download" data-ws-part="home.download-button" title={downloadLabel} aria-label={downloadLabel}>
+          <a className="secondary-button size-sm guide-button" href="/download" data-ws-part="home.download-button" title={downloadLabel} aria-label={downloadLabel}>
             <Icon name="download" size={15} />
             <span>{downloadLabel}</span>
           </a>
-          <a className="guide-button" href="/admin" title={adminLabel} aria-label={adminLabel}>
+          <a className="secondary-button size-sm guide-button" href="/admin" title={adminLabel} aria-label={adminLabel}>
             <Icon name="settings" size={15} />
             <span>{adminLabel}</span>
           </a>

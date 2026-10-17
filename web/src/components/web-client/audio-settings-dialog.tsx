@@ -332,7 +332,7 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
             > </div
           ><footer className="settings-footer"
             ><button
-              className="primary-button save-button"
+              className="primary-button size-lg"
               onClick={onClose}
             >{t("done")}</button
             ></footer

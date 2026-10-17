@@ -357,10 +357,6 @@
   cursor: pointer;
 }
 
-.save-button {
-  padding: 0 23px;
-}
-
 .dialog-close,
 .identity-import-close {
   position: absolute;

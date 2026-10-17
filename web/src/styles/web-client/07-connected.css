@@ -84,14 +84,11 @@
   color: var(--wsd-danger);
 }
 
+/* cancel-connect-button（报告 22 批 1）：观感迁入 .text-button（05-dialogs），
+ * 本类只保留布局位与交互态。 */
 .cancel-connect-button {
   justify-self: center;
   min-height: 32px;
-  padding: 0 10px;
-  color: var(--wsd-text-muted);
-  background: transparent;
-  font-size: 11px;
-  cursor: pointer;
 }
 
 .cancel-connect-button:hover {

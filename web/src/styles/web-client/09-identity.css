@@ -286,13 +286,10 @@
   margin-right: 3px;
 }
 
+/* clear-local-button（报告 22 批 1）：观感迁入 .text-button（05-dialogs），
+ * 本类只保留紧凑 padding 与危险色交互态。 */
 .clear-local-button {
   padding: 0;
-  color: var(--wsd-text-muted);
-  background: transparent;
-  border: 0;
-  font-size: 10px;
-  cursor: pointer;
 }
 
 .clear-local-button:hover {
@@ -316,9 +313,5 @@
     width: 100%;
     justify-content: flex-end;
   }
-}
-
-.save-button {
-  min-height: 38px;
 }
 

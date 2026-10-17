@@ -227,7 +227,7 @@ export function JoinPage(props: JoinPageProps) {
         <span className="footer-separator">·</span>
         <span>{t("teamSpeakClient")}</span>
         <span className="footer-spacer" />
-        <button type="button" className="clear-local-button" onClick={props.onClearBrowserData}>
+        <button type="button" className="text-button clear-local-button" onClick={props.onClearBrowserData}>
           {t("clearLocalData")}
         </button>
       </footer>

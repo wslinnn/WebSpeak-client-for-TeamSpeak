@@ -475,7 +475,7 @@
     min-height: 68px;
     padding: 8px 18px calc(8px + env(safe-area-inset-bottom, 0px));
   }
-  .settings-footer .save-button {
+  .settings-footer .primary-button {
     min-height: 48px;
   }
   .microphone-control {
