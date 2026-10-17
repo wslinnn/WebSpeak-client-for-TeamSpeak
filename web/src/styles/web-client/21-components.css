@@ -31,6 +31,12 @@
   background: var(--wsd-hover);
 }
 
+/* 按钮基座 reset（01-base 的 :where(html[route]) .web-client button，0,1,1）
+ * 会压过裸类支柱的 border——中性面描边在此以更高特异性钉回（批 3 抽查发现）。 */
+html[data-ws-route="webclient"] .secondary-button {
+  border: 1px solid var(--wsd-border);
+}
+
 .primary-button.size-sm,
 .secondary-button.size-sm,
 .text-button.size-sm {
@@ -107,6 +113,24 @@ html[data-ws-route="webclient"] .text-button {
 html[data-ws-route="webclient"] :where(.ws-menu-item) {
   font-size: 12px;
 }
+
+/* —— 图标钮配方（报告 22 §2.1 批 3） ——
+ * 三档 28/32/36，圆角随档；触控 44px 由移动层覆盖不进配方。既有图标钮类
+ * （header-action/dock 小钮等）逐类迁移前必须真浏览器计算样式抽查（红线），
+ * 迁移时类名替换为 .ws-icon-btn.size-*，特殊形状/状态留在原类作修饰钩子。 */
+.ws-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  line-height: 0;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.ws-icon-btn.size-sm { width: 28px; height: 28px; border-radius: 8px; }
+.ws-icon-btn.size-md { width: 32px; height: 32px; border-radius: 9px; }
+.ws-icon-btn.size-lg { width: 36px; height: 36px; border-radius: 10px; }
 
 /* —— LanguageSwitcher —— */
 .language-switcher {

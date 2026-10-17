@@ -109,7 +109,7 @@ export function IdentityImportDialog(props: IdentityImportDialogProps) {
         >
           <Icon name="paperclip" size={18} />
           <span>{props.dropZoneLabel}</span>
-          <button type="button" className="identity-file-button" data-ws-part="home.identity-import.file-button" disabled={busy} onClick={(event) => { event.stopPropagation(); chooseFile(); }}>
+          <button type="button" className="secondary-button size-sm identity-file-button" data-ws-part="home.identity-import.file-button" disabled={busy} onClick={(event) => { event.stopPropagation(); chooseFile(); }}>
             {props.chooseFileLabel}
           </button>
         </div>

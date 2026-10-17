@@ -182,7 +182,7 @@ export function JoinForm(props: JoinFormProps) {
       </div>
 
       <div className="device-setup" data-ws-part="home.device-setup">
-        <button type="button" className="identity-action-button" data-ws-part="home.device-setup.open" onClick={props.onOpenDeviceSettings}>
+        <button type="button" className="secondary-button size-sm identity-action-button" data-ws-part="home.device-setup.open" onClick={props.onOpenDeviceSettings}>
           <Icon name="mic" size={15} />
           {t("joinDeviceSetupAction")}
         </button>
@@ -226,12 +226,12 @@ export function JoinForm(props: JoinFormProps) {
             </span>
           </label>
           <div className="identity-actions" data-ws-part="home.identity-actions">
-            <button type="button" className="identity-action-button" data-ws-part="home.identity-import.open" onClick={props.onImportIdentity}>
+            <button type="button" className="secondary-button size-sm identity-action-button" data-ws-part="home.identity-import.open" onClick={props.onImportIdentity}>
               {t("identityImport")}
             </button>
             <button
               type="button"
-              className="identity-action-button"
+              className="secondary-button size-sm identity-action-button"
               data-ws-part="home.identity-export.button"
               disabled={props.identityExportBusy || !props.rememberIdentity || !props.hasIdentity}
               onClick={props.onExportIdentity}

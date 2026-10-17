@@ -57,24 +57,8 @@
   gap: 7px;
 }
 
-.identity-action-button,
-.identity-file-button {
-  min-height: 31px;
-  padding: 0 10px;
-  color: var(--text-primary);
-  background: color-mix(in srgb, var(--text-primary) 5%, var(--surface-1));
-  border: 1px solid var(--skin-border);
-  border-radius: 8px;
-  font: inherit;
-  font-size: 10px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.identity-action-button:hover,
-.identity-file-button:hover {
-  background: color-mix(in srgb, var(--text-primary) 8%, var(--surface-1));
-}
+/* identity-action/file-button（报告 22 批 3）：观感迁入 .secondary-button.size-sm
+ * （21-components 配方，--wsd 中性面），本类只保留禁用态。 */
 
 .identity-action-button:disabled {
   cursor: not-allowed;
