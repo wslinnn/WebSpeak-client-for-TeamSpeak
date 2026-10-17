@@ -17,9 +17,11 @@ function fixture(t: TestContext) {
   const messages: ServerMessage[] = [];
   const events: Array<{ kind: string; message: string }> = [];
   const callbacks: Array<{ kind: string; value?: unknown }> = [];
+  const pulls = { count: 0 };
   const client = Object.assign(new EventEmitter(), {
     getClientId: () => phase.selfId, getChannelId: () => phase.channelId,
     getClientAvatar: async () => null,
+    refreshDirectoryClients: async () => { pulls.count++; },
   });
   const coordinator = new SessionEventCoordinator({
     state, client, avatars: {
@@ -39,7 +41,7 @@ function fixture(t: TestContext) {
     onAvatarError: (_id, _uid, value) => callbacks.push({ kind: "avatar-error", value }),
   });
   t.after(() => coordinator.close());
-  return { phase, state, avatarUrls, messages, events, callbacks, client, coordinator };
+  return { phase, state, avatarUrls, messages, events, callbacks, client, coordinator, pulls };
 }
 
 test("welcome events reconcile before publication and self follows the connected SDK channel", t => {
@@ -112,6 +114,70 @@ test("client enter publishes a single memberEnter carrying the channel id", t =>
   assert.deepEqual(f.messages, [{ type: "memberEnter", id: 3, nickname: "Member 3", uid: "uid-3", isSelf: false,
     away: undefined, awayMessage: undefined, inputMuted: undefined, outputMuted: undefined, channelCommander: undefined, channelId: "2" }]);
   assert.equal(f.state.channelTree.find(item => item.id === "2")?.members?.some(item => item.id === 3), true);
+});
+
+test("F3 二级：已知成员的字段更新走增量补丁，不做全量重建", t => {
+  const f = fixture(t);
+  f.client.emit("directorySnapshot", snapshot(member(1), member(2)));
+  f.coordinator.syncSelf(); f.phase.published = true;
+  f.messages.length = 0;
+  f.client.emit("clientUpdated", { ...member(2), away: true, awayMessage: "gone" });
+  // 只有一条字段级 delta：无 memberMoved、无多余 memberUpdated。
+  assert.deepEqual(f.messages, [{ type: "memberUpdated", id: 2, away: true, awayMessage: "gone" }]);
+  const patched = f.state.members.get(2)!;
+  assert.equal(patched.away, true);
+  assert.equal(patched.awayMessage, "gone");
+  // 通知未携带的字段不被触碰（SDK 解析缺席=未变化）。
+  assert.equal(patched.inputMuted, undefined);
+  // 频道名册与 members 共享同一成员对象（引用替换）。
+  assert.equal(f.state.channelTree.find(item => item.id === "1")?.members?.find(item => item.id === 2), patched);
+  // 全量拉取未被触发。
+  assert.equal(f.pulls.count, 0);
+});
+
+test("F3 一级：走不了增量的更新在 200ms 窗口内合并为一次重建", t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const f = fixture(t);
+  f.client.emit("directorySnapshot", snapshot(member(1), member(2)));
+  f.coordinator.syncSelf(); f.phase.published = true;
+  f.messages.length = 0;
+  // 频道变更（通知携带新 ctid）不能走增量：进合并窗口。
+  f.client.emit("clientUpdated", { ...member(2), channelID: 2n, away: true });
+  f.client.emit("clientUpdated", { ...member(2), channelID: 2n, inputMuted: true });
+  assert.equal(f.messages.some(message => message.type === "memberMoved" || message.type === "memberUpdated"), false, "窗口内不下发");
+  t.mock.timers.tick(200);
+  // 整窗变化合并成一组 delta（相对窗口起点）：一条 moved + 一条含双字段的 updated。
+  assert.deepEqual(f.messages.filter(message => message.type === "memberMoved"),
+    [{ type: "memberMoved", id: 2, channelId: "2" }]);
+  assert.deepEqual(f.messages.filter(message => message.type === "memberUpdated"),
+    [{ type: "memberUpdated", id: 2, away: true, inputMuted: true }]);
+});
+
+test("F3：未知成员的更新走合并窗口，flush 后只出一条 memberEnter", t => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const f = fixture(t);
+  f.client.emit("directorySnapshot", snapshot(member(1)));
+  f.coordinator.syncSelf(); f.phase.published = true;
+  f.messages.length = 0;
+  f.client.emit("clientUpdated", member(9, 2n));
+  f.client.emit("clientUpdated", member(9, 2n));
+  t.mock.timers.tick(200);
+  const enters = f.messages.filter(message => message.type === "memberEnter");
+  assert.equal(enters.length, 1, "窗口内两条未知成员更新只重建一次");
+});
+
+test("F3：增量补丁每 50 次触发一次全量校准，无漂移时不出修正 delta", t => {
+  const f = fixture(t);
+  f.client.emit("directorySnapshot", snapshot(member(1), member(2)));
+  f.coordinator.syncSelf(); f.phase.published = true;
+  f.messages.length = 0;
+  for (let index = 0; index < 50; index++) {
+    f.client.emit("clientUpdated", { ...member(2), away: index % 2 === 0 });
+  }
+  assert.equal(f.pulls.count, 1, "第 50 次增量触发一次全量拉取");
+  // 50 次补丁各出一条 memberUpdated；校准重建无状态漂移，不加发修正。
+  assert.equal(f.messages.filter(message => message.type === "memberUpdated").length, 50);
+  assert.equal(f.messages.some(message => message.type === "memberMoved" || message.type === "memberEnter"), false);
 });
 
 test("channel changes preserve large identifiers and publish only actual create, rename and delete events", t => {

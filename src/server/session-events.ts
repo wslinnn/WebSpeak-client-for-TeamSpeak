@@ -10,6 +10,11 @@ import type { TSClient, TSChatMessage, TSDirectoryClient, TSDirectorySnapshot, T
 
 type SessionMember = ChannelMember & { uid: string };
 
+/** F3 一级（报告 21/23）：clientUpdated 走不了字段级增量时的本地重建合并窗口。 */
+const CLIENT_UPDATED_WINDOW_MS = 200;
+/** F3 二级：每累计 N 次增量补丁拉一次全量 clientlist，字段语义漂移在此自愈。 */
+const UPDATE_PATCH_CALIBRATION_INTERVAL = 50;
+
 export interface SessionDirectoryState {
   channelTree: ChannelInfo[];
   members: Map<number, SessionMember>;
@@ -64,6 +69,9 @@ export class SessionEventCoordinator {
   private clientId = 0;
   private channelId = 0n;
   private directoryStatusRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private directoryRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private directoryRefreshWindow: { previousTree: ChannelInfo[]; previousMembers: ReadonlyMap<number, SessionMember> } | null = null;
+  private incrementalPatchCount = 0;
 
   constructor(private readonly options: SessionEventOptions) {
     const { state, client } = options;
@@ -78,6 +86,7 @@ export class SessionEventCoordinator {
     });
     // Subscribe before connect(): welcome events may precede the first snapshot.
     this.listenDirectory("directorySnapshot", snapshot => {
+      this.flushPendingDirectoryRefresh();
       const previousTree = state.channelTree;
       const previousMembers = new Map(state.members);
       this.directory.applySnapshot(snapshot);
@@ -92,6 +101,7 @@ export class SessionEventCoordinator {
       this.avatars.schedule();
     });
     this.listenDirectory("clientEnter", info => {
+      this.flushPendingDirectoryRefresh();
       const previousTree = state.channelTree;
       const previousMembers = new Map(state.members);
       const candidateSelfId = client.getClientId();
@@ -114,6 +124,7 @@ export class SessionEventCoordinator {
       }
     });
     this.listenDirectory("clientLeave", info => {
+      this.flushPendingDirectoryRefresh();
       options.onClientLeave(info.id);
       const member = state.members.get(info.id);
       const previousTree = state.channelTree;
@@ -127,6 +138,7 @@ export class SessionEventCoordinator {
     });
     this.listenDirectory("clientMoved", info => {
       if (info.targetChannelID === undefined || info.targetChannelID === 0n) return;
+      this.flushPendingDirectoryRefresh();
       options.onClientMove(info.id, info.targetChannelID);
       const member = state.members.get(info.id);
       const previousTree = state.channelTree;
@@ -140,11 +152,25 @@ export class SessionEventCoordinator {
       }
     });
     this.listenDirectory("clientUpdated", info => {
-      const previousTree = state.channelTree;
-      const previousMembers = new Map(state.members);
-      this.directory.applyClientUpdated(info);
-      this.refresh();
-      this.publishDelta(previousTree, previousMembers);
+      // 注意：这里不 flush 挂起窗口——连续 update 就该并入同一窗口；其他目录
+      // 事件的 flush-at-top 已保证跨事件类型的 delta 次序。
+      const { merged, channelChanged } = this.directory.applyClientUpdated(info);
+      const member = this.options.state.members.get(info.id);
+      // 二级：成员已知、频道未变、且没有挂起的重建窗口 → 字段级增量直接改视图
+      // 并下发 memberUpdated，不再全量 clientlist/重建。窗口挂起期间一律入窗：
+      // 视图尚未反映前序变化时打补丁会发出与 flush 重复的 delta。频道变更
+      // （走 clientMoved 权威路径）或成员未知 → 一级合并窗口内做一次本地重建。
+      if (member && !channelChanged && !this.directoryRefreshTimer) {
+        this.applyMemberUpdatePatch(member, merged);
+        this.incrementalPatchCount++;
+        if (this.incrementalPatchCount % UPDATE_PATCH_CALIBRATION_INTERVAL === 0) {
+          // 周期校准：拉一次全量 clientlist——视图与 TS 真值的字段漂移经
+          // directoryClientsSnapshot 自愈并以修正 delta 呈现。
+          void this.options.client.refreshDirectoryClients?.();
+        }
+        return;
+      }
+      this.deferFullDirectoryRefresh();
     });
     this.listenDirectory("directoryClientsSnapshot", clients => {
       const previousTree = state.channelTree;
@@ -215,7 +241,6 @@ export class SessionEventCoordinator {
     const snapshot = this.directory.getSnapshot();
     if (!snapshot) return;
     const { state, client } = this.options;
-    const previousTargets = [...state.whisperTargetIds].sort((a, b) => a - b);
     const selfId = this.clientId || client.getClientId();
     const sdkChannelId = client.getChannelId();
     if (this.channelId === 0n && sdkChannelId !== 0n) this.channelId = sdkChannelId;
@@ -228,6 +253,16 @@ export class SessionEventCoordinator {
         inputMuted: member.inputMuted, outputMuted: member.outputMuted, channelCommander: member.channelCommander,
       });
     }
+    this.syncWhisperTargets();
+  }
+
+  /** Prunes whisper targets that lost their member (left, or became self) and
+   *  publishes the change. Shared by the full rebuild and the incremental
+   *  member patch so both paths keep identical target semantics. */
+  private syncWhisperTargets(): void {
+    const { state, client } = this.options;
+    const previousTargets = [...state.whisperTargetIds].sort((a, b) => a - b);
+    const selfId = this.clientId || client.getClientId();
     for (const id of state.whisperTargetIds) {
       if (!state.members.has(id) || id === selfId) state.whisperTargetIds.delete(id);
     }
@@ -236,6 +271,57 @@ export class SessionEventCoordinator {
     if (this.options.isPublished() && (previousTargets.length !== nextTargets.length || previousTargets.some((id, index) => id !== nextTargets[index]))) {
       this.options.sendJson({ type: "whisperTargets", targetIds: nextTargets, active: state.whisperActive });
     }
+  }
+
+  /** F3 二级：把一次 clientUpdated 以字段级增量落到视图（members 与频道名册
+   *  共享同一成员对象，引用替换）并下发 memberUpdated；通知未携带的字段
+   *  （SDK 解析后为 undefined）按「未变化」跳过。 */
+  private applyMemberUpdatePatch(member: SessionMember, merged: TSDirectoryClient): void {
+    const changes: Partial<Pick<ChannelMember, "nickname" | "uid" | "away" | "awayMessage" | "inputMuted" | "outputMuted" | "channelCommander">> = {};
+    if (merged.nickname !== undefined && merged.nickname !== member.nickname) changes.nickname = merged.nickname;
+    if (merged.uid !== undefined && merged.uid !== member.uid) changes.uid = merged.uid;
+    if (merged.away !== undefined && merged.away !== member.away) changes.away = merged.away;
+    if (merged.awayMessage !== undefined && merged.awayMessage !== member.awayMessage) changes.awayMessage = merged.awayMessage;
+    if (merged.inputMuted !== undefined && merged.inputMuted !== member.inputMuted) changes.inputMuted = merged.inputMuted;
+    if (merged.outputMuted !== undefined && merged.outputMuted !== member.outputMuted) changes.outputMuted = merged.outputMuted;
+    if (merged.channelCommander !== undefined && merged.channelCommander !== member.channelCommander) changes.channelCommander = merged.channelCommander;
+    const { state } = this.options;
+    if (Object.keys(changes).length) {
+      const next: SessionMember = { ...member, ...changes };
+      state.members.set(member.id, next);
+      for (const channel of state.channelTree) {
+        const position = channel.members?.findIndex(entry => entry.id === member.id) ?? -1;
+        if (position >= 0 && channel.members) channel.members[position] = next;
+      }
+      if (this.options.isPublished()) this.options.sendJson({ type: "memberUpdated", id: member.id, ...changes });
+    }
+    this.syncWhisperTargets();
+  }
+
+  /** F3 一级：把一次走不了增量的 clientUpdated 并入 200ms 合并窗口——窗口内
+   *  多条更新只做一次本地重建，delta 相对窗口起点计算，覆盖整窗变化。 */
+  private deferFullDirectoryRefresh(): void {
+    if (this.directoryRefreshTimer) return;
+    this.directoryRefreshWindow = {
+      previousTree: [...this.options.state.channelTree],
+      previousMembers: new Map(this.options.state.members),
+    };
+    this.directoryRefreshTimer = setTimeout(() => {
+      this.directoryRefreshTimer = null;
+      this.flushPendingDirectoryRefresh();
+    }, CLIENT_UPDATED_WINDOW_MS);
+  }
+
+  private flushPendingDirectoryRefresh(): void {
+    if (this.directoryRefreshTimer) {
+      clearTimeout(this.directoryRefreshTimer);
+      this.directoryRefreshTimer = null;
+    }
+    const window = this.directoryRefreshWindow;
+    if (!window) return;
+    this.directoryRefreshWindow = null;
+    this.refresh();
+    this.publishDelta(window.previousTree, window.previousMembers);
   }
 
   /** Diffs the rebuilt directory against the caller's snapshot and sends only the changes. */
@@ -301,6 +387,9 @@ export class SessionEventCoordinator {
   reset(): void {
     if (this.directoryStatusRefreshTimer) clearTimeout(this.directoryStatusRefreshTimer);
     this.directoryStatusRefreshTimer = null;
+    if (this.directoryRefreshTimer) clearTimeout(this.directoryRefreshTimer);
+    this.directoryRefreshTimer = null;
+    this.directoryRefreshWindow = null;
     this.avatars.reset();
     this.clientId = 0;
     this.channelId = 0n;
@@ -316,6 +405,9 @@ export class SessionEventCoordinator {
     this.closed = true;
     if (this.directoryStatusRefreshTimer) clearTimeout(this.directoryStatusRefreshTimer);
     this.directoryStatusRefreshTimer = null;
+    if (this.directoryRefreshTimer) clearTimeout(this.directoryRefreshTimer);
+    this.directoryRefreshTimer = null;
+    this.directoryRefreshWindow = null;
     for (const unsubscribe of this.subscriptions.splice(0)) unsubscribe();
     this.avatars.close();
     this.reset();

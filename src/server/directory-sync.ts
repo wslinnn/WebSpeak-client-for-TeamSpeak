@@ -49,8 +49,20 @@ export class DirectorySynchronizer {
     this.applyOrQueue({ type: "clientMoved", id, channelID });
   }
 
-  applyClientUpdated(info: DirectoryClientInfo): void {
-    this.applyOrQueue({ type: "clientUpdated", info });
+  /** Merges the update into the directory and reports whether the client's
+   *  channel changed (报告 21 F3 二级：频道未变时调用方可走字段级增量，频道
+   *  变更仍走 clientMoved 权威路径的全量重建）。快照未就绪（事件入队）时
+   *  无视图可增量，按未变化返回。 */
+  applyClientUpdated(info: DirectoryClientInfo): { merged: DirectoryClientInfo; channelChanged: boolean } {
+    if (!this.snapshot || this.departedClientIds.has(info.id)) {
+      this.applyOrQueue({ type: "clientUpdated", info });
+      return { merged: info, channelChanged: false };
+    }
+    const current = this.clients.get(info.id);
+    const channelChanged = current !== undefined && info.channelID !== undefined && info.channelID !== current.channelID;
+    const merged: DirectoryClientInfo = current ? { ...current, ...info } : info;
+    this.clients.set(info.id, merged);
+    return { merged, channelChanged };
   }
 
   applyClientListSnapshot(clients: DirectoryClientInfo[]): void {
