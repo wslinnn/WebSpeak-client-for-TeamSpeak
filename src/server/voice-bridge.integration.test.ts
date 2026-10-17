@@ -364,6 +364,51 @@ test("a resumed socket gets a fresh heartbeat grace instead of dying on the next
   await once(secondSocket, "close");
 });
 
+test("a resume ticket whose target lost its TeamSpeak session rebuilds on the same connection instead of closing 4001 (报告 21 L5)", { timeout: 5_000 }, async t => {
+  const reconnectTickets = new ReconnectTicketStore();
+  const f = await fixture(t, { bridgeOptions: { reconnectTickets } });
+  let sdkConnects = 0;
+  t.mock.method(f.sdk, "connect", async () => {
+    sdkConnects += 1;
+    await TeamSpeakStub.prototype.connect.call(f.sdk);
+  });
+
+  // The view drops; the entry is detached while its TeamSpeak session is still
+  // believed healthy, so the exchange mints a RESUME ticket.
+  const entry = [...f.entries.values()][0]! as DetachableEntry;
+  f.socket.close(1001, "going away");
+  await once(f.socket, "close");
+  await waitFor(() => entry.detached === true);
+  const token = (JSON.parse(f.messages[0]!.data.toString()) as { reconnectTicket?: string }).reconnectTicket;
+  const record = reconnectTickets.consume(token!);
+  assert.ok(record);
+  assert.equal(f.bridge.isDetachedResumable(record.entryId), true);
+  const resumeTicket = f.tickets.create({ ...record.payload, resumeOfEntryId: record.entryId });
+
+  // Between the mint and the attach, the kept TeamSpeak session dies (state
+  // leaves "connected"): the resume branch's attach refuses — the browser must
+  // get a rebuilt session on this same socket, not a 4001 that costs the ticket.
+  const managed = (f.bridge as unknown as { sessionManager: { get(id: string): { transition(next: string): void } | undefined } }).sessionManager.get(record.entryId);
+  assert.ok(managed);
+  managed.transition("interrupted");
+
+  const secondSocket = new WebSocket(`ws://127.0.0.1:${f.port}/ws/voice?ticket=${resumeTicket}`);
+  const secondFirst = once(secondSocket, "message");
+  await once(secondSocket, "open");
+  const second = JSON.parse((await secondFirst)[0].toString()) as { type: string; reconnectTicket?: string };
+  assert.equal(second.type, "connected", "the same connection must deliver a full rebuilt session");
+  assert.ok(second.reconnectTicket, "the rebuilt session carries a fresh reconnect token");
+  await nextTurn();
+  // 计数器在首次 join 之后才挂（fixture 已连过一次），这里的 1 次即重建连接。
+  assert.equal(sdkConnects, 1, "the rebuild connects TeamSpeak again (the kept session was dead)");
+  assert.equal(f.entries.size, 1);
+  const rebuilt = [...f.entries.values()][0]!;
+  assert.notEqual(rebuilt.id, entry.id, "the stale detached entry was replaced, not adopted");
+  assert.equal(f.sdk.disconnected, false);
+  secondSocket.close(1000, "done");
+  await once(secondSocket, "close");
+});
+
 test("a resumed view is re-served cached avatars without a second TeamSpeak transfer", { timeout: 5_000 }, async t => {
   const reconnectTickets = new ReconnectTicketStore();
   let downloads = 0;

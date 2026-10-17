@@ -127,9 +127,15 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
         deps.logger.info({ entryId: resumeEntryId, nickname: resumeTarget.nickname, target: formatTeamSpeakTarget(resumeTarget.target) }, "Voice session resumed onto kept TeamSpeak connection");
         return;
       }
-      deps.logger.warn({ entryId: resumeEntryId }, "Resume target no longer attachable; the browser must rebuild the session");
-      ws.close(4001, "RESUME_UNAVAILABLE");
-      return;
+      // L5（报告 21）：票在铸造时判过 isDetachedResumable，但 attach 时刻可能
+      // 已被宽限 sweep 或 TS 会话在挂起期掉线——判据与执行之间是毫秒级窗口。
+      // 票自带完整 join 载荷，回落为本连接上的常规重建（先按 superseded 拆掉
+      // 残留条目、释放身份租约），而不是丢票把用户赶回表单。
+      deps.logger.warn({ entryId: resumeEntryId }, "Resume target no longer attachable; rebuilding the session on this connection");
+      await Promise.race([
+        deps.sessionManager.teardown(resumeEntryId, "superseded"),
+        new Promise<void>((resolve) => setTimeout(resolve, 1_500)),
+      ]);
     }
 
     const { target, serverPassword, nickname } = connection;
