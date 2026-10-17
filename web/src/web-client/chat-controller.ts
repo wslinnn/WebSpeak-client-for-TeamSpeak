@@ -251,7 +251,7 @@ export function createChatController(options: Options) {
   });
   // 消息增量：历史持久化 + 私聊到达通知 + 自消息回底 + 未读跟随。
   let lastMessageCount = options.session.getState().chatMessages.length;
-  options.session.subscribe((snapshot) => {
+  const unsubscribeSessionMessages = options.session.subscribe((snapshot) => {
     const messages = snapshot.chatMessages;
     if (messages.length === lastMessageCount) return;
     const grew = messages.length > lastMessageCount;
@@ -312,7 +312,12 @@ export function createChatController(options: Options) {
     patch({ sending: false });
     unsubscribeHome();
     unsubscribeSession();
+    unsubscribeSessionMessages();
     unsubscribeVoice();
+    // dispose 无生产调用点是有意的：控制器在进房根部 useMemo 单实例存活整个
+    // 进房周期，StrictMode dev 双挂载会先 dispose 再复用同一实例（useMemo 不随
+    // effect 重跑），接进 effect cleanup 反而会杀死存活的控制器。这里保持
+    // 完整可释放（测试与未来宿主变更用）。
   }
 
   return {
