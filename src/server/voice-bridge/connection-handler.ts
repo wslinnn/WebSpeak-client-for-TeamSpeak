@@ -343,6 +343,14 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       try {
         const rows = await tsClient.execCommandWithResponse("serverinfo", 3000);
         const info = parseServerInfoRow(rows[0]);
+        // 响应行存在但解析不出 name/welcomemessage 时同样静默无操作——这条
+        // 分支不留痕，部署侧「header 裸奔」就会在权限与解析之间两头猜。
+        if (!info) {
+          deps.logger.warn({
+            entryId,
+            rowKeys: rows[0] ? Object.keys(rows[0]).sort().slice(0, 8).join(",") : "(empty)",
+          }, "TeamSpeak serverinfo row unusable");
+        }
         if (info && initialStateSent) {
           entry!.serverInfo = info;
           sendJson({ type: "serverInfo", ...info });
