@@ -363,6 +363,7 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
+  padding: 0 18px;
   color: var(--wsd-accent-contrast);
   background: var(--wsd-accent-fill);
   border-radius: 9px;
