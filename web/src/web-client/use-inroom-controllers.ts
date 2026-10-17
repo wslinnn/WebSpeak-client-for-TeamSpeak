@@ -11,7 +11,7 @@ import { createChannelFold } from "@/web-client/channel-fold";
 import { createChatController, type ChatScrollerAspect } from "@/web-client/chat-controller";
 import { createMembersController } from "@/web-client/members-controller";
 import { createPerformanceMonitor } from "@/web-client/performance-monitor";
-import { createVoiceServerSwitch } from "@/web-client/server-switch";
+import { createVoiceServerSwitch, settleSwitchOnConnected } from "@/web-client/server-switch";
 import type { HomeConnection } from "@/web-client/home-connection";
 import type { HomeStoreController } from "@/web-client/home-store";
 import type { MobileSection } from "@/components/web-client/voice-shell";
@@ -63,6 +63,9 @@ export function useInRoomControllers(options: InRoomOptions) {
   const fold = useMemo(() => createChannelFold(), []);
   const serverSwitch = useMemo(() => createVoiceServerSwitch({ voiceStore: voice.store }), [voice]);
   useEffect(() => () => serverSwitch.dispose(), [serverSwitch]);
+  // 连接成功即结算切换（旧 WebClient.vue connected watcher 的 settleFavoriteSwitch
+  // 平价）：缺这条接线时，成功切服后挂起横幅只剩 20s 安全超时兜底，超时即假失败。
+  useEffect(() => settleSwitchOnConnected(voice.store, serverSwitch), [voice, serverSwitch]);
   const switchState = useStore(serverSwitch.store);
 
   // 性能面板监视器：探针只在面板打开时采样（门控 connected && panelOpen）。
@@ -195,8 +198,9 @@ export function useInRoomControllers(options: InRoomOptions) {
     // 同目标行点击不是切服；换频道走频道树。
     if (server.address === combineTeamSpeakTarget(snapshot.serverHost, snapshot.serverPort)) return;
     serverSwitch.begin(server.label || server.address);
-    // 先复位失败镜像：第二次尝试以同码失败也要能再次触发横幅。
-    voice.store.setState({ errorCode: "" });
+    // 先复位失败镜像（镜像读 connectionFailureCode）：第二次尝试以同码失败也要能
+    // 再次触发横幅；errorCode 一并清掉，延续上一轮「开新尝试先清展示错误码」的行为。
+    voice.store.setState({ connectionFailureCode: "", errorCode: "" });
     const target = splitTeamSpeakTarget(server.address);
     store.setState({
       serverHost: target.address,

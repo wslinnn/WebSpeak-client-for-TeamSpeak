@@ -13,7 +13,8 @@ export interface ServerSwitchStore {
 }
 
 interface Options {
-  voiceStore: StoreApi<{ errorCode: string }>;
+  // 只看连接来源的失败码：任何普通错误帧（命令失败等）落 errorCode，不该误报切服失败。
+  voiceStore: StoreApi<{ connectionFailureCode: string }>;
 }
 
 export function createVoiceServerSwitch(options: Options) {
@@ -42,11 +43,11 @@ export function createVoiceServerSwitch(options: Options) {
     store.setState({ pending: null, failed: null });
   }
 
-  let lastErrorCode = options.voiceStore.getState().errorCode;
+  let lastFailureCode = options.voiceStore.getState().connectionFailureCode;
   const unsubscribe = options.voiceStore.subscribe((snapshot) => {
-    const code = snapshot.errorCode;
-    if (code === lastErrorCode) return;
-    lastErrorCode = code;
+    const code = snapshot.connectionFailureCode;
+    if (code === lastFailureCode) return;
+    lastFailureCode = code;
     if (!code || PASSWORD_DIALOG_CODES.has(code)) return;
     fail();
   });
@@ -61,3 +62,17 @@ export function createVoiceServerSwitch(options: Options) {
 }
 
 export type VoiceServerSwitch = ReturnType<typeof createVoiceServerSwitch>;
+
+/** 连接成功即结算切服横幅（旧 WebClient.vue 的 connected watcher 平价：成功或
+ *  被取代都算切换结束）。做成独立助手是为了让「connected → settle」这条接线
+ *  有单测钉住——此前的 React 移植漏掉调用点，成功切服 20s 后必弹假失败横幅。 */
+export function settleSwitchOnConnected(
+  voiceStore: StoreApi<{ connected: boolean }>,
+  serverSwitch: Pick<VoiceServerSwitch, "settle">,
+): () => void {
+  let lastConnected = voiceStore.getState().connected;
+  return voiceStore.subscribe((snapshot) => {
+    if (snapshot.connected && !lastConnected) serverSwitch.settle();
+    lastConnected = snapshot.connected;
+  });
+}
