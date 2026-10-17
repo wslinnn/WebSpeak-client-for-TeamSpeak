@@ -114,12 +114,33 @@ export function createVoiceSessionState(options: SessionStateOptions) {
     }
     syncRoster();
   };
+  // F10（报告 21）：同一头像 URL 只做一次 Image 探测，并飞行中的重复探测合并
+  // ——HTTP 缓存只省字节，解码仍逐次发生；全服共享头像（ clan 头像）此前按
+  // 成员数各解码一次。URL 带内容 hash 版本，换图即换 URL，集合无需失效逻辑。
+  const validatedAvatarUrls = new Set<string>();
+  const pendingAvatarProbes = new Map<string, Array<(applied: boolean) => void>>();
   const storeAvatar = (uid: string, url: string): void => {
     if (avatars.get(uid) === url) return;
     if (typeof Image === "undefined") { applyAvatar(uid, url); return; }
+    if (validatedAvatarUrls.has(url)) { applyAvatar(uid, url); return; }
+    const inflight = pendingAvatarProbes.get(url);
+    if (inflight) {
+      inflight.push((applied) => { if (applied) applyAvatar(uid, url); });
+      return;
+    }
+    const waiters: Array<(applied: boolean) => void> = [(applied) => { if (applied) applyAvatar(uid, url); }];
+    pendingAvatarProbes.set(url, waiters);
     const probe = new Image();
-    probe.onload = () => applyAvatar(uid, url);
-    probe.onerror = () => { /* keep the initial-letter fallback */ };
+    probe.onload = () => {
+      validatedAvatarUrls.add(url);
+      pendingAvatarProbes.delete(url);
+      applyAvatar(uid, url);
+      for (const waiter of waiters.splice(0)) waiter(true);
+    };
+    probe.onerror = () => {
+      pendingAvatarProbes.delete(url);
+      for (const waiter of waiters.splice(0)) waiter(false); // keep the initial-letter fallback
+    };
     probe.src = url;
   };
   const nextId = (kind: string) => `${kind}-${store.getState().epoch}-${sequence++}`;
