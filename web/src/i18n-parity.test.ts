@@ -27,17 +27,17 @@ test("every admin locale covers the zh key set", () => {
   }
 });
 
-test("the message layer substitutes {{variables}} and falls back en → zh → key", () => {
-  const zh = createWebClientMessages("zh");
-  const ja = createWebClientMessages("ja");
-  const en = createWebClientMessages("en");
+test("the message layer substitutes {{variables}} and falls back to the key", () => {
+  const zh = createWebClientMessages("zh", webClientTranslations.zh!);
+  const ja = createWebClientMessages("ja", webClientTranslations.ja!);
+  const en = createWebClientMessages("en", webClientTranslations.en!);
   const sample = Object.entries(webClientTranslations.zh!).find(([, value]) => value.includes("{{"));
   assert.ok(sample, "the zh baseline contains at least one templated key");
   const [key] = sample!;
   const variables = [...sample![1].matchAll(/\{\{(\w+)\}\}/g)].map(match => match[1]!);
   const rendered = zh.t(key, Object.fromEntries(variables.map(name => [name, "X"])) as Record<string, string>);
   assert.doesNotMatch(rendered, /\{\{\w+\}\}/, "variables must be substituted");
-  assert.equal(ja.t("nonexistent-key"), webClientTranslations.en?.["nonexistent-key"] ?? "nonexistent-key",
-    "missing keys fall back through en/zh to the key itself");
+  // F9 后 pack 按语言注入且对齐测试保证键集完整：缺键只兜底到键名本身。
+  assert.equal(ja.t("nonexistent-key"), "nonexistent-key", "missing keys fall back to the key itself");
   assert.equal(typeof en.t(key), "string");
 });

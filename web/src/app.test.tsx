@@ -4,11 +4,14 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { AppRoutes } from "./App";
 import { I18nProvider } from "./components/app/i18n-provider";
-import { loadTranslations } from "@/hooks/use-i18n";
+import { loadWebClientMessages } from "@/hooks/use-i18n";
 
-// 语言包首动态 import 在 vitest 里是按需转译（秒级），先于测试计时器预热到
-// 进程单例：useWebClientMessages 的 effect 命中已解析 promise，微任务即渲染。
-beforeAll(async () => { await loadTranslations(); }, 30000);
+// 语言包按语言动态 import 在 vitest 里是按需转译（秒级），先于测试计时器预热
+// 全部语言到进程缓存：useWebClientMessages 的 effect 命中已解析 promise，
+// 微任务即渲染。
+beforeAll(async () => {
+  await Promise.all((["zh", "en", "de", "ru", "ja"] as const).map((language) => loadWebClientMessages(language)));
+}, 30000);
 
 afterEach(() => {
   cleanup();

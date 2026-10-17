@@ -2,12 +2,13 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { I18nProvider } from "@/components/app/i18n-provider";
-import { loadTranslations } from "@/hooks/use-i18n";
+import { loadWebClientMessages } from "@/hooks/use-i18n";
 import { createWebClientMessages } from "@/i18n/messages";
+import { ja } from "@/i18n/web-client/ja";
 
 import DownloadView from "./download-view";
 
-const jaTitle = createWebClientMessages("ja").t("downloadTitle");
+const jaTitle = createWebClientMessages("ja", ja).t("downloadTitle");
 
 function stubFetch(payload: unknown, ok = true): ReturnType<typeof vi.fn> {
   const fetchMock = vi.fn(async () => new Response(JSON.stringify(payload), { status: ok ? 200 : 500 }));
@@ -25,9 +26,11 @@ function renderDownload() {
   );
 }
 
-// 语言包首动态 import 在 vitest 里是按需转译（秒级），先于测试计时器预热到
-// 进程单例：useWebClientMessages 的 effect 命中已解析 promise，微任务即渲染。
-beforeAll(async () => { await loadTranslations(); }, 30000);
+// 语言包为按语言动态 import（就绪前视图渲染 null）：断言一律等待式。预热全部
+// 语言——测试会经 localStorage 切语言，缓存的 promise 命中后微任务即渲染。
+beforeAll(async () => {
+  await Promise.all((["zh", "en", "de", "ru", "ja"] as const).map((language) => loadWebClientMessages(language)));
+}, 30000);
 
 afterEach(() => {
   cleanup();

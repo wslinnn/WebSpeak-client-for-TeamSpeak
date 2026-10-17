@@ -9,13 +9,32 @@ export interface I18nContextValue {
 
 export const I18nContext = createContext<I18nContextValue | null>(null);
 
-// 语言包动态 import 的进程级单例 promise：入口图不含任何语言包数据（~85KB
-// 源码只进路由级 chunk）。视图层经 useWebClientMessages 订阅，就绪前渲染 null
-// ——窗口与路由 chunk 本身的加载重合，与旧版路由 chunk 内含语言包的首屏空白等价。
-let translationsPromise: Promise<typeof import("@/i18n/messages")> | null = null;
-export function loadTranslations(): Promise<typeof import("@/i18n/messages")> {
-  translationsPromise ??= import("@/i18n/messages");
-  return translationsPromise;
+// F9（报告 21）：语言包按语言各自成 chunk（首屏只拉当前语言一份，五语言聚合
+// 曾让 messages chunk 背着全部 85KB 源码）。入口图不含任何语言包数据——工厂
+// 模块（messages.ts，仅翻译逻辑）也走动态 import。进程级缓存：同语言只加载一次。
+const packLoaders: Record<Language, () => Promise<Record<string, string>>> = {
+  zh: () => import("@/i18n/web-client/zh").then((module) => module.zh),
+  en: () => import("@/i18n/web-client/en").then((module) => module.en),
+  de: () => import("@/i18n/web-client/de").then((module) => module.de),
+  ru: () => import("@/i18n/web-client/ru").then((module) => module.ru),
+  ja: () => import("@/i18n/web-client/ja").then((module) => module.ja),
+};
+
+interface LoadedMessages {
+  language: Language;
+  messages: WebClientMessages;
+}
+
+const messagePromises = new Map<Language, Promise<LoadedMessages>>();
+
+export function loadWebClientMessages(language: Language): Promise<LoadedMessages> {
+  let promise = messagePromises.get(language);
+  if (!promise) {
+    promise = Promise.all([packLoaders[language](), import("@/i18n/messages")])
+      .then(([pack, factory]) => ({ language, messages: factory.createWebClientMessages(language, pack) }));
+    messagePromises.set(language, promise);
+  }
+  return promise;
 }
 
 export function useLanguageState(): I18nContextValue {
@@ -46,17 +65,18 @@ export function useI18n(): I18nContextValue {
   return value;
 }
 
-/** 语言包消息订阅：模块加载完成前返回 null（调用方渲染 null，不得输出用户可见
- *  文案）。语言切换时模块已就绪，同步重建。 */
+/** 语言包消息订阅：当前语言加载完成前返回 null（调用方渲染 null，不得输出用户
+ *  可见文案）。切换语言时保留上一语言的文案直到新包就绪——切换只换一次内容，
+ *  不闪键名。 */
 export function useWebClientMessages(): WebClientMessages | null {
   const { language } = useI18n();
-  const [module, setModule] = useState<typeof import("@/i18n/messages") | null>(null);
+  const [loaded, setLoaded] = useState<LoadedMessages | null>(null);
   useEffect(() => {
     let cancelled = false;
-    void loadTranslations().then((loaded) => {
-      if (!cancelled) setModule(loaded);
+    void loadWebClientMessages(language).then((result) => {
+      if (!cancelled) setLoaded(result);
     });
     return () => { cancelled = true; };
-  }, []);
-  return useMemo(() => module?.createWebClientMessages(language) ?? null, [module, language]);
+  }, [language]);
+  return useMemo(() => loaded?.messages ?? null, [loaded]);
 }

@@ -1,14 +1,18 @@
 
 
-import { webClientTranslations, type Language } from "./web-client";
+import type { Language } from "./web-client-language";
 
 /** Framework-free i18n message layer — the former useWebClientI18n composable
  *  with the Vue Ref flattened into a plain parameter. The React hook layer
- *  subscribes to locale state and delegates here. */
-export function createWebClientMessages(language: Language) {
+ *  subscribes to locale state and delegates here.
+ *  F9（报告 21）：语言包不再经五语言聚合模块静态导入——pack 由 use-i18n 按语言
+ *  动态加载后注入（每语言一个 chunk，首屏只拉当前语言）；本模块只保留翻译逻辑
+ *  （zh 源消息的非键位翻译表）。对齐测试保证每份 pack 键集完整，t() 只需
+ *  pack[key] ?? key 兜底。 */
+export function createWebClientMessages(language: Language, pack: Record<string, string>) {
 
 function t(key: string, variables: Record<string, string | number> = {}) {
-  let value = webClientTranslations[language]?.[key] ?? webClientTranslations.en?.[key] ?? webClientTranslations.zh?.[key] ?? key;
+  let value = pack[key] ?? key;
   for (const [name, replacement] of Object.entries(variables)) value = value.replaceAll(`{{${name}}}`, String(replacement));
   return value;
 }
