@@ -200,6 +200,13 @@
   .mobile-more-panel button.muted {
     color: var(--danger);
   }
+  /* 移动端成员面板关闭态锁（原 13 号层 important 锁迁入单源化）：层化后
+     跨层 important 早层胜，旧锁会压掉下方开态开关。同层内按特异性/顺序
+     裁决——:not() 限定关闭态，开态 .mobile-section-visible (0,3,0) 同层
+     后置必胜；important 保留以继续压过未分层皮肤规则。 */
+  .app-shell .member-panel:not(.mobile-section-visible) {
+    display: none !important;
+  }
   .app-shell .member-panel.mobile-section-visible {
     display: flex !important;
     flex: 1 1 auto;
@@ -410,7 +417,8 @@
     left: 10px !important;
     right: 10px;
     top: auto !important;
-    bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+    /* bottom 锚定单源化到 mobile 层的键盘感知锁（w22）：层化后本层 important
+       早胜会压掉它，软键盘避让回归——此处只保留 top/left 锁。 */
     min-width: 0;
     max-height: calc(100svh - 100px);
     overflow-y: auto;

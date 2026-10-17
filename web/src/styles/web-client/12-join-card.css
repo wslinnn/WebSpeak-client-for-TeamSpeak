@@ -162,7 +162,8 @@
     margin-bottom: 8px;
   }
   .member-context-menu {
-    left: 12px !important;
+    /* left 锁单源化到 14 号（10px 为后批意图）：层化后本层 important 早胜
+       会把它压回 12px。bottom 同理由 mobile 层键盘感知锁单源。 */
     right: 12px;
     bottom: env(safe-area-inset-bottom, 0px);
     border-radius: 16px 16px 0 0;

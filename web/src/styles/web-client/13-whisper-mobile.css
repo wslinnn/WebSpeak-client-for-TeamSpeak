@@ -87,7 +87,6 @@
     display: none;
   }
   .app-shell .member-panel {
-    display: none !important;
     order: 2;
     width: 100%;
     max-height: calc(100dvh - 142px);
