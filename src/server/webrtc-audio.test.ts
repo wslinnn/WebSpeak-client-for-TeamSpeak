@@ -320,6 +320,13 @@ test("the peer wires the remote candidate policy and probe primitives are refuse
   assert.equal(filter(pairOf("127.0.0.1", 5900)), false, "loopback is never probed");
   assert.equal(filter(pairOf("169.254.169.254", 80)), false, "cloud metadata is never probed");
   assert.equal(filter(pairOf("relay.attacker.example", 5353)), false, "hostnames are never resolved");
+
+  const stunFilter = session.peer.config.iceFilterStunResponse as
+    | ((message: { attributesKeys: string[] }) => boolean)
+    | undefined;
+  assert.ok(stunFilter, "iceFilterStunResponse must be configured");
+  assert.equal(stunFilter({ attributesKeys: ["USERNAME", "MESSAGE-INTEGRITY"] }), true, "legit connectivity checks are answered");
+  assert.equal(stunFilter({ attributesKeys: [] }), false, "unsigned probes get no signed response");
 });
 
 test("an offer with policy-rejected candidates logs one warning with samples", async t => {

@@ -155,6 +155,10 @@ export class WebRtcAudioSession {
       icePortRange: [...udpPortRange] as [number, number],
       // S1（报告 21）：被地址策略拒绝的远端候选不建对、不产生任何出站包。
       iceFilterCandidatePair: pair => isAcceptableRemoteIceCandidate(pair.remoteCandidate.host, pair.remoteCandidate.port),
+      // S1 收尾：只对携带 MESSAGE-INTEGRITY 的请求回签名响应（RFC 8445 连通性
+      // 检查必带，真实浏览器恒满足）——无完整性属性的裸请求是反射器探测，
+      // 不回签名包、也不驱动连通性检查。
+      iceFilterStunResponse: message => message.attributesKeys.includes("MESSAGE-INTEGRITY"),
       ...(iceAdditionalHostAddresses ? { iceAdditionalHostAddresses } : {}),
     });
     this.peer.onconnectionstatechange = () => {

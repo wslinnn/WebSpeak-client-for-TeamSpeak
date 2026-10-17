@@ -128,6 +128,7 @@ class RtpLabSession {
       ...(publicAddresses ? { iceAdditionalHostAddresses: publicAddresses } : {}),
       // S1（报告 21）：调试端点与主路径共享出网面，远端候选走同一地址策略。
       iceFilterCandidatePair: pair => isAcceptableRemoteIceCandidate(pair.remoteCandidate.host, pair.remoteCandidate.port),
+      iceFilterStunResponse: message => message.attributesKeys.includes("MESSAGE-INTEGRITY"),
     });
     // Downlink only: one sendonly transceiver fed with the synthetic track.
     // The sender owns SSRC/payloadType/RTCP; writeRtp packets carry placeholders.
