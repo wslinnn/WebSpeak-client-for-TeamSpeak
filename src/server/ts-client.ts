@@ -466,8 +466,11 @@ export class TSClient extends EventEmitter {
    * Send a TeamSpeak protocol command whose response is delivered later as a
    * notification (for example setupstream/streamsignaling). The command is
    * assembled by the trusted server-side stream adapter, never by the browser.
+   * `timeoutMs` bounds the wait for the server's acknowledgement (SDK default
+   * 10s): discovery scans pass a shorter bound so one mute server cannot hold
+   * a whole pass (报告 21 F4).
    */
-  async sendProtocolCommand(command: string): Promise<void> {
+  async sendProtocolCommand(command: string, timeoutMs?: number): Promise<void> {
     const client = this.client;
     const generation = this.connectionGeneration;
     const isCurrent = () => client !== null && this.client === client && this.connected && this.connectionGeneration === generation;
@@ -477,7 +480,7 @@ export class TSClient extends EventEmitter {
       try {
         // Stream lifecycle callers need the server's acknowledgement, not
         // merely confirmation that the command was handed to the transport.
-        await client!.execCommand(command);
+        await client!.execCommand(command, timeoutMs);
         if (!isCurrent()) throw new Error("TeamSpeak session changed while sending stream command");
         return;
       } catch (error: unknown) {

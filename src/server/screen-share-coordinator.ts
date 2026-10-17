@@ -37,6 +37,11 @@ function screenStreamKey(targetKey: string, streamId: string): string {
   return `${targetKey}\u0000${streamId}`;
 }
 
+// Native-discovery scan bounds (报告 21 F4)：全服成员逐个 requeststreaminfo 时，
+// 单命令超时压到 3s（SDK 默认 10s），并发度封顶 8。
+const DISCOVERY_COMMAND_TIMEOUT_MS = 3_000;
+const DISCOVERY_CONCURRENCY = 8;
+
 /** Coordinates channel-scoped browser/native sharing; media stays peer-to-peer. */
 export class ScreenShareCoordinator {
   private readonly screenStreams = new Map<string, ScreenStreamRecord>();
@@ -192,18 +197,30 @@ export class ScreenShareCoordinator {
             : [...this.entries.values()].find(candidate => teamSpeakTargetKey(candidate.target) === targetKey && candidate.tsClient.isConnected());
           if (!queryEntry) continue;
           const clientIds = [...queryEntry.members.keys()].filter(clientId => Number.isInteger(clientId) && clientId > 0);
-          for (const clientId of clientIds) {
-            if (this.entries.get(queryEntry.id) !== queryEntry || !queryEntry.tsClient.isConnected()) break;
-            try {
-              await queryEntry.tsClient.sendProtocolCommand(`requeststreaminfo clid=${clientId}`);
-            } catch (error: unknown) {
-              this.logger.debug({
-                target: formatTeamSpeakTarget(queryEntry.target),
-                clientId,
-                err: error instanceof Error ? error.message : String(error),
-              }, "Could not query existing TeamSpeak screen stream");
+          // 全服成员逐个查询：并发度封顶、每条命令带显式超时——否则一条不应答
+          // 的命令按 SDK 默认 10s 拖住整个 pass，时长随成员数线性（报告 21 F4）。
+          let cursor = 0;
+          const isCurrentQuery = () => this.entries.get(queryEntry.id) === queryEntry && queryEntry.tsClient.isConnected();
+          const worker = async (): Promise<void> => {
+            while (cursor < clientIds.length) {
+              if (!isCurrentQuery()) return;
+              const clientId = clientIds[cursor]!;
+              cursor += 1;
+              try {
+                await queryEntry.tsClient.sendProtocolCommand(`requeststreaminfo clid=${clientId}`, DISCOVERY_COMMAND_TIMEOUT_MS);
+              } catch (error: unknown) {
+                this.logger.debug({
+                  target: formatTeamSpeakTarget(queryEntry.target),
+                  clientId,
+                  err: error instanceof Error ? error.message : String(error),
+                }, "Could not query existing TeamSpeak screen stream");
+              }
             }
-          }
+          };
+          await Promise.all(Array.from(
+            { length: Math.min(DISCOVERY_CONCURRENCY, clientIds.length) },
+            () => worker(),
+          ));
         }
       } finally {
         this.discoveries.delete(targetKey);

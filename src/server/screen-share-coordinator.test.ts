@@ -184,10 +184,11 @@ test("discovery abandons a removed connection and falls back when its queued ses
   const first = f.participant("first", 1);
   first.members = new Map([[17, {}], [18, {}]]);
   let release!: () => void;
+  const blocked = new Promise<void>(resolve => { release = resolve; });
   let firstQueries = 0;
   first.tsClient.sendProtocolCommand = async () => {
     firstQueries++;
-    await new Promise<void>(resolve => { release = resolve; });
+    await blocked;
   };
   const running = f.coordinator.discoverExistingStreams(first);
   await nextTurn();
@@ -200,11 +201,33 @@ test("discovery abandons a removed connection and falls back when its queued ses
   f.entries.delete(leaving.id);
   release();
   await Promise.all([running, pending]);
-  assert.equal(firstQueries, 1);
+  // 并发度下同一 pass 的两条查询一起发出；关键语义是放弃后不再为旧连接重发。
+  assert.equal(firstQueries, 2);
   assert.deepEqual(f.commands, [
     { from: "survivor", command: "requeststreaminfo clid=17" },
     { from: "survivor", command: "requeststreaminfo clid=18" },
   ]);
+});
+
+test("native discovery bounds concurrency and carries a per-command timeout", async () => {
+  const f = fixture();
+  const scan = f.participant("scan", 1);
+  scan.members = new Map(Array.from({ length: 20 }, (_, index) => [index + 1, {}]));
+  let inFlight = 0;
+  let peak = 0;
+  const timeouts: Array<number | undefined> = [];
+  scan.tsClient.sendProtocolCommand = async (command: string, timeoutMs?: number) => {
+    inFlight += 1;
+    peak = Math.max(peak, inFlight);
+    timeouts.push(timeoutMs);
+    await nextTurn();
+    inFlight -= 1;
+    f.commands.push({ from: scan.id, command });
+  };
+  await f.coordinator.discoverExistingStreams(scan);
+  assert.equal(f.commands.length, 20, "every visible member is still queried");
+  assert.equal(peak, 8, "at most eight commands may be in flight at once");
+  assert.ok(timeouts.every(timeout => timeout === 3_000), "each scan command carries the 3s bound instead of the 10s SDK default");
 });
 
 test("a failed native query does not suppress later clients or future discovery passes", async () => {

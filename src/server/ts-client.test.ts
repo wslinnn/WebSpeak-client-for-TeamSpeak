@@ -17,8 +17,9 @@ const transfer = { size: 6n };
 
 class SdkStub extends EventEmitter {
   inputCommands: string[] = [];
+  commandTimeouts: Array<number | undefined> = [];
   inputUpdate = async (_command: string): Promise<void> => {};
-  async execCommand(command: string) { this.inputCommands.push(command); await this.inputUpdate(command); }
+  async execCommand(command: string, timeoutMs?: number) { this.inputCommands.push(command); this.commandTimeouts.push(timeoutMs); await this.inputUpdate(command); }
   initialized = 0;
   downloaded = 0;
   metadata = async () => rows;
@@ -51,6 +52,13 @@ test("stream commands wait for server acknowledgement and propagate refusals", a
   await pending;
   f.sdk.inputUpdate = async () => { throw new Error("missing required parameter"); };
   await assert.rejects(f.client.sendProtocolCommand("removeclientfromstream id=test"), /missing required parameter/);
+});
+
+test("a protocol command carries the caller's timeout bound into the SDK", async () => {
+  const f = fixture();
+  await f.client.sendProtocolCommand("requeststreaminfo clid=7", 3_000);
+  await f.client.sendProtocolCommand("setupstream name=Test");
+  assert.deepEqual(f.sdk.commandTimeouts, [3_000, undefined], "discovery passes its own bound; other callers keep the SDK default");
 });
 
 test("stream cleanup flood retries back off and stop after two retries", async t => {
