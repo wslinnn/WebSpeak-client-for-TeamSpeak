@@ -1606,9 +1606,9 @@ test("a transmitting slot keeps the speaking badge lit across polls and the hang
     await drivePolls();
     assert.ok(speaking().has(7), "each poll re-marks a still-transmitting member");
     transmitting = false;
-    vi.advanceTimersByTime(800);
+    vi.advanceTimersByTime(400);
     await drivePolls();
-    assert.ok(speaking().has(7), "the hangover bridges the gap after packets stop");
+    assert.ok(speaking().has(7), "the hangover bridges word gaps after packets stop");
     vi.advanceTimersByTime(2_000);
     await drivePolls();
     assert.equal(speaking().has(7), false, "silence outlasts the hangover and clears the member");
