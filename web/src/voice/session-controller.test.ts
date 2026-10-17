@@ -616,14 +616,13 @@ test("input volume boosts to 200% with clamps and survives the preference round-
   assert.equal(V().inputVolume, 0);
 
   // 存/取往返：>100% 的增益持久化后原样恢复，不得被钳回 100%（麦克风音量增强）。
+  // 持久化与恢复都是异步链，全量并行跑时固定次数的 nextTurn 偶尔等不到——
+  // 两端都改为轮询断言（ vitest 5 vi.waitFor），超时仍失败则真回归。
   voice.setInputVolume(1.5);
-  await nextTurn();
-  await nextTurn();
+  await vi.waitFor(() => assert.equal(preferenceStore.current?.inputGain, 1.5, "the boost is persisted"), { timeout: 5_000 });
   const second = createVoiceSessionController();
   try {
-    await nextTurn();
-    await nextTurn();
-    assert.equal(second.view().inputVolume, 1.5, "a stored >100% gain restores as-is");
+    await vi.waitFor(() => assert.equal(second.view().inputVolume, 1.5, "a stored >100% gain restores as-is"), { timeout: 5_000 });
   } finally {
     second.disconnect();
   }
