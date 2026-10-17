@@ -109,5 +109,12 @@
 - **rtp-lab 保留**：默认关零运行时成本、S7+L4 已加固，是「听不到声音」类故障唯一的分段定位工具（诊断基建三件套之一）。
 - **F3 目录事件收敛=一级+二级落地**（评估见 reports/23）：一级——clientUpdated 走不了增量时并入 200ms 本地重建合并窗口（delta 相对窗口起点计算；其他目录事件 flush-at-top 保跨事件次序）；二级——成员已知+频道未变+无挂起窗口时走字段级增量补丁（members 与频道名册共享引用替换，通知未携带的字段按未变化跳过），每 50 次补丁拉一次全量 clientlist 校准漂移。**三级（跨会话共享目录）仍按报告 23 触发器待实测**。勿在窗口挂起期间打增量补丁（会与 flush 出重复 delta）。
 - **组件样式迁移批 1-3 解除暂缓并落地**（报告 22 §2.1 A 案）：配方章落在 21-components 顶部——支柱尺寸修饰 `.size-sm/md/lg`（30/36/44）+ web-client 版 `.secondary-button` 中性面 + `.ws-popup` 浮层配方（**:where(.ws-popup) 零特异性**，底/边=皮肤可染面 `--surface-1`+`--skin-border`，定位/宽度/z 阶梯仍归各面板）+ `.ws-menu-item` 菜单项基准（成员菜单规格）+ `.ws-icon-btn` 三档（28/32/36，逐类迁移待真机走查）。单点按钮类不删名，降级为「状态/布局修饰钩子」（whisper-ptt 的 active、cancel-connect 的居中、clear-local 的危险 hover 等）。**target-test-button 豁免**：实为 admin 命名空间子选择器规则（admin/08/10/11），按 §0 admin 豁免不迁。
-- **真浏览器抽查揪出两个潜伏死规则（勿回退）**：①`01-base` 的 `html[data-ws-route] button { font: inherit }`（0,1,1）长期压过裸类按钮规则的 font-size/weight——text-button 的 11px/600、primary 系 12px/700 对 button 元素一直是死值；已在配方章以 route-scoped（0,2,1）钉回。②同一 reset 的 `border: 0` 压掉 `.secondary-button` 描边；同法钉回。教训入红线：给裸类按钮规则加字体/描边，必须查 `font: inherit`/`border: 0` 两个基座 reset 的特异性。
+- **真浏览器抽查揪出两个潜伏死规则（勿回退）**：①`01-base` 的 `html[data-ws-route] button { font: inherit }`（0,1,1）长期压过裸类按钮规则的 font-size/weight——text-button 的 11px/600、primary 系 12px/700 对 button 元素一直是死值；②同一 reset 的 `border: 0` 压掉 `.secondary-button` 描边。当时以 route-scoped（0,2,1）钉回；**三轮拍板 @layer 化后钉回已拆除、由层序接管（w21 > w01），机制教训升级为层语义（见三轮拍板节）**。
 - **RTL 视图测试增厚起步**：join-header 部件钩子契约 + 支柱类名断言（`join-header.test.tsx`）；skin part 视觉基线重钉与移动端走查仍待真机。
+
+## 2026-10-17 三轮拍板（@layer 化全量 0+1+2+3 落地）
+
+- **拍板范围 = 全量四阶段**（报告 24 立项，选项含「1+3」「只做 0」「暂不」），实施于 `a188a3d`（阶段 1）→ `03de6a2`（阶段 2）→ docs 批（阶段 3）。**级联三定律入红线**：①未分层规则（皮肤运行时注入）无条件胜过所有层；②分层 `!important` 强于未分层 `!important`，15 处应用侧锁（reduced-motion/小屏定位/几何/交互锁/权限状态语义色，报告 24 §7.3 裁决表）对皮肤结构性生效；③层序=manifest 导入序=顶部声明语句序，后层胜前层、特异性只在同层内裁决。skin-pack 对皮肤包内 `@layer` 的改名隔离（`skin-pack.ts`）是本方案的地基，勿动。
+- **阶段 1 纪律**：「只包层，一行规则不改」由构造保证——只改 manifest（`@import … layer(wNN)`），23 分片零接触；验收 = 剥层产物对比基线 1328 条规则逐条一致（含顺序，工具 `reports/layer-tools/`）+ 真浏览器三条级联定律实证 + `web-client-manifest.test.ts` 结构锁。新增分片必须同步层序声明语句与层名。
+- **阶段 2 意图重排**：拆除 21 号三处 route-scoped 钉回（border/字体/菜单项字体）——层序接管后特异性钉回属冗余补丁；**语言变体字排必须与支柱基块同层**（16 号的 9.7/13.2/14.3px 三组迁入 21 号，w21 > w16 会压掉留在 w16 的任何特异性），connect 排 primary 之后保自身档位。**副作用修正（有意，勿回退）**：首页 CTA 字阶（10 号 15px/16.25px）恢复——批 1 全局字体钉回曾把它压成 12px 并制造 zh/en 倒挂（zh 12 < en 13.2）；拆钉后 zh 15/16.25、en 13.2/14.3，比值 0.88 自洽。首页 CTA 观感比批 1 期间大，属恢复原设计。
+- **阶段 0 的假警报与真发现**：Tailwind 侧产物 6 条未分层规则逐一裁决无同元素同属性冲突（`--ws-z-*` 双侧定义数值一致且分片侧在 `.web-client` 元素靠继承就近）；15 处 `!important` 全属「皮肤不该赢」面。工具与基线存 `reports/layer-tools/`。

@@ -112,6 +112,15 @@ assets/brand.woff2            # 可选：自带字体
 
 页面根节点使用 `data-ws-page` 区分 `home` 和 `voice`。使用 `data-ws-state` 选择明确状态，如 `active`、`idle`、`current`、`open`、`closed`、`drag-over`、`dragging`、`speaking`、`connected`、`self`、`mine` 或 `other`。语音成员还提供 `data-ws-speaking="true|false"` 和 `data-ws-self="true|false"`。交互元素会带有 `data-ws-critical="true"`；没有专属部件名称的按钮、链接、输入框、滑块和可拖动成员会使用通用部件 `data-ws-part="control"`，并以 `data-ws-control-kind` 标出 `button`、`link`、`input`、`checkbox`、`range`、`select`、`textarea`、`menuitem` 或 `draggable`。
 
+### 与应用样式的级联关系
+
+应用自带样式全部声明在命名 `@layer` 里（层名形如 `wNN-主题`），皮肤 CSS 则不分层注入。由此有两条裁决规则：
+
+- **皮肤的普通声明无条件胜过所有分层的应用样式**——不依赖注入次序，也不需要抬高特异性；写一个普通选择器即可覆盖应用外观。
+- **一小组应用侧 `!important` 锁比皮肤的 `!important` 更强**（分层 `!important` 强于未分层 `!important`）。这些锁覆盖：`prefers-reduced-motion` 无障碍降级（全局动画/过渡关闭）、移动端浮层（成员右键菜单/服务器右键菜单）的小屏定位与几何锁、成员面板的移动端显隐锁、权限状态（`permission-denied`/`permission-granted`）的语义色。这些面属于皮肤不该改写的范畴（无障碍、小屏可用性、状态语义），皮肤 `!important` 写了也不会生效；除此之外皮肤 `!important` 照常生效。
+
+皮肤包内自己写的 `@layer` 会被改名为 `<包命名空间>-*`，不会与应用层名冲突，也不会借层序压过应用样式。
+
 ### 已发布的部件名称
 
 下列名称来自当前前端模板。对新功能，作者可以先用通用 `control` 部件；后续新增稳定部件会更新本目录。
@@ -202,7 +211,7 @@ assets/brand.woff2            # 可选：自带字体
 | 每实例皮肤数 | 50 |
 | 每实例皮肤包总存储 | 200 MiB |
 
-压缩包路径穿越、重复/冲突路径、符号链接、异常 ZIP 元数据和本地文件头/目录不一致都会被拒绝。仅允许受支持的 CSS at-rule：`@media`、`@supports`、`@container`、具名 `@layer`、`@font-face` 和 keyframes。`@import`、脚本、HTML、外部网络资源会被拒绝；`!important` 可用于皮肤作用域内的样式。字体 `local()` 也会拒绝，避免绕过包内字体来源。
+压缩包路径穿越、重复/冲突路径、符号链接、异常 ZIP 元数据和本地文件头/目录不一致都会被拒绝。仅允许受支持的 CSS at-rule：`@media`、`@supports`、`@container`、具名 `@layer`、`@font-face` 和 keyframes。`@import`、脚本、HTML、外部网络资源会被拒绝；`!important` 可用于皮肤作用域内的样式（受级联锁约束的面除外，见「与应用样式的级联关系」）。字体 `local()` 也会拒绝，避免绕过包内字体来源。
 
 必要操作控件（加入/退出、麦克风、设置、菜单、屏幕共享退出、音量、全屏等）及其布局容器不能被隐藏或整体重置。只有下列明确标记为可选的装饰部件，才允许通过不改变排版盒子的透明度效果淡出：
 
