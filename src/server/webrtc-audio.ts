@@ -181,7 +181,6 @@ export class WebRtcAudioSession {
         this.stats.webrtcIngressRtpLastAt = Date.now();
         this.stats.webrtcIngressRtpFrames++;
         if (!this.opusPayloadTypes.has(rtp.header.payloadType)) return;
-        const payload = Buffer.from(rtp.payload);
         // A muted microphone must stop the browser user's TeamSpeak voice
         // packets at the gateway. Browser-side track.enabled/gain changes
         // still produce RTP comfort-silence on some browsers, and forwarding
@@ -189,6 +188,9 @@ export class WebRtcAudioSession {
         // When accompaniment is active, keep forwarding the mixed track: the
         // browser has already removed only the microphone component.
         if (this.microphoneMuted && !this.accompanimentActive) return;
+        // F7（报告 21）：Buffer 复制放在静音/伴奏短路之后——被静音丢弃的帧
+        // 不再付出逐帧拷贝。
+        const payload = Buffer.from(rtp.payload);
         this.onVoiceFrame(payload, this.accompanimentActive ? 5 : 4);
       });
     });
