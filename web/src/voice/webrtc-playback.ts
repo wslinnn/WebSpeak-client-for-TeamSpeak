@@ -57,7 +57,9 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
   let ampContext: AudioContext | null = null;
   let sinkDevice = "";
   const clean = (operation: () => void): void => { try { operation(); } catch { /* continue teardown */ } };
-  const SLOT_POLL_INTERVAL_MS = 150;
+  // F8（报告 21）：350ms 是说话徽标边沿延迟（≤350ms）与 getStats 频率（满载
+  // 100 槽 ≈286 次/秒 → ~86 次/秒）的折中；1.2s hangover 仍覆盖 3 个轮询周期。
+  const SLOT_POLL_INTERVAL_MS = 350;
   // TeamSpeak transmits in VAD bursts with word gaps between them; the hold
   // bridges those gaps so the badge behaves like the native client's.
   const SLOT_SPEAKING_HANGOVER_MS = 1_200;
