@@ -14,10 +14,10 @@
   font-size: 11px;
 }
 
-.web-client.language-en .join-page .guide-button,
-.web-client.language-de .join-page .guide-button {
-  font-size: 9.7px;
-}
+/* guide-button 的 en/de 字排（9.7px）与 primary-button/identity-import-submit
+ * 的 en/de 字排（13.2px）已迁入 21-components（w21 层）：语言变体必须与支柱
+ * 基块同层才能按特异性胜出——w21 > w16 的层序会压掉本分片里的任何特异性
+ * （报告 24 阶段 2）。 */
 
 .web-client.language-en .join-page .join-copy h1,
 .web-client.language-de .join-page .join-copy h1 {
@@ -59,17 +59,8 @@
   font-size: 14.3px;
 }
 
-.web-client.language-en .join-page .primary-button,
-.web-client.language-de .join-page .primary-button,
-.web-client.language-en .join-page .identity-import-submit,
-.web-client.language-de .join-page .identity-import-submit {
-  font-size: 13.2px;
-}
-
-.web-client.language-en .join-page .connect-button,
-.web-client.language-de .join-page .connect-button {
-  font-size: 14.3px;
-}
+/* connect-button 的 en/de 字排与 primary 一样迁入 21-components（w21 层）——
+ * 它带 .primary-button 类，留在 w16 会被迁走的 primary 规则按层序压掉。 */
 
 .web-client.language-en .join-page .join-meta,
 .web-client.language-en .join-page .join-footer,

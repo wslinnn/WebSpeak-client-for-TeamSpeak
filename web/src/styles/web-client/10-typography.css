@@ -187,6 +187,9 @@
   font-size: 16.25px;
 }
 
+/* 首页 CTA 字阶（大于支柱基准 12px）：@layer 化后 w10 > w02，本组直接胜过
+ * 支柱基块；曾批 1 期间被 21 号 route-scoped 字体钉回全局压成 12px，
+ * 阶段 2 拆钉后恢复（报告 24）。en/de 缩放档在 21 号（w21 > w10）。 */
 .join-page .primary-button,
 .join-page .identity-import-submit {
   font-size: 15px;

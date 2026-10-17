@@ -10,7 +10,10 @@
  * 三大支柱（primary/secondary/text-button）+ 尺寸修饰；单点按钮类一律迁入
  * 「支柱 + size 修饰 + 保留原类作状态/布局钩子」。secondary 的 admin 同名类
  * （admin/01）是 admin 命名空间、data-ws-route 门控，互不相干；这里立的是
- * 页内树的 --wsd 中性面。改按钮观感改这里，不散落各分片。 */
+ * 页内树的 --wsd 中性面。改按钮观感改这里，不散落各分片。
+ * 本分片层序在 w01-w20 之上：支柱的裸类声明（含 border/font）直接压过
+ * 01-base 的按钮基座 reset（font:inherit、border:0），无需再走 route-scoped
+ * 特异性钉回（报告 24 阶段 2 拆除）。 */
 .secondary-button {
   display: inline-flex;
   align-items: center;
@@ -31,12 +34,6 @@
   background: var(--wsd-hover);
 }
 
-/* 按钮基座 reset（01-base 的 :where(html[route]) .web-client button，0,1,1）
- * 会压过裸类支柱的 border——中性面描边在此以更高特异性钉回（批 3 抽查发现）。 */
-html[data-ws-route="webclient"] .secondary-button {
-  border: 1px solid var(--wsd-border);
-}
-
 .primary-button.size-sm,
 .secondary-button.size-sm,
 .text-button.size-sm {
@@ -55,19 +52,32 @@ html[data-ws-route="webclient"] .secondary-button {
   min-height: 44px;
 }
 
-/* font: inherit（01-base 的 html[data-ws-route] button，0,1,1）会压过裸类
- * 按钮规则的 font-size/weight——支柱字排在此以更高特异性钉回（批 1 真浏览器
- * 抽查发现：text-button 的 11px/600 对 button 一直是死规则）。 */
-html[data-ws-route="webclient"] .primary-button,
-html[data-ws-route="webclient"] .secondary-button,
-html[data-ws-route="webclient"] .guide-button {
-  font-size: 12px;
-  font-weight: 700;
+/* 支柱字排的基准值在各基块里：.primary-button/.identity-import-submit
+ * （02-join）、.secondary-button（上）、.text-button/.identity-import-cancel
+ * （05-dialogs）；guide-button 恒与 secondary-button 同类（join-header），
+ * 不再单独立字体。层序接管后（w21 > 01-base 的 font:inherit）这些裸类
+ * 声明即生效，route-scoped 字体钉回已拆除（报告 24 阶段 2）。
+ *
+ * 语言变体字排自 16-language-dock 迁入：它必须与支柱基块同层才能按特异性
+ * 胜出（w21 > w16 的层序会压掉 w16 里的任何特异性）。en/de 拉丁文案更宽，
+ * 首页按钮字排放大；zh 基准布局不变。 */
+.web-client.language-en .join-page .guide-button,
+.web-client.language-de .join-page .guide-button {
+  font-size: 9.7px;
 }
 
-html[data-ws-route="webclient"] .text-button {
-  font-size: 11px;
-  font-weight: 600;
+.web-client.language-en .join-page .primary-button,
+.web-client.language-de .join-page .primary-button,
+.web-client.language-en .join-page .identity-import-submit,
+.web-client.language-de .join-page .identity-import-submit {
+  font-size: 13.2px;
+}
+
+/* connect-button 带 .primary-button 类：必须排在上一条之后（同层同特异性、
+ * 后位胜出），才能保住它自己的 14.3px 档（w10 字阶 ×0.88 的语言缩放比）。 */
+.web-client.language-en .join-page .connect-button,
+.web-client.language-de .join-page .connect-button {
+  font-size: 14.3px;
 }
 
 /* —— 浮层配方（报告 22 §2.1 批 2；底/边=皮肤可染面，2026-10-17 拍板） ——
@@ -85,7 +95,8 @@ html[data-ws-route="webclient"] .text-button {
 }
 
 /* 菜单项基准（原成员菜单规格）：状态/布局差异（danger、禁用、ellipsis）由
- * 修饰类或面板内后代规则承担。 */
+ * 修饰类或面板内后代规则承担。font-size 12px 是桌面基准——移动层
+ * （w22）`.member-context-menu button` 的触摸字体档按层序照旧胜出。 */
 .ws-menu-item {
   display: flex;
   align-items: center;
@@ -95,6 +106,7 @@ html[data-ws-route="webclient"] .text-button {
   color: var(--wsd-text-muted);
   background: transparent;
   border-radius: 6px;
+  font-size: 12px;
   text-align: left;
   cursor: pointer;
 }
@@ -106,12 +118,6 @@ html[data-ws-route="webclient"] .text-button {
 
 .ws-menu-item.danger {
   color: var(--wsd-danger);
-}
-
-/* (0,1,1)：胜过 font:inherit（同特异性、本分片在后），又不压过移动层
- * `.member-context-menu button`（同特异性、更晚导入）的触摸字体档。 */
-html[data-ws-route="webclient"] :where(.ws-menu-item) {
-  font-size: 12px;
 }
 
 /* —— 图标钮配方（报告 22 §2.1 批 3） ——
