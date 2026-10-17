@@ -14,8 +14,6 @@ export function selectVoiceShellView(view: VoiceSessionView) {
     audioNoticeCode: view.audioNoticeCode,
     microphoneError: view.microphoneError,
     microphoneErrorCode: view.microphoneErrorCode,
-    serverName: view.serverName,
-    serverWelcomeMessage: view.serverWelcomeMessage,
     volumes: view.volumes,
     whisperTargetIds: view.whisperTargetIds,
     whisperActive: view.whisperActive,

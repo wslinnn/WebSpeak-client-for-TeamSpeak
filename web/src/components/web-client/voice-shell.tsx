@@ -314,8 +314,7 @@ export function VoiceShell(props: VoiceShellProps) {
 
       <ChannelMemberPanel
         members={membersController}
-        serverLabel={voiceView.serverName || (railServers.find((server) => server.address === currentAddress)?.label ?? currentAddress)}
-        welcomeMessage={voiceView.serverWelcomeMessage}
+        serverLabel={railServers.find((server) => server.address === currentAddress)?.label ?? currentAddress}
         filteredMemberChannels={filteredMemberChannels}
         currentChannelId={currentChannel?.id}
         mobileVisible={props.mobileSection === "channels"}

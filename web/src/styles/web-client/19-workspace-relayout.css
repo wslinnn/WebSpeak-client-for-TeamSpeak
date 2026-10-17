@@ -166,48 +166,6 @@
     display: flex;
   }
 
-  .member-server-welcome {
-    display: flex;
-    flex: 0 0 auto;
-    align-items: flex-start;
-    gap: 9px;
-    margin: 15px 16px 13px;
-    padding: 11px 12px;
-    background: var(--wsd-raised);
-    border: 1px solid var(--wsd-border);
-    border-radius: 11px;
-  }
-
-  .member-server-welcome-icon {
-    display: grid;
-    flex: 0 0 auto;
-    place-items: center;
-    width: 22px;
-    height: 22px;
-    color: var(--wsd-accent);
-    background: var(--wsd-accent-soft);
-    border-radius: 7px;
-  }
-
-  .member-server-welcome strong {
-    display: block;
-    margin-bottom: 3px;
-    color: var(--wsd-text);
-    font-size: 12px;
-    font-weight: 750;
-  }
-
-  .member-server-welcome p {
-    max-height: 96px;
-    margin: 0;
-    overflow-y: auto;
-    color: var(--wsd-text-muted);
-    font-size: 11px;
-    line-height: 1.55;
-    overflow-wrap: anywhere;
-    white-space: pre-wrap;
-  }
-
   .member-panel-heading {
     display: none;
   }

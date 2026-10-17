@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 interface ChannelMemberPanelProps {
   members: MembersController;
   serverLabel: string;
-  welcomeMessage: string;
   filteredMemberChannels: readonly TreeChannel[];
   currentChannelId?: string;
   mobileVisible: boolean;
@@ -189,15 +188,6 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
           <Icon name="search" size={15} />
         </button>
       </div>
-      {props.welcomeMessage && (
-        <div className="member-server-welcome" data-ws-part="voice.server-welcome">
-          <span className="member-server-welcome-icon" aria-hidden="true"><Icon name="message" size={13} /></span>
-          <div>
-            <strong>{t("serverWelcome")}</strong>
-            <p>{props.welcomeMessage}</p>
-          </div>
-        </div>
-      )}
       <div className="member-panel-heading" data-ws-part="voice.member-panel.heading">
         <div><h2>{t("people")}</h2></div>
       </div>

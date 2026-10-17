@@ -63,10 +63,6 @@ export interface VoiceState {
    *  not land here: the server-switch banner treats this field as "the join
    *  failed", and an unrelated audio/chat error would falsely fail it. */
   connectionFailureCode: string;
-  /** serverinfo fields for the channel pane header and welcome card; both
-   *  stay empty when the server restricts serverinfo. */
-  serverName: string;
-  serverWelcomeMessage: string;
 }
 
 export interface AudioInputDevice {
@@ -134,7 +130,6 @@ export function createVoiceSessionController() {
     tsClientId: 0, error: "", errorCode: "", retryNotUntil: 0,
     microphoneError: "", microphoneErrorCode: "", audioNotice: "", audioNoticeCode: "",
     channelSwitchedChannelId: "", selfMovedChannelId: "", connectionFailureCode: "",
-    serverName: "", serverWelcomeMessage: "",
     identityMaterial: "",
     microphoneMuted: false, noiseSuppressionEnabled: true, echoCancellationEnabled: false, autoGainControlEnabled: false,
     inputVolume: 1, outputVolume: 1, outputMuted: false, notificationVolume: 0.5, voxThreshold: 0.008,
@@ -1322,12 +1317,6 @@ export function createVoiceSessionController() {
         audioDiagnostics.receive(sequence, msg.stats);
         break;
       }
-      case "serverInfo":
-        patch({
-          serverName: typeof msg.name === "string" ? msg.name : "",
-          serverWelcomeMessage: typeof msg.welcomeMessage === "string" ? msg.welcomeMessage : "",
-        });
-        break;
       case "disconnected": {
         const reconnecting = msg.recoverable !== false;
         patch({ connected: false, connecting: false, reconnecting, reconnectFailed: false });

@@ -230,7 +230,6 @@ export const en: Record<string, string> = {
     microphoneMutedHint: "Your microphone is muted and other members cannot hear you",
     people: "People",
     searchMembers: "Search members",
-    serverWelcome: "Server welcome",
     voiceGroup: "Voice channels",
     openChat: "Open chat",
     closeChat: "Collapse chat",

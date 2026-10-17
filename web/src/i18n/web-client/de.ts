@@ -228,7 +228,6 @@ export const de: Record<string, string> = {
   microphoneMutedHint: "Dein Mikrofon ist ausgeschaltet; andere Mitglieder können dich nicht hören.",
   people: "Mitglieder",
   searchMembers: "Mitglieder suchen",
-  serverWelcome: "Server-Willkommen",
   voiceGroup: "Sprachkanäle",
   openChat: "Chat öffnen",
   closeChat: "Chat einklappen",
