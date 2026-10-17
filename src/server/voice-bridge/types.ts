@@ -13,7 +13,6 @@ import type { JoinTicketStore } from "../join-ticket.js";
 import type { ReconnectTicketStore } from "../reconnect-ticket.js";
 import type { TeamSpeakTarget } from "../../domain/teamspeak-target.js";
 import type { ServerEvent as SharedServerEvent } from "../../shared/voice-models.js";
-import type { TeamSpeakServerInfo } from "./server-info.js";
 
 export interface VoiceBridgeOptions {
   joinTickets: JoinTicketStore;
@@ -63,9 +62,6 @@ export interface WebClientEntry extends SessionDirectoryState {
   screenPeerId: string;
   /** Token delivered in `connected` for browser reload/drop recovery. */
   reconnectTicketToken?: string;
-  /** serverinfo fields for the browser welcome card; fetched once per
-   *  TeamSpeak connection and replayed on resume reattach. */
-  serverInfo?: TeamSpeakServerInfo;
   /** Session kept alive while its browser is gone (see detachEntry): no live
    *  socket, TeamSpeak connection and directory state held for the resume
    *  window, then released by the heartbeat sweep. */

@@ -25,7 +25,6 @@ export type ServerMessage =
   | Message<"avatarSnapshot", { avatars: AvatarUrlRef[] }>
   | Message<"avatarUpdate", { uid: string; url: string }>
   | Message<"channelList", { channels: ChannelInfo[] }>
-  | Message<"serverInfo", { name?: string; welcomeMessage?: string }>
   | Message<"channelCreated", { channel: ChannelInfo }>
   | Message<"channelUpdated", { id: string; name: string; description?: string }>
   | Message<"channelRemoved", { id: string }>
@@ -137,8 +136,6 @@ const valid: Record<ServerMessage["type"], (message: RecordValue) => boolean> = 
   avatarSnapshot: m => arrayOf(m.avatars, v => isRecord(v) && identifier(v.uid) && avatarUrl(v.url)),
   avatarUpdate: m => identifier(m.uid) && avatarUrl(m.url),
   channelList: m => arrayOf(m.channels, channel),
-  serverInfo: m => (optional(m.name, v => text(v) && v.length > 0 && v.length <= 160) && optional(m.welcomeMessage, v => text(v) && v.length > 0 && v.length <= 1024)
-    && (text(m.name) || text(m.welcomeMessage))),
   channelCreated: m => channel(m.channel),
   channelUpdated: m => channelId(m.id) && text(m.name) && optional(m.description, text),
   channelRemoved: m => channelId(m.id),

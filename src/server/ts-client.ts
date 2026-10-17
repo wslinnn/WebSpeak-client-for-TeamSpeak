@@ -223,13 +223,6 @@ export class TSClient extends EventEmitter {
     }
   }
 
-  /** initserver 握手携带的服务器身份（virtualserver_name/welcomemessage）——
-   *  对每个客户端免权限；serverinfo 命令需要 b_virtualserver_info_view，受限
-   *  服务器会对普通客户端拒授。未连接或服务器未下发时为 null。 */
-  getServerHandshake(): { name?: string; welcomeMessage?: string } | null {
-    return this.client?.serverHandshake ?? null;
-  }
-
   /**
    * Load a visible client's TeamSpeak avatar through the client protocol.
    *

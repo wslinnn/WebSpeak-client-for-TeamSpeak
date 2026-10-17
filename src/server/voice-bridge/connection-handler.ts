@@ -13,7 +13,6 @@ import { SessionEventCoordinator } from "../session-events.js";
 import type { SessionTeardownReason } from "../session-manager.js";
 import { parseClientCommand } from "../voice-protocol.js";
 import { isRecoverable, reconnectDelayMs, reconnectWindowOpen } from "../reconnect-policy.js";
-import { parseServerInfoRow } from "./server-info.js";
 import type { WebRtcAudioOptions, WebRtcSessionDescription } from "../webrtc-audio.js";
 import { parseScreenShareMessage, type ScreenShareIceServer } from "../screen-share.js";
 import { handleCommand } from "../voice-commands.js";
@@ -327,52 +326,8 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       session.transition("connected");
       sendJson(connectedMessage());
       sendJson({ type: "channelList", channels: entry!.channelTree });
-      void sendServerInfo();
       if (wasReconnecting) sendJson({ type: "reconnected" });
       events.attachAvatars();
-    };
-
-    /** The browser welcome card's data: fetched once per TeamSpeak connection
-     *  (the entry caches it) and replayed instantly on resume reattach. A
-     *  server that restricts `serverinfo` simply leaves the card absent. */
-    const sendServerInfo = async (): Promise<void> => {
-      if (entry!.serverInfo) {
-        sendJson({ type: "serverInfo", ...entry!.serverInfo });
-        return;
-      }
-      // 首选来源：连接握手（initserver）携带的 virtualserver_name/welcomemessage
-      // ——对每个客户端免权限；serverinfo 命令需要 b_virtualserver_info_view，
-      // 受限服务器对普通客户端拒授（2026-10-17 部署日志 insufficient client
-      // permissions id=2568 实锤）。握手未下发时才尝试 serverinfo 增强。
-      const handshake = tsClient.getServerHandshake?.() ?? null;
-      if (handshake?.name && initialStateSent) {
-        entry!.serverInfo = { name: handshake.name, welcomeMessage: handshake.welcomeMessage ?? "" };
-        sendJson({ type: "serverInfo", ...entry!.serverInfo });
-        return;
-      }
-      try {
-        const rows = await tsClient.execCommandWithResponse("serverinfo", 3000);
-        const info = parseServerInfoRow(rows[0]);
-        // 响应行存在但解析不出 name/welcomemessage 时同样静默无操作——这条
-        // 分支不留痕，部署侧「header 裸奔」就会在权限与解析之间两头猜。
-        if (!info) {
-          deps.logger.warn({
-            entryId,
-            rowKeys: rows[0] ? Object.keys(rows[0]).sort().slice(0, 8).join(",") : "(empty)",
-          }, "TeamSpeak serverinfo row unusable");
-        }
-        if (info && initialStateSent) {
-          entry!.serverInfo = info;
-          sendJson({ type: "serverInfo", ...info });
-        }
-      } catch (error: unknown) {
-        // 缺 serverinfo 只影响欢迎卡与服务器名展示，但失败必须留痕：静默
-        // 会让「header 裸奔成裸地址」被误判成权限问题而查错方向。
-        deps.logger.warn({
-          entryId,
-          err: error instanceof Error ? error.message : String(error),
-        }, "TeamSpeak serverinfo lookup failed");
-      }
     };
 
     /** The `connected` snapshot: used for the first join and identically for
@@ -415,7 +370,6 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       }
       sendJson(connectedMessage());
       sendJson({ type: "channelList", channels: entry!.channelTree });
-      void sendServerInfo();
       events.attachAvatars();
       return true;
     };
