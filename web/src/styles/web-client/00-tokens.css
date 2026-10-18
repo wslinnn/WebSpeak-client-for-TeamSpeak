@@ -88,6 +88,32 @@
 }
 
 /* 内置日/夜主题令牌（皮肤系统下架后由静态分片承载；dark 经 html.dark 解析类覆盖） */
+.ws-skin-root {
+  color-scheme: light;
+  --ws-page-bg: #fafafa;
+  --ws-surface-1: #fff;
+  --ws-surface-2: #f4f4f5;
+  --ws-text: #1c1e21;
+  --ws-text-muted: #63696f;
+  /* Graphite × cobalt: neutral surfaces, one interactive hue. Success keeps
+   * its own green (status semantics), separate from the brand accent. */
+  --ws-accent: #2b5cd9;
+  --ws-success: #1e7a40;
+  --ws-warning: #8a5d0b;
+  --ws-danger: #bb3f38;
+  --ws-border: #e5e7eb;
+  --surface-0: var(--ws-page-bg);
+  --surface-1: var(--ws-surface-1);
+  --surface-2: var(--ws-surface-2);
+  --text-primary: var(--ws-text);
+  --text-muted: var(--ws-text-muted);
+  --skin-accent: var(--ws-accent);
+  --success: var(--ws-success);
+  --warning: var(--ws-warning);
+  --danger: var(--ws-danger);
+  --skin-border: var(--ws-border);
+}
+
 .dark .ws-skin-root {
   color-scheme: dark;
   --ws-page-bg: #131316;
@@ -112,9 +138,4 @@
   --warning: var(--ws-warning);
   --danger: var(--ws-danger);
   --skin-border: var(--ws-border);
-}
-
-.dark .ws-skin-root {
-  background: var(--surface-0);
-  color: var(--text-primary);
 }

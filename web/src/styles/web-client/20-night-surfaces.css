@@ -178,34 +178,13 @@
   background: color-mix(in srgb, var(--ws-warning) 14%, transparent);
 }
 
+.dark .ws-skin-root {
+  background: var(--surface-0);
+  color: var(--text-primary);
+}
+
 /* ===== 内置主题的日间默认面与夜间组件色（自皮肤包静态化并入；
  * light 为裸 .ws-skin-root 默认值，dark 以 .dark 前缀覆盖，特异性逐档持平） ===== */
-
-.ws-skin-root {
-  color-scheme: light;
-  --ws-page-bg: #fafafa;
-  --ws-surface-1: #fff;
-  --ws-surface-2: #f4f4f5;
-  --ws-text: #1c1e21;
-  --ws-text-muted: #63696f;
-  /* Graphite × cobalt: neutral surfaces, one interactive hue. Success keeps
-   * its own green (status semantics), separate from the brand accent. */
-  --ws-accent: #2b5cd9;
-  --ws-success: #1e7a40;
-  --ws-warning: #8a5d0b;
-  --ws-danger: #bb3f38;
-  --ws-border: #e5e7eb;
-  --surface-0: var(--ws-page-bg);
-  --surface-1: var(--ws-surface-1);
-  --surface-2: var(--ws-surface-2);
-  --text-primary: var(--ws-text);
-  --text-muted: var(--ws-text-muted);
-  --skin-accent: var(--ws-accent);
-  --success: var(--ws-success);
-  --warning: var(--ws-warning);
-  --danger: var(--ws-danger);
-  --skin-border: var(--ws-border);
-}
 
 .ws-skin-root {
   background: var(--surface-0);
