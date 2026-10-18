@@ -12,7 +12,7 @@ export function rangeStyle(value: number, max: number): Record<string, string> {
 }
 
 function localeOf(language: Language): string {
-  return language === "zh" ? "zh-CN" : language === "de" ? "de-DE" : language === "ru" ? "ru-RU" : language === "ja" ? "ja-JP" : "en-US";
+  return language === "zh" ? "zh-CN" : "en-US";
 }
 
 /** 按语言缓存时钟格式化器：Intl.DateTimeFormat 构造昂贵（500 次构造+格式化 ≈35ms，

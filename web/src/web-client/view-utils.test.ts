@@ -12,7 +12,7 @@ afterEach(() => {
 });
 
 const LANGUAGES: Array<[Language, string]> = [
-  ["zh", "zh-CN"], ["de", "de-DE"], ["ru", "ru-RU"], ["ja", "ja-JP"], ["en", "en-US"],
+  ["zh", "zh-CN"], ["en", "en-US"],
 ];
 
 test("formatTime maps every language to its locale", () => {
@@ -26,15 +26,15 @@ test("formatTime maps every language to its locale", () => {
 test("formatTime reuses one formatter per language instead of rebuilding per call", () => {
   const spy = vi.spyOn(Intl, "DateTimeFormat");
   const timestamp = Date.UTC(2026, 9, 15, 9, 30);
-  formatTime(timestamp, "ja");
+  formatTime(timestamp, "en");
   const constructionsAfterWarmup = spy.mock.calls.length;
-  for (let index = 0; index < 20; index += 1) formatTime(timestamp + index * 1_000, "ja");
+  for (let index = 0; index < 20; index += 1) formatTime(timestamp + index * 1_000, "en");
   expect(spy.mock.calls.length).toBe(constructionsAfterWarmup);
 
   // 另一语言首次使用才新建一枚；再调用同样不再构造。
-  formatTime(timestamp, "de");
+  formatTime(timestamp, "zh");
   const constructionsAfterSecondLanguage = spy.mock.calls.length;
-  formatTime(timestamp, "de");
+  formatTime(timestamp, "zh");
   expect(spy.mock.calls.length).toBe(constructionsAfterSecondLanguage);
 });
 

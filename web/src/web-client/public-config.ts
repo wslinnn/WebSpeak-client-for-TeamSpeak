@@ -67,7 +67,7 @@ export function createPublicConfig(options: Options) {
       if (typeof config.welcomeTextEn === "string") welcomeTexts.en = config.welcomeTextEn;
       if (config.welcomeTexts && typeof config.welcomeTexts === "object" && !Array.isArray(config.welcomeTexts)) {
         const configuredTexts = config.welcomeTexts as Record<string, unknown>;
-        for (const languageCode of ["zh", "en", "de", "ru", "ja"] as const) {
+        for (const languageCode of ["zh", "en"] as const) {
           const text = configuredTexts[languageCode];
           if (typeof text === "string") welcomeTexts[languageCode] = text;
         }

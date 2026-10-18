@@ -5,8 +5,7 @@ import type { Language } from "@/i18n/web-client";
 /** 皮肤包首页文案与消息覆盖解析（旧 WebClient.vue 内联函数平移）：候选语言按
  *  包内 defaultLocale → 界面语言 → 全量 locale 合并，后到者覆盖先到者。 */
 function skinContentCandidates(locale: Language): string[] {
-  const fullLocale = locale === "zh" ? "zh-CN" : locale === "en" ? "en-US" : locale === "de" ? "de-DE" : locale === "ru" ? "ru-RU" : "ja-JP";
-  return [locale, fullLocale];
+  return [locale, locale === "zh" ? "zh-CN" : "en-US"];
 }
 
 export function resolveSkinHomeCopy(skin: InstalledSkin | null, locale: Language): SkinHomeCopy {

@@ -49,7 +49,7 @@ export interface LocalPreferences {
   echoCancellationEnabled?: boolean;
   autoGainControlEnabled?: boolean;
   voxThreshold?: number;
-  language?: "zh" | "en" | "de" | "ru" | "ja";
+  language?: "zh" | "en";
   preferredInputDeviceId?: string;
   preferredOutputDeviceId?: string;
   inputGain?: number;

@@ -1,10 +1,12 @@
 import type { AdminConnectionRecord } from "@shared/admin-responses";
 import type { SiteLanguage } from "@shared/site-copy";
 
-import { copy, germanCopy, japaneseCopy, russianCopy, type AdminTranslationKey } from "./admin";
+import { copy, type AdminTranslationKey } from "./admin";
 
+// SiteLanguage 是共享协议类型（后端欢迎语文案仍是五语数据模型），但 UI 语言已
+// 收缩为 zh/en：已下架语言别名到 en 兜底，切换器不再产生这些取值。
 const translations: Record<SiteLanguage, Record<AdminTranslationKey, string>> = {
-  zh: copy.zh, en: copy.en, de: germanCopy, ru: russianCopy, ja: japaneseCopy,
+  zh: copy.zh, en: copy.en, de: copy.en, ru: copy.en, ja: copy.en,
 };
 const locales: Record<SiteLanguage, string> = { zh: "zh-CN", en: "en-US", de: "de-DE", ru: "ru-RU", ja: "ja-JP" };
 const sessionLabels: Record<string, AdminTranslationKey> = {

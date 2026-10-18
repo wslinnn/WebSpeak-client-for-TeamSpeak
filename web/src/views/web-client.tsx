@@ -248,7 +248,7 @@ function WebClientRoot() {
     }).finally(() => setIdentityReady(true));
     void favorites.loadSavedServers();
     void loadLocalPreferences().then((preferences) => {
-      if (!localStorage.getItem("webspeak:language") && (["zh", "en", "de", "ru", "ja"] as const).includes(preferences.language as Language)) {
+      if (!localStorage.getItem("webspeak:language") && (["zh", "en"] as const).includes(preferences.language as Language)) {
         setLanguage(preferences.language as Language);
       }
     }).catch(() => undefined);

@@ -10,7 +10,7 @@ import { loadWebClientMessages } from "@/hooks/use-i18n";
 // 全部语言到进程缓存：useWebClientMessages 的 effect 命中已解析 promise，
 // 微任务即渲染。
 beforeAll(async () => {
-  await Promise.all((["zh", "en", "de", "ru", "ja"] as const).map((language) => loadWebClientMessages(language)));
+  await Promise.all((["zh", "en"] as const).map((language) => loadWebClientMessages(language)));
 }, 30000);
 
 afterEach(() => {

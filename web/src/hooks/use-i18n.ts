@@ -9,15 +9,12 @@ export interface I18nContextValue {
 
 export const I18nContext = createContext<I18nContextValue | null>(null);
 
-// F9（报告 21）：语言包按语言各自成 chunk（首屏只拉当前语言一份，五语言聚合
-// 曾让 messages chunk 背着全部 85KB 源码）。入口图不含任何语言包数据——工厂
-// 模块（messages.ts，仅翻译逻辑）也走动态 import。进程级缓存：同语言只加载一次。
+// 语言包按语言各自成 chunk（F9 性能决策保留：入口图不含任何语言包数据——工厂
+// 模块 messages.ts 也走动态 import，防止语言包源码打进首屏 index chunk）。
+// UI 语言已收缩为 zh/en，加载机制不变，仅少两份包。进程级缓存：同语言只加载一次。
 const packLoaders: Record<Language, () => Promise<Record<string, string>>> = {
   zh: () => import("@/i18n/web-client/zh").then((module) => module.zh),
   en: () => import("@/i18n/web-client/en").then((module) => module.en),
-  de: () => import("@/i18n/web-client/de").then((module) => module.de),
-  ru: () => import("@/i18n/web-client/ru").then((module) => module.ru),
-  ja: () => import("@/i18n/web-client/ja").then((module) => module.ja),
 };
 
 interface LoadedMessages {

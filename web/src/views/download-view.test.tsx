@@ -4,11 +4,11 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { I18nProvider } from "@/components/app/i18n-provider";
 import { loadWebClientMessages } from "@/hooks/use-i18n";
 import { createWebClientMessages } from "@/i18n/messages";
-import { ja } from "@/i18n/web-client/ja";
+import { en } from "@/i18n/web-client/en";
 
 import DownloadView from "./download-view";
 
-const jaTitle = createWebClientMessages("ja", ja).t("downloadTitle");
+const enTitle = createWebClientMessages("en", en).t("downloadTitle");
 
 function stubFetch(payload: unknown, ok = true): ReturnType<typeof vi.fn> {
   const fetchMock = vi.fn(async () => new Response(JSON.stringify(payload), { status: ok ? 200 : 500 }));
@@ -29,7 +29,7 @@ function renderDownload() {
 // 语言包为按语言动态 import（就绪前视图渲染 null）：断言一律等待式。预热全部
 // 语言——测试会经 localStorage 切语言，缓存的 promise 命中后微任务即渲染。
 beforeAll(async () => {
-  await Promise.all((["zh", "en", "de", "ru", "ja"] as const).map((language) => loadWebClientMessages(language)));
+  await Promise.all((["zh", "en"] as const).map((language) => loadWebClientMessages(language)));
 }, 30000);
 
 afterEach(() => {
@@ -88,12 +88,12 @@ test("语言切换经切换器持久化 webspeak:language 且界面即时换语"
   expect(await screen.findByText("下载客户端")).toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: "语言" }));
-  const option = await screen.findByRole("option", { name: /日本語/ });
+  const option = await screen.findByRole("option", { name: /English/ });
   // 自绘切换器的选中发生在 pointerdown（旧版语义平价，见组件内注）。
   fireEvent.pointerDown(option);
 
-  await waitFor(() => expect(localStorage.getItem("webspeak:language")).toBe("ja"));
-  expect(screen.getByRole("heading", { name: jaTitle })).toBeInTheDocument();
+  await waitFor(() => expect(localStorage.getItem("webspeak:language")).toBe("en"));
+  expect(screen.getByRole("heading", { name: enTitle })).toBeInTheDocument();
 });
 
 test("页面锚点：皮肤根 + data-ws-page=download + 挂载后钉内置皮肤", async () => {
