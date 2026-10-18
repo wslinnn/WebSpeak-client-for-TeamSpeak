@@ -1520,9 +1520,16 @@ export function createVoiceSessionController() {
   ): Promise<void> {
     const generation = chatGeneration;
     const senderId = V().tsClientId;
-    await sendCommandAndWait(type, payload);
-    if (generation !== chatGeneration || !V().connected) throw new Error("语音连接已关闭");
-    sessionState.appendLocal({ ...local, senderId, invokerName: "你", message: payload.message });
+    // TS6_Droid 语义（2026-10-18）：本地先上屏——自回声在 session-state 被丢弃，
+    // 无重复风险；服务器确认只用于错误反馈，慢确认不再拖住消息显示。
+    const localMessage = sessionState.appendLocal({ ...local, senderId, invokerName: "你", message: payload.message });
+    try {
+      await sendCommandAndWait(type, payload);
+      if (generation !== chatGeneration || !V().connected) throw new Error("语音连接已关闭");
+    } catch (error) {
+      sessionState.retractLocal(localMessage.id);
+      throw error;
+    }
   }
 
   async function sendTextMessage(message: string, targetId = ""): Promise<void> {

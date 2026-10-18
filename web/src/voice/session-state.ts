@@ -374,9 +374,20 @@ export function createVoiceSessionState(options: SessionStateOptions) {
     if (chatMessages.length > CHAT_HISTORY_LIMIT) chatMessages.splice(0, chatMessages.length - CHAT_HISTORY_LIMIT);
   }
 
-  function appendLocal(message: Omit<ChatMessage, "id" | "timestamp" | "isSelf">): void {
-    appendChatMessage({ ...message, id: nextId("self"), timestamp: Date.now(), isSelf: true });
+  function appendLocal(message: Omit<ChatMessage, "id" | "timestamp" | "isSelf">): ChatMessage {
+    const entry: ChatMessage = { ...message, id: nextId("self"), timestamp: Date.now(), isSelf: true };
+    appendChatMessage(entry);
     syncChat();
+    return entry;
+  }
+
+  /** 撤回一条本地乐观消息（发送失败时）；id 不存在则忽略。 */
+  function retractLocal(id: string): void {
+    const index = chatMessages.findIndex((message) => message.id === id);
+    if (index >= 0) {
+      chatMessages.splice(index, 1);
+      syncChat();
+    }
   }
 
   function reset(): void {
@@ -394,7 +405,7 @@ export function createVoiceSessionState(options: SessionStateOptions) {
     syncPokes();
   }
 
-  return { store, connected, receive, appendLocal, reset,
+  return { store, connected, receive, appendLocal, retractLocal, reset,
     /** Live working array for non-render consumers (e.g. volume sync inside
      *  onMembersChanged, which runs before the store snapshot syncs). */
     membersLive: () => members,
