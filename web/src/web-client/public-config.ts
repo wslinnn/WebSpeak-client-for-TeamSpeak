@@ -19,6 +19,10 @@ export interface PublicConfigStore {
 
 interface Options {
   applyPrefill(host: string, port: string): void;
+  /** 会话上下文守卫：进行中/可恢复（含刷新恢复意图）时，网关预填与
+   *  「屏蔽预填」清空都不得落地——否则 open+屏蔽预填会在挂载回填之后异步
+   *  把恢复意图带回的真实 host 清成 ""，服务器名行裸奔成 ":9987"。 */
+  shouldSkipPrefill?: () => boolean;
   t: Translator;
 }
 
@@ -73,6 +77,7 @@ export function createPublicConfig(options: Options) {
       const hasExplicitTarget = query.has("server") || query.has("target") || query.has("tsHost") || query.has("tsPort");
       patch.openTargetPrefillBlocked = !hasExplicitTarget && patch.accessMode === "open" && config.targetPrefillBlocked === true;
       store.setState(patch);
+      if (options.shouldSkipPrefill?.()) return;
       if (patch.openTargetPrefillBlocked) {
         options.applyPrefill("", DEFAULT_TEAM_SPEAK_PORT);
       } else if (!hasExplicitTarget && typeof config.target === "string" && config.target.trim()) {

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { useVoiceSession } from "@/hooks/useVoiceSession";
 import { useWebClientMessages } from "@/hooks/use-i18n";
+import { readVoiceSessionIntent } from "@/voice/session-intent";
 import { saveLocalPreferences, saveStoredIdentity, removeStoredIdentity } from "@/services/local-persistence";
 import { combineTeamSpeakTarget } from "@/services/teamspeak-target";
 import { createHomeConnection } from "@/web-client/home-connection";
@@ -46,8 +47,18 @@ export function useWebClientControllers() {
   const home = useStore(store);
 
   const publicConfig = useMemo(
-    () => createPublicConfig({ applyPrefill: (host, port) => store.setState({ serverHost: host, serverPort: port }), t: (key) => liveMessages?.t(key) ?? key }),
-    [store],
+    () => createPublicConfig({
+      applyPrefill: (host, port) => store.setState({ serverHost: host, serverPort: port }),
+      shouldSkipPrefill: () => {
+        // 挂载序列先回填恢复意图目标、后异步 loadPublicConfig：open+屏蔽预填的
+        // 清空若不设防，会把刚回填的真实 host 清成 ""（服务器名行裸奔 ":9987"）。
+        const voiceSnapshot = voice.store.getState();
+        if (voiceSnapshot.connected || voiceSnapshot.connecting || voiceSnapshot.reconnecting) return true;
+        return Boolean(readVoiceSessionIntent()?.target);
+      },
+      t: (key) => liveMessages?.t(key) ?? key,
+    }),
+    [store, voice],
   );
   const favorites = useMemo(
     () => createHomeFavorites({ store, t: (key, vars) => liveMessages?.t(key, vars) ?? key, showToast }),
