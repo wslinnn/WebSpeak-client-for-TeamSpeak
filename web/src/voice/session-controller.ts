@@ -1,26 +1,22 @@
 import { createStore } from "zustand/vanilla";
-import { createRemotePlayback } from "./remote-playback";
 import { createSpeakingState } from "./speaking-state";
 import { createMicrophoneTest } from "./microphone-test";
-import { normalizeMicrophoneFailure } from "./microphone-failure";
 import { createMicrophoneCaptureFactory, type MicrophoneCapture } from "./microphone-capture";
-import { createAudioSinkRouter } from "./audio-sink";
 import { createAccompaniment } from "./accompaniment";
 import { createWebRtcTransport } from "./webrtc-transport";
 import { createVoiceCommands } from "./commands";
 import { createVoiceSessionState } from "./session-state";
-import { createAudioDiagnostics, type VoiceAudioStatusSample } from "./audio-diagnostics";
-import type { SinkAudioElement } from "./webrtc-playback";
 import { createScreenShareController } from "./screen-share";
 import { createMicrophoneMeter, type MicrophoneMeter } from "./microphone-meter";
 import { requestMediaBeforeAudioResume } from "../services/microphone-start";
 import { parseServerMessage } from "@shared/server-messages";
 import type { ClientCommandPayloads, ClientCommandType } from "@shared/client-commands";
 import { connectionFailureMessage, normalizedClientErrorCode, safeClientErrorCode, safeClientErrorDetail } from "./error-messages";
+import { createAudioOutput } from "./audio-output";
 import { createAudioPreferences } from "./audio-preferences";
 import { createChatSend } from "./chat-send";
 import { createConnectionLifecycle } from "./connection-lifecycle";
-import { CancelledMediaOperation, MAX_INPUT_VOLUME, clamp, type SinkAudioContext, type VoiceSessionView } from "./session-model";
+import { CancelledMediaOperation, MAX_INPUT_VOLUME, clamp, type VoiceSessionView } from "./session-model";
 
 export type { MicrophoneProcessingSettings } from "./microphone-capture";
 export type { AudioPermission, BrowserVoiceAudioStats, VoiceAudioStatusSample } from "./audio-diagnostics";
@@ -66,7 +62,7 @@ export function createVoiceSessionController() {
     onMemberRemoved(id) {
       deleteVolume(id);
       clearSpeaking(id);
-      remotePlayback.clear(id);
+      audioOutput.remotePlayback.clear(id);
       if (whisperTargetIds.delete(id)) patch({ whisperTargetIds: new Set(whisperTargetIds) });
       if (!whisperTargetIds.size) patch({ whisperActive: false });
     },
@@ -88,13 +84,13 @@ export function createVoiceSessionController() {
     V,
     patch,
     onMessage: handleMessage,
-    onAudio: handleAudioFrame,
+    onAudio: (data) => audioOutput.handleAudioFrame(data),
     syncVoiceTransport,
     resetSessionState: () => sessionState.reset(),
     releaseSessionResources,
-    clearMicrophoneError,
-    clearAudioNotice,
-    playNotification,
+    clearMicrophoneError: () => audioOutput.clearMicrophoneError(),
+    clearAudioNotice: () => audioOutput.clearAudioNotice(),
+    playNotification: (kind) => audioOutput.playNotification(kind),
     audioPreferencesReady: () => audioPrefs.ready,
   });
   const commands = createVoiceCommands({ socket: connection.socket, generation: () => connection.voiceConnection.generation });
@@ -109,13 +105,6 @@ export function createVoiceSessionController() {
     membersLive: () => sessionState.membersLive(),
   });
 
-  // WebRTC carries audio when the gateway advertises it. The bounded PCM
-  // WebSocket path remains the compatibility fallback for older browsers and
-  // for deployments where the gateway's built-in UDP media range is unavailable.
-  let audioCtx: SinkAudioContext | null = null;
-  // document 级 visibilitychange 恢复句柄：随 context 创建、随 close 摘除——
-  // 不摘会在每次断开→重连循环里累积一个监听器。
-  let resumeAudioCtx: (() => void) | null = null;
   let micStream: MediaStream | null = null;
   let inputMeter: MicrophoneMeter | null = null;
   let lastRoutedBypass: boolean | null = null;
@@ -143,16 +132,13 @@ export function createVoiceSessionController() {
     isOpen: () => connection.socket()?.readyState === WebSocket.OPEN,
     send: message => connection.socket()?.send(JSON.stringify(message)),
   });
-  let inputDeviceGeneration = 0;
-  let outputDeviceGeneration = 0;
-  let deviceListGeneration = 0;
-  const audioSinkRouter = createAudioSinkRouter();
+  const deviceGenerations = { input: 0, output: 0, deviceList: 0 };
   const microphoneTest = createMicrophoneTest({
     prepare: async () => { await prepareInputDevices(); return micStream; },
     onActive: active => { patch({ microphoneTestActive: active }); applyUplinkGate(); applyUplinkRouting(); },
     onUrl: url => { patch({ testAudioUrl: url }); },
     onStopped: () => { if (!V().connected) stopMicrophone(); },
-    onError: error => { setMicrophoneError(error); },
+    onError: error => { audioOutput.setMicrophoneError(error); },
   });
   let voxAttack = 0;
   let voxRelease = 0;
@@ -163,17 +149,26 @@ export function createVoiceSessionController() {
   let accumLen = 0;
 
   const { markSpeaking, clearSpeaking, clearSpeakingState } = speakingState;
+
+  // 播放侧音频簇（audio-output.ts）：共享 AudioContext、输出汇点、兼容回放、
+  // 音频诊断、通知音与非致命音频通知。webrtc 晚绑（门面在其后装配）。
+  const audioOutput = createAudioOutput({
+    V,
+    patch,
+    webrtc: () => webrtc,
+    microphoneStream: () => micStream,
+    socket: () => connection.socket(),
+    connectionGeneration: () => connection.voiceConnection.generation,
+    markSpeaking,
+    audioPrefs,
+    sessionMembers: () => sessionState.store.getState().members,
+    deviceGenerations,
+  });
   const whisperTargetIds = new Set<number>();
   const AUDIO_FRAME_SAMPLES = 960;
   const AUDIO_FRAME_BYTES = AUDIO_FRAME_SAMPLES * 2;
   const MAX_AUDIO_BUFFERED_FRAMES = 10;
   const MAX_AUDIO_BUFFERED_BYTES = AUDIO_FRAME_BYTES * MAX_AUDIO_BUFFERED_FRAMES;
-  const remotePlayback = createRemotePlayback({
-    getContext: getAudioCtx,
-    getVolume: clientId => (V().volumes[clientId] ?? 1) * effectiveOutputVolume(),
-    onDecodeError: () => audioDiagnostics.count("decodeErrors"),
-    onDrop: () => audioDiagnostics.count("framesDropped"),
-  });
   let webRtcStunServer = "";
   // Mirror of the WebRTC transport's live state, pushed via onTransportChange.
   // The transport object itself exposes plain getters, which a store selector
@@ -204,7 +199,7 @@ export function createVoiceSessionController() {
     prepareMicrophone: async () => {
       await ensureMicrophone();
       const capture = microphoneCapture;
-      return micStream && capture ? { context: getAudioCtx(), stream: micStream,
+      return micStream && capture ? { context: audioOutput.getAudioCtx(), stream: micStream,
         processedStream: capture.processedStream, capture } : null;
     },
     stopPcm: stopCaptureGraph,
@@ -227,15 +222,15 @@ export function createVoiceSessionController() {
     async onFallback(reason, isCurrent) {
       if (!isCurrent()) return;
       webRtcVoiceRoutes = [];
-      setAudioNotice("WEBRTC_FALLBACK", `实时语音（WebRTC）不可用（错误代码：${safeClientErrorCode(reason) || "WEBRTC_UNAVAILABLE"}），已切换为兼容传输：延迟与音质可能下降`);
+      audioOutput.setAudioNotice("WEBRTC_FALLBACK", `实时语音（WebRTC）不可用（错误代码：${safeClientErrorCode(reason) || "WEBRTC_UNAVAILABLE"}），已切换为兼容传输：延迟与音质可能下降`);
       try { await startMicrophone(); }
-      catch (error) { if (isCurrent()) setMicrophoneError(error); }
+      catch (error) { if (isCurrent()) audioOutput.setMicrophoneError(error); }
     },
     playback: {
-      volume: effectiveOutputVolume,
+      volume: audioOutput.effectiveOutputVolume,
       speakerVolume: clientId => V().volumes[clientId] ?? 1,
       onEndpoint(output) {
-        clearAudioNotice("OUTPUT_DEVICE_PENDING_WEBRTC");
+        audioOutput.clearAudioNotice("OUTPUT_DEVICE_PENDING_WEBRTC");
         // The slot pool routes its own elements (and any amplification
         // context) via setSinkDevice: elements are created per slot, so a
         // single-endpoint router cannot track them. Failures here surface
@@ -244,10 +239,10 @@ export function createVoiceSessionController() {
         void output;
       },
       onBlocked(blocked) {
-        if (blocked) setAudioNotice("PLAYBACK_BLOCKED", "浏览器阻止了音频自动播放，暂时听不到其他成员的声音：请点击页面任意位置，或在地址栏允许本站播放声音");
-        else clearAudioNotice("PLAYBACK_BLOCKED");
+        if (blocked) audioOutput.setAudioNotice("PLAYBACK_BLOCKED", "浏览器阻止了音频自动播放，暂时听不到其他成员的声音：请点击页面任意位置，或在地址栏允许本站播放声音");
+        else audioOutput.clearAudioNotice("PLAYBACK_BLOCKED");
       },
-      onPlaying: syncAudioContextNotice,
+      onPlaying: () => audioOutput.syncAudioContextNotice(),
       onSlotActivity(clientId, active) {
         // Downstream speaking detection is local now: the gateway forwards
         // payloads untouched and has no decoded signal to analyze.
@@ -257,170 +252,12 @@ export function createVoiceSessionController() {
       },
     },
   });
-  const audioDiagnostics = createAudioDiagnostics({
-    source() {
-      const current = connection.socket();
-      if (!current || current.readyState !== WebSocket.OPEN || !V().connected) return null;
-      const peer = webrtc.peer;
-      return { socket: current, connection: connection.voiceConnection.generation, transportGeneration: webrtc.generation, peer,
-        transport: webrtc.active ? "webrtc" : peer ? "negotiating" : "websocket" };
-    },
-    presentation({ peer }) {
-      return {
-        microphoneMuted: V().microphoneMuted,
-        microphoneReady: Boolean(micStream?.getAudioTracks().some(track => track.readyState === "live")),
-        microphonePermission: V().audioPermission,
-        playbackState: peer
-          ? webrtc.output ? webrtc.output.paused ? "paused" : "playing" : "unavailable"
-          : audioCtx ? audioCtx.state === "running" ? "playing" : "paused" : null,
-      };
-    },
-    send: (source, sequence) => source.socket.send(JSON.stringify({ type: "audioStatsProbe", payload: { sequence } })),
-  });
-
   function syncVoiceTransport(): void {
     const connected = V().connected;
     const derived: VoiceSessionView["voiceTransport"] = !connected
       ? "disconnected"
       : transportSnapshot.active ? "webrtc" : transportSnapshot.hasPeer ? "negotiating" : "websocket";
     if (V().voiceTransport !== derived) patch({ voiceTransport: derived });
-  }
-
-  function effectiveOutputVolume(): number {
-    return V().outputMuted ? 0 : V().outputVolume;
-  }
-
-  function applyOutputVolume(): void {
-    const level = effectiveOutputVolume();
-    remotePlayback.updateVolumes();
-    webrtc.setOutputVolume(level);
-  }
-
-  function getAudioCtx(): SinkAudioContext {
-    if (!audioCtx) {
-      audioCtx = new AudioContext({ sampleRate: 48000 }) as SinkAudioContext;
-      patch({ audioContextState: audioCtx.state });
-      // A suspended context silently starves the uplink graph and playback;
-      // keep the shared context alive across lifecycle events (same failure
-      // class Newt-Desktop documents for its destination-node uplink).
-      resumeAudioCtx = (): void => {
-        if (audioCtx && audioCtx.state === "suspended") void audioCtx.resume().catch(() => undefined);
-      };
-      audioCtx.addEventListener("statechange", () => {
-        if (audioCtx) patch({ audioContextState: audioCtx.state });
-        resumeAudioCtx?.();
-      });
-      document.addEventListener("visibilitychange", resumeAudioCtx);
-      const supported = typeof audioCtx.setSinkId === "function"
-        || typeof (HTMLMediaElement.prototype as SinkAudioElement).setSinkId === "function";
-      patch({ outputDeviceSupported: supported });
-      if (V().selectedOutputDeviceId && supported) {
-        void setAudioSink(audioCtx, V().selectedOutputDeviceId).catch(() => undefined);
-      }
-    }
-    return audioCtx;
-  }
-
-  /**
-   * Microphone failures are a degraded state, not a connection failure: the room
-   * stays joined, so they get their own slot instead of taking over `error`.
-   */
-  function setMicrophoneError(error: unknown): string {
-    if (error instanceof CancelledMediaOperation) return "";
-    const failure = normalizeMicrophoneFailure(error);
-    patch({ microphoneErrorCode: failure.code, microphoneError: failure.message });
-    return failure.message;
-  }
-
-  function clearMicrophoneError(): void {
-    patch({ microphoneError: "", microphoneErrorCode: "" });
-  }
-
-  /** Non-fatal audio notice (WebRTC fallback, blocked autoplay, device list failure...). */
-  /** 用户点 x 的闭锁：同一代码的条件仍成立时，重同步会立刻把横幅设回来，
-   *  观感即「关不掉」。闭锁在条件解除（带 code 的清除）时复位，同代码复发
-   *  （新条件）仍会提醒。 */
-  let dismissedAudioNoticeCode = "";
-  function setAudioNotice(code: string, message: string): void {
-    const normalized = safeClientErrorCode(code) || "AUDIO_NOTICE";
-    if (dismissedAudioNoticeCode === normalized) return;
-    patch({ audioNoticeCode: normalized, audioNotice: message });
-  }
-
-  function clearAudioNotice(code?: string): void {
-    if (code && V().audioNoticeCode !== safeClientErrorCode(code)) return;
-    dismissedAudioNoticeCode = code ? safeClientErrorCode(code) : "";
-    patch({ audioNotice: "", audioNoticeCode: "" });
-  }
-
-  /** A suspended AudioContext silently swallows capture: say so instead of pretending. */
-  function syncAudioContextNotice(): void {
-    if (audioCtx && audioCtx.state === "suspended") {
-      setAudioNotice("AUDIO_CONTEXT_SUSPENDED", "浏览器的音频处理被暂停（需要一次页面交互），麦克风与扬声器可能无声：请点击页面任意位置后重试");
-    } else {
-      clearAudioNotice("AUDIO_CONTEXT_SUSPENDED");
-    }
-  }
-
-  function audioNoticeMessage(code: string, detail?: unknown): string {
-    const detailText = safeClientErrorDetail(detail);
-    if (code === "AUDIO_ENCODER_UNAVAILABLE") {
-      return `麦克风声音未能发送：语音网关的音频编码器不可用（错误代码：${code}）${detailText ? `：${detailText}` : ""}，请联系管理员`;
-    }
-    return `音频链路异常（错误代码：${code}）${detailText ? `：${detailText}` : ""}，麦克风声音可能没有发送给其他成员`;
-  }
-
-  async function setAudioSink(ctx: SinkAudioContext, deviceId: string): Promise<void> {
-    const generation = outputDeviceGeneration;
-    const isCurrent = () => generation === outputDeviceGeneration && audioCtx === ctx
-      && V().selectedOutputDeviceId === deviceId;
-    const mediaSinkSupported = typeof (HTMLMediaElement.prototype as SinkAudioElement).setSinkId === "function";
-    if (!ctx.setSinkId && !mediaSinkSupported) {
-      patch({ outputDeviceSupported: false });
-      if (deviceId) throw new Error("当前浏览器不支持扬声器设备选择，将使用默认输出设备");
-      return;
-    }
-    patch({ outputDeviceSupported: true });
-    let routed = false;
-    if (ctx.setSinkId) {
-      await audioSinkRouter.set(ctx, deviceId, isCurrent);
-      routed = true;
-    }
-    // The WebRTC slot pool routes its own elements and amplification context;
-    // a failure must propagate so the committed choice rolls back.
-    if (V().connected && webrtc.active) {
-      await webrtc.setSinkDevice(deviceId);
-      routed = true;
-    }
-    if (!routed) {
-      // element-only sink browsers (e.g. Firefox) before the WebRTC endpoint
-      // exists: the choice is stored but nothing can follow it yet — say so
-      // instead of reporting a success the ears cannot confirm.
-      setAudioNotice("OUTPUT_DEVICE_PENDING_WEBRTC", "输出设备将在语音通道建立后生效，当前连接尚未建立音频输出");
-      return;
-    }
-    clearAudioNotice("OUTPUT_DEVICE_PENDING_WEBRTC");
-  }
-
-  /**
-   * Fatal environment problems: the page can never provide a microphone, so
-   * the join button stays disabled and the answer doubles as fix guidance.
-   * Missing AudioDecoder is deliberately NOT fatal — WebRTC voice works
-   * without it — see checkBrowserWarning.
-   */
-  function checkSupport(): string | null {
-    if (typeof window === "undefined") return null;
-    if (!window.isSecureContext) return "语音功能需要 HTTPS 安全连接：浏览器仅在 https:// 或 localhost 页面开放麦克风，请改用安全地址访问";
-    if (!navigator.mediaDevices?.getUserMedia) return "当前浏览器不支持麦克风访问，请更换最新版 Chrome 或 Edge";
-    if (typeof AudioContext === "undefined") return "当前浏览器不支持 Web Audio 音频处理，请更换最新版 Chrome 或 Edge";
-    return null;
-  }
-
-  /** Degraded but usable: only the compatibility transport needs a decoder. */
-  function checkBrowserWarning(): string | null {
-    if (typeof window === "undefined") return null;
-    if (typeof AudioDecoder === "undefined") return "当前浏览器不支持音频解码，兼容传输模式下可能听不到声音，请使用最新版 Chrome 或 Edge";
-    return null;
   }
 
   function microphoneConstraints(): MediaTrackConstraints {
@@ -438,25 +275,25 @@ export function createVoiceSessionController() {
   }
 
   async function refreshAudioDevices(): Promise<void> {
-    const generation = ++deviceListGeneration;
+    const generation = ++deviceGenerations.deviceList;
     const sequence = connection.voiceConnection.generation;
-    const isCurrent = () => generation === deviceListGeneration && sequence === connection.voiceConnection.generation;
+    const isCurrent = () => generation === deviceGenerations.deviceList && sequence === connection.voiceConnection.generation;
     if (!navigator.mediaDevices?.enumerateDevices) {
       patch({ inputDevices: [], outputDevices: [] });
-      setAudioNotice("DEVICE_LIST_UNAVAILABLE", "无法读取音频设备列表，将使用浏览器默认音频设备：请在系统或浏览器隐私设置中允许读取设备信息");
+      audioOutput.setAudioNotice("DEVICE_LIST_UNAVAILABLE", "无法读取音频设备列表，将使用浏览器默认音频设备：请在系统或浏览器隐私设置中允许读取设备信息");
       return;
     }
     let devices: MediaDeviceInfo[];
     try {
       devices = await navigator.mediaDevices.enumerateDevices();
       if (!isCurrent()) return;
-      clearAudioNotice("DEVICE_LIST_UNAVAILABLE");
+      audioOutput.clearAudioNotice("DEVICE_LIST_UNAVAILABLE");
     } catch {
       if (!isCurrent()) return;
       // enumerateDevices rejects when the device list is blocked (for example in a
       // locked-down iframe). Use the browser defaults and explain the limitation.
       patch({ inputDevices: [], outputDevices: [] });
-      setAudioNotice("DEVICE_LIST_UNAVAILABLE", "无法读取音频设备列表，将使用浏览器默认音频设备：请在系统或浏览器隐私设置中允许读取设备信息");
+      audioOutput.setAudioNotice("DEVICE_LIST_UNAVAILABLE", "无法读取音频设备列表，将使用浏览器默认音频设备：请在系统或浏览器隐私设置中允许读取设备信息");
       return;
     }
     const microphones = devices
@@ -472,7 +309,7 @@ export function createVoiceSessionController() {
     // restart WebRTC, and rejected fallbacks must not be saved as successful.
     const fallbackOperations: Promise<void>[] = [];
     if (missingInput) fallbackOperations.push(setInputDevice(""));
-    if (missingOutput) fallbackOperations.push(setOutputDevice(""));
+    if (missingOutput) fallbackOperations.push(audioOutput.setOutputDevice(""));
     await Promise.allSettled(fallbackOperations);
   }
 
@@ -552,9 +389,9 @@ export function createVoiceSessionController() {
     pendingMicrophoneCapture?.abort();
     const controller = new AbortController();
     pendingMicrophoneCapture = controller;
-    const ctx = getAudioCtx();
+    const ctx = audioOutput.getAudioCtx();
     const assertCurrent = (): void => {
-      if (generation !== microphoneGeneration || audioCtx !== ctx || controller.signal.aborted) throw new CancelledMediaOperation();
+      if (generation !== microphoneGeneration || audioOutput.audioContext() !== ctx || controller.signal.aborted) throw new CancelledMediaOperation();
     };
     let nextStream: MediaStream | null = null;
     let nextCapture: MicrophoneCapture | null = null;
@@ -617,19 +454,19 @@ export function createVoiceSessionController() {
         noiseSuppressionEnabled: V().noiseSuppressionEnabled,
       });
       watchMicrophoneTrack(nextStream);
-      clearMicrophoneError();
+      audioOutput.clearMicrophoneError();
     } catch (error) {
       nextCapture?.dispose();
       if (!factoryOwnsStream) nextStream?.getTracks().forEach(track => track.stop());
       if (generation === microphoneGeneration && !(error instanceof CancelledMediaOperation)) {
         if (error instanceof DOMException && ["NotAllowedError", "SecurityError"].includes(error.name)) patch({ audioPermission: "denied" });
-        setMicrophoneError(error);
+        audioOutput.setMicrophoneError(error);
       }
       throw error;
     } finally {
       if (pendingMicrophoneCapture === controller) pendingMicrophoneCapture = null;
     }
-    syncAudioContextNotice();
+    audioOutput.syncAudioContextNotice();
   }
 
   /**
@@ -642,15 +479,15 @@ export function createVoiceSessionController() {
     if (!track) return;
     track.addEventListener("ended", () => {
       if (micStream !== stream) return;
-      setAudioNotice("MIC_TRACK_LOST", "麦克风设备已断开或权限被回收，采集已停止：请在音频设置中重新选择设备或重新授权");
+      audioOutput.setAudioNotice("MIC_TRACK_LOST", "麦克风设备已断开或权限被回收，采集已停止：请在音频设置中重新选择设备或重新授权");
     });
     track.addEventListener("mute", () => {
       if (micStream !== stream) return;
-      setAudioNotice("MIC_TRACK_MUTED", "麦克风被系统或浏览器静音，其他成员暂时听不到你");
+      audioOutput.setAudioNotice("MIC_TRACK_MUTED", "麦克风被系统或浏览器静音，其他成员暂时听不到你");
     });
     track.addEventListener("unmute", () => {
       if (micStream !== stream) return;
-      clearAudioNotice("MIC_TRACK_MUTED");
+      audioOutput.clearAudioNotice("MIC_TRACK_MUTED");
     });
   }
 
@@ -728,10 +565,7 @@ export function createVoiceSessionController() {
     webrtc.releaseInput();
     micStream = null;
     if (closeContext) {
-      if (resumeAudioCtx) document.removeEventListener("visibilitychange", resumeAudioCtx);
-      resumeAudioCtx = null;
-      void audioCtx?.close().catch(() => undefined);
-      audioCtx = null;
+      audioOutput.releaseAudioContext();
     }
   }
 
@@ -749,11 +583,11 @@ export function createVoiceSessionController() {
   }
 
   async function reconfigureMicrophone(): Promise<void> {
-    const generation = ++inputDeviceGeneration;
-    deviceListGeneration++;
+    const generation = ++deviceGenerations.input;
+    deviceGenerations.deviceList++;
     const sequence = connection.voiceConnection.generation;
     const current = connection.socket();
-    const isCurrent = () => generation === inputDeviceGeneration && sequence === connection.voiceConnection.generation;
+    const isCurrent = () => generation === deviceGenerations.input && sequence === connection.voiceConnection.generation;
     const shouldRestartWebRtc = webrtc.active && Boolean(connection.socket());
     try {
       // Keep the current peer alive until the replacement microphone is ready.
@@ -796,65 +630,6 @@ export function createVoiceSessionController() {
     if (!V().connected) stopMicrophone();
   }
 
-  async function setOutputDevice(deviceId: string): Promise<void> {
-    if (deviceId && !V().outputDevices.some((device) => device.deviceId === deviceId)) {
-      throw new Error("所选扬声器当前不可用");
-    }
-    audioPrefs.markTouched("outputDevice");
-    const generation = ++outputDeviceGeneration;
-    deviceListGeneration++;
-    const sequence = connection.voiceConnection.generation;
-    const isCurrent = () => generation === outputDeviceGeneration && sequence === connection.voiceConnection.generation;
-    const previousDeviceId = audioPrefs.committed().selectedOutputDeviceId;
-    patch({ selectedOutputDeviceId: deviceId });
-    try {
-      if (audioCtx || deviceId) await setAudioSink(audioCtx ?? getAudioCtx(), deviceId);
-      if (!isCurrent()) return;
-      audioPrefs.setCommitted({ selectedOutputDeviceId: deviceId });
-      localStorage.setItem("webspeak:output-device", deviceId);
-      clearAudioNotice("OUTPUT_DEVICE_UNAVAILABLE");
-      await audioPrefs.save();
-    } catch (error) {
-      if (!isCurrent()) return;
-      patch({ selectedOutputDeviceId: previousDeviceId });
-      localStorage.setItem("webspeak:output-device", previousDeviceId);
-      // One endpoint may have changed before the other rejected the request.
-      if (audioCtx) await setAudioSink(audioCtx, previousDeviceId).catch(() => undefined);
-      if (!isCurrent()) return;
-      setAudioNotice("OUTPUT_DEVICE_UNAVAILABLE", "无法切换到所选音频输出设备，请检查设备连接或选择其他扬声器");
-      throw error;
-    }
-  }
-
-  function playNotification(kind: "connected" | "disconnected" | "poke" | "private" | "reconnectFailed"): void {
-    if (V().notificationVolume <= 0 || V().outputMuted || effectiveOutputVolume() <= 0 || typeof window === "undefined") return;
-    try {
-      const ctx = getAudioCtx();
-      if (ctx.state === "suspended") return;
-      const frequencies: Record<typeof kind, number[]> = {
-        connected: [660, 880],
-        disconnected: [440, 330],
-        poke: [740, 980],
-        private: [600, 760],
-        reconnectFailed: [300, 220],
-      };
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      const now = ctx.currentTime;
-      oscillator.frequency.setValueAtTime(frequencies[kind][0]!, now);
-      oscillator.frequency.setValueAtTime(frequencies[kind][1]!, now + 0.08);
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, V().notificationVolume * effectiveOutputVolume() * 0.12), now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-      oscillator.start(now);
-      oscillator.stop(now + 0.2);
-    } catch {
-      // Notification sounds are best effort and must never affect the session.
-    }
-  }
-
   function deleteVolume(clientId: number): void {
     if (!(clientId in V().volumes)) return;
     const next = { ...V().volumes };
@@ -865,16 +640,16 @@ export function createVoiceSessionController() {
   /** All ways a session ends release the same owned media and pending work. */
   function releaseSessionResources(sendScreenStop = false): void {
     chatSend.advanceGeneration();
-    inputDeviceGeneration++;
-    outputDeviceGeneration++;
-    deviceListGeneration++;
+    deviceGenerations.input++;
+    deviceGenerations.output++;
+    deviceGenerations.deviceList++;
     patch(audioPrefs.committed());
     microphoneTest.dispose();
-    audioDiagnostics.reset();
+    audioOutput.resetDiagnostics();
     commands.clear(new Error("语音连接已关闭"));
     screenShare.stopTransport(sendScreenStop);
     webrtc.stop();
-    remotePlayback.clearAll();
+    audioOutput.remotePlayback.clearAll();
     stopMicrophone();
     clearSpeakingState();
     whisperTargetIds.clear();
@@ -883,8 +658,8 @@ export function createVoiceSessionController() {
 
   /** WebRTC is the primary voice path; a compatibility notice must not survive it. */
   function startWebRtcVoice(): Promise<void> {
-    clearAudioNotice("WEBRTC_DISABLED");
-    clearAudioNotice("WEBRTC_UNSUPPORTED");
+    audioOutput.clearAudioNotice("WEBRTC_DISABLED");
+    audioOutput.clearAudioNotice("WEBRTC_UNSUPPORTED");
     const current = connection.socket();
     return current ? startWebRtcTransport(connection.voiceConnection.generation, current) : Promise.resolve();
   }
@@ -892,9 +667,9 @@ export function createVoiceSessionController() {
   /** The WebSocket fallback must never degrade silently: say why voice is on PCM. */
   function startCompatibilityVoice(): Promise<void> {
     if (typeof RTCPeerConnection === "undefined") {
-      setAudioNotice("WEBRTC_UNSUPPORTED", "此浏览器不支持 WebRTC，语音使用兼容传输（WebSocket）：延迟与音质可能下降");
+      audioOutput.setAudioNotice("WEBRTC_UNSUPPORTED", "此浏览器不支持 WebRTC，语音使用兼容传输（WebSocket）：延迟与音质可能下降");
     } else {
-      setAudioNotice("WEBRTC_DISABLED", "网关未启用 WebRTC，语音使用兼容传输（WebSocket）：延迟与音质可能下降，可在管理台开启");
+      audioOutput.setAudioNotice("WEBRTC_DISABLED", "网关未启用 WebRTC，语音使用兼容传输（WebSocket）：延迟与音质可能下降，可在管理台开启");
     }
     return ensureMicrophone();
   }
@@ -935,11 +710,11 @@ export function createVoiceSessionController() {
             : startCompatibilityVoice();
           // A failed microphone must not look like a failed connection: record it
           // as an audio diagnostic so the room stays visible with a clear reason.
-          start.catch((error: unknown) => { setMicrophoneError(error); });
+          start.catch((error: unknown) => { audioOutput.setMicrophoneError(error); });
         } else if (msg.webrtcAvailable === true && typeof RTCPeerConnection !== "undefined" && connection.socket()) {
-          void startWebRtcVoice().catch((error: unknown) => { setMicrophoneError(error); });
+          void startWebRtcVoice().catch((error: unknown) => { audioOutput.setMicrophoneError(error); });
         } else {
-          void startCompatibilityVoice().catch((error: unknown) => { setMicrophoneError(error); });
+          void startCompatibilityVoice().catch((error: unknown) => { audioOutput.setMicrophoneError(error); });
         }
         screenShare.refreshStreams();
         break;
@@ -958,7 +733,7 @@ export function createVoiceSessionController() {
         break;
       case "audioStats": {
         const sequence = typeof msg.sequence === "string" ? msg.sequence : "";
-        audioDiagnostics.receive(sequence, msg.stats);
+        audioOutput.receiveStats(sequence, msg.stats);
         break;
       }
       case "disconnected": {
@@ -1024,7 +799,7 @@ export function createVoiceSessionController() {
         // The gateway could not encode our microphone audio (for example its Opus
         // encoder is unavailable): say it instead of dropping frames silently.
         const audioCode = safeClientErrorCode(msg.code) || "AUDIO_ERROR";
-        setAudioNotice(audioCode, audioNoticeMessage(audioCode, msg.detail));
+        audioOutput.setAudioNotice(audioCode, audioOutput.audioNoticeMessage(audioCode, msg.detail));
         break;
       }
       case "voiceRoute":
@@ -1049,24 +824,6 @@ export function createVoiceSessionController() {
     }
   }
 
-  function handleAudioFrame(data: Uint8Array): void {
-    // WebRTC carries the realtime downlink after negotiation. Ignore any
-    // in-flight fallback WebSocket packets so a transport switch cannot
-    // produce duplicate or delayed playback.
-    if (webrtc.active) return;
-    if (data.length < 4) {
-      audioDiagnostics.count("framesDropped");
-      return;
-    }
-    const clientId = (data[1]! << 8) | data[2]!;
-    if (clientId === V().tsClientId) return;
-    audioDiagnostics.count("framesReceived");
-    markSpeaking(clientId);
-    // The leading byte carries the TeamSpeak codec (4 mono / 5 stereo); the
-    // playback decoder needs it to decode stereo accompaniment correctly.
-    remotePlayback.play(clientId, data.slice(3), data[0]!);
-  }
-
   function sendCmd<K extends ClientCommandType>(type: K, payload: ClientCommandPayloads[K]): void {
     commands.send(type, payload);
   }
@@ -1085,10 +842,6 @@ export function createVoiceSessionController() {
 
   function moveClient(clientId: number, channelId: string, password = ""): Promise<void> {
     return sendCommandAndWait("moveClient", { clientId, channelId, ...(password ? { password } : {}) });
-  }
-
-  function measureVoiceAudioStatus(timeoutMs = 1_800): Promise<VoiceAudioStatusSample | null> {
-    return audioDiagnostics.measure(timeoutMs);
   }
 
   function sendPoke(clientId: number, message = ""): Promise<void> {
@@ -1234,20 +987,6 @@ export function createVoiceSessionController() {
     return `操作失败（错误代码：${safeCode}）${safeFallback ? `：${safeFallback}` : ""}`;
   }
 
-  function setVolume(clientId: number, volume: number): void {
-    const normalized = Math.max(0, Math.min(4, volume));
-    patch({ volumes: { ...V().volumes, [clientId]: normalized } });
-    if (localStorage.getItem("webspeak:playback-debug") === "1") console.info("[playback-debug] setVolume", clientId, normalized);
-    const member = sessionState.store.getState().members.find((candidate) => candidate.id === clientId);
-    if (member?.uid) audioPrefs.stashUidVolume(member.uid, normalized);
-    // Per-speaker volume is applied locally on the playback graph (both the
-    // compatibility decoder and the WebRTC multi-track streams), so only
-    // persistence trails the thumb — one drag used to emit dozens of commands.
-    remotePlayback.updateVolume(clientId);
-    webrtc.refreshSpeakerVolume(clientId);
-    audioPrefs.queueVolumeSave(clientId);
-  }
-
   function setInputVolume(volume: number): void {
     patch({ inputVolume: Math.max(0, Math.min(MAX_INPUT_VOLUME, volume)) });
     applyUplinkGate();
@@ -1262,7 +1001,7 @@ export function createVoiceSessionController() {
     try {
       await reconfigureMicrophone();
     } catch (error) {
-      setMicrophoneError(error);
+      audioOutput.setMicrophoneError(error);
     }
   }
 
@@ -1273,7 +1012,7 @@ export function createVoiceSessionController() {
     try {
       await reconfigureMicrophone();
     } catch (error) {
-      setMicrophoneError(error);
+      audioOutput.setMicrophoneError(error);
     }
   }
 
@@ -1284,19 +1023,8 @@ export function createVoiceSessionController() {
     try {
       await reconfigureMicrophone();
     } catch (error) {
-      setMicrophoneError(error);
+      audioOutput.setMicrophoneError(error);
     }
-  }
-
-  function setOutputVolume(volume: number): void {
-    patch({ outputVolume: Math.max(0, Math.min(1, volume)) });
-    applyOutputVolume();
-    audioPrefs.queueSave();
-  }
-
-  function toggleOutputMute(): void {
-    patch({ outputMuted: !V().outputMuted });
-    applyOutputVolume();
   }
 
   function setVoxThreshold(threshold: number): void {
@@ -1320,23 +1048,23 @@ export function createVoiceSessionController() {
     screenShare,
     ws: connection.socket,
     dispose: connection.dispose,
-    setVolume,
+    setVolume: audioOutput.setVolume,
     setInputVolume,
     setNoiseSuppressionEnabled,
     setEchoCancellationEnabled,
     setAutoGainControlEnabled,
-    setOutputVolume,
-    toggleOutputMute,
+    setOutputVolume: audioOutput.setOutputVolume,
+    toggleOutputMute: audioOutput.toggleOutputMute,
     setVoxThreshold,
     setNotificationVolume,
     prepareInputDevices,
     refreshAudioDevices,
     watchMicrophonePermission,
     setInputDevice,
-    setOutputDevice,
+    setOutputDevice: audioOutput.setOutputDevice,
     startMicrophoneTest,
     stopMicrophoneTest,
-    playNotification,
+    playNotification: audioOutput.playNotification,
     setMicrophoneTestPlayback,
     connect: connection.connect,
     reconnectNow: connection.reconnectNow,
@@ -1355,12 +1083,12 @@ export function createVoiceSessionController() {
     ensureMicrophone,
     startAccompaniment,
     stopAccompaniment,
-    checkSupport,
-    checkBrowserWarning,
-    clearMicrophoneError,
-    clearAudioNotice,
+    checkSupport: audioOutput.checkSupport,
+    checkBrowserWarning: audioOutput.checkBrowserWarning,
+    clearMicrophoneError: audioOutput.clearMicrophoneError,
+    clearAudioNotice: audioOutput.clearAudioNotice,
     clearError,
-    measureVoiceAudioStatus,
+    measureVoiceAudioStatus: audioOutput.measureVoiceAudioStatus,
   };
 }
 
