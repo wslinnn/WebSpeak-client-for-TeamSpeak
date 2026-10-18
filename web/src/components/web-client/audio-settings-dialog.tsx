@@ -19,8 +19,8 @@ export interface AudioSettingsModel {
   noiseSuppressionEnabled: boolean;
   echoCancellationEnabled: boolean;
   autoGainControlEnabled: boolean;
-  inputVolume: number;
-  outputVolume: number;
+  /* inputVolume/outputVolume 不进模型（模型在根视图，拖动每 tick 会整树重渲）：
+   * 两只音量由弹窗经 voice.store 窄订阅（同 micLevel 模式）。 */
   voxThreshold: number;
   notificationVolume: number;
   microphoneTestActive: boolean;
@@ -52,6 +52,10 @@ interface AudioSettingsDialogProps {
 export function AudioSettingsDialog({ model, controls, voice, settingsError, desktopNotificationsEnabled, onDesktopNotificationsToggle, onClose, t, localizedMessage, localizedMicrophoneError }: AudioSettingsDialogProps) {
   const { dialogRef, onDialogKeydown } = useDialogFocus<HTMLElement>({ close: onClose });
   const micLevel = useStore(voice.store, (view) => view.micLevel);
+  // 两只音量窄订阅：拖动 tick 不再整树重渲（模型在根视图，此前移动端滑条
+  // 会被主线程饿到划不动）。
+  const inputVolume = useStore(voice.store, (view) => view.inputVolume);
+  const outputVolume = useStore(voice.store, (view) => view.outputVolume);
   const [testAudioError, setTestAudioError] = useState("");
   const testAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -186,15 +190,15 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
                 /></label
               ><div className="settings-range-row"
                 ><label className="settings-label">{t("inputVolume")}</label
-                ><strong>{Math.round(model.inputVolume * 100)}%</strong></div
+                ><strong>{Math.round(inputVolume * 100)}%</strong></div
               ><input
                 className="settings-range"
                 type="range"
                 min={0}
                 max={MAX_INPUT_VOLUME * 100}
                 step={5}
-                value={model.inputVolume * 100}
-                style={rangeStyle(model.inputVolume, MAX_INPUT_VOLUME)}
+                value={inputVolume * 100}
+                style={rangeStyle(inputVolume, MAX_INPUT_VOLUME)}
                 aria-label={t("inputVolume")}
                 onChange={(event) => controls.onInputVolume({ target: event.target as HTMLInputElement })}
               /><div className="settings-range-row"
@@ -284,15 +288,15 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
               )}
               <div className="settings-range-row"
                 ><label className="settings-label">{t("speakers")}</label
-                ><strong>{Math.round(model.outputVolume * 100)}%</strong></div
+                ><strong>{Math.round(outputVolume * 100)}%</strong></div
               ><input
                 className="settings-range"
                 type="range"
                 min={0}
                 max={100}
                 step={5}
-                value={model.outputVolume * 100}
-                style={rangeStyle(model.outputVolume, 1)}
+                value={outputVolume * 100}
+                style={rangeStyle(outputVolume, 1)}
                 aria-label={t("outputVolume")}
                 onChange={(event) => controls.onOutputVolume({ target: event.target as HTMLInputElement })}
               /><div className="settings-range-row"

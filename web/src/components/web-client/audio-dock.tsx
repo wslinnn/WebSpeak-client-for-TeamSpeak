@@ -10,8 +10,8 @@ import { rangeStyle } from "@/web-client/view-utils";
 
 interface AudioDockModel {
   microphoneMuted: boolean;
-  inputVolume: number;
-  outputVolume: number;
+  /* input/output 音量不进 model：拖动每 tick 打满整壳重渲，移动端滑条被
+   * 主线程饿到划不动（2026-10-18）——两只滑条自行窄订阅（下方）。 */
   outputMuted: boolean;
   noiseSuppressionEnabled: boolean;
   echoCancellationEnabled: boolean;
@@ -128,6 +128,10 @@ function DockHoverControl({ part, label, button, panelClassName, panelPart, chil
  *  displayMicLevel 承担，设置弹窗里仍看得到原始采集电平。 */
 export function AudioDock({ model, controls, voice, share, t, channelName, onSettings, onOutputMute, onDisconnect, onStartShare, onStopShare, onShareSettings, children }: AudioDockProps) {
   const micLevel = useStore(voice.store, (view) => view.micLevel);
+  // 拖动热的两只音量窄订阅：不随 shell 视图整包走（拖动每 tick 打满整壳
+  // 重渲会让移动端滑条划不动）。
+  const inputVolume = useStore(voice.store, (view) => view.inputVolume);
+  const outputVolume = useStore(voice.store, (view) => view.outputVolume);
   const displayMicLevel = model.microphoneMuted ? 0 : micLevel;
   return (
     <div
@@ -220,7 +224,7 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
         >
           <div className="dock-slider-heading"
             ><span>{t("inputVolume")}</span
-            ><strong>{Math.round(model.inputVolume * 100)}%</strong></div
+            ><strong>{Math.round(inputVolume * 100)}%</strong></div
           >
           <input
             className="dock-slider"
@@ -228,8 +232,8 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
             min={0}
             max={MAX_INPUT_VOLUME * 100}
             step={5}
-            value={model.inputVolume * 100}
-            style={rangeStyle(model.inputVolume, MAX_INPUT_VOLUME)}
+            value={inputVolume * 100}
+            style={rangeStyle(inputVolume, MAX_INPUT_VOLUME)}
             aria-label={t("inputVolume")}
             onChange={(event) => controls.onInputVolume({ target: event.target })}
           />
@@ -287,7 +291,7 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
         >
           <div className="dock-slider-heading"
             ><span>{t("overallVolume")}</span
-            ><strong>{Math.round(model.outputVolume * 100)}%</strong></div
+            ><strong>{Math.round(outputVolume * 100)}%</strong></div
           >
           <input
             className="dock-slider"
@@ -295,8 +299,8 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
             min={0}
             max={100}
             step={5}
-            value={model.outputVolume * 100}
-            style={rangeStyle(model.outputVolume, 1)}
+            value={outputVolume * 100}
+            style={rangeStyle(outputVolume, 1)}
             aria-label={t("overallVolume")}
             onChange={(event) => controls.onOutputVolume({ target: event.target })}
           />

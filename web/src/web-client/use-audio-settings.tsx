@@ -78,8 +78,8 @@ function useVoiceAudioSettingsModel(): AudioSettingsModel {
     noiseSuppressionEnabled: view.noiseSuppressionEnabled,
     echoCancellationEnabled: view.echoCancellationEnabled,
     autoGainControlEnabled: view.autoGainControlEnabled,
-    inputVolume: view.inputVolume,
-    outputVolume: view.outputVolume,
+    /* inputVolume/outputVolume 不进模型：模型挂在根视图，拖动每 tick 会整树
+     * 重渲——两只音量由弹窗自行窄订阅（同 micLevel 模式）。 */
     voxThreshold: view.voxThreshold,
     notificationVolume: view.notificationVolume,
     microphoneTestActive: view.microphoneTestActive,

@@ -18,8 +18,6 @@ export function selectVoiceShellView(view: VoiceSessionView) {
     whisperTargetIds: view.whisperTargetIds,
     whisperActive: view.whisperActive,
     microphoneMuted: view.microphoneMuted,
-    inputVolume: view.inputVolume,
-    outputVolume: view.outputVolume,
     outputMuted: view.outputMuted,
     noiseSuppressionEnabled: view.noiseSuppressionEnabled,
     echoCancellationEnabled: view.echoCancellationEnabled,

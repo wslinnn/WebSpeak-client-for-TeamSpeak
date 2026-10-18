@@ -338,8 +338,6 @@ export function VoiceShell(props: VoiceShellProps) {
           <AudioDock
             model={{
               microphoneMuted: voiceView.microphoneMuted,
-              inputVolume: voiceView.inputVolume,
-              outputVolume: voiceView.outputVolume,
               outputMuted: voiceView.outputMuted,
               noiseSuppressionEnabled: voiceView.noiseSuppressionEnabled,
               echoCancellationEnabled: voiceView.echoCancellationEnabled,
