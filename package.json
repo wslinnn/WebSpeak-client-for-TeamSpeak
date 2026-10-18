@@ -23,6 +23,7 @@
     "web:test": "npm --prefix web run test",
     "web:ci": "npm --prefix web run ci"
   },
+  "prepare": "husky",
   "dependencies": {
     "@discordjs/opus": "^0.10.0",
     "@echosixhiya/teamspeak-client": "file:vendor/teamspeak-client",
@@ -38,6 +39,7 @@
     "@types/node": "^22.15.0",
     "@types/ws": "^8.18.1",
     "eslint": "^9.39.4",
+    "husky": "^9.1.7",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.71.1"

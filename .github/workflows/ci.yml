@@ -30,6 +30,26 @@ jobs:
       - name: Test and build application
         run: npm run verify
 
+  ui-smoke:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install web dependencies
+        run: npm --prefix web ci --no-audit --no-fund
+      - name: Install gateway dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install Playwright browser
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+      - name: Run smoke suite
+        run: npm run smoke
+
   docker-smoke:
     needs: verify
     runs-on: ubuntu-latest
