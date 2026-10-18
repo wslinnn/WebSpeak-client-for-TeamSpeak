@@ -32,6 +32,56 @@ export default tseslint.config(
     },
   },
   {
+    // 分层方向（随 P3 拆分落地）：voice/ 是框架无关核心，UI 与装配层不得反向依赖；
+    // 后续模块从门面拆出时，本规则即刻生效。
+    files: ["src/voice/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            { group: ["../../**", "**/src/shared/**"], message: "跨根代码只允许经 @shared/* 别名（依赖白名单）。" },
+            { group: ["@/web-client/*", "@/components/*", "@/views/*", "@/hooks/*"],
+              message: "voice/ 是框架无关核心：UI 与装配层不得反向依赖（共享类型走 session-model 等显式契约）。" },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // 分层方向：web-client/ 是控制器层，视图经 props 注入；返回 JSX 的装配 hook
+    // 归 components/（先例：use-audio-settings）。
+    files: ["src/web-client/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            { group: ["../../**", "**/src/shared/**"], message: "跨根代码只允许经 @shared/* 别名（依赖白名单）。" },
+            { group: ["@/components/*", "@/views/*"],
+              message: "web-client/ 是控制器层：控制器不 import 组件，视图经 props 注入。" },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // 分层方向：组件层不依赖页面装配层。
+    files: ["src/components/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            { group: ["../../**", "**/src/shared/**"], message: "跨根代码只允许经 @shared/* 别名（依赖白名单）。" },
+            { group: ["@/views/*"],
+              message: "组件层不依赖页面装配层（views/ 单向向下引组件）。" },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // 门禁 §3.5-1：单文件 400 行（跳过空行与注释）。
     files: ["src/**/*.{ts,tsx}"],
     rules: {
@@ -50,10 +100,9 @@ export default tseslint.config(
     rules: { "max-lines": "off" },
   },
   {
-    // 存量平移巨石豁免（Phase 4 拆解后此清单必须清空；新代码不得进清单）。
-    // skin-pack：导入校验+级联+资产三职责待拆；screen-share：信令/协商/状态待拆；
-    // session-controller：useVoiceWebSocket 的行为级等价平移，待 React 视图层落地后拆分。
-    files: ["src/services/skin-pack.ts", "src/voice/screen-share.ts", "src/voice/session-controller.ts"],
+    // 存量平移巨石豁免（拆解后即从清单移除；新代码不得进清单）。
+    // screen-share：信令/协商/状态三职责待拆。
+    files: ["src/voice/screen-share.ts"],
     rules: { "max-lines": "off" },
   },
   {

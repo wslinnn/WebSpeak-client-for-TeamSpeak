@@ -27,7 +27,7 @@ import type { FavoriteServer } from "@/services/local-persistence";
 import { combineTeamSpeakTarget, splitTeamSpeakTarget } from "@/services/teamspeak-target";
 import { clearVoiceSessionIntent, readVoiceSessionIntent } from "@/voice/session-intent";
 import { useInRoomControllers } from "@/web-client/use-inroom-controllers";
-import { useAudioSettingsState } from "@/web-client/use-audio-settings";
+import { useAudioSettingsState } from "@/components/web-client/use-audio-settings";
 import { useWebClientControllers } from "@/web-client/use-web-client-controllers";
 import { useRetryCountdown } from "@/web-client/use-retry-countdown";
 import { installTestHooks } from "@/web-client/test-hooks";

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 
-import { AudioSettingsDialog, type AudioSettingsModel } from "@/components/web-client/audio-settings-dialog";
+import { AudioSettingsDialog, type AudioSettingsModel } from "./audio-settings-dialog";
 import { desktopNotificationPermission, readDesktopNotificationSetting, requestDesktopNotificationPermission, writeDesktopNotificationSetting } from "@/services/desktop-notifications";
 import { useVoiceView } from "@/hooks/useVoiceSession";
 import type { AudioControls } from "@/web-client/audio-controls";
