@@ -1,5 +1,7 @@
-/** The HTTP port is part of the WebSpeak deployment contract. */
-export const APP_PORT = 3040;
+/** The HTTP port is part of the WebSpeak deployment contract. WEBSPEAK_PORT
+ *  overrides it for scratch local instances; the smoke suite binds 3041 with
+ *  it so runs never contend with a dev gateway on 3040. */
+export const APP_PORT = Number(process.env.WEBSPEAK_PORT?.trim() || "") || 3040;
 
 /** Hard safety ceiling for independently connected browser sessions. */
 export const MAX_ACTIVE_SESSIONS = 100;

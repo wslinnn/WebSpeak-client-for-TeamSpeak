@@ -17,6 +17,7 @@
     "start": "node dist/index.js",
     "web:dev": "npm --prefix web run dev",
     "web:build": "npm --prefix web run build",
+    "smoke": "npm --prefix web run smoke",
     "lint": "eslint .",
     "web:lint": "npm --prefix web run lint",
     "web:test": "npm --prefix web run test",
