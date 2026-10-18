@@ -17,11 +17,11 @@ import { createScreenShareController } from "./screen-share";
 import { createMicrophoneMeter, type MicrophoneMeter } from "./microphone-meter";
 import { requestMediaBeforeAudioResume } from "../services/microphone-start";
 import { parseServerMessage } from "@shared/server-messages";
-import type { ChatMessage } from "@shared/voice-models";
 import type { ClientCommandPayloads, ClientCommandType } from "@shared/client-commands";
 import { splitTeamSpeakTarget } from "../services/teamspeak-target";
 import { closeErrorCode, closeReason, connectionFailureMessage, joinTicketReason, normalizedClientErrorCode, safeClientErrorCode, safeClientErrorDetail } from "./error-messages";
 import { createAudioPreferences } from "./audio-preferences";
+import { createChatSend } from "./chat-send";
 import { CancelledMediaOperation, MAX_INPUT_VOLUME, clamp, type SinkAudioContext, type VoiceSessionView } from "./session-model";
 
 export type { MicrophoneProcessingSettings } from "./microphone-capture";
@@ -78,7 +78,13 @@ export function createVoiceSessionController() {
       patch({ selfMovedChannelId: channelId });
     },
   });
-  let chatGeneration = 0;
+  // 聊天发送簇（chat-send.ts）：乐观上屏/撤回与会话代际；代际随断线释放推进。
+  const chatSend = createChatSend({
+    V,
+    socket: () => socket,
+    session: () => sessionState,
+    sendCommandAndWait,
+  });
   const voiceConnection = createVoiceConnection({
     onSocket: value => { socket = value; },
     onMessage: handleMessage,
@@ -1102,7 +1108,7 @@ export function createVoiceSessionController() {
 
   /** All ways a session ends release the same owned media and pending work. */
   function releaseSessionResources(sendScreenStop = false): void {
-    chatGeneration++;
+    chatSend.advanceGeneration();
     inputDeviceGeneration++;
     outputDeviceGeneration++;
     deviceListGeneration++;
@@ -1328,53 +1334,6 @@ export function createVoiceSessionController() {
 
   function measureVoiceAudioStatus(timeoutMs = 1_800): Promise<VoiceAudioStatusSample | null> {
     return audioDiagnostics.measure(timeoutMs);
-  }
-
-  function chatText(message: string): string {
-    if (!V().connected || socket?.readyState !== WebSocket.OPEN) {
-      throw Object.assign(new Error("TeamSpeak 会话尚未就绪"), { code: "SESSION_NOT_READY" });
-    }
-    const text = message.trim();
-    if (!text || text.length > 500) throw Object.assign(new Error("文字消息无效"), { code: "INVALID_TEXT_MESSAGE" });
-    return text;
-  }
-
-  async function sendChat<K extends "sendTextMessage" | "sendServerMessage" | "sendPrivateMessage">(
-    type: K, payload: ClientCommandPayloads[K], local: Pick<ChatMessage, "scope" | "targetId" | "conversationId" | "conversationKey" | "conversationName">,
-  ): Promise<void> {
-    const generation = chatGeneration;
-    const senderId = V().tsClientId;
-    // TS6_Droid 语义（2026-10-18）：本地先上屏——自回声在 session-state 被丢弃，
-    // 无重复风险；服务器确认只用于错误反馈，慢确认不再拖住消息显示。
-    const localMessage = sessionState.appendLocal({ ...local, senderId, invokerName: "你", message: payload.message });
-    try {
-      await sendCommandAndWait(type, payload);
-      if (generation !== chatGeneration || !V().connected) throw new Error("语音连接已关闭");
-    } catch (error) {
-      sessionState.retractLocal(localMessage.id);
-      throw error;
-    }
-  }
-
-  async function sendTextMessage(message: string, targetId = ""): Promise<void> {
-    const text = chatText(message);
-    await sendChat("sendTextMessage", { message: text, ...(targetId ? { channelId: targetId } : {}) },
-      { scope: "channel", ...(targetId ? { targetId } : {}) });
-  }
-
-  async function sendServerMessage(message: string): Promise<void> {
-    await sendChat("sendServerMessage", { message: chatText(message) }, { scope: "server" });
-  }
-
-  async function sendPrivateMessage(clientId: number, message: string, targetId = "", expectedKey?: string): Promise<void> {
-    const text = chatText(message);
-    const member = sessionState.store.getState().members.find(candidate => candidate.id === clientId);
-    const key = sessionState.memberConversationKey(clientId);
-    if (!member || clientId === V().tsClientId || (expectedKey !== undefined && key !== expectedKey)) {
-      throw Object.assign(new Error("成员已离线或当前不可见"), { code: "CLIENT_NOT_FOUND" });
-    }
-    await sendChat("sendPrivateMessage", { clientId, message: text, ...(member.uid ? { clientUid: member.uid } : {}) },
-      { scope: "private", targetId, conversationId: String(clientId), conversationKey: key, conversationName: member.nickname });
   }
 
   function sendPoke(clientId: number, message = ""): Promise<void> {
@@ -1651,9 +1610,9 @@ export function createVoiceSessionController() {
     disconnect,
     switchChannel,
     moveClient,
-    sendTextMessage,
-    sendServerMessage,
-    sendPrivateMessage,
+    sendTextMessage: chatSend.sendTextMessage,
+    sendServerMessage: chatSend.sendServerMessage,
+    sendPrivateMessage: chatSend.sendPrivateMessage,
     sendPoke,
     setAway,
     setWhisperTargets,
