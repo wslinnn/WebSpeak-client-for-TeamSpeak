@@ -4,10 +4,10 @@
   gap: 7px;
   margin: 10px 0 0;
   padding: 8px 10px;
-  color: var(--danger);
-  border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--skin-border));
+  color: var(--wsd-danger);
+  border: 1px solid color-mix(in srgb, var(--wsd-danger) 45%, var(--wsd-border));
   border-radius: 9px;
-  background: color-mix(in srgb, var(--danger) 12%, var(--surface-1));
+  background: color-mix(in srgb, var(--wsd-danger) 12%, var(--wsd-panel));
   font-size: 10px;
   line-height: 1.4;
 }
@@ -110,22 +110,22 @@ button.screen-share-live-indicator:focus-visible {
   width: 24px;
   height: 24px;
   padding: 0;
-  color: var(--danger);
-  border: 2px solid var(--surface-1);
+  color: var(--wsd-danger);
+  border: 2px solid var(--wsd-panel);
   border-radius: 7px;
-  background: var(--surface-2);
-  box-shadow: 0 3px 9px color-mix(in srgb, var(--text-primary) 18%, transparent);
+  background: var(--wsd-raised);
+  box-shadow: 0 3px 9px color-mix(in srgb, var(--wsd-text) 18%, transparent);
   cursor: pointer;
 }
 
 .screen-share-stop-button:hover {
   color: var(--wsd-danger-contrast);
-  border-color: var(--danger);
-  background: var(--danger);
+  border-color: var(--wsd-danger);
+  background: var(--wsd-danger);
 }
 
 .screen-share-stop-button:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--danger) 55%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--wsd-danger) 55%, transparent);
   outline-offset: 2px;
 }
 
@@ -136,18 +136,18 @@ button.screen-share-live-indicator:focus-visible {
   min-width: 25px;
   min-height: 25px;
   padding: 0;
-  color: var(--text-muted);
-  border: 1px solid var(--skin-border);
+  color: var(--wsd-text-muted);
+  border: 1px solid var(--wsd-border);
   border-radius: 50%;
-  background: var(--surface-1);
+  background: var(--wsd-panel);
   cursor: pointer;
 }
 
 .screen-share-settings-button:hover,
 .screen-share-settings-button[aria-expanded="true"] {
-  color: var(--skin-accent);
-  border-color: color-mix(in srgb, var(--skin-accent) 35%, var(--skin-border));
-  background: color-mix(in srgb, var(--skin-accent) 9%, var(--surface-1));
+  color: var(--wsd-accent);
+  border-color: color-mix(in srgb, var(--wsd-accent) 35%, var(--wsd-border));
+  background: color-mix(in srgb, var(--wsd-accent) 9%, var(--wsd-panel));
 }
 
 .screen-share-settings-backdrop {
@@ -160,11 +160,11 @@ button.screen-share-live-indicator:focus-visible {
   position: relative;
   width: min(360px, 100%);
   padding: 22px;
-  color: var(--text-primary);
-  border: 1px solid var(--skin-border);
+  color: var(--wsd-text);
+  border: 1px solid var(--wsd-border);
   border-radius: 16px;
-  background: var(--surface-1);
-  box-shadow: 0 20px 60px color-mix(in srgb, var(--text-primary) 20%, transparent);
+  background: var(--wsd-panel);
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--wsd-text) 20%, transparent);
 }
 
 .screen-share-settings-close {
@@ -176,16 +176,16 @@ button.screen-share-live-indicator:focus-visible {
   width: 30px;
   height: 30px;
   padding: 0;
-  color: var(--text-muted);
-  border: 1px solid var(--skin-border);
+  color: var(--wsd-text-muted);
+  border: 1px solid var(--wsd-border);
   border-radius: 50%;
-  background: var(--surface-2);
+  background: var(--wsd-raised);
   cursor: pointer;
 }
 
 .screen-share-settings-close:hover {
-  color: var(--skin-accent);
-  border-color: color-mix(in srgb, var(--skin-accent) 35%, var(--skin-border));
+  color: var(--wsd-accent);
+  border-color: color-mix(in srgb, var(--wsd-accent) 35%, var(--wsd-border));
 }
 
 .screen-share-settings-heading {
@@ -194,14 +194,14 @@ button.screen-share-live-indicator:focus-visible {
 
 .screen-share-settings-heading h2 {
   margin: 5px 0 4px;
-  color: var(--text-primary);
+  color: var(--wsd-text);
   font-size: 20px;
   letter-spacing: -.04em;
 }
 
 .screen-share-settings-heading p {
   margin: 0;
-  color: var(--text-muted);
+  color: var(--wsd-text-muted);
   font-size: 10px;
   line-height: 1.45;
 }
@@ -216,7 +216,7 @@ button.screen-share-live-indicator:focus-visible {
   display: grid;
   gap: 6px;
   min-width: 0;
-  color: var(--text-muted);
+  color: var(--wsd-text-muted);
   font-size: 10px;
 }
 
@@ -234,10 +234,10 @@ button.screen-share-live-indicator:focus-visible {
   min-height: 37px;
   padding: 0 9px;
   overflow: hidden;
-  color: var(--text-primary);
-  border: 1px solid var(--skin-border);
+  color: var(--wsd-text);
+  border: 1px solid var(--wsd-border);
   border-radius: 8px;
-  background: var(--surface-2);
+  background: var(--wsd-raised);
   font: inherit;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -251,7 +251,7 @@ button.screen-share-live-indicator:focus-visible {
 
 .screen-share-settings-note {
   margin: 15px 0 0;
-  color: var(--text-muted);
+  color: var(--wsd-text-muted);
   font-size: 9px;
   line-height: 1.45;
 }
@@ -263,7 +263,7 @@ button.screen-share-live-indicator:focus-visible {
   gap: 12px;
   margin-top: 20px;
   padding-top: 15px;
-  border-top: 1px solid var(--skin-border);
+  border-top: 1px solid var(--wsd-border);
 }
 
 .screen-share-settings-start {
@@ -276,11 +276,11 @@ button.screen-share-live-indicator:focus-visible {
   position: relative;
   margin-top: 17px;
   overflow: hidden;
-  color: var(--text-primary);
-  border: 1px solid var(--skin-border);
+  color: var(--wsd-text);
+  border: 1px solid var(--wsd-border);
   border-radius: 18px;
-  background: var(--surface-1);
-  box-shadow: 0 12px 30px color-mix(in srgb, var(--text-primary) 18%, transparent);
+  background: var(--wsd-panel);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--wsd-text) 18%, transparent);
 }
 
 .screen-share-player-stage {
@@ -291,7 +291,7 @@ button.screen-share-live-indicator:focus-visible {
   aspect-ratio: 16 / 9;
   place-items: center;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--skin-accent) 12%, var(--surface-1)), var(--surface-2) 74%);
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-panel)), var(--wsd-raised) 74%);
 }
 
 .screen-share-player-video {
@@ -301,7 +301,7 @@ button.screen-share-live-indicator:focus-visible {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  background: var(--surface-2);
+  background: var(--wsd-raised);
 }
 
 .screen-share-player-placeholder {
@@ -311,7 +311,7 @@ button.screen-share-live-indicator:focus-visible {
   gap: 10px;
   max-width: 360px;
   padding: 30px;
-  color: var(--text-muted);
+  color: var(--wsd-text-muted);
   text-align: center;
 }
 
@@ -320,19 +320,19 @@ button.screen-share-live-indicator:focus-visible {
   place-items: center;
   width: 58px;
   height: 58px;
-  color: var(--skin-accent);
-  border: 1px solid color-mix(in srgb, var(--skin-accent) 36%, transparent);
+  color: var(--wsd-accent);
+  border: 1px solid color-mix(in srgb, var(--wsd-accent) 36%, transparent);
   border-radius: 18px;
-  background: color-mix(in srgb, var(--skin-accent) 12%, transparent);
+  background: color-mix(in srgb, var(--wsd-accent) 12%, transparent);
 }
 
 .screen-share-player-placeholder strong {
-  color: var(--text-primary);
+  color: var(--wsd-text);
   font-size: 15px;
 }
 
 .screen-share-player-placeholder > span:last-child {
-  color: var(--text-muted);
+  color: var(--wsd-text-muted);
   font-size: 10px;
   line-height: 1.5;
 }
@@ -344,11 +344,11 @@ button.screen-share-live-indicator:focus-visible {
   width: 38px;
   height: 38px;
   padding: 0;
-  color: var(--text-primary);
-  border: 1px solid color-mix(in srgb, var(--skin-border) 78%, transparent);
+  color: var(--wsd-text);
+  border: 1px solid color-mix(in srgb, var(--wsd-border) 78%, transparent);
   border-radius: 50%;
-  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
-  box-shadow: 0 5px 16px color-mix(in srgb, var(--text-primary) 14%, transparent);
+  background: color-mix(in srgb, var(--wsd-panel) 88%, transparent);
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--wsd-text) 14%, transparent);
   backdrop-filter: blur(8px);
   cursor: pointer;
 }
@@ -362,9 +362,9 @@ button.screen-share-live-indicator:focus-visible {
 
 .screen-share-player-exit:hover,
 .screen-share-player-controls button:hover {
-  color: var(--skin-accent);
-  border-color: color-mix(in srgb, var(--skin-accent) 55%, var(--skin-border));
-  background: color-mix(in srgb, var(--skin-accent) 12%, var(--surface-1));
+  color: var(--wsd-accent);
+  border-color: color-mix(in srgb, var(--wsd-accent) 55%, var(--wsd-border));
+  background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-panel));
 }
 
 .screen-share-player-viewers {
@@ -377,11 +377,11 @@ button.screen-share-live-indicator:focus-visible {
   gap: 8px;
   min-height: 38px;
   padding: 5px 8px 5px 11px;
-  color: var(--text-primary);
-  border: 1px solid color-mix(in srgb, var(--skin-border) 78%, transparent);
+  color: var(--wsd-text);
+  border: 1px solid color-mix(in srgb, var(--wsd-border) 78%, transparent);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
-  box-shadow: 0 5px 16px color-mix(in srgb, var(--text-primary) 14%, transparent);
+  background: color-mix(in srgb, var(--wsd-panel) 88%, transparent);
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--wsd-text) 14%, transparent);
   backdrop-filter: blur(8px);
 }
 
@@ -408,11 +408,11 @@ button.screen-share-live-indicator:focus-visible {
   height: 25px;
   margin-left: -4px;
   color: #fff;
-  border: 2px solid var(--surface-1);
+  border: 2px solid var(--wsd-panel);
   border-radius: 50%;
   font-size: 9px;
   font-weight: 800;
-  box-shadow: 0 2px 7px color-mix(in srgb, var(--text-primary) 22%, transparent);
+  box-shadow: 0 2px 7px color-mix(in srgb, var(--wsd-text) 22%, transparent);
 }
 
 .screen-share-player-live {
@@ -424,11 +424,11 @@ button.screen-share-live-indicator:focus-visible {
   align-items: center;
   gap: 6px;
   padding: 7px 10px;
-  color: var(--text-primary);
-  border: 1px solid color-mix(in srgb, var(--skin-border) 78%, transparent);
+  color: var(--wsd-text);
+  border: 1px solid color-mix(in srgb, var(--wsd-border) 78%, transparent);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
-  box-shadow: 0 5px 16px color-mix(in srgb, var(--text-primary) 14%, transparent);
+  background: color-mix(in srgb, var(--wsd-panel) 88%, transparent);
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--wsd-text) 14%, transparent);
   backdrop-filter: blur(8px);
   font-size: 11px;
   font-weight: 800;
@@ -451,11 +451,11 @@ button.screen-share-live-indicator:focus-visible {
   max-width: 45%;
   overflow: hidden;
   padding: 7px 10px;
-  color: var(--text-primary);
-  border: 1px solid color-mix(in srgb, var(--skin-border) 78%, transparent);
+  color: var(--wsd-text);
+  border: 1px solid color-mix(in srgb, var(--wsd-border) 78%, transparent);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
-  box-shadow: 0 5px 16px color-mix(in srgb, var(--text-primary) 14%, transparent);
+  background: color-mix(in srgb, var(--wsd-panel) 88%, transparent);
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--wsd-text) 14%, transparent);
   backdrop-filter: blur(8px);
   font-size: 12px;
   font-weight: 800;
@@ -479,11 +479,11 @@ button.screen-share-live-indicator:focus-visible {
   gap: 8px;
   min-height: 38px;
   padding: 0 11px;
-  color: var(--text-primary);
-  border: 1px solid color-mix(in srgb, var(--skin-border) 78%, transparent);
+  color: var(--wsd-text);
+  border: 1px solid color-mix(in srgb, var(--wsd-border) 78%, transparent);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--surface-1) 88%, transparent);
-  box-shadow: 0 5px 16px color-mix(in srgb, var(--text-primary) 14%, transparent);
+  background: color-mix(in srgb, var(--wsd-panel) 88%, transparent);
+  box-shadow: 0 5px 16px color-mix(in srgb, var(--wsd-text) 14%, transparent);
   backdrop-filter: blur(8px);
 }
 
@@ -499,7 +499,7 @@ button.screen-share-live-indicator:focus-visible {
   height: 100vh;
   border: 0;
   border-radius: 0;
-  background: var(--surface-0);
+  background: var(--wsd-bg);
 }
 
 .screen-share-player:fullscreen .screen-share-player-stage {
@@ -509,7 +509,7 @@ button.screen-share-live-indicator:focus-visible {
 }
 
 .screen-share-player::backdrop {
-  background: var(--surface-0);
+  background: var(--wsd-bg);
 }
 
 @keyframes screen-share-wave {

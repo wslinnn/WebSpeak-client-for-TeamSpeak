@@ -552,9 +552,9 @@ html[data-ws-route="webclient"] body {
 
 .status-button:hover,
 .status-button.active {
-  color: color-mix(in srgb, var(--ws-warning) 72%, var(--wsd-text));
-  background: color-mix(in srgb, var(--ws-warning) 12%, var(--wsd-panel));
-  border-color: color-mix(in srgb, var(--ws-warning) 35%, transparent);
+  color: color-mix(in srgb, var(--wsd-warning) 72%, var(--wsd-text));
+  background: color-mix(in srgb, var(--wsd-warning) 12%, var(--wsd-panel));
+  border-color: color-mix(in srgb, var(--wsd-warning) 35%, transparent);
 }
 
 .status-dot {
@@ -565,7 +565,7 @@ html[data-ws-route="webclient"] body {
 }
 
 .status-button.active .status-dot {
-  background: var(--ws-warning);
+  background: var(--wsd-warning);
 }
 
 .member-row {

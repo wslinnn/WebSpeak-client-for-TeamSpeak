@@ -304,7 +304,7 @@ function WebClientRoot() {
 
   return (
     <div
-      className={cn("web-client", "ws-skin-root", `language-${language}`, { "keyboard-open": mobileViewport.keyboardOpen })}
+      className={cn("web-client", `language-${language}`, { "keyboard-open": mobileViewport.keyboardOpen })}
       lang={language}
       style={{ "--ws-viewport-height": `${mobileViewport.height}px`, "--ws-viewport-top": `${mobileViewport.top}px` } as CSSProperties}
       data-ws-part="app"

@@ -137,247 +137,247 @@
 /* Status banners: day keeps the pale paper cards; night re-themes them to
  * dimmed semantic tints over the panel color (warn amber / danger red). */
 .dark .web-client .reconnect-banner {
-  color: var(--ws-warning);
-  border-color: color-mix(in srgb, var(--ws-warning) 35%, transparent);
-  background: color-mix(in srgb, var(--ws-warning) 10%, var(--wsd-panel));
+  color: var(--wsd-warning);
+  border-color: color-mix(in srgb, var(--wsd-warning) 35%, transparent);
+  background: color-mix(in srgb, var(--wsd-warning) 10%, var(--wsd-panel));
 }
 
 .dark .web-client .reconnect-banner.failed {
-  color: var(--ws-danger);
-  border-color: color-mix(in srgb, var(--ws-danger) 35%, transparent);
-  background: color-mix(in srgb, var(--ws-danger) 10%, var(--wsd-panel));
+  color: var(--wsd-danger);
+  border-color: color-mix(in srgb, var(--wsd-danger) 35%, transparent);
+  background: color-mix(in srgb, var(--wsd-danger) 10%, var(--wsd-panel));
 }
 
 .dark .web-client .reconnect-banner.degraded {
-  color: var(--ws-warning);
-  border-color: color-mix(in srgb, var(--ws-warning) 30%, transparent);
-  background: color-mix(in srgb, var(--ws-warning) 8%, var(--wsd-panel));
+  color: var(--wsd-warning);
+  border-color: color-mix(in srgb, var(--wsd-warning) 30%, transparent);
+  background: color-mix(in srgb, var(--wsd-warning) 8%, var(--wsd-panel));
 }
 
 .dark .web-client .poke-banner {
   color: var(--wsd-text-muted);
-  border-color: color-mix(in srgb, var(--ws-warning) 32%, transparent);
-  background: color-mix(in srgb, var(--ws-warning) 9%, var(--wsd-panel));
+  border-color: color-mix(in srgb, var(--wsd-warning) 32%, transparent);
+  background: color-mix(in srgb, var(--wsd-warning) 9%, var(--wsd-panel));
   box-shadow: 0 8px 22px rgba(0, 0, 0, .32);
 }
 
 .dark .web-client .poke-banner > .ui-icon {
-  color: var(--ws-warning);
+  color: var(--wsd-warning);
 }
 
 .dark .web-client .poke-banner strong {
-  color: color-mix(in srgb, var(--ws-warning) 80%, #fff);
+  color: color-mix(in srgb, var(--wsd-warning) 80%, #fff);
 }
 
 .dark .web-client .poke-banner button {
-  color: color-mix(in srgb, var(--ws-warning) 55%, var(--wsd-text-muted));
+  color: color-mix(in srgb, var(--wsd-warning) 55%, var(--wsd-text-muted));
 }
 
 .dark .web-client .poke-banner button:hover {
-  color: var(--ws-warning);
-  background: color-mix(in srgb, var(--ws-warning) 14%, transparent);
+  color: var(--wsd-warning);
+  background: color-mix(in srgb, var(--wsd-warning) 14%, transparent);
 }
 
-.dark .ws-skin-root {
-  background: var(--surface-0);
-  color: var(--text-primary);
+.dark :is(.web-client, .download-page) {
+  background: var(--wsd-bg);
+  color: var(--wsd-text);
 }
 
 /* ===== 内置主题的日间默认面与夜间组件色（自皮肤包静态化并入；
- * light 为裸 .ws-skin-root 默认值，dark 以 .dark 前缀覆盖，特异性逐档持平） ===== */
+ * light 为裸 :is(.web-client, .download-page) 默认值，dark 以 .dark 前缀覆盖，特异性逐档持平） ===== */
 
-.ws-skin-root {
-  background: var(--surface-0);
-  color: var(--text-primary);
+:is(.web-client, .download-page) {
+  background: var(--wsd-bg);
+  color: var(--wsd-text);
 }
-.ws-skin-root .join-page {
-  color: var(--text-primary);
-  background-color: var(--surface-0);
-}
-
-.ws-skin-root .settings-modal {
-  background: var(--surface-1);
-  border-color: var(--skin-border);
+:is(.web-client, .download-page) .join-page {
+  color: var(--wsd-text);
+  background-color: var(--wsd-bg);
 }
 
-.ws-skin-root .join-card {
-  background: color-mix(in srgb, var(--surface-1) 92%, transparent);
-  border-color: var(--skin-border);
-}
-.ws-skin-root .field-wrap,
-.ws-skin-root .mic-mode-switch,
-.ws-skin-root .mode-note {
-  background: var(--surface-2);
-}
-.ws-skin-root .field-wrap input,
-.ws-skin-root .settings-select {
-  color: var(--text-primary);
-}
-.ws-skin-root .room-hero {
-  background: linear-gradient(110deg, color-mix(in srgb, var(--text-primary) 3%, var(--surface-1)), var(--surface-1) 75%);
-}
-.ws-skin-root .settings-modal {
-  box-shadow: 0 7px 18px color-mix(in srgb, var(--text-primary) 8%, transparent);
-}
-.ws-skin-root .room-hero h1,
-.ws-skin-root .join-card h2 {
-  color: var(--text-primary);
-}
-.ws-skin-root .card-kicker,
-.ws-skin-root .settings-label,
-.ws-skin-root .header-note,
-.ws-skin-root .join-description,
-.ws-skin-root .card-lead {
-  color: var(--text-muted);
-}
-.ws-skin-root .settings-header,
-.ws-skin-root .settings-footer,
-.ws-skin-root .settings-separator {
-  border-color: var(--skin-border);
+:is(.web-client, .download-page) .settings-modal {
+  background: var(--wsd-panel);
+  border-color: var(--wsd-border);
 }
 
-.ws-skin-root .settings-content,
-.ws-skin-root .settings-nav {
-  background: var(--surface-1);
+:is(.web-client, .download-page) .join-card {
+  background: color-mix(in srgb, var(--wsd-panel) 92%, transparent);
+  border-color: var(--wsd-border);
 }
-.ws-skin-root .settings-nav {
-  border-right-color: var(--skin-border);
+:is(.web-client, .download-page) .field-wrap,
+:is(.web-client, .download-page) .mic-mode-switch,
+:is(.web-client, .download-page) .mode-note {
+  background: var(--wsd-raised);
 }
-.ws-skin-root .settings-section h3,
-.ws-skin-root .settings-header h2 {
-  color: var(--text-primary);
+:is(.web-client, .download-page) .field-wrap input,
+:is(.web-client, .download-page) .settings-select {
+  color: var(--wsd-text);
 }
-.ws-skin-root .settings-select {
-  color: var(--text-primary);
-  background: var(--surface-2);
-  border-color: var(--skin-border);
+:is(.web-client, .download-page) .room-hero {
+  background: linear-gradient(110deg, color-mix(in srgb, var(--wsd-text) 3%, var(--wsd-panel)), var(--wsd-panel) 75%);
 }
-.ws-skin-root .audio-level-track,
-.ws-skin-root .meter i {
-  background: var(--skin-border);
+:is(.web-client, .download-page) .settings-modal {
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--wsd-text) 8%, transparent);
 }
-
-.ws-skin-root :focus-visible {
-  outline-color: color-mix(in srgb, var(--skin-accent) 55%, transparent);
+:is(.web-client, .download-page) .room-hero h1,
+:is(.web-client, .download-page) .join-card h2 {
+  color: var(--wsd-text);
 }
-
-.dark .ws-skin-root .join-page {
-  color: var(--text-primary);
-  background-color: var(--surface-0);
+:is(.web-client, .download-page) .card-kicker,
+:is(.web-client, .download-page) .settings-label,
+:is(.web-client, .download-page) .header-note,
+:is(.web-client, .download-page) .join-description,
+:is(.web-client, .download-page) .card-lead {
+  color: var(--wsd-text-muted);
 }
-
-.dark .ws-skin-root .settings-modal {
-  background: var(--surface-1);
-  border-color: var(--skin-border);
-}
-
-.dark .ws-skin-root .join-card {
-  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
-  border-color: var(--skin-border);
-}
-.dark .ws-skin-root .field-wrap,
-.dark .ws-skin-root .mic-mode-switch,
-.dark .ws-skin-root .mode-note {
-  background: var(--surface-2);
-}
-.dark .ws-skin-root .field-wrap input,
-.dark .ws-skin-root .settings-select {
-  color: var(--text-primary);
-}
-.dark .ws-skin-root .room-hero {
-  background: linear-gradient(110deg, color-mix(in srgb, var(--text-primary) 4%, var(--surface-1)), var(--surface-1) 75%);
-}
-.dark .ws-skin-root .settings-modal {
-  box-shadow: 0 7px 18px color-mix(in srgb, var(--text-primary) 8%, transparent);
-}
-.dark .ws-skin-root .room-hero h1,
-.dark .ws-skin-root .join-card h2 {
-  color: var(--text-primary);
-}
-.dark .ws-skin-root .card-kicker,
-.dark .ws-skin-root .settings-label,
-.dark .ws-skin-root .header-note,
-.dark .ws-skin-root .join-description,
-.dark .ws-skin-root .card-lead {
-  color: var(--text-muted);
-}
-.dark .ws-skin-root .settings-header,
-.dark .ws-skin-root .settings-footer,
-.dark .ws-skin-root .settings-separator {
-  border-color: var(--skin-border);
+:is(.web-client, .download-page) .settings-header,
+:is(.web-client, .download-page) .settings-footer,
+:is(.web-client, .download-page) .settings-separator {
+  border-color: var(--wsd-border);
 }
 
-.dark .ws-skin-root .settings-content,
-.dark .ws-skin-root .settings-nav {
-  background: var(--surface-1);
+:is(.web-client, .download-page) .settings-content,
+:is(.web-client, .download-page) .settings-nav {
+  background: var(--wsd-panel);
 }
-.dark .ws-skin-root .settings-nav {
-  border-right-color: var(--skin-border);
+:is(.web-client, .download-page) .settings-nav {
+  border-right-color: var(--wsd-border);
 }
-.dark .ws-skin-root .settings-section h3,
-.dark .ws-skin-root .settings-header h2 {
-  color: var(--text-primary);
+:is(.web-client, .download-page) .settings-section h3,
+:is(.web-client, .download-page) .settings-header h2 {
+  color: var(--wsd-text);
 }
-.dark .ws-skin-root .settings-select {
-  color: var(--text-primary);
-  background: var(--surface-2);
-  border-color: var(--skin-border);
+:is(.web-client, .download-page) .settings-select {
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border-color: var(--wsd-border);
 }
-.dark .ws-skin-root .audio-level-track,
-.dark .ws-skin-root .meter i {
-  background: var(--skin-border);
-}
-
-.dark .ws-skin-root :focus-visible {
-  outline-color: color-mix(in srgb, var(--skin-accent) 55%, transparent);
+:is(.web-client, .download-page) .audio-level-track,
+:is(.web-client, .download-page) .meter i {
+  background: var(--wsd-border);
 }
 
-.dark .ws-skin-root .channel-password-modal {
-  color: var(--text-primary);
-  border-color: var(--skin-border);
-  background: var(--surface-1);
-  box-shadow: 0 20px 60px color-mix(in srgb, var(--text-primary) 18%, transparent);
-}
-.dark .ws-skin-root .channel-password-modal h2 { color: var(--text-primary); }
-.dark .ws-skin-root .channel-password-modal > p { color: var(--text-muted); }
-.dark .ws-skin-root .channel-password-icon {
-  color: var(--skin-accent);
-  background: color-mix(in srgb, var(--skin-accent) 13%, var(--surface-2));
+:is(.web-client, .download-page) :focus-visible {
+  outline-color: color-mix(in srgb, var(--wsd-accent) 55%, transparent);
 }
 
-.dark .ws-skin-root .brand-lockup strong { color: var(--text-primary); }
-.dark .ws-skin-root .brand-lockup strong span { color: var(--text-primary); }
-.dark .ws-skin-root .join-page .brand-lockup small,
-.dark .ws-skin-root .join-page .header-note,
-.dark .ws-skin-root .join-page .join-description,
-.dark .ws-skin-root .join-page .card-lead,
-.dark .ws-skin-root .join-page .field-hint,
-.dark .ws-skin-root .join-page .join-meta,
-.dark .ws-skin-root .join-page .join-footer { color: var(--text-muted); }
-.dark .ws-skin-root .join-page .join-copy h1,
-.dark .ws-skin-root .join-page .join-card h2,
-.dark .ws-skin-root .join-page .field-label { color: var(--text-primary); }
+.dark :is(.web-client, .download-page) .join-page {
+  color: var(--wsd-text);
+  background-color: var(--wsd-bg);
+}
+
+.dark :is(.web-client, .download-page) .settings-modal {
+  background: var(--wsd-panel);
+  border-color: var(--wsd-border);
+}
+
+.dark :is(.web-client, .download-page) .join-card {
+  background: color-mix(in srgb, var(--wsd-panel) 94%, transparent);
+  border-color: var(--wsd-border);
+}
+.dark :is(.web-client, .download-page) .field-wrap,
+.dark :is(.web-client, .download-page) .mic-mode-switch,
+.dark :is(.web-client, .download-page) .mode-note {
+  background: var(--wsd-raised);
+}
+.dark :is(.web-client, .download-page) .field-wrap input,
+.dark :is(.web-client, .download-page) .settings-select {
+  color: var(--wsd-text);
+}
+.dark :is(.web-client, .download-page) .room-hero {
+  background: linear-gradient(110deg, color-mix(in srgb, var(--wsd-text) 4%, var(--wsd-panel)), var(--wsd-panel) 75%);
+}
+.dark :is(.web-client, .download-page) .settings-modal {
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--wsd-text) 8%, transparent);
+}
+.dark :is(.web-client, .download-page) .room-hero h1,
+.dark :is(.web-client, .download-page) .join-card h2 {
+  color: var(--wsd-text);
+}
+.dark :is(.web-client, .download-page) .card-kicker,
+.dark :is(.web-client, .download-page) .settings-label,
+.dark :is(.web-client, .download-page) .header-note,
+.dark :is(.web-client, .download-page) .join-description,
+.dark :is(.web-client, .download-page) .card-lead {
+  color: var(--wsd-text-muted);
+}
+.dark :is(.web-client, .download-page) .settings-header,
+.dark :is(.web-client, .download-page) .settings-footer,
+.dark :is(.web-client, .download-page) .settings-separator {
+  border-color: var(--wsd-border);
+}
+
+.dark :is(.web-client, .download-page) .settings-content,
+.dark :is(.web-client, .download-page) .settings-nav {
+  background: var(--wsd-panel);
+}
+.dark :is(.web-client, .download-page) .settings-nav {
+  border-right-color: var(--wsd-border);
+}
+.dark :is(.web-client, .download-page) .settings-section h3,
+.dark :is(.web-client, .download-page) .settings-header h2 {
+  color: var(--wsd-text);
+}
+.dark :is(.web-client, .download-page) .settings-select {
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border-color: var(--wsd-border);
+}
+.dark :is(.web-client, .download-page) .audio-level-track,
+.dark :is(.web-client, .download-page) .meter i {
+  background: var(--wsd-border);
+}
+
+.dark :is(.web-client, .download-page) :focus-visible {
+  outline-color: color-mix(in srgb, var(--wsd-accent) 55%, transparent);
+}
+
+.dark :is(.web-client, .download-page) .channel-password-modal {
+  color: var(--wsd-text);
+  border-color: var(--wsd-border);
+  background: var(--wsd-panel);
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--wsd-text) 18%, transparent);
+}
+.dark :is(.web-client, .download-page) .channel-password-modal h2 { color: var(--wsd-text); }
+.dark :is(.web-client, .download-page) .channel-password-modal > p { color: var(--wsd-text-muted); }
+.dark :is(.web-client, .download-page) .channel-password-icon {
+  color: var(--wsd-accent);
+  background: color-mix(in srgb, var(--wsd-accent) 13%, var(--wsd-raised));
+}
+
+.dark :is(.web-client, .download-page) .brand-lockup strong { color: var(--wsd-text); }
+.dark :is(.web-client, .download-page) .brand-lockup strong span { color: var(--wsd-text); }
+.dark :is(.web-client, .download-page) .join-page .brand-lockup small,
+.dark :is(.web-client, .download-page) .join-page .header-note,
+.dark :is(.web-client, .download-page) .join-page .join-description,
+.dark :is(.web-client, .download-page) .join-page .card-lead,
+.dark :is(.web-client, .download-page) .join-page .field-hint,
+.dark :is(.web-client, .download-page) .join-page .join-meta,
+.dark :is(.web-client, .download-page) .join-page .join-footer { color: var(--wsd-text-muted); }
+.dark :is(.web-client, .download-page) .join-page .join-copy h1,
+.dark :is(.web-client, .download-page) .join-page .join-card h2,
+.dark :is(.web-client, .download-page) .join-page .field-label { color: var(--wsd-text); }
 /* Accent keeps three jobs on the join page: hero emphasis line, links, and
  * focus; kickers/labels are muted text, not brand color. */
-.dark .ws-skin-root .join-page .join-copy h1 em,
-.dark .ws-skin-root .join-page .join-footer a { color: var(--skin-accent); }
-.dark .ws-skin-root .join-page .card-kicker,
-.dark .ws-skin-root .join-page .field-label span { color: var(--text-muted); }
-.dark .ws-skin-root .join-page .join-card {
-  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
-  border-color: var(--skin-border);
-  box-shadow: 0 20px 52px color-mix(in srgb, var(--text-primary) 14%, transparent);
+.dark :is(.web-client, .download-page) .join-page .join-copy h1 em,
+.dark :is(.web-client, .download-page) .join-page .join-footer a { color: var(--wsd-accent); }
+.dark :is(.web-client, .download-page) .join-page .card-kicker,
+.dark :is(.web-client, .download-page) .join-page .field-label span { color: var(--wsd-text-muted); }
+.dark :is(.web-client, .download-page) .join-page .join-card {
+  background: color-mix(in srgb, var(--wsd-panel) 94%, transparent);
+  border-color: var(--wsd-border);
+  box-shadow: 0 20px 52px color-mix(in srgb, var(--wsd-text) 14%, transparent);
 }
-.dark .ws-skin-root .join-page .field-wrap { color: var(--text-muted); background: var(--surface-2); }
-.dark .ws-skin-root .join-page .field-wrap input { color: var(--text-primary); }
-.dark .ws-skin-root .join-page .field-wrap input::placeholder { color: var(--text-muted); }
-.dark .ws-skin-root .join-page .join-footer { border-top-color: var(--skin-border); }
-.dark .ws-skin-root .join-page .join-copy h1 {
-  color: var(--text-primary);
+.dark :is(.web-client, .download-page) .join-page .field-wrap { color: var(--wsd-text-muted); background: var(--wsd-raised); }
+.dark :is(.web-client, .download-page) .join-page .field-wrap input { color: var(--wsd-text); }
+.dark :is(.web-client, .download-page) .join-page .field-wrap input::placeholder { color: var(--wsd-text-muted); }
+.dark :is(.web-client, .download-page) .join-page .join-footer { border-top-color: var(--wsd-border); }
+.dark :is(.web-client, .download-page) .join-page .join-copy h1 {
+  color: var(--wsd-text);
 }
-.dark .ws-skin-root .join-page .join-copy h1 em {
-  color: var(--skin-accent);
+.dark :is(.web-client, .download-page) .join-page .join-copy h1 em {
+  color: var(--wsd-accent);
 }
-.dark .ws-skin-root .join-page .join-description {
-  color: var(--text-muted);
+.dark :is(.web-client, .download-page) .join-page .join-description {
+  color: var(--wsd-text-muted);
 }

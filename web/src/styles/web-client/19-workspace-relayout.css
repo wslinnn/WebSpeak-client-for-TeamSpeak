@@ -958,7 +958,7 @@
     overflow: visible;
     padding: 16px 18px;
     border-top: 0;
-    border-right: 1px solid var(--skin-border);
+    border-right: 1px solid var(--wsd-border);
   }
 
   .app-shell .member-tree {

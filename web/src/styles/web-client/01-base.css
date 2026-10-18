@@ -1,17 +1,7 @@
-/* Overlay stacking ladder. Every floating layer must take its level from
-   these custom properties — bare z-index numbers are what let the header
-   drift above modal masks. Local 1/2/3 scales inside `isolation: isolate`
-   containers never compare against this ladder. admin.css repeats the same
-   values because the two stylesheets load in separate route bundles. */
-.web-client {
-  --ws-z-raised: 10;
-  --ws-z-header: 100;
-  --ws-z-dropdown: 200;
-  --ws-z-menu-mask: 300;
-  --ws-z-menu: 310;
-  --ws-z-modal-mask: 400;
-  --ws-z-toast: 500;
-}
+/* Overlay stacking ladder lives in index.css :root（全局入口样式，随路由恒在），
+   admin 与 web-client 共用同一份 --ws-z-*。浮层层级一律取这些变量——裸 z-index
+   数字正是当年 header 压过弹窗遮罩的根源。`isolation: isolate` 容器内的局部
+   1/2/3 小阶梯不与本阶梯比较。 */
 
 html[data-ws-route="webclient"] * {
   box-sizing: border-box;
@@ -36,8 +26,8 @@ html[data-ws-route="webclient"] input {
 .web-client {
   min-height: 100dvh;
   outline: none;
-  background: var(--surface-0);
-  color: var(--text-primary);
+  background: var(--wsd-bg);
+  color: var(--wsd-text);
 }
 
 

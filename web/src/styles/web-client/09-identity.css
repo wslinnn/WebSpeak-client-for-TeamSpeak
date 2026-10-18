@@ -34,7 +34,7 @@
 
 .identity-warning {
   margin: 8px 0 0;
-  color: var(--ws-warning);
+  color: var(--wsd-warning);
   font-size: 10px;
   line-height: 1.45;
 }
@@ -78,11 +78,11 @@
   gap: 15px;
   overflow-y: auto;
   padding: 25px;
-  color: var(--text-primary);
-  background: var(--surface-1);
-  border: 1px solid var(--skin-border);
+  color: var(--wsd-text);
+  background: var(--wsd-panel);
+  border: 1px solid var(--wsd-border);
   border-radius: 18px;
-  box-shadow: 0 20px 60px color-mix(in srgb, var(--text-primary) 22%, transparent);
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--wsd-text) 22%, transparent);
 }
 
 .identity-import-header {
@@ -95,14 +95,14 @@
 
 .identity-import-header h2 {
   margin: 0;
-  color: var(--text-primary);
+  color: var(--wsd-text);
   font-size: 20px;
   letter-spacing: -.035em;
 }
 
 .identity-import-header p {
   margin: 7px 0 0;
-  color: var(--text-muted);
+  color: var(--wsd-text-muted);
   font-size: 11px;
   line-height: 1.5;
 }
@@ -113,9 +113,9 @@
   min-height: 190px;
   resize: vertical;
   padding: 12px;
-  color: var(--text-primary);
-  background: var(--surface-2);
-  border: 1px solid var(--skin-border);
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
   border-radius: 10px;
   outline: none;
   font: 11px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace;
@@ -123,8 +123,8 @@
 }
 
 .identity-import-textarea:focus {
-  border-color: var(--skin-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--skin-accent) 17%, transparent);
+  border-color: var(--wsd-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wsd-accent) 17%, transparent);
 }
 
 .identity-drop-zone {
@@ -135,9 +135,9 @@
   gap: 10px;
   min-height: 58px;
   padding: 10px 14px;
-  color: var(--text-muted);
-  background: color-mix(in srgb, var(--skin-accent) 5%, var(--surface-1));
-  border: 1px dashed color-mix(in srgb, var(--skin-accent) 48%, var(--skin-border));
+  color: var(--wsd-text-muted);
+  background: color-mix(in srgb, var(--wsd-accent) 5%, var(--wsd-panel));
+  border: 1px dashed color-mix(in srgb, var(--wsd-accent) 48%, var(--wsd-border));
   border-radius: 10px;
   font-size: 11px;
   cursor: pointer;
@@ -145,13 +145,13 @@
 }
 
 .identity-drop-zone > .ui-icon {
-  color: var(--skin-accent);
+  color: var(--wsd-accent);
 }
 
 .identity-drop-zone.active,
 .identity-drop-zone:hover {
-  background: color-mix(in srgb, var(--skin-accent) 12%, var(--surface-1));
-  border-color: var(--skin-accent);
+  background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-panel));
+  border-color: var(--wsd-accent);
 }
 
 .identity-file-input {
@@ -160,7 +160,7 @@
 
 .identity-import-error {
   margin: -5px 0 0;
-  color: var(--danger);
+  color: var(--wsd-danger);
   font-size: 11px;
   line-height: 1.45;
 }
@@ -171,8 +171,8 @@
   gap: 8px;
   margin: 0;
   padding: 11px 12px;
-  color: var(--text-muted);
-  background: color-mix(in srgb, var(--warning) 10%, var(--surface-1));
+  color: var(--wsd-text-muted);
+  background: color-mix(in srgb, var(--wsd-warning) 10%, var(--wsd-panel));
   border-radius: 9px;
   font-size: 10px;
   line-height: 1.5;
@@ -180,7 +180,7 @@
 
 .identity-import-security .ui-icon {
   flex: 0 0 auto;
-  color: var(--warning);
+  color: var(--wsd-warning);
 }
 
 .identity-import-footer {

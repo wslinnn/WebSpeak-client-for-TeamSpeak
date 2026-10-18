@@ -106,6 +106,5 @@ test("页面锚点：客户端根 + data-ws-page=download", async () => {
     return element;
   });
   expect(root?.getAttribute("data-ws-page")).toBe("download");
-  expect(root?.classList.contains("ws-skin-root")).toBe(true);
   expect(screen.getByRole("link", { name: /返回首页/ }).getAttribute("href")).toBe("/");
 });

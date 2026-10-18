@@ -31,7 +31,7 @@
   gap: 3px;
   width: 52px;
   height: 46px;
-  color: var(--skin-accent);
+  color: var(--wsd-accent);
 }
 
 .join-card-waveform i {
@@ -87,7 +87,7 @@
   right: -5px;
   width: 148px;
   height: 148px;
-  color: var(--skin-accent);
+  color: var(--wsd-accent);
 }
 
 .join-card-sonar i {

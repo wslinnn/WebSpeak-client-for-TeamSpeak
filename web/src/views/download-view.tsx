@@ -51,7 +51,7 @@ export default function DownloadView() {
   // 语言包就绪前不渲染任何用户可见文案（hook 已全部执行完，此处分支安全）。
   if (!messages) return null;
   return (
-    <main className="download-page ws-skin-root min-h-dvh bg-background px-[clamp(12px,3vw,44px)] pb-11 pt-[clamp(14px,2vw,30px)] text-foreground" data-ws-page="download">
+    <main className="download-page min-h-dvh bg-background px-[clamp(12px,3vw,44px)] pb-11 pt-[clamp(14px,2vw,30px)] text-foreground" data-ws-page="download">
       <header className="mx-auto flex max-w-[1060px] flex-wrap items-center justify-between gap-3.5 max-[640px]:flex-col max-[640px]:items-stretch" data-ws-part="download.header">
         <div className="flex min-w-0 items-center gap-2.5" data-ws-part="download.brand">
           <BrandMark className="size-[38px] [color:var(--wsd-accent,#2b5cd9)]" />

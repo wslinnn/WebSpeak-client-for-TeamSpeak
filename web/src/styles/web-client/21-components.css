@@ -87,9 +87,9 @@
  * 面板没写的属性才落到配方。改浮层观感改这里。 */
 :where(.ws-popup) {
   padding: 8px;
-  color: var(--text-primary);
-  background: var(--surface-1);
-  border: 1px solid var(--skin-border);
+  color: var(--wsd-text);
+  background: var(--wsd-panel);
+  border: 1px solid var(--wsd-border);
   border-radius: 11px;
   box-shadow: 0 14px 35px rgba(0, 0, 0, .18);
 }
@@ -418,8 +418,8 @@
   width: min(430px, 100%);
   padding: 26px 22px;
   text-align: center;
-  background: var(--surface-1);
-  border: 1px solid var(--skin-border);
+  background: var(--wsd-panel);
+  border: 1px solid var(--wsd-border);
   border-radius: 18px;
 }
 
@@ -429,8 +429,8 @@
   justify-content: center;
   width: 52px;
   height: 52px;
-  color: var(--skin-accent);
-  background: color-mix(in srgb, var(--skin-accent) 12%, transparent);
+  color: var(--wsd-accent);
+  background: color-mix(in srgb, var(--wsd-accent) 12%, transparent);
   border-radius: 16px;
 }
 
@@ -442,7 +442,7 @@
 
 .web-client .mobile-gate-copy {
   margin: 0;
-  color: var(--text-muted);
+  color: var(--wsd-text-muted);
   font-size: 12px;
   line-height: 1.65;
 }
@@ -470,19 +470,19 @@
 
 .web-client .mobile-gate-primary {
   color: #fff;
-  background: var(--skin-accent);
+  background: var(--wsd-accent);
   text-decoration: none;
 }
 
 .web-client .mobile-gate-continue {
-  color: var(--text-primary);
-  background: var(--surface-2);
-  border: 1px solid var(--skin-border);
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
 }
 
 .web-client .mobile-gate-hint {
   margin: 2px 0 0;
-  color: var(--text-muted);
+  color: var(--wsd-text-muted);
   font-size: 10px;
   line-height: 1.5;
 }
@@ -554,14 +554,14 @@
   min-width: 34px;
   min-height: 34px;
   padding: 0 10px;
-  color: var(--text-muted);
+  color: var(--wsd-text-muted);
   background: transparent;
   border: none;
   border-radius: 10px;
   cursor: pointer;
 }
 
-.theme-toggle:hover { color: var(--text-primary); background: var(--surface-2); }
+.theme-toggle:hover { color: var(--wsd-text); background: var(--wsd-raised); }
 
 .theme-toggle-tile {
   width: 58px;

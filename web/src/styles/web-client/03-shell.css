@@ -81,8 +81,8 @@
   padding: 6px 29px;
   overflow-x: auto;
   scrollbar-width: none;
-  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
-  border-bottom: 1px solid var(--skin-border);
+  background: color-mix(in srgb, var(--wsd-panel) 94%, transparent);
+  border-bottom: 1px solid var(--wsd-border);
 }
 
 .favorite-server-strip::-webkit-scrollbar {
@@ -138,8 +138,8 @@
     padding: 14px 8px 16px 10px;
     overflow-y: auto;
     scrollbar-width: none;
-    background: color-mix(in srgb, var(--surface-1) 96%, var(--skin-accent));
-    border-right: 1px solid var(--skin-border);
+    background: color-mix(in srgb, var(--wsd-panel) 96%, var(--wsd-accent));
+    border-right: 1px solid var(--wsd-border);
   }
   .favorite-server-rail::-webkit-scrollbar {
     display: none;
@@ -162,7 +162,7 @@
   flex: 0 0 58px;
   place-items: center;
   padding: 0;
-  color: var(--text-primary);
+  color: var(--wsd-text);
   background: var(--wsd-raised);
   border: 2px solid transparent;
   border-radius: 18px;
@@ -235,9 +235,9 @@
   place-items: center;
   width: 15px;
   height: 15px;
-  color: var(--text-muted);
-  background: var(--surface-1);
-  border: 1px solid var(--skin-border);
+  color: var(--wsd-text-muted);
+  background: var(--wsd-panel);
+  border: 1px solid var(--wsd-border);
   border-radius: 50%;
 }
 

@@ -65,7 +65,7 @@
 }
 
 .favorite-server-hint.warning {
-  color: var(--ws-warning);
+  color: var(--wsd-warning);
 }
 
 /* Skin fallback notice: a slim dismissible bar; role=alert for AT. */

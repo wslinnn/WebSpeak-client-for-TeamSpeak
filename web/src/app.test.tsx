@@ -48,7 +48,7 @@ test("默认路由渲染 WebClient 壳：客户端根锚点 + data-ws-page=home 
   renderRoutes("/");
   // 整跑并行负载下模块图与首渲染可超默认 1s（/download 用例同款先例）。
   const shell = await waitFor(() => {
-    const element = document.querySelector(".web-client.ws-skin-root");
+    const element = document.querySelector(".web-client");
     expect(element).not.toBeNull();
     return element;
   }, { timeout: 5000 });
@@ -59,14 +59,14 @@ test("默认路由渲染 WebClient 壳：客户端根锚点 + data-ws-page=home 
 test("/join 与 / 同壳", async () => {
   stubMatchMedia();
   renderRoutes("/join");
-  await waitFor(() => expect(document.querySelector(".web-client.ws-skin-root")).not.toBeNull(), { timeout: 5000 });
+  await waitFor(() => expect(document.querySelector(".web-client")).not.toBeNull(), { timeout: 5000 });
 });
 
 test("/download 渲染 DownloadView 壳并标记 data-ws-route=download", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ release: null }), { status: 200 })));
   renderRoutes("/download");
   const shell = await waitFor(() => {
-    const element = document.querySelector(".download-page.ws-skin-root");
+    const element = document.querySelector(".download-page");
     expect(element).not.toBeNull();
     return element;
   }, { timeout: 5000 });
@@ -74,7 +74,7 @@ test("/download 渲染 DownloadView 壳并标记 data-ws-route=download", async 
   await waitFor(() => expect(document.documentElement.dataset.wsRoute).toBe("download"));
 });
 
-test("/admin/* 渲染管理台（未认证 → login 屏）：无皮肤根、data-ws-route=admin", async () => {
+test("/admin/* 渲染管理台（未认证 → login 屏）：无客户端壳、data-ws-route=admin", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ authenticated: false }), { status: 200 })));
   renderRoutes("/admin/login");
   const shell = await waitFor(() => {
@@ -83,7 +83,7 @@ test("/admin/* 渲染管理台（未认证 → login 屏）：无皮肤根、dat
     return element;
   }, { timeout: 5000 });
   expect(shell).toBeInTheDocument();
-  expect(document.querySelector(".ws-skin-root")).toBeNull();
+  expect(document.querySelector(".web-client")).toBeNull();
   expect(document.querySelector("[data-ws-page]")).toBeNull();
   await waitFor(() => expect(document.documentElement.dataset.wsRoute).toBe("admin"));
 });

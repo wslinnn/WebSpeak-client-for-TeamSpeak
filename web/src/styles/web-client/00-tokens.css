@@ -1,16 +1,18 @@
 /*
- * WebSpeak Design tokens (--wsd-*): the shared color language for the
- * workspace redesign. Day values are the default; the night palette flips in
- * under the built-in dark skin attribute (the skin selector stays the
- * day/night switch). Regions consume --wsd-* directly — the legacy --ws-* /
- * --surface-* tokens stay untouched for areas that have not migrated yet.
+ * WebSpeak Design tokens (--wsd-*): the single color language for the
+ * product routes (.web-client, .download-page). Day values are the default;
+ * night flips under html.dark. Every component reads --wsd-* directly, so a
+ * palette change happens in exactly one place. The legacy --ws-* /
+ * --surface-* / --skin-* / --text-* track that used to sit next to this was
+ * mapped 1:1 onto these tokens and deleted.
  */
 
 /* Token scope: the workspace (.web-client) and the download route
  * (.download-page reuses header-note/tiny-dot/language-switcher) share the
- * language; day values are the default, night flips under the dark skin. */
+ * language; day values are the default, night flips under html.dark. */
 .web-client,
 .download-page {
+  color-scheme: light;
   --wsd-bg: #eef1f2;
   --wsd-rail: #e3e8ea;
   --wsd-panel: #ffffff;
@@ -43,6 +45,7 @@
 
 .dark .web-client,
 .dark .download-page {
+  color-scheme: dark;
   --wsd-bg: #17181b;
   --wsd-rail: #141518;
   --wsd-panel: #1d1e22;
@@ -70,8 +73,7 @@
   font-family: var(--wsd-font);
 }
 
-/* Scrollbar colors live here (moved out of the builtin skins with the
- * workspace re-theme); scrollbar-color inherits to every descendant.
+/* Scrollbar colors live here; scrollbar-color inherits to every descendant.
  * 下载页共享 token 作用域但刻意不吃 --wsd-font（保持 Geist）。 */
 .web-client,
 .download-page {
@@ -85,57 +87,4 @@
 
 *::-webkit-scrollbar-thumb:hover {
   background: var(--wsd-hover);
-}
-
-/* 内置日/夜主题令牌（皮肤系统下架后由静态分片承载；dark 经 html.dark 解析类覆盖） */
-.ws-skin-root {
-  color-scheme: light;
-  --ws-page-bg: #fafafa;
-  --ws-surface-1: #fff;
-  --ws-surface-2: #f4f4f5;
-  --ws-text: #1c1e21;
-  --ws-text-muted: #63696f;
-  /* Graphite × cobalt: neutral surfaces, one interactive hue. Success keeps
-   * its own green (status semantics), separate from the brand accent. */
-  --ws-accent: #2b5cd9;
-  --ws-success: #1e7a40;
-  --ws-warning: #8a5d0b;
-  --ws-danger: #bb3f38;
-  --ws-border: #e5e7eb;
-  --surface-0: var(--ws-page-bg);
-  --surface-1: var(--ws-surface-1);
-  --surface-2: var(--ws-surface-2);
-  --text-primary: var(--ws-text);
-  --text-muted: var(--ws-text-muted);
-  --skin-accent: var(--ws-accent);
-  --success: var(--ws-success);
-  --warning: var(--ws-warning);
-  --danger: var(--ws-danger);
-  --skin-border: var(--ws-border);
-}
-
-.dark .ws-skin-root {
-  color-scheme: dark;
-  --ws-page-bg: #131316;
-  --ws-surface-1: #1c1c1f;
-  --ws-surface-2: #26262a;
-  --ws-text: #ededf0;
-  --ws-text-muted: #9a9aa2;
-  /* Graphite × cobalt, night side: light cobalt fill carries ink text
-   * (--wsd-accent-contrast); success stays a status green, not the brand. */
-  --ws-accent: #7d96f2;
-  --ws-success: #4cc27a;
-  --ws-warning: #e2b36c;
-  --ws-danger: #ee8a82;
-  --ws-border: #333338;
-  --surface-0: var(--ws-page-bg);
-  --surface-1: var(--ws-surface-1);
-  --surface-2: var(--ws-surface-2);
-  --text-primary: var(--ws-text);
-  --text-muted: var(--ws-text-muted);
-  --skin-accent: var(--ws-accent);
-  --success: var(--ws-success);
-  --warning: var(--ws-warning);
-  --danger: var(--ws-danger);
-  --skin-border: var(--ws-border);
 }

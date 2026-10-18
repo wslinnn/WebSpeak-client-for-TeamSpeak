@@ -51,11 +51,11 @@
     overscroll-behavior: contain;
   }
   .mobile-more-panel button { flex-shrink: 0; }
-  .mobile-member-controls { display: flex; flex: 0 0 auto; align-items: stretch; gap: 8px; margin-top: 10px; padding: 8px; background: var(--surface-2); border: 1px solid var(--skin-border); border-radius: 14px; }
+  .mobile-member-controls { display: flex; flex: 0 0 auto; align-items: stretch; gap: 8px; margin-top: 10px; padding: 8px; background: var(--wsd-raised); border: 1px solid var(--wsd-border); border-radius: 14px; }
   .mobile-member-controls .mobile-voice-toggle { flex: 1 1 0; min-height: 50px; font-size: 13px; }
-  .mobile-member-leave { flex: 0 0 42px; width: 42px; min-height: 42px; align-self: center; padding: 0; color: var(--danger); }
+  .mobile-member-leave { flex: 0 0 42px; width: 42px; min-height: 42px; align-self: center; padding: 0; color: var(--wsd-danger); }
   .mobile-voice-controls .mobile-voice-toggle { flex: 1 1 0; min-height: 44px; }
-  .mobile-voice-controls .mobile-voice-leave { flex: 0 0 42px; width: 42px; min-height: 44px; padding: 0; color: var(--danger); }
+  .mobile-voice-controls .mobile-voice-leave { flex: 0 0 42px; width: 42px; min-height: 44px; padding: 0; color: var(--wsd-danger); }
   .app-shell .member-panel.mobile-section-visible {
     padding-top: calc(18px + env(safe-area-inset-top, 0px));
   }
@@ -129,7 +129,7 @@
     min-width: 200px;
     padding: 12px;
     background: #fff;
-    border: 1px solid var(--skin-border);
+    border: 1px solid var(--wsd-border);
     border-radius: 14px;
     box-shadow: 0 18px 44px rgba(9, 28, 24, .18);
   }

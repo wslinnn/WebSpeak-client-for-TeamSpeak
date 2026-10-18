@@ -56,7 +56,7 @@
     position: sticky;
     top: 0;
     z-index: var(--ws-z-header);
-    background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+    background: color-mix(in srgb, var(--wsd-panel) 94%, transparent);
     backdrop-filter: blur(14px);
   }
   .breadcrumbs {
@@ -156,15 +156,15 @@
     place-items: center;
     width: 34px;
     height: 34px;
-    color: var(--text-muted);
-    background: color-mix(in srgb, var(--surface-2) 78%, transparent);
+    color: var(--wsd-text-muted);
+    background: color-mix(in srgb, var(--wsd-raised) 78%, transparent);
     border-radius: 10px;
     cursor: pointer;
   }
   .voice-member-action:hover,
   .voice-member-action:active {
-    color: var(--skin-accent);
-    background: color-mix(in srgb, var(--skin-accent) 14%, var(--surface-1));
+    color: var(--wsd-accent);
+    background: color-mix(in srgb, var(--wsd-accent) 14%, var(--wsd-panel));
   }
   .mobile-voice-controls {
     display: flex;
@@ -172,8 +172,8 @@
     gap: 8px;
     margin-top: 14px;
     padding: 8px;
-    background: var(--surface-2);
-    border: 1px solid var(--skin-border);
+    background: var(--wsd-raised);
+    border: 1px solid var(--wsd-border);
     border-radius: 14px;
   }
   .mobile-voice-toggle,
@@ -185,9 +185,9 @@
     min-height: 44px;
     min-width: 0;
     padding: 0 11px;
-    color: var(--skin-accent);
-    background: var(--surface-1);
-    border: 1px solid var(--skin-border);
+    color: var(--wsd-accent);
+    background: var(--wsd-panel);
+    border: 1px solid var(--wsd-border);
     border-radius: 10px;
     font-size: 12px;
     font-weight: 700;
@@ -198,7 +198,7 @@
   }
   .mobile-voice-toggle.muted,
   .mobile-more-panel button.muted {
-    color: var(--danger);
+    color: var(--wsd-danger);
   }
   /* 移动端成员面板关闭态锁（原 13 号层 important 锁迁入单源化）：层化后
      跨层 important 早层胜，旧锁会压掉下方开态开关。同层内按特异性/顺序
@@ -301,15 +301,15 @@
     width: 38px;
     height: 38px;
     flex: 0 0 38px;
-    color: var(--text-muted);
+    color: var(--wsd-text-muted);
     background: transparent;
     border-radius: 10px;
     cursor: pointer;
   }
   .member-action-button:hover,
   .member-action-button:active {
-    color: var(--skin-accent);
-    background: color-mix(in srgb, var(--skin-accent) 14%, var(--surface-1));
+    color: var(--wsd-accent);
+    background: color-mix(in srgb, var(--wsd-accent) 14%, var(--wsd-panel));
   }
   .app-shell.mobile-view-chat .workspace-scroll {
     overflow: hidden;
@@ -334,7 +334,7 @@
     flex: 0 0 auto;
     margin-top: 0;
     padding: 10px 0 9px;
-    border-bottom: 1px solid var(--skin-border);
+    border-bottom: 1px solid var(--wsd-border);
     scrollbar-width: none;
   }
   .app-shell.mobile-view-chat .chat-tabs::-webkit-scrollbar {
@@ -376,7 +376,7 @@
     min-height: 54px;
     margin: 0 0 4px;
     padding: 7px 8px 7px 13px;
-    border: 1px solid var(--skin-border);
+    border: 1px solid var(--wsd-border);
   }
   .app-shell.mobile-view-chat .message-composer :is(input, textarea) {
     font-size: 14px;
@@ -437,8 +437,8 @@
     height: 36px;
     flex: 0 0 36px;
     padding: 0 !important;
-    color: var(--text-muted);
-    background: var(--surface-2);
+    color: var(--wsd-text-muted);
+    background: var(--wsd-raised);
     border-radius: 10px;
   }
   .member-context-menu button {
