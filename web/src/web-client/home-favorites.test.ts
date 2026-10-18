@@ -68,19 +68,4 @@ describe("home favorites（连接即收藏模型）", () => {
     expect(store.getState().channelName).toBe("Lobby");
     expect(store.getState().serverPassword).toBe("pw");
   });
-
-  it("the add-dialog prefill inherits label/channel/password from an existing favorite of the same target", async () => {
-    const { history } = createHarness({ serverHost: "ts.example.com", serverPort: "9987", nickname: "Alice" });
-    await history.upsertFavoriteServer({ label: "Main", address: "ts.example.com", port: "9987", nickname: "Alice", channel: "Lobby", password: "secret" });
-    const prefill = history.buildFavoritePrefill();
-    expect(prefill.address).toBe("ts.example.com");
-    expect(prefill.label).toBe("Main");
-    expect(prefill.channel).toBe("Lobby");
-    expect(prefill.password).toBe("secret");
-  });
-
-  it("the add-dialog prefill for an unknown target only carries the form values", () => {
-    const { history } = createHarness({ serverHost: "fresh.example.com", serverPort: "4111", nickname: "Bob" });
-    expect(history.buildFavoritePrefill()).toEqual({ address: "fresh.example.com", port: "4111", nickname: "Bob" });
-  });
 });

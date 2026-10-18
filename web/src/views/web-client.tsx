@@ -269,7 +269,9 @@ function WebClientRoot() {
     publicConfig.reloadPublicConfig();
   }
   function openFavoriteServerDialog(initial?: Partial<FavoriteServerDraft>): void {
-    setFavoriteDialogInitial(initial ?? favorites.buildFavoritePrefill());
+    // add 路径留空（port 由弹窗自带 9987 默认值）：兜底预填当前表单是「编辑」
+    // 语义——连接后已自动收藏，空白新增不应带出当前上下文（用户拍板 2026-10-18）。
+    setFavoriteDialogInitial(initial ?? {});
   }
   function editFavoriteServer(server: FavoriteServer): void {
     // 右键/长按收藏行：以已存条目预填对话框，改指向或改名不必先连接。

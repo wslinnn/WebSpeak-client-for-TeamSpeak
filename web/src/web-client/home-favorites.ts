@@ -102,29 +102,6 @@ export function createHomeFavorites(options: Options) {
     options.store.setState({ favoriteServers: [] });
   }
 
-  /** 收藏对话框「添加」入口的预填（旧 WebClient.vue openFavoriteServerDialog 平价）：
-   *  从 join 表单取地址/端口/昵称；该地址已有收藏时其标签/频道/密码一起带上——
-   *  对话框保存是权威，空白必须意味着「用户看见并清空了」，而非隐性清库。 */
-  function buildFavoritePrefill(): { label?: string; address?: string; port?: string; nickname?: string; channel?: string; password?: string } {
-    const snapshot = state();
-    const prefill: { label?: string; address?: string; port?: string; nickname?: string; channel?: string; password?: string } = {
-      ...(snapshot.serverHost ? { address: snapshot.serverHost } : {}),
-      ...(snapshot.serverPort ? { port: snapshot.serverPort } : {}),
-      ...(snapshot.nickname ? { nickname: snapshot.nickname } : {}),
-    };
-    if (prefill.address && prefill.port) {
-      const target = splitTeamSpeakTarget(`${prefill.address}:${prefill.port}`);
-      const id = combineTeamSpeakTarget(target.address, target.port).trim().toLocaleLowerCase();
-      const existing = snapshot.favoriteServers.find((favorite) => favorite.id === id);
-      if (existing) {
-        prefill.label = prefill.label || existing.label;
-        prefill.channel = prefill.channel || existing.lastChannelHint?.name || "";
-        prefill.password = prefill.password || existing.password || "";
-      }
-    }
-    return prefill;
-  }
-
   return {
     loadSavedServers,
     selectLocalServer,
@@ -132,7 +109,6 @@ export function createHomeFavorites(options: Options) {
     syncFavoriteConnection,
     upsertFavoriteServer,
     clearServerHistory,
-    buildFavoritePrefill,
   };
 }
 
