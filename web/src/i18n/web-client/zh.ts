@@ -286,6 +286,8 @@ export const zh: Record<string, string> = {
     noiseSuppressionHint: "在浏览器采集端处理",
     echoCancellation: "回声消除",
     echoCancellationHint: "外放时防止回声；戴耳机可关闭以降低延迟",
+    aecActiveHint: "回声消除已实际生效。若仍听到回声，多产生在对方一侧（对方开麦外放）——请对方也开启或戴耳机。",
+    aecInactiveHint: "回声消除未实际生效：浏览器或设备忽略了该约束。",
     autoGainControl: "自动增益",
     autoGainControlHint: "由浏览器自动调节音量，可能随背景音波动",
     audioUnavailable: "音频不可用（麦克风故障）",

@@ -25,6 +25,9 @@ export interface AudioSettingsModel {
   notificationVolume: number;
   microphoneTestActive: boolean;
   testAudioUrl: string;
+  /** 浏览器轨道的实际生效状态（track.getSettings()，null=未应用）：约束开关
+   *  与实际生效可能不一致——设备/浏览器会忽略约束，回声排查以此为准。 */
+  microphoneProcessing: { echoCancellation: boolean | null; noiseSuppression: boolean | null; autoGainControl: boolean | null; rnnoise: boolean | null };
   microphoneError: string;
   microphoneErrorCode: string;
 }
@@ -166,7 +169,11 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
                   aria-label={t("echoCancellation")}
                   onChange={(event) => controls.onEchoCancellationToggle({ target: event.target })}
                 /></label
-              ><label
+              >{model.microphoneProcessing.echoCancellation !== null && (
+                <p className="settings-hint">
+                  {model.microphoneProcessing.echoCancellation ? t("aecActiveHint") : t("aecInactiveHint")}
+                </p>
+              )}<label
                 className="mobile-noise-toggle"
                 ><span
                   ><strong>{t("autoGainControl")}</strong
@@ -236,6 +243,9 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
                     controls
                     aria-label={t("microphoneTest")}
                     onError={onTestAudioError}
+                    onPlay={() => controls.setMicTestPlayback(true)}
+                    onPause={() => controls.setMicTestPlayback(false)}
+                    onEnded={() => controls.setMicTestPlayback(false)}
                   ></audio>
                 )}</div
               ></section>

@@ -33,7 +33,7 @@ export function createVoiceConnection(options: ConnectionOptions) {
     record.timer = null;
   }
 
-  function stop(beforeClose?: () => void): void {
+  function stop(beforeClose?: () => void, onClosed?: () => void): void {
     generation++;
     const previous = current;
     current = null;
@@ -51,9 +51,18 @@ export function createVoiceConnection(options: ConnectionOptions) {
       if (socket) {
         clean(() => { socket.onopen = null; });
         clean(() => { socket.onmessage = null; });
-        clean(() => { socket.onclose = null; });
         clean(() => { socket.onerror = null; });
+        if (onClosed) {
+          // 切换服务器串行化用：保留 onclose 直到 close 握手落地再通知，
+          // 让调用方等到网关收到 1000（随即 teardown 旧 TS 会话）再开新 join。
+          socket.onclose = () => { socket.onclose = null; onClosed(); };
+        } else {
+          clean(() => { socket.onclose = null; });
+        }
         if (socket.readyState < WebSocket.CLOSING) clean(() => socket.close(1000));
+        else if (onClosed && socket.readyState === WebSocket.CLOSED) onClosed();
+      } else {
+        onClosed?.();
       }
     }
   }
@@ -126,6 +135,7 @@ export function createVoiceConnection(options: ConnectionOptions) {
 
   return {
     stop,
+    isActive: (): boolean => current !== null,
     get generation(): number { return generation; },
     start(body: string, ready: Promise<void>): void {
       stop();

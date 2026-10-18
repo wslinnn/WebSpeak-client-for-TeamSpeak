@@ -284,6 +284,8 @@ export const de: Record<string, string> = {
   noiseSuppressionHint: "Verarbeitung bei der Aufnahme im Browser",
   echoCancellation: "Echounterdrückung",
   echoCancellationHint: "Verhindert Echo über Lautsprecher; mit Kopfhörern zum Senken der Latenz ausschalten",
+  aecActiveHint: "Echounterdrückung ist aktiv. Hörst du weiterhin Echo, entsteht es meist auf der Gegenseite (offenes Mikrofon plus Lautsprecher) — dort ebenfalls aktivieren oder Kopfhörer nutzen.",
+  aecInactiveHint: "Echounterdrückung ist NICHT aktiv: Browser oder Gerät ignoriert die Einschränkung.",
   autoGainControl: "Automatische Verstärkung",
   autoGainControlHint: "Der Browser regelt die Lautstärke; kann bei Hintergrundgeräuschen pulsieren",
   audioUnavailable: "Audio nicht verfügbar (Mikrofonfehler)",

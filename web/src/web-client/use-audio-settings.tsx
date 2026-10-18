@@ -84,6 +84,7 @@ function useVoiceAudioSettingsModel(): AudioSettingsModel {
     notificationVolume: view.notificationVolume,
     microphoneTestActive: view.microphoneTestActive,
     testAudioUrl: view.testAudioUrl,
+    microphoneProcessing: view.microphoneProcessing,
     microphoneError: view.microphoneError,
     microphoneErrorCode: view.microphoneErrorCode,
   })));

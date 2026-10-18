@@ -38,6 +38,7 @@ function mount(extra: Record<string, unknown> = {}): { controls: AudioControls; 
     setMicrophoneMuted: () => {},
     startMicrophoneTest: async () => {},
     stopMicrophoneTest: () => state.stops.push("stop"),
+    setMicrophoneTestPlayback: () => {},
     startAccompaniment: async () => {},
     stopAccompaniment: async () => {},
     setWhisperActive: () => {},

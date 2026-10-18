@@ -89,6 +89,8 @@ export const ja: Record<string, string> = {
   noiseSuppressionHint: "ブラウザ側で音声を処理",
   echoCancellation: "エコーキャンセル",
   echoCancellationHint: "スピーカー使用時のエコーを防止。ヘッドホンならオフにすると遅延を削減",
+  aecActiveHint: "エコーキャンセルは有効です。それでもエコーが聞こえる場合は、相手側（スピーカー再生＋マイクオン）で発生している可能性が高いです——相手も有効にするかヘッドホンを使用してください。",
+  aecInactiveHint: "エコーキャンセルは無効です：ブラウザまたはデバイスが制約を無視しました。",
   autoGainControl: "自動ゲイン調整",
   autoGainControlHint: "ブラウザが音量を自動調整。背景音で音量が変動することがあります",
   welcomeBack: "おかえりなさい",

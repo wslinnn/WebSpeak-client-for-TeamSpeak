@@ -109,6 +109,7 @@ export function useInRoomControllers(options: InRoomOptions) {
     setMicrophoneMuted: (muted) => voice.setMicrophoneMuted(muted),
     startMicrophoneTest: () => voice.startMicrophoneTest(),
     stopMicrophoneTest: () => voice.stopMicrophoneTest(),
+    setMicrophoneTestPlayback: (active) => voice.setMicrophoneTestPlayback(active),
     startAccompaniment: () => voice.startAccompaniment(),
     stopAccompaniment: () => voice.stopAccompaniment(),
     setWhisperActive: (active) => voice.setWhisperActive(active),

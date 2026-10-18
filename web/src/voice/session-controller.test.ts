@@ -372,6 +372,25 @@ test("a replaced join request cannot read an old body or alter the new target", 
   assert.match(voice.ws()!.url, /ticket=new-ticket$/);
 });
 
+test("切换服务器等旧 socket 的 close 握手落地才发起新 join（先退后进）", async () => {
+  const bodies: string[] = [];
+  vi.stubGlobal("fetch", (_: unknown, options: { body: string }) => {
+    bodies.push(options.body);
+    return Promise.resolve({ ok: true, json: async () => ({ ticket: `ticket-${bodies.length}` }) });
+  });
+  voice.connect("old.example:9987", "", "Old");
+  await nextTurn();
+  assert.equal(TestSocket.instances.length, 1);
+  voice.connect("new.example:9987", "", "New");
+  // 串行化：新 join 不随 connect() 同步发出，等旧 socket close。
+  assert.equal(bodies.length, 1);
+  TestSocket.instances[0]!.close(1000);
+  await nextTurn();
+  assert.equal(bodies.length, 2);
+  assert.equal(TestSocket.instances.length, 2);
+  assert.match(TestSocket.instances[1]!.url, /ticket=ticket-2$/);
+});
+
 for (const phase of ["request", "body"] as const) {
   test(`the join deadline covers a hanging ${phase} and rejects its late result`, async () => {
     const timers = controlRequestTimers();
@@ -1480,7 +1499,9 @@ test("a failed microphone meter connection releases all prepared meter nodes", a
   vi.spyOn(AudioContextStub.prototype, "createAnalyser").mockImplementation(() => analyser as never);
   const { peer } = await connectWebRtc();
   assert.equal((AudioContextStub.mediaSources.at(-1) as unknown as { disconnects: number }).disconnects, 1);
-  assert.equal(analyser.disconnects, 1);
+  // 两只 meter 都会尝试挂 analyser（上行 meter + 预增益显示 meter），各自在
+  // connect 失败后完整释放自己的 source/analyser/silent —— 共享桩累计 2 次。
+  assert.equal(analyser.disconnects, 2);
   assert.equal(AudioContextStub.gains.at(-1)!.disconnects, 1);
   assert.equal((peer.sender.track as { readyState: string }).readyState, "live");
 });
@@ -1502,13 +1523,16 @@ test("a microphone analyser read failure stops only the meter and clears its lev
   const { peer } = await connectWebRtc();
   meter.intervals[0]!.callback();
   assert.ok(V().micLevel > 0);
+  // analysers[0] = 预增益显示 meter（startMicrophone 先建）；[1] = 上行 meter。
+  // 显示 meter 读失败只停自己并清电平；上行 meter 与说话判定不受牵连。
   meter.analysers[0]!.getFloatTimeDomainData = () => { throw new Error("Analyser closed"); };
   assert.doesNotThrow(() => meter.intervals[0]!.callback());
   assert.equal(V().micLevel, 0);
   assert.ok(meter.cleared.includes(meter.intervals[0]));
   assert.equal(meter.analysers[0]!.disconnects, 1);
-  assert.equal((AudioContextStub.mediaSources.at(-1) as unknown as { disconnects: number }).disconnects, 1);
-  assert.equal(AudioContextStub.gains.at(-1)!.disconnects, 1);
+  // 失败 meter 的 source 一并释放（at(-2)=显示 meter 的 source；at(-1)=仍存活
+  // 的上行 meter 的 source，其 silent gain 断言移入上一条连接失败测试）。
+  assert.equal((AudioContextStub.mediaSources.at(-2) as unknown as { disconnects: number }).disconnects, 1);
   assert.notEqual(peer.connectionState, "closed");
   assert.equal((peer.sender.track as { readyState: string }).readyState, "live");
 });

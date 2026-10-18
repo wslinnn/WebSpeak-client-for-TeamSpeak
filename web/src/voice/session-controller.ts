@@ -14,6 +14,7 @@ import { createVoiceSessionState } from "./session-state";
 import { createAudioDiagnostics, type AudioPermission, type VoiceAudioStatusSample } from "./audio-diagnostics";
 import type { SinkAudioElement } from "./webrtc-playback";
 import { createScreenShareController } from "./screen-share";
+import { createMicrophoneMeter, type MicrophoneMeter } from "./microphone-meter";
 import { requestMediaBeforeAudioResume } from "../services/microphone-start";
 import { parseServerMessage } from "@shared/server-messages";
 import type { ChatMessage } from "@shared/voice-models";
@@ -100,6 +101,7 @@ export interface VoiceSessionView extends VoiceState {
   audioContextState: AudioContextState | "unknown";
   micLevel: number;
   microphoneTestActive: boolean;
+  microphoneTestPlaybackActive: boolean;
   testAudioUrl: string;
   whisperTargetIds: Set<number>;
   whisperActive: boolean;
@@ -140,7 +142,7 @@ export function createVoiceSessionController() {
     audioPermission: "unknown",
     microphoneProcessing: { echoCancellation: null, noiseSuppression: null, autoGainControl: null, rnnoise: null },
     audioContextState: "unknown",
-    micLevel: 0, microphoneTestActive: false, testAudioUrl: "",
+    micLevel: 0, microphoneTestActive: false, microphoneTestPlaybackActive: false, testAudioUrl: "",
     whisperTargetIds: new Set<number>(), whisperActive: false,
     volumes: {},
     accompanimentActive: false,
@@ -269,6 +271,8 @@ export function createVoiceSessionController() {
   // 不摘会在每次断开→重连循环里累积一个监听器。
   let resumeAudioCtx: (() => void) | null = null;
   let micStream: MediaStream | null = null;
+  let inputMeter: MicrophoneMeter | null = null;
+  let lastRoutedBypass: boolean | null = null;
   const microphoneCaptureFactory = createMicrophoneCaptureFactory();
   let microphoneCapture: MicrophoneCapture | null = null;
   let pendingMicrophoneCapture: AbortController | null = null;
@@ -378,7 +382,8 @@ export function createVoiceSessionController() {
     accompanimentActive: () => V().accompanimentActive,
     releaseAccompaniment: () => accompaniment.stop(),
     onLevel(rms, track) {
-      patch({ micLevel: rms === null ? 0 : Math.min(1, rms * 6) });
+      // rms 只服务说话判定（语义=上行流正在传输）；显示电平归 inputMeter
+      // （预门控抽头）——测试门控 gain=0 时上行 meter 恒零，不能喂显示。
       if (rms !== null && !V().microphoneMuted && track.enabled && rms >= V().voxThreshold) markSpeaking(V().tsClientId);
       else if (V().tsClientId) clearSpeaking(V().tsClientId);
     },
@@ -447,6 +452,17 @@ export function createVoiceSessionController() {
       ? "disconnected"
       : transportSnapshot.active ? "webrtc" : transportSnapshot.hasPeer ? "negotiating" : "websocket";
     if (V().voiceTransport !== derived) patch({ voiceTransport: derived });
+  }
+
+  /** 滑条拖动的落盘去抖：每个 input tick 全量序列化偏好曾在移动端把帧预算
+   *  打爆（拖动不跟手，2026-10-18）。尾沿 200ms，页面关闭丢末次写可接受。 */
+  let audioPreferencesSaveTimer: ReturnType<typeof setTimeout> | null = null;
+  function queueAudioPreferencesSave(): void {
+    if (audioPreferencesSaveTimer) clearTimeout(audioPreferencesSaveTimer);
+    audioPreferencesSaveTimer = setTimeout(() => {
+      audioPreferencesSaveTimer = null;
+      void saveAudioPreferences();
+    }, 200);
   }
 
   async function saveAudioPreferences(): Promise<void> {
@@ -568,12 +584,19 @@ export function createVoiceSessionController() {
   }
 
   /** Non-fatal audio notice (WebRTC fallback, blocked autoplay, device list failure...). */
+  /** 用户点 x 的闭锁：同一代码的条件仍成立时，重同步会立刻把横幅设回来，
+   *  观感即「关不掉」。闭锁在条件解除（带 code 的清除）时复位，同代码复发
+   *  （新条件）仍会提醒。 */
+  let dismissedAudioNoticeCode = "";
   function setAudioNotice(code: string, message: string): void {
-    patch({ audioNoticeCode: safeClientErrorCode(code) || "AUDIO_NOTICE", audioNotice: message });
+    const normalized = safeClientErrorCode(code) || "AUDIO_NOTICE";
+    if (dismissedAudioNoticeCode === normalized) return;
+    patch({ audioNoticeCode: normalized, audioNotice: message });
   }
 
   function clearAudioNotice(code?: string): void {
     if (code && V().audioNoticeCode !== safeClientErrorCode(code)) return;
+    dismissedAudioNoticeCode = code ? safeClientErrorCode(code) : "";
     patch({ audioNotice: "", audioNoticeCode: "" });
   }
 
@@ -722,9 +745,10 @@ export function createVoiceSessionController() {
     if (V().micLevel !== level) patch({ micLevel: level });
   }
 
-  function handleCaptureChunk(input: Float32Array, rms?: number): void {
+  function handleCaptureChunk(input: Float32Array, _rms?: number): void {
     if (!input.length) return;
-    setMicLevel(Math.min(1, (rms ?? Math.sqrt(input.reduce((sum, sample) => sum + sample * sample, 0) / input.length)) * 6));
+    // 电平显示改由预增益抽头（inputMeter）供给：本 tap 在广播门控（gain 0）
+    // 之后，测试/静音期 rms 恒零，声波条会被错误地按满门限清零（2026-10-18）。
     const current = socket;
     const shouldSend = !V().microphoneMuted
       && !V().microphoneTestActive
@@ -816,6 +840,20 @@ export function createVoiceSessionController() {
       stopMicrophone(false);
       micStream = nextStream;
       microphoneCapture = nextCapture;
+      // 新捕获图必然需要重挂上行流，忽略旁路状态缓存。
+      lastRoutedBypass = null;
+      // 预增益电平表：直接取原始轨（analyser），不受广播门控（gain 0）与
+      // 轨道门控之外的任何处理影响——测试期与测试回放期声波条照常跳动。
+      // 电平表可选：创建失败不阻塞麦克风启动（仅丢显示）。
+      inputMeter?.dispose();
+      try {
+        inputMeter = createMicrophoneMeter(ctx, nextStream, (rms) => {
+          // null = meter 停止/失败，清显示（残值会挂在最后一次读数上）。
+          setMicLevel(rms === null ? 0 : Math.min(1, rms * 6));
+        });
+      } catch {
+        inputMeter = null;
+      }
       patch({ microphoneProcessing: { ...nextCapture.processing } });
       applyUplinkGate();
       nextCapture.activate();
@@ -928,6 +966,8 @@ export function createVoiceSessionController() {
       pendingMicrophoneCapture = null;
     }
     stopCaptureGraph();
+    inputMeter?.dispose();
+    inputMeter = null;
     microphoneCapture?.dispose();
     microphoneCapture = null;
     webrtc.releaseInput();
@@ -1065,37 +1105,52 @@ export function createVoiceSessionController() {
   }
 
   function connect(target: string, channel: string, nickname: string, serverPassword = "", identity = "", rememberIdentity = false): void {
-    disconnect(true);
-    lastConnection = { target, channel, nickname, serverPassword, ...(identity ? { identity } : {}), rememberIdentity };
-    lastConnectTarget = splitTeamSpeakTarget(target);
-    patch({
-      identityMaterial: identity,
-      error: "",
-      errorCode: "",
-      retryNotUntil: 0,
-      // Audio diagnostics belong to the previous session, never to the new one.
-      connecting: true,
-      reconnecting: false,
-      reconnectAttempt: 0,
-      reconnectFailed: false,
-    });
-    clearMicrophoneError();
-    clearAudioNotice();
-    voiceConnection.start(JSON.stringify({
-      target, nickname, channel, serverPassword,
-      ...(rememberIdentity && identity ? { identity } : {}),
-      ...(rememberIdentity ? { rememberIdentity: true } : {}),
-    }), audioPreferencesReady);
+    const switchingServer = lastConnection !== null && lastConnection.target !== target;
+    let started = false;
+    const startJoin = (): void => {
+      if (started) return;
+      started = true;
+      lastConnection = { target, channel, nickname, serverPassword, ...(identity ? { identity } : {}), rememberIdentity };
+      lastConnectTarget = splitTeamSpeakTarget(target);
+      patch({
+        identityMaterial: identity,
+        error: "",
+        errorCode: "",
+        retryNotUntil: 0,
+        // Audio diagnostics belong to the previous session, never to the new one.
+        connecting: true,
+        reconnecting: false,
+        reconnectAttempt: 0,
+        reconnectFailed: false,
+      });
+      clearMicrophoneError();
+      clearAudioNotice();
+      voiceConnection.start(JSON.stringify({
+        target, nickname, channel, serverPassword,
+        ...(rememberIdentity && identity ? { identity } : {}),
+        ...(rememberIdentity ? { rememberIdentity: true } : {}),
+      }), audioPreferencesReady);
+    };
+    if (!switchingServer) {
+      disconnect(true);
+      startJoin();
+      return;
+    }
+    // 切换服务器先完整退出（语义拍板 2026-10-18）：等旧 socket 的 close 握手
+    // 落地——网关收到 1000 即启动旧 TS 会话 teardown——再开新 join。并行赛跑会
+    // 让同身份在 TS 服务器侧撞上尚未退场的旧连接，新连接挂到 8s 连接超时由
+    // 浏览器重试兜底。400ms 上限只防 close 事件丢失，正常路径即达。
+    const safety = setTimeout(startJoin, 400);
+    disconnect(true, () => { clearTimeout(safety); startJoin(); });
   }
 
-  function disconnect(preserveConnection = false): void {
+  function disconnect(preserveConnection = false, onClosed?: () => void): void {
     const keepRememberedIdentity = lastConnection?.rememberIdentity === true;
     if (!preserveConnection) {
       lastConnection = null;
       dropReconnectTicket();
     }
     cancelBrowserReconnect();
-    voiceConnection.stop(() => releaseSessionResources(!preserveConnection));
     clearMicrophoneError();
     clearAudioNotice();
     patch({
@@ -1103,6 +1158,10 @@ export function createVoiceSessionController() {
       tsClientId: 0, errorCode: "", connectionFailureCode: "", channelSwitchedChannelId: "",
       ...(keepRememberedIdentity ? {} : { identityMaterial: "" }),
     });
+    // 标志位补丁必须在 stop 之前落地：切服串行化时 onClosed 会在 stop 内同步
+    // 触发 startJoin（connecting:true），若补丁在其后会把新 join 的状态翻回
+    // false——（voiceConnection.stop 的 onClosed 语义，2026-10-18）。
+    voiceConnection.stop(() => releaseSessionResources(!preserveConnection), onClosed);
     syncVoiceTransport();
     sessionState.reset();
     patch({ volumes: {} });
@@ -1544,21 +1603,34 @@ export function createVoiceSessionController() {
   }
 
   /** True when nothing needs the WebAudio uplink graph and the raw capture
-   *  track can feed the sender directly. The mic test always forces the
-   *  graph: its broadcast gate works by gain, which the bypass skips. */
+   *  track can feed the sender directly. The mic test and its playback always
+   *  force the graph: their broadcast gate works by gain, which the bypass
+   *  skips. */
   function uplinkBypassActive(): boolean {
     return !V().noiseSuppressionEnabled && V().inputVolume === 1
-      && !V().accompanimentActive && !V().microphoneTestActive;
+      && !V().accompanimentActive && !V().microphoneTestActive && !V().microphoneTestPlaybackActive;
   }
 
-  /** Applies the broadcast gate (user mute, or the mic test which must not
-   *  reach the room). The gate works by capture gain so the mic test's
-   *  recorder — which taps the raw stream — keeps hearing real audio; only
-   *  the user mute may disable the track itself. */
+  /** Applies the broadcast gate (user mute, the mic test or its playback —
+   *  none of which must reach the room). The gate works by capture gain so
+   *  the mic test's recorder — which taps the raw stream — keeps hearing real
+   *  audio; the track itself stays enabled while the test records (else the
+   *  recorder and the level meter would read silence), and only the user
+   *  mute may disable it once the test is over. */
   function applyUplinkGate(): void {
-    const silent = V().microphoneMuted || V().microphoneTestActive;
+    const silent = V().microphoneMuted || V().microphoneTestActive || V().microphoneTestPlaybackActive;
     microphoneCapture?.setVolume(silent ? 0 : V().inputVolume);
-    micStream?.getAudioTracks().forEach((track) => { track.enabled = !V().microphoneMuted; });
+    micStream?.getAudioTracks().forEach((track) => { track.enabled = !V().microphoneMuted || V().microphoneTestActive; });
+  }
+
+  /** Gates the uplink while a mic-test recording is being played back: the
+   *  open microphone would otherwise pick the loudspeaker audio right back up
+   *  and broadcast it into the room (acoustic echo — reported 2026-10-18). */
+  function setMicrophoneTestPlayback(active: boolean): void {
+    if (V().microphoneTestPlaybackActive === active) return;
+    patch({ microphoneTestPlaybackActive: active });
+    applyUplinkGate();
+    applyUplinkRouting();
   }
 
   /** Re-picks the uplink track after any processing state change: raw direct
@@ -1566,6 +1638,11 @@ export function createVoiceSessionController() {
   function applyUplinkRouting(forceGraph = false): void {
     if (!webrtc.active || !micStream) return;
     const bypass = !forceGraph && uplinkBypassActive();
+    // 滑条每个 tick 都会走到这里：路由目标不随音量变化，只有旁路状态翻转
+    // （跨 100%、测试/伴奏开关）才需要重挂上行流。forceGraph 与捕获图更换
+    // 时置空缓存强制重挂（startMicrophone 提交处）。
+    if (!forceGraph && bypass === lastRoutedBypass) return;
+    lastRoutedBypass = bypass;
     const capture = microphoneCapture;
     webrtc.setUplinkStream(bypass || !capture ? micStream : capture.processedStream);
   }
@@ -1654,7 +1731,7 @@ export function createVoiceSessionController() {
     patch({ inputVolume: Math.max(0, Math.min(MAX_INPUT_VOLUME, volume)) });
     applyUplinkGate();
     applyUplinkRouting();
-    void saveAudioPreferences();
+    queueAudioPreferencesSave();
   }
 
   async function setNoiseSuppressionEnabled(enabled: boolean): Promise<void> {
@@ -1693,7 +1770,7 @@ export function createVoiceSessionController() {
   function setOutputVolume(volume: number): void {
     patch({ outputVolume: Math.max(0, Math.min(1, volume)) });
     applyOutputVolume();
-    void saveAudioPreferences();
+    queueAudioPreferencesSave();
   }
 
   function toggleOutputMute(): void {
@@ -1703,12 +1780,12 @@ export function createVoiceSessionController() {
 
   function setVoxThreshold(threshold: number): void {
     patch({ voxThreshold: clamp(threshold, 0.001, 0.08) });
-    void saveAudioPreferences();
+    queueAudioPreferencesSave();
   }
 
   function setNotificationVolume(volume: number): void {
     patch({ notificationVolume: clamp(volume, 0, 1) });
-    void saveAudioPreferences();
+    queueAudioPreferencesSave();
   }
 
   /** Releases reconnect timers; React hosts call this from their teardown. */
@@ -1744,6 +1821,7 @@ export function createVoiceSessionController() {
     startMicrophoneTest,
     stopMicrophoneTest,
     playNotification,
+    setMicrophoneTestPlayback,
     connect,
     reconnectNow,
     tryResumeVoiceSession,

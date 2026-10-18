@@ -37,6 +37,7 @@ interface AudioControlsOptions {
   setMicrophoneMuted(muted: boolean): void;
   startMicrophoneTest(): Promise<void>;
   stopMicrophoneTest(): void;
+  setMicrophoneTestPlayback(active: boolean): void;
   startAccompaniment(): Promise<void>;
   stopAccompaniment(): Promise<void>;
   setWhisperActive(active: boolean): void;
@@ -254,6 +255,7 @@ export function createAudioControls(options: AudioControlsOptions) {
     onInputDeviceChange,
     onOutputDeviceChange,
     toggleMicTest,
+    setMicTestPlayback: options.setMicrophoneTestPlayback,
     toggleMicrophone,
     toggleAccompaniment,
     onWhisperPttDown,

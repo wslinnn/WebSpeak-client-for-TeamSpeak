@@ -286,6 +286,8 @@ export const en: Record<string, string> = {
     noiseSuppressionHint: "Process audio in the browser",
     echoCancellation: "Echo cancellation",
     echoCancellationHint: "Prevents echo on speakers; turn off with headphones to cut latency",
+    aecActiveHint: "Echo cancellation is active. If you still hear echo, it is usually produced on the other side (their speaker with an open mic) — ask them to enable it or wear headphones.",
+    aecInactiveHint: "Echo cancellation is NOT active: the browser or device ignored the constraint.",
     autoGainControl: "Automatic gain control",
     autoGainControlHint: "Lets the browser adjust your volume; may pump with background noise",
     audioUnavailable: "Audio unavailable (microphone failure)",
