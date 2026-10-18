@@ -692,12 +692,19 @@
 }
 
 @media (max-width: 740px) {
+  /* 移动面板的皮肤下拉改 fixed 悬浮（placeDropdownBelowFixed 写内联坐标）：
+   * 原文档流内展开会把面板其余项整体挤下去（2026-10-18 用户拍板改悬浮）。 */
   .web-client .skin-switcher.mobile-skin-switcher .skin-dropdown {
-    position: static;
-    width: 100%;
-    min-width: 0;
-    max-height: min(45vh, 280px);
-    margin-top: 8px;
+    position: fixed;
+    max-height: min(60vh, 360px);
+    overflow-y: auto;
+    box-sizing: border-box;
+  }
+
+  /* 移动面板的语言切换器（mobile-language-switcher 变体）同法悬浮。 */
+  .web-client .language-switcher.mobile-language-switcher .language-dropdown {
+    position: fixed;
+    max-height: min(60vh, 360px);
     overflow-y: auto;
     box-sizing: border-box;
   }

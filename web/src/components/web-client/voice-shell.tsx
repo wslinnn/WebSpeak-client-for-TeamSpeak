@@ -368,6 +368,8 @@ export function VoiceShell(props: VoiceShellProps) {
           onLeave={props.onLeave}
           onOpenAudioSettings={props.onOpenAudioSettings}
           skinSwitcher={props.skinSwitcher}
+          language={i18n.language}
+          onChangeLanguage={i18n.setLanguage}
           t={t}
         />
       )}

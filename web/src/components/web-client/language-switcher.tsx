@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Icon } from "./icon";
-import { placeDropdownBesideTile, placeDropdownClamped } from "@/services/dropdown-place";
+import { placeDropdownBesideTile, placeDropdownBelowFixed, placeDropdownClamped } from "@/services/dropdown-place";
 import { LANGUAGE_OPTIONS } from "@/i18n/language-options";
 import { cn } from "@/lib/utils";
 import type { Language } from "@/i18n/web-client";
@@ -12,13 +12,15 @@ interface LanguageSwitcherProps {
   menuLabel: string;
   /** rail 上的 58px 方块变体。 */
   tile?: boolean;
+  /** 移动面板等全宽触发器用：菜单 fixed 悬浮在触发器下方（不挤压面板）。 */
+  fixedBelow?: boolean;
   className?: string;
 }
 
 /** 旧 LanguageSwitcher.vue 平价：自绘下拉（place 服务定位）、pointerdown 外点关闭、
  *  视口变化即关、pointer 选中武装一次性尾随 click 吞噬（选中会卸载菜单，尾随 click
  *  会落到底下元素——手机 more 面板里正下方是退出按钮）。键盘选中无尾随 click，不武装。 */
-export function LanguageSwitcher({ language, onChange, menuLabel, tile, className }: LanguageSwitcherProps) {
+export function LanguageSwitcher({ language, onChange, menuLabel, tile, fixedBelow, className }: LanguageSwitcherProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -31,8 +33,9 @@ export function LanguageSwitcher({ language, onChange, menuLabel, tile, classNam
     const dropdown = dropdownRef.current;
     if (!root || !dropdown) return;
     if (tile) placeDropdownBesideTile(root, dropdown);
+    else if (fixedBelow) placeDropdownBelowFixed(root, dropdown);
     else placeDropdownClamped(root, dropdown);
-  }, [tile]);
+  }, [tile, fixedBelow]);
 
   const toggle = useCallback(() => {
     setOpen((wasOpen) => !wasOpen);

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Icon, type IconName } from "./icon";
-import { placeDropdownBesideTile, placeDropdownClamped } from "@/services/dropdown-place";
+import { placeDropdownBesideTile, placeDropdownBelowFixed, placeDropdownClamped } from "@/services/dropdown-place";
 import { cn } from "@/lib/utils";
 
 export interface SkinOption {
@@ -23,13 +23,17 @@ interface SkinSwitcherProps {
   options: SkinOption[];
   menuLabel: string;
   tile?: boolean;
+  /** 移动面板等全宽触发器用：菜单 fixed 悬浮在触发器下方，不再以文档流
+   *  内展开的方式挤压面板其余项（2026-10-18 用户拍板）。 */
+  fixedBelow?: boolean;
   className?: string;
   onChange(value: string): void;
 }
 
 /** 皮肤切换器（旧 SkinSwitcher.vue 平价）：tile 模式进服务器 rail（溢出裁剪，
- *  菜单 fixed 贴牌展开），inline 模式（首页头/移动面板）视口内 clamp。 */
-export function SkinSwitcher({ value, options, menuLabel, tile, className, onChange }: SkinSwitcherProps) {
+ *  菜单 fixed 贴牌展开），fixedBelow 模式（移动面板）菜单 fixed 悬浮下方，
+ *  inline 模式（首页头）视口内 clamp。 */
+export function SkinSwitcher({ value, options, menuLabel, tile, fixedBelow, className, onChange }: SkinSwitcherProps) {
   const [open, setOpen] = useState(false);
   const [menuId] = useState(() => `skin-menu-${Math.random().toString(36).slice(2, 9)}`);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -41,8 +45,9 @@ export function SkinSwitcher({ value, options, menuLabel, tile, className, onCha
     const dropdownEl = dropdownRef.current;
     if (!rootEl || !dropdownEl) return;
     if (tile) placeDropdownBesideTile(rootEl, dropdownEl);
+    else if (fixedBelow) placeDropdownBelowFixed(rootEl, dropdownEl);
     else placeDropdownClamped(rootEl, dropdownEl);
-  }, [tile]);
+  }, [tile, fixedBelow]);
 
   useEffect(() => {
     if (open) place();

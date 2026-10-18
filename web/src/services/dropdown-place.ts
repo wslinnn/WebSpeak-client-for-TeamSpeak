@@ -48,6 +48,26 @@ export function placeDropdownBesideTile(rootEl: HTMLElement, dropdownEl: HTMLEle
 }
 
 /**
+ * Fixed placement below a full-width trigger (the mobile more panel's
+ * switchers): viewport-anchored so the panel's own scroll/clip can neither
+ * cut the menu off nor — with in-flow expansions — squeeze the rest of the
+ * panel down (2026-10-18 user report). The caller re-places on open; panel
+ * scrolling after open is accepted (menu closes on outside tap/Esc).
+ */
+export function placeDropdownBelowFixed(rootEl: HTMLElement, dropdownEl: HTMLElement): void {
+  const rootRect = rootEl.getBoundingClientRect();
+  const height = dropdownEl.offsetHeight;
+  const scale = currentUiScale();
+  let top = rootRect.bottom + MENU_GAP;
+  if (top + height > window.innerHeight - VIEWPORT_MARGIN) top = Math.max(VIEWPORT_MARGIN, window.innerHeight - VIEWPORT_MARGIN - height);
+  dropdownEl.style.position = "fixed";
+  dropdownEl.style.left = `${rootRect.left / scale}px`;
+  dropdownEl.style.top = `${top / scale}px`;
+  dropdownEl.style.right = "auto";
+  dropdownEl.style.width = `${rootRect.width / scale}px`;
+}
+
+/**
  * Inline mode: the dropdown is absolutely positioned relative to the trigger
  * and anchored to its right edge, so a trigger near a container edge pushes
  * the menu past the viewport or past any clipping ancestor (e.g. the admin
