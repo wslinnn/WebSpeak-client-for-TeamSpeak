@@ -5,8 +5,11 @@ import { defineConfig } from "@playwright/test";
 // 不依赖会重构的样式类名。
 export default defineConfig({
   testDir: "./tests",
-  timeout: 30_000,
+  timeout: 60_000,
   fullyParallel: false,
+  // 单 worker 全串行：三项目并行时移动端种子用例在冷启资源竞争下多次越过
+  // 30s 超时（单跑 1.1s、二次并行 5.7s）——门禁要的是确定性，不是吞吐。
+  workers: 1,
   reporter: [["list"]],
   use: {
     baseURL: "http://127.0.0.1:3041",
