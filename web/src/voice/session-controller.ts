@@ -3,15 +3,15 @@ import { createRemotePlayback } from "./remote-playback";
 import { createSpeakingState } from "./speaking-state";
 import { createMicrophoneTest } from "./microphone-test";
 import { normalizeMicrophoneFailure } from "./microphone-failure";
-import { createMicrophoneCaptureFactory, type MicrophoneCapture, type MicrophoneProcessingSettings } from "./microphone-capture";
+import { createMicrophoneCaptureFactory, type MicrophoneCapture } from "./microphone-capture";
 import { createAudioSinkRouter } from "./audio-sink";
-import { createAccompaniment, type AccompanimentErrorCode } from "./accompaniment";
+import { createAccompaniment } from "./accompaniment";
 import { createWebRtcTransport } from "./webrtc-transport";
 import { createVoiceConnection } from "./connection";
 import { clearVoiceSessionIntent, readVoiceSessionIntent, writeVoiceSessionIntent } from "./session-intent";
 import { createVoiceCommands } from "./commands";
 import { createVoiceSessionState } from "./session-state";
-import { createAudioDiagnostics, type AudioPermission, type VoiceAudioStatusSample } from "./audio-diagnostics";
+import { createAudioDiagnostics, type VoiceAudioStatusSample } from "./audio-diagnostics";
 import type { SinkAudioElement } from "./webrtc-playback";
 import { createScreenShareController } from "./screen-share";
 import { createMicrophoneMeter, type MicrophoneMeter } from "./microphone-meter";
@@ -19,9 +19,10 @@ import { requestMediaBeforeAudioResume } from "../services/microphone-start";
 import { parseServerMessage } from "@shared/server-messages";
 import type { ChatMessage } from "@shared/voice-models";
 import type { ClientCommandPayloads, ClientCommandType } from "@shared/client-commands";
-import { loadLocalPreferences, saveLocalPreferences } from "../services/local-persistence";
 import { splitTeamSpeakTarget } from "../services/teamspeak-target";
 import { closeErrorCode, closeReason, connectionFailureMessage, joinTicketReason, normalizedClientErrorCode, safeClientErrorCode, safeClientErrorDetail } from "./error-messages";
+import { createAudioPreferences } from "./audio-preferences";
+import { CancelledMediaOperation, MAX_INPUT_VOLUME, clamp, type SinkAudioContext, type VoiceSessionView } from "./session-model";
 
 export type { MicrophoneProcessingSettings } from "./microphone-capture";
 export type { AudioPermission, BrowserVoiceAudioStats, VoiceAudioStatusSample } from "./audio-diagnostics";
@@ -29,98 +30,8 @@ export type { ScreenShareOutputSettings, ScreenShareCaptureStats, ScreenSharePee
 export type { ScreenShareStreamDescription as ScreenShareStream, ScreenShareViewerDescription as ScreenShareViewer, ScreenSharePeerSignal as ScreenShareSignal } from "@shared/screen-share";
 export type { ChannelMember, ChannelInfo, ChatMessage, ServerEvent, VoiceAudioBridgeStats } from "@shared/voice-models";
 export type { VoiceSessionSnapshot, PokeNotification } from "./session-state";
-
-/** 麦克风音量上限（2.0 = 200%/+6 dB）。>1 时上行脱离直连旁路、走处理图增益，
- *  采集图的限幅器负责防削波。 */
-export const MAX_INPUT_VOLUME = 2;
-
-export interface VoiceState {
-  connected: boolean;
-  connecting: boolean;
-  reconnecting: boolean;
-  reconnectAttempt: number;
-  reconnectFailed: boolean;
-  tsClientId: number;
-  error: string;
-  errorCode: string;
-  /** Epoch ms until which the gateway told us to wait before retrying the password. */
-  retryNotUntil: number;
-  /**
-   * Non-fatal audio diagnostics. Unlike error/errorCode these never take over
-   * the connect form: they explain a degraded microphone or playback path while
-   * the voice room itself stays joined and usable.
-   */
-  microphoneError: string;
-  microphoneErrorCode: string;
-  audioNotice: string;
-  audioNoticeCode: string;
-  channelSwitchedChannelId: string;
-  /** Set when the TS server moves our own client; the UI syncs its channel
-   *  selection from it. Not cleared on read: identical consecutive values are
-   *  already reflected in the selection, so a suppressed duplicate is fine. */
-  selfMovedChannelId: string;
-  /** Mirror of errorCode fed only by connection-origin paths (ticket refusal,
-   *  close frames, reconnect failure). Generic per-command error frames must
-   *  not land here: the server-switch banner treats this field as "the join
-   *  failed", and an unrelated audio/chat error would falsely fail it. */
-  connectionFailureCode: string;
-}
-
-export interface AudioInputDevice {
-  deviceId: string;
-  label: string;
-  groupId: string;
-}
-
-export interface AudioOutputDevice {
-  deviceId: string;
-  label: string;
-  groupId: string;
-}
-
-/** The single framework-free view snapshot. Fields replace the former Vue
- *  refs/reactive/computed surface; consumers subscribe through the store. */
-export interface VoiceSessionView extends VoiceState {
-  identityMaterial: string;
-  microphoneMuted: boolean;
-  noiseSuppressionEnabled: boolean;
-  echoCancellationEnabled: boolean;
-  autoGainControlEnabled: boolean;
-  inputVolume: number;
-  outputVolume: number;
-  outputMuted: boolean;
-  notificationVolume: number;
-  voxThreshold: number;
-  inputDevices: AudioInputDevice[];
-  outputDevices: AudioOutputDevice[];
-  selectedInputDeviceId: string;
-  selectedOutputDeviceId: string;
-  outputDeviceSupported: boolean;
-  audioPermission: AudioPermission;
-  microphoneProcessing: MicrophoneProcessingSettings;
-  audioContextState: AudioContextState | "unknown";
-  micLevel: number;
-  microphoneTestActive: boolean;
-  microphoneTestPlaybackActive: boolean;
-  testAudioUrl: string;
-  whisperTargetIds: Set<number>;
-  whisperActive: boolean;
-  volumes: Record<number, number>;
-  accompanimentActive: boolean;
-  accompanimentSupported: boolean;
-  accompanimentErrorCode: AccompanimentErrorCode;
-  /** Live transport for header chrome, derived at every write point from the
-   *  transport snapshot and connection state. */
-  voiceTransport: "webrtc" | "websocket" | "negotiating" | "disconnected";
-}
-
-type SinkAudioContext = AudioContext & {
-  setSinkId?: (sinkId: string) => Promise<void>;
-};
-
-class CancelledMediaOperation extends Error {
-  constructor() { super("媒体操作已取消"); this.name = "AbortError"; }
-}
+export { MAX_INPUT_VOLUME } from "./session-model";
+export type { AudioInputDevice, AudioOutputDevice, VoiceSessionView, VoiceState } from "./session-model";
 
 /** Framework-free voice session orchestrator — the former useVoiceWebSocket
  *  composable with the Vue layer replaced by a zustand vanilla store. One
@@ -162,7 +73,7 @@ export function createVoiceSessionController() {
       if (whisperTargetIds.delete(id)) patch({ whisperTargetIds: new Set(whisperTargetIds) });
       if (!whisperTargetIds.size) patch({ whisperActive: false });
     },
-    onMembersChanged: syncKnownMemberVolumes,
+    onMembersChanged: () => audioPrefs.syncKnownMemberVolumes(),
     onSelfMoved(channelId) {
       patch({ selfMovedChannelId: channelId });
     },
@@ -259,9 +170,16 @@ export function createVoiceSessionController() {
   let browserReconnectActive = false;
   let throttledReconnects = 0;
   let connectedThisLoad = false;
-  const storedVolumesByUid: Record<string, number> = {};
   let microphoneStartPromise: Promise<void> | null = null;
   let microphoneGeneration = 0;
+
+  // 偏好持久化簇（audio-preferences.ts）：装载 promise、防抖落盘、已提交镜像、
+  // 按 uid 音量记忆。镜像的读写点在采集提交、设备/处理事务与断线释放。
+  const audioPrefs = createAudioPreferences({
+    V,
+    patch,
+    membersLive: () => sessionState.membersLive(),
+  });
 
   // WebRTC carries audio when the gateway advertises it. The bounded PCM
   // WebSocket path remains the compatibility fallback for older browsers and
@@ -297,10 +215,6 @@ export function createVoiceSessionController() {
     isOpen: () => socket?.readyState === WebSocket.OPEN,
     send: message => socket?.send(JSON.stringify(message)),
   });
-  let committedInputDeviceId = V().selectedInputDeviceId;
-  let committedOutputDeviceId = V().selectedOutputDeviceId;
-  let inputDeviceTouched = false;
-  let outputDeviceTouched = false;
   let inputDeviceGeneration = 0;
   let outputDeviceGeneration = 0;
   let deviceListGeneration = 0;
@@ -312,16 +226,6 @@ export function createVoiceSessionController() {
     onStopped: () => { if (!V().connected) stopMicrophone(); },
     onError: error => { setMicrophoneError(error); },
   });
-  let noiseSuppressionTouched = false;
-  let committedNoiseSuppressionEnabled = V().noiseSuppressionEnabled;
-  // Latency-adding browser processing defaults off (2026-10-14 拍板): the
-  // echo canceller alone costs tens of milliseconds; headset users rarely
-  // need it. Both flip through the same track-constraint reconfiguration as
-  // noise suppression.
-  let echoCancellationTouched = false;
-  let committedEchoCancellationEnabled = V().echoCancellationEnabled;
-  let autoGainControlTouched = false;
-  let committedAutoGainControlEnabled = V().autoGainControlEnabled;
   let voxAttack = 0;
   let voxRelease = 0;
   const VOX_HOLD = 15;
@@ -454,81 +358,6 @@ export function createVoiceSessionController() {
     if (V().voiceTransport !== derived) patch({ voiceTransport: derived });
   }
 
-  /** 滑条拖动的落盘去抖：每个 input tick 全量序列化偏好曾在移动端把帧预算
-   *  打爆（拖动不跟手，2026-10-18）。尾沿 200ms，页面关闭丢末次写可接受。 */
-  let audioPreferencesSaveTimer: ReturnType<typeof setTimeout> | null = null;
-  function queueAudioPreferencesSave(): void {
-    if (audioPreferencesSaveTimer) clearTimeout(audioPreferencesSaveTimer);
-    audioPreferencesSaveTimer = setTimeout(() => {
-      audioPreferencesSaveTimer = null;
-      void saveAudioPreferences();
-    }, 200);
-  }
-
-  async function saveAudioPreferences(): Promise<void> {
-    await saveLocalPreferences({
-      schemaVersion: 1,
-      preferredInputDeviceId: committedInputDeviceId,
-      inputDeviceId: committedInputDeviceId,
-      microphoneMuted: V().microphoneMuted,
-      noiseSuppressionEnabled: committedNoiseSuppressionEnabled,
-      echoCancellationEnabled: committedEchoCancellationEnabled,
-      autoGainControlEnabled: committedAutoGainControlEnabled,
-      voxThreshold: V().voxThreshold,
-      inputGain: V().inputVolume,
-      outputVolume: V().outputVolume,
-      notificationVolume: V().notificationVolume,
-      preferredOutputDeviceId: committedOutputDeviceId,
-      volumesByUid: { ...storedVolumesByUid },
-    });
-  }
-
-  function syncKnownMemberVolumes(): void {
-    const updates: Record<number, number> = {};
-    let changed = false;
-    for (const member of sessionState.membersLive()) {
-      if (!member.uid) continue;
-      const saved = storedVolumesByUid[member.uid];
-      if (saved !== undefined && (V().volumes[member.id] ?? 1) !== Math.max(0, Math.min(4, saved))) {
-        updates[member.id] = Math.max(0, Math.min(4, saved));
-        changed = true;
-      }
-    }
-    if (changed) patch({ volumes: { ...V().volumes, ...updates } });
-  }
-
-  const audioPreferencesReady = loadLocalPreferences().then((preferences) => {
-    const next: Partial<VoiceSessionView> = {};
-    if (!inputDeviceTouched) {
-      if (!V().selectedInputDeviceId) next.selectedInputDeviceId = preferences.preferredInputDeviceId ?? preferences.inputDeviceId ?? "";
-      committedInputDeviceId = next.selectedInputDeviceId ?? V().selectedInputDeviceId;
-    }
-    if (typeof preferences.microphoneMuted === "boolean") next.microphoneMuted = preferences.microphoneMuted;
-    if (!noiseSuppressionTouched && typeof preferences.noiseSuppressionEnabled === "boolean") {
-      next.noiseSuppressionEnabled = preferences.noiseSuppressionEnabled;
-      committedNoiseSuppressionEnabled = preferences.noiseSuppressionEnabled;
-    }
-    if (!echoCancellationTouched && typeof preferences.echoCancellationEnabled === "boolean") {
-      next.echoCancellationEnabled = preferences.echoCancellationEnabled;
-      committedEchoCancellationEnabled = preferences.echoCancellationEnabled;
-    }
-    if (!autoGainControlTouched && typeof preferences.autoGainControlEnabled === "boolean") {
-      next.autoGainControlEnabled = preferences.autoGainControlEnabled;
-      committedAutoGainControlEnabled = preferences.autoGainControlEnabled;
-    }
-    if (typeof preferences.voxThreshold === "number") next.voxThreshold = clamp(preferences.voxThreshold, 0.001, 0.08);
-    if (typeof preferences.inputGain === "number") next.inputVolume = Math.max(0, Math.min(MAX_INPUT_VOLUME, preferences.inputGain));
-    if (typeof preferences.outputVolume === "number") next.outputVolume = Math.max(0, Math.min(1, preferences.outputVolume));
-    if (!outputDeviceTouched) {
-      if (!V().selectedOutputDeviceId) next.selectedOutputDeviceId = preferences.preferredOutputDeviceId ?? "";
-      committedOutputDeviceId = next.selectedOutputDeviceId ?? V().selectedOutputDeviceId;
-    }
-    if (typeof preferences.notificationVolume === "number") next.notificationVolume = clamp(preferences.notificationVolume, 0, 1);
-    if (Object.keys(next).length) patch(next);
-    Object.assign(storedVolumesByUid, preferences.volumesByUid ?? {});
-    syncKnownMemberVolumes();
-  });
-
   function effectiveOutputVolume(): number {
     return V().outputMuted ? 0 : V().outputVolume;
   }
@@ -562,10 +391,6 @@ export function createVoiceSessionController() {
       }
     }
     return audioCtx;
-  }
-
-  function clamp(value: number, minimum: number, maximum: number): number {
-    return Math.max(minimum, Math.min(maximum, value));
   }
 
   /**
@@ -859,8 +684,10 @@ export function createVoiceSessionController() {
       nextCapture.activate();
       // The fallback for a later failed change is this actual live graph, even
       // if device enumeration or WebRTC negotiation is still in progress.
-      committedInputDeviceId = V().selectedInputDeviceId;
-      committedNoiseSuppressionEnabled = V().noiseSuppressionEnabled;
+      audioPrefs.setCommitted({
+        selectedInputDeviceId: V().selectedInputDeviceId,
+        noiseSuppressionEnabled: V().noiseSuppressionEnabled,
+      });
       watchMicrophoneTrack(nextStream);
       clearMicrophoneError();
     } catch (error) {
@@ -988,7 +815,7 @@ export function createVoiceSessionController() {
   }
 
   async function setInputDevice(deviceId: string): Promise<void> {
-    inputDeviceTouched = true;
+    audioPrefs.markTouched("inputDevice");
     patch({ selectedInputDeviceId: deviceId });
     await reconfigureMicrophone();
   }
@@ -1008,21 +835,24 @@ export function createVoiceSessionController() {
       if (!isCurrent()) return;
       await refreshAudioDevices();
       if (!isCurrent()) return;
-      committedInputDeviceId = V().selectedInputDeviceId;
-      committedNoiseSuppressionEnabled = V().noiseSuppressionEnabled;
-      committedEchoCancellationEnabled = V().echoCancellationEnabled;
-      committedAutoGainControlEnabled = V().autoGainControlEnabled;
-      localStorage.setItem("webspeak:input-device", committedInputDeviceId);
-      await saveAudioPreferences();
+      audioPrefs.setCommitted({
+        selectedInputDeviceId: V().selectedInputDeviceId,
+        noiseSuppressionEnabled: V().noiseSuppressionEnabled,
+        echoCancellationEnabled: V().echoCancellationEnabled,
+        autoGainControlEnabled: V().autoGainControlEnabled,
+      });
+      localStorage.setItem("webspeak:input-device", audioPrefs.committed().selectedInputDeviceId);
+      await audioPrefs.save();
     } catch (error) {
       if (!isCurrent() || error instanceof CancelledMediaOperation) return;
+      const committed = audioPrefs.committed();
       patch({
-        selectedInputDeviceId: committedInputDeviceId,
-        noiseSuppressionEnabled: committedNoiseSuppressionEnabled,
-        echoCancellationEnabled: committedEchoCancellationEnabled,
-        autoGainControlEnabled: committedAutoGainControlEnabled,
+        selectedInputDeviceId: committed.selectedInputDeviceId,
+        noiseSuppressionEnabled: committed.noiseSuppressionEnabled,
+        echoCancellationEnabled: committed.echoCancellationEnabled,
+        autoGainControlEnabled: committed.autoGainControlEnabled,
       });
-      localStorage.setItem("webspeak:input-device", committedInputDeviceId);
+      localStorage.setItem("webspeak:input-device", committed.selectedInputDeviceId);
       throw error;
     }
   }
@@ -1042,20 +872,20 @@ export function createVoiceSessionController() {
     if (deviceId && !V().outputDevices.some((device) => device.deviceId === deviceId)) {
       throw new Error("所选扬声器当前不可用");
     }
-    outputDeviceTouched = true;
+    audioPrefs.markTouched("outputDevice");
     const generation = ++outputDeviceGeneration;
     deviceListGeneration++;
     const sequence = voiceConnection.generation;
     const isCurrent = () => generation === outputDeviceGeneration && sequence === voiceConnection.generation;
-    const previousDeviceId = committedOutputDeviceId;
+    const previousDeviceId = audioPrefs.committed().selectedOutputDeviceId;
     patch({ selectedOutputDeviceId: deviceId });
     try {
       if (audioCtx || deviceId) await setAudioSink(audioCtx ?? getAudioCtx(), deviceId);
       if (!isCurrent()) return;
-      committedOutputDeviceId = deviceId;
+      audioPrefs.setCommitted({ selectedOutputDeviceId: deviceId });
       localStorage.setItem("webspeak:output-device", deviceId);
       clearAudioNotice("OUTPUT_DEVICE_UNAVAILABLE");
-      await saveAudioPreferences();
+      await audioPrefs.save();
     } catch (error) {
       if (!isCurrent()) return;
       patch({ selectedOutputDeviceId: previousDeviceId });
@@ -1129,7 +959,7 @@ export function createVoiceSessionController() {
         target, nickname, channel, serverPassword,
         ...(rememberIdentity && identity ? { identity } : {}),
         ...(rememberIdentity ? { rememberIdentity: true } : {}),
-      }), audioPreferencesReady);
+      }), audioPrefs.ready);
     };
     if (!switchingServer) {
       disconnect(true);
@@ -1225,7 +1055,7 @@ export function createVoiceSessionController() {
     }
     browserReconnectActive = true;
     patch({ connecting: true });
-    voiceConnection.start(JSON.stringify({ reconnect: reconnectTicket }), audioPreferencesReady);
+    voiceConnection.start(JSON.stringify({ reconnect: reconnectTicket }), audioPrefs.ready);
   }
 
   /** Budget exhausted or the gateway forgot the session. A page that never
@@ -1276,13 +1106,7 @@ export function createVoiceSessionController() {
     inputDeviceGeneration++;
     outputDeviceGeneration++;
     deviceListGeneration++;
-    patch({
-      selectedInputDeviceId: committedInputDeviceId,
-      selectedOutputDeviceId: committedOutputDeviceId,
-      noiseSuppressionEnabled: committedNoiseSuppressionEnabled,
-      echoCancellationEnabled: committedEchoCancellationEnabled,
-      autoGainControlEnabled: committedAutoGainControlEnabled,
-    });
+    patch(audioPrefs.committed());
     microphoneTest.dispose();
     audioDiagnostics.reset();
     commands.clear(new Error("语音连接已关闭"));
@@ -1662,7 +1486,7 @@ export function createVoiceSessionController() {
     applyUplinkGate();
     sendCmd("setMicrophoneMuted", { muted });
     if (muted && V().tsClientId) clearSpeaking(V().tsClientId);
-    void saveAudioPreferences();
+    void audioPrefs.save();
   }
 
   function clearError(): void {
@@ -1712,38 +1536,30 @@ export function createVoiceSessionController() {
     return `操作失败（错误代码：${safeCode}）${safeFallback ? `：${safeFallback}` : ""}`;
   }
 
-  const volumeSyncTimers = new Map<number, ReturnType<typeof setTimeout>>();
-  const VOLUME_SYNC_DELAY_MS = 150;
-
   function setVolume(clientId: number, volume: number): void {
     const normalized = Math.max(0, Math.min(4, volume));
     patch({ volumes: { ...V().volumes, [clientId]: normalized } });
     if (localStorage.getItem("webspeak:playback-debug") === "1") console.info("[playback-debug] setVolume", clientId, normalized);
     const member = sessionState.store.getState().members.find((candidate) => candidate.id === clientId);
-    if (member?.uid) storedVolumesByUid[member.uid] = normalized;
+    if (member?.uid) audioPrefs.stashUidVolume(member.uid, normalized);
     // Per-speaker volume is applied locally on the playback graph (both the
     // compatibility decoder and the WebRTC multi-track streams), so only
     // persistence trails the thumb — one drag used to emit dozens of commands.
     remotePlayback.updateVolume(clientId);
     webrtc.refreshSpeakerVolume(clientId);
-    const pending = volumeSyncTimers.get(clientId);
-    if (pending !== undefined) clearTimeout(pending);
-    volumeSyncTimers.set(clientId, setTimeout(() => {
-      volumeSyncTimers.delete(clientId);
-      void saveAudioPreferences();
-    }, VOLUME_SYNC_DELAY_MS));
+    audioPrefs.queueVolumeSave(clientId);
   }
 
   function setInputVolume(volume: number): void {
     patch({ inputVolume: Math.max(0, Math.min(MAX_INPUT_VOLUME, volume)) });
     applyUplinkGate();
     applyUplinkRouting();
-    queueAudioPreferencesSave();
+    audioPrefs.queueSave();
   }
 
   async function setNoiseSuppressionEnabled(enabled: boolean): Promise<void> {
     if (V().noiseSuppressionEnabled === enabled) return;
-    noiseSuppressionTouched = true;
+    audioPrefs.markTouched("noiseSuppression");
     patch({ noiseSuppressionEnabled: enabled });
     try {
       await reconfigureMicrophone();
@@ -1754,7 +1570,7 @@ export function createVoiceSessionController() {
 
   async function setEchoCancellationEnabled(enabled: boolean): Promise<void> {
     if (V().echoCancellationEnabled === enabled) return;
-    echoCancellationTouched = true;
+    audioPrefs.markTouched("echoCancellation");
     patch({ echoCancellationEnabled: enabled });
     try {
       await reconfigureMicrophone();
@@ -1765,7 +1581,7 @@ export function createVoiceSessionController() {
 
   async function setAutoGainControlEnabled(enabled: boolean): Promise<void> {
     if (V().autoGainControlEnabled === enabled) return;
-    autoGainControlTouched = true;
+    audioPrefs.markTouched("autoGainControl");
     patch({ autoGainControlEnabled: enabled });
     try {
       await reconfigureMicrophone();
@@ -1777,7 +1593,7 @@ export function createVoiceSessionController() {
   function setOutputVolume(volume: number): void {
     patch({ outputVolume: Math.max(0, Math.min(1, volume)) });
     applyOutputVolume();
-    queueAudioPreferencesSave();
+    audioPrefs.queueSave();
   }
 
   function toggleOutputMute(): void {
@@ -1787,12 +1603,12 @@ export function createVoiceSessionController() {
 
   function setVoxThreshold(threshold: number): void {
     patch({ voxThreshold: clamp(threshold, 0.001, 0.08) });
-    queueAudioPreferencesSave();
+    audioPrefs.queueSave();
   }
 
   function setNotificationVolume(volume: number): void {
     patch({ notificationVolume: clamp(volume, 0, 1) });
-    queueAudioPreferencesSave();
+    audioPrefs.queueSave();
   }
 
   /** Releases reconnect timers; React hosts call this from their teardown. */
