@@ -5,7 +5,6 @@ const DB_VERSION = 4;
 const CURRENT_IDENTITY_KEY = "current";
 const PREFERENCES_KEY = "singleton";
 
-import type { InstalledSkin } from "./skin-pack";
 import type { ChatMessage } from "@shared/voice-models";
 
 const MAX_CHAT_HISTORY_MESSAGES_PER_CONVERSATION = 200;
@@ -43,7 +42,6 @@ export interface LocalPreferences {
   schemaVersion: 1;
   locale?: "auto" | "zh-CN" | "en";
   theme?: "system" | "light" | "dark";
-  skinId?: string;
   microphoneMuted?: boolean;
   noiseSuppressionEnabled?: boolean;
   echoCancellationEnabled?: boolean;
@@ -78,7 +76,6 @@ function openDatabase(): Promise<IDBDatabase> {
       if (!database.objectStoreNames.contains("preferences")) database.createObjectStore("preferences", { keyPath: "id" });
       if (!database.objectStoreNames.contains("favorites")) database.createObjectStore("favorites", { keyPath: "id" });
       if (database.objectStoreNames.contains("recent")) database.deleteObjectStore("recent");
-      if (!database.objectStoreNames.contains("skins")) database.createObjectStore("skins", { keyPath: "id" });
       if (!database.objectStoreNames.contains("chatHistory")) {
         const store = database.createObjectStore("chatHistory", { keyPath: "id" });
         store.createIndex("serverKey", "serverKey", { unique: false });
@@ -191,39 +188,6 @@ export async function saveLocalPreferences(preferences: LocalPreferences, signal
   } catch {
     // Local preference persistence is optional and never blocks joining.
   }
-}
-
-export async function listInstalledSkins(): Promise<InstalledSkin[]> {
-  try {
-    const skins = await request<InstalledSkin[]>("skins", "readonly", (store, resolve, reject) => {
-      const get = store.getAll();
-      get.onsuccess = () => resolve(get.result as InstalledSkin[]);
-      get.onerror = () => reject(get.error);
-    });
-    return skins.sort((a, b) => a.name.localeCompare(b.name));
-  } catch {
-    return [];
-  }
-}
-
-export async function getInstalledSkin(id: string): Promise<InstalledSkin | null> {
-  try {
-    return await request<InstalledSkin | null>("skins", "readonly", (store, resolve, reject) => {
-      const get = store.get(id);
-      get.onsuccess = () => resolve((get.result as InstalledSkin | undefined) ?? null);
-      get.onerror = () => reject(get.error);
-    });
-  } catch {
-    return null;
-  }
-}
-
-export async function saveInstalledSkin(skin: InstalledSkin, signal?: AbortSignal): Promise<void> {
-  await request("skins", "readwrite", (store, resolve, reject) => {
-    const put = store.put(skin);
-    put.onsuccess = () => resolve(undefined);
-    put.onerror = () => reject(put.error);
-  }, signal);
 }
 
 export async function listFavorites(): Promise<FavoriteServer[]> {

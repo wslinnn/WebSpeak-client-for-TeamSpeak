@@ -52,7 +52,6 @@ async function mountAndWait(path = "/admin/server") {
 
 const serverState = () => controller.serverSettings.store.getState();
 const operationsState = () => controller.operations.store.getState();
-const skinsState = () => controller.skins.store.getState();
 const view = () => controller.store.getState();
 
 function deferred<T = unknown>() {
@@ -152,16 +151,6 @@ test("unmounting the admin page prevents late login from navigating back", async
   expect(view().screen).toBe("login");
 });
 
-test("refreshing skins preserves a default selection edited during the request", async () => {
-  await mountAndWait("/admin/skins");
-  const skins = deferred<Response>();
-  handler = (path) => path === "/skins" ? skins.promise : Promise.resolve(json(defaults(path)));
-  const pending = controller.skins.loadSkinCatalog();
-  controller.skins.store.setState({ defaultId: "builtin.dark" });
-  skins.resolve(json({ skins: [], defaultSkinId: "builtin.light" }) as Response);
-  await pending;
-  expect(skinsState().defaultId).toBe("builtin.dark");
-});
 
 test("a successful settings save clears submitted secrets and updates their stored status", async () => {
   await mountAndWait();
@@ -339,22 +328,6 @@ test("unmounting during a backup download cannot trigger a late file download", 
   expect(view().errorMessage).toBe("");
 });
 
-test("skin mutations are serialized and failure restores the last saved default", async () => {
-  await mountAndWait("/admin/skins");
-  const save = deferred<Response>();
-  let calls = 0;
-  handler = (path) => path === "/skins/default" ? (++calls, save.promise) : Promise.resolve(json(defaults(path)));
-  controller.skins.store.setState({ defaultId: "builtin.dark" });
-  const pending = controller.skins.saveSkinDefault();
-  await controller.skins.saveSkinDefault();
-  expect(calls).toBe(1);
-  expect(controller.skins.store.getState().defaultSaving).toBe(true);
-  save.resolve(json({ code: "REQUEST_FAILED" }, 500) as Response);
-  await pending;
-  expect(skinsState().defaultId).toBe("builtin.light");
-  expect(skinsState().defaultSaving).toBe(false);
-  expect(skinsState().error).not.toBe("");
-});
 
 test("a settings response cannot restore probe metadata after the draft password changes", async () => {
   await mountAndWait();

@@ -1,6 +1,6 @@
 import { currentUiScale } from "../app/ui-scale";
 
-// Shared dropdown placement for the skin/language switchers. Menus anchored
+// Shared dropdown placement for the language switcher and popup menus. Menus anchored
 // to a trigger near a screen or container edge overflow whatever anchors
 // them; these helpers clamp into the viewport (and any clipping ancestor)
 // after the menu has rendered.

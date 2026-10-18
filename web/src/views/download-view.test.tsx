@@ -96,7 +96,7 @@ test("语言切换经切换器持久化 webspeak:language 且界面即时换语"
   expect(screen.getByRole("heading", { name: enTitle })).toBeInTheDocument();
 });
 
-test("页面锚点：皮肤根 + data-ws-page=download + 挂载后钉内置皮肤", async () => {
+test("页面锚点：客户端根 + data-ws-page=download", async () => {
   stubFetch({ release: null });
   const { container } = renderDownload();
   // 语言包加载窗口内视图渲染 null：等根出现再断言锚点。
@@ -107,6 +107,5 @@ test("页面锚点：皮肤根 + data-ws-page=download + 挂载后钉内置皮�
   });
   expect(root?.getAttribute("data-ws-page")).toBe("download");
   expect(root?.classList.contains("ws-skin-root")).toBe(true);
-  await waitFor(() => expect(root?.getAttribute("data-ws-skin")).toMatch(/^builtin\.(light|dark)$/));
   expect(screen.getByRole("link", { name: /返回首页/ }).getAttribute("href")).toBe("/");
 });

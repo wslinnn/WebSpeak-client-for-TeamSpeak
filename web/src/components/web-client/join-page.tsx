@@ -5,9 +5,7 @@ import { JoinForm } from "./join-form";
 import { JoinHeader } from "./join-header";
 import { JoinNotices } from "./join-notices";
 import { MobileGate } from "./mobile-gate";
-import type { SkinSwitcherState } from "./skin-switcher";
 import type { Language } from "@/i18n/web-client";
-import type { SkinHomeCopy } from "@/services/skin-pack";
 import type { FavoriteServer } from "@/services/local-persistence";
 
 interface JoinPageConfig {
@@ -83,7 +81,7 @@ interface JoinPageProps {
   t(key: string, variables?: Record<string, string | number>): string;
   localizedMessage(message: string): string;
   visibleErrorCode(code: string): string;
-  skin: SkinSwitcherState & { homeCopy: SkinHomeCopy };
+  theme: { dark: boolean; onToggle(): void; label: string };
 }
 
 /** 连接/欢迎页（旧 WebClient.vue join 段平价）：header、手机门、hero、join 卡
@@ -93,7 +91,8 @@ export function JoinPage(props: JoinPageProps) {
   return (
     <section className="join-page" data-ws-part="home">
       <JoinHeader
-        brandName={props.skin.homeCopy.brandName || config.siteName}
+        theme={props.theme}
+        brandName={config.siteName}
         brandSubtitle={t("browserWorkspace")}
         gatewayStatus={t("secureGateway")}
         downloadLabel={t("downloadPage")}
@@ -102,10 +101,7 @@ export function JoinPage(props: JoinPageProps) {
         language={props.language}
         onLanguageChange={props.onLanguageChange}
         languageMenuLabel={t("languageMenu")}
-        skinValue={props.skin.value}
-        skinOptions={props.skin.options}
-        onSkinChange={props.skin.onChange}
-        skinMenuLabel={props.skin.menuLabel}
+
       />
 
       {props.mobileGateActive ? (
@@ -121,11 +117,11 @@ export function JoinPage(props: JoinPageProps) {
         <main className="join-content" data-ws-part="home.content">
           <div className="join-copy" data-ws-part="home.hero">
             <h1 data-ws-part="home.hero.title">
-              {props.skin.homeCopy.title || t("joinLine1")}
+              {t("joinLine1")}
               <br />
-              <em>{props.skin.homeCopy.titleAccent || t("joinLine2")}</em>
+              <em>{t("joinLine2")}</em>
             </h1>
-            <p className="join-description" data-ws-part="home.hero.description">{props.skin.homeCopy.description || props.welcomeText}</p>
+            <p className="join-description" data-ws-part="home.hero.description">{props.welcomeText}</p>
           </div>
 
           <div className="join-card" data-ws-part="home.join-card">
@@ -137,8 +133,8 @@ export function JoinPage(props: JoinPageProps) {
                 {Array.from({ length: 3 }, (_, ring) => <i key={ring} />)}
               </span>
             </div>
-            <h2 data-ws-part="home.join-title">{props.skin.homeCopy.welcomeTitle || t("welcomeBack")}</h2>
-            <p className="card-lead" data-ws-part="home.join-description">{props.skin.homeCopy.welcomeDescription || t("joinLead")}</p>
+            <h2 data-ws-part="home.join-title">{t("welcomeBack")}</h2>
+            <p className="card-lead" data-ws-part="home.join-description">{t("joinLead")}</p>
 
             <JoinNotices
               voiceError={props.voice.error}
@@ -223,7 +219,7 @@ export function JoinPage(props: JoinPageProps) {
       )}
 
       <footer className="join-footer" data-ws-part="home.footer">
-        <span>{props.skin.homeCopy.brandName || config.siteName}</span>
+        <span>{config.siteName}</span>
         <span className="footer-separator">·</span>
         <span>{t("teamSpeakClient")}</span>
         <span className="footer-spacer" />

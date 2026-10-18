@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeAll as before, afterAll as after, beforeEach, test } from "vitest";
 import { setImmediate as nextTurn } from "node:timers/promises";
-import { clearNamespacedStorageEntries, getChatHistoryConversationKey, loadLocalPreferences, normalizeChatHistoryServerKey, saveInstalledSkin, saveLocalPreferences } from "./local-persistence";
-import type { InstalledSkin } from "./skin-pack";
+import { clearNamespacedStorageEntries, getChatHistoryConversationKey, loadLocalPreferences, normalizeChatHistoryServerKey, saveLocalPreferences } from "./local-persistence";
 
 // Control IndexedDB's request and transaction completion separately. These tests
 // exercise the public storage APIs, including cancellation before opening the DB.
@@ -28,7 +27,6 @@ class Transaction {
   commit() { assert.equal(this.aborted, false); this.oncomplete?.(); }
 }
 const database = { transaction: () => { const tx = new Transaction(); transactions.push(tx); return tx; } };
-const sample = { id: "sample.a", css: "", assets: {} } as InstalledSkin;
 
 test("chat history keys isolate server targets and group private messages by stable conversation", () => {
   assert.equal(normalizeChatHistoryServerKey(" Example.COM:9987 "), "example.com:9987");
@@ -38,7 +36,13 @@ test("chat history keys isolate server targets and group private messages by sta
   assert.equal(getChatHistoryConversationKey({ ...privateMessage, scope: "channel", targetId: "42" }), "channel:42");
 });
 before(() => Object.defineProperty(globalThis, "indexedDB", { configurable: true, value: {
-  open: () => opening = { result: database, onsuccess: () => {} },
+  // 开库成功事件在微任务里自触发：openDatabase 在 open() 返回后才挂 onsuccess，
+  // 假环境没有浏览器事件循环来派发它。
+  open: () => {
+    opening = { result: database, onsuccess: () => {} };
+    queueMicrotask(() => opening.onsuccess());
+    return opening;
+  },
 } }));
 beforeEach(() => { transactions = []; });
 after(() => {
@@ -46,42 +50,20 @@ after(() => {
   else Reflect.deleteProperty(globalThis, "indexedDB");
 });
 
-test("cancelling a skin while IndexedDB opens prevents the delayed write", async () => {
-  const owner = new AbortController();
-  const pending = saveInstalledSkin(sample, owner.signal);
-  const rejected = assert.rejects(pending, { name: "AbortError" });
-  owner.abort(); opening.onsuccess();
-  await rejected;
-  assert.equal(transactions.length, 0);
-});
 test("a successful request is not reported as durable until its transaction commits", async () => {
   let settled = false;
-  const pending = saveInstalledSkin(sample).then(() => { settled = true; });
+  const pending = saveLocalPreferences({ schemaVersion: 1 }).then(() => { settled = true; });
   await nextTurn(); const tx = transactions[0]!;
+  // 偏好保存是同事务 get→put：先完成读取，putRequest 才存在。
+  tx.read({ schemaVersion: 1 });
   tx.writtenSuccessfully(); await nextTurn();
   assert.equal(settled, false);
   tx.commit(); await pending;
   assert.equal(settled, true);
 });
-test("retiring a skin aborts its outstanding write transaction", async () => {
-  const owner = new AbortController();
-  const pending = saveInstalledSkin(sample, owner.signal);
-  const rejected = assert.rejects(pending, { name: "AbortError" });
-  await nextTurn(); const tx = transactions[0]!;
-  tx.writtenSuccessfully(); owner.abort(); await rejected;
-  assert.equal(tx.aborted, true);
-});
-test("skin preferences merge current unrelated fields in the same transaction", async () => {
-  const pending = saveLocalPreferences({ schemaVersion: 1, skinId: "builtin.dark" });
-  await nextTurn(); assert.equal(transactions.length, 1);
-  const tx = transactions[0]!;
-  tx.read({ schemaVersion: 1, language: "de", inputGain: 0.5, volumesByUid: { member: 0.2 } });
-  assert.deepEqual(tx.written, { id: "singleton", schemaVersion: 1, language: "de", inputGain: 0.5, skinId: "builtin.dark", volumesByUid: { member: 0.2 } });
-  tx.writtenSuccessfully(); tx.commit(); await pending;
-});
 test("cancelling a pending preference merge aborts it without blocking the caller", async () => {
   const owner = new AbortController();
-  const pending = saveLocalPreferences({ schemaVersion: 1, skinId: "sample.a" }, owner.signal);
+  const pending = saveLocalPreferences({ schemaVersion: 1, language: "en" }, owner.signal);
   await nextTurn(); const tx = transactions[0]!;
   owner.abort(); await pending;
   assert.equal(tx.aborted, true);
@@ -90,8 +72,8 @@ test("cancelling a pending preference merge aborts it without blocking the calle
 test("storage read success still returns its original data after transaction completion", async () => {
   const pending = loadLocalPreferences();
   await nextTurn(); const tx = transactions[0]!;
-  tx.read({ schemaVersion: 1, skinId: "builtin.dark" }); tx.commit();
-  assert.deepEqual(await pending, { schemaVersion: 1, skinId: "builtin.dark", volumesByUid: {} });
+  tx.read({ schemaVersion: 1, language: "en" }); tx.commit();
+  assert.deepEqual(await pending, { schemaVersion: 1, language: "en", volumesByUid: {} });
 });
 
 function createFakeStorage(entries: Record<string, string> = {}): Storage {

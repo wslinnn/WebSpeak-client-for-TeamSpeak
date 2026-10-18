@@ -43,7 +43,7 @@ function stubMatchMedia(): void {
   }));
 }
 
-test("默认路由渲染 WebClient 壳：皮肤根锚点 + data-ws-page=home + data-ws-route=webclient", async () => {
+test("默认路由渲染 WebClient 壳：客户端根锚点 + data-ws-page=home + data-ws-route=webclient", async () => {
   stubMatchMedia();
   renderRoutes("/");
   // 整跑并行负载下模块图与首渲染可超默认 1s（/download 用例同款先例）。
@@ -53,9 +53,6 @@ test("默认路由渲染 WebClient 壳：皮肤根锚点 + data-ws-page=home + d
     return element;
   }, { timeout: 5000 });
   expect(shell?.getAttribute("data-ws-page")).toBe("home");
-  // 皮肤 id 由 initialize 异步钉到根元素（内置皮肤 CSS 的作用域锚点；挂载即钉的
-  // applyTheme 临时桥已随 P4-7 皮肤接线删除，见 DECISIONS #15）。
-  await waitFor(() => expect(shell?.getAttribute("data-ws-skin")).toMatch(/^builtin\.(light|dark)$/), { timeout: 5000 });
   await waitFor(() => expect(document.documentElement.dataset.wsRoute).toBe("webclient"));
 });
 

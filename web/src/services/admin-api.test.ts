@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { test } from "vitest";
 import { AdminApiError, createAdminApi } from "./admin-api";
 import { adminResponses } from "@shared/admin-responses";
-import { strToU8, zipSync } from "fflate";
 
 const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status });
 function deferred<T>() {
@@ -81,23 +80,6 @@ test("a successful response from an old session cannot publish into a new sessio
   await assert.rejects(pending, error => error instanceof AdminApiError && error.code === "REQUEST_CANCELLED");
 });
 
-test("skin validation finishing after the session changes cannot submit an upload", async () => {
-  let token = "old-session";
-  let requests = 0;
-  let confirmations = 0;
-  const skin = { schemaVersion: 1, id: "late-test-skin", name: "Test", version: "1.0.0", author: "Test", license: "MIT", minAppVersion: "0.2.4", entry: "skin.css" };
-  const file = new File([zipSync({ "manifest.json": strToU8(JSON.stringify(skin)), "skin.css": strToU8('[data-ws-part="home"] { color: #123456; }') })], "test.wskin");
-  const bytes = await file.arrayBuffer();
-  const validation = deferred<ArrayBuffer>();
-  file.arrayBuffer = () => validation.promise;
-  const api = createAdminApi({ csrfToken: () => token, fetch: async () => { requests++; return json({}); } });
-  const pending = api.uploadSkin(file, () => { confirmations++; return true; });
-  token = "replacement-session";
-  validation.resolve(bytes);
-  await assert.rejects(pending, error => error instanceof AdminApiError && error.code === "REQUEST_CANCELLED");
-  assert.equal(requests, 0);
-  assert.equal(confirmations, 0);
-});
 
 test("admin mutations read the current CSRF token and encode resource IDs", async () => {
   let token = "first-test-token";
@@ -115,25 +97,6 @@ test("admin mutations read the current CSRF token and encode resource IDs", asyn
   assert.equal(calls[0]!.init.body, JSON.stringify({ newPassword: "test-password" }));
 });
 
-test("skin uploads preserve the binary body, validate the package and honor replacement cancellation", async () => {
-  const skin = { schemaVersion: 1, id: "api-test-skin", name: "Test", version: "1.0.0", author: "Test", license: "MIT", minAppVersion: "0.2.4", entry: "skin.css" };
-  const file = new File([zipSync({ "manifest.json": strToU8(JSON.stringify(skin)), "skin.css": strToU8('[data-ws-part="home"] { color: #123456; }') })], "test.wskin");
-  let requests = 0;
-  const api = createAdminApi({ csrfToken: () => "upload-test-token", fetch: async (url, init) => {
-    requests++;
-    assert.equal(url, "/api/admin/skins/api-test-skin");
-    assert.equal(init?.body, file);
-    assert.equal(new Headers(init.headers).get("content-type"), "application/octet-stream");
-    assert.equal(new Headers(init.headers).get("x-csrf-token"), "upload-test-token");
-    return json({ ok: true, skin: { ...skin, installedAt: 1 } });
-  } });
-  assert.equal(await api.uploadSkin(file, () => false), null);
-  assert.equal(requests, 0);
-  assert.equal((await api.uploadSkin(file))?.id, skin.id);
-  assert.equal(requests, 1);
-  await assert.rejects(api.uploadSkin(new File(["not a zip"], "broken.wskin")));
-  assert.equal(requests, 1);
-});
 
 test("backup downloads use the common expired-session path and retain binary data", async () => {
   let expired = 0;

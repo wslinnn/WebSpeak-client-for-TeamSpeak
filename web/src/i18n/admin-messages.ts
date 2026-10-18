@@ -23,8 +23,6 @@ const eventLabels: Record<string, AdminTranslationKey> = {
   ADMIN_INITIALIZED: "initializedEvent", LEGACY_CONFIG_IMPORTED: "importedEvent", CONNECTION_TEST: "testEvent",
   ADMIN_PASSWORD_CHANGED: "passwordChangedEvent", ADMIN_BACKUP_EXPORTED: "backupExportedEvent",
   ADMIN_SESSION_TERMINATED: "sessionTerminatedEvent",
-  ADMIN_SKIN_INSTALLED: "skinInstalledEvent", ADMIN_SKIN_REMOVED: "skinRemovedEvent",
-  ADMIN_SKIN_ENABLED: "skinEnabledEvent", ADMIN_SKIN_DISABLED: "skinDisabledEvent",
   INVITE_CREATED: "inviteCreatedEvent", INVITE_REVOKED: "inviteRevokedEvent", INVITE_CONSUMED: "inviteConsumedEvent",
 };
 const errorLabels: Record<string, AdminTranslationKey> = {

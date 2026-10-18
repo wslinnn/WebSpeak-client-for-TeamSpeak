@@ -57,6 +57,8 @@ test("security headers keep the feature-critical CSP sources", async (context) =
   assert.match(csp, /img-src [^;]*'self'[^;]*blob:/);
   assert.match(csp, /font-src [^;]*'self'[^;]*blob:/);
   assert.match(csp, /media-src [^;]*'self'[^;]*blob:/);
+  // Theme CSS ships as static stylesheets; no inline style channel is allowed.
+  // The toast library injects its stylesheet as a style element at runtime.
   assert.match(csp, /style-src [^;]*'unsafe-inline'/);
   // Deliberate narrowing: the voice WebSocket is always same-origin, and the
   // app requires WebCodecs anyway (post-Safari-15.4 'self'/ws matching).

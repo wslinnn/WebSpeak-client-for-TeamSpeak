@@ -39,15 +39,12 @@ test("首页文案为中文基准", async ({ page }) => {
   await expect(page.locator('[data-ws-part="home.connect"]')).toContainText("进入语音空间");
 });
 
-test("主题切换翻转皮肤属性", async ({ page }) => {
-  const root = page.locator(".ws-skin-root");
-  // 皮肤控制器异步初始化（目录拉取后才 applyTheme），先等就绪标志。
-  await expect(root).not.toHaveClass(/skin-initializing/);
-  const before = await root.getAttribute("data-ws-skin");
-  expect(before, "初始皮肤属性应已写入").toBeTruthy();
-  await page.locator('[data-ws-part="skin.trigger"]').click();
-  await page.locator(".skin-option", { hasText: "夜间" }).click();
-  await expect(root).not.toHaveAttribute("data-ws-skin", before!);
+test("主题切换翻转明暗类", async ({ page }) => {
+  const html = page.locator("html");
+  const before = (await html.getAttribute("class"))?.includes("dark") ?? false;
+  await page.locator('[data-ws-part="theme.toggle"]').click();
+  if (before) await expect(html).not.toHaveClass(/\bdark\b/);
+  else await expect(html).toHaveClass(/\bdark\b/);
 });
 
 test("种子进房态渲染房间壳", async ({ page }) => {

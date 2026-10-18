@@ -8,7 +8,6 @@ import { createAdminRequests } from "@/services/admin-requests";
 
 import { createOperationsController, type OperationsController } from "./operations-controller";
 import { createServerSettingsController, type ServerSettingsController } from "./server-settings-controller";
-import { createSkinsController, type SkinsController } from "./skins-controller";
 
 export type AdminScreen = "login" | "change-password" | "admin";
 
@@ -93,7 +92,6 @@ export function createAdminController(initial: Options) {
   function resetPrivateState() {
     serverSettings.reset();
     operations.reset();
-    skins.reset();
     patch({ overview: emptyOverview(), loginPassword: "", newPassword: "", confirmNewPassword: "", errorMessage: "", webrtcPortNoticeOpen: false });
   }
 
@@ -102,7 +100,6 @@ export function createAdminController(initial: Options) {
     requests.reset();
     serverSettings.cancelRequests();
     operations.cancelRequests();
-    skins.cancelRequests();
     patch({ loading: false, submitting: false, loggingOut: false });
   }
 
@@ -135,23 +132,10 @@ export function createAdminController(initial: Options) {
     confirmTerminate: (nickname) => window.confirm(messages().tr("confirmTerminate", { nickname })),
     refreshOverview: () => loadOverview(),
   });
-  const skins: SkinsController = createSkinsController({
-    api: adminApi,
-    report: (error, upload) => {
-      // 旧版 skins report：皮肤区错误走独立通道（skinManagerError），上传失败透出包解析错误原文。
-      if (isAdminRequestCancelled(error)) return;
-      skins.setError(upload && error instanceof Error ? error.message : messages().tr("operationFailed"));
-    },
-    tr: (key, vars) => messages().tr(key as Parameters<ReturnType<typeof messages>["tr"]>[0], vars),
-    confirmReplace: (id) => window.confirm(`${messages().tr("skinReplaceConfirm")}\n${id}`),
-    confirmRemove: (name, id) => window.confirm(`${messages().tr("skinConfirmRemove")}\n${name} (${id})`),
-  });
-
   async function loadAdminData(request: { isCurrent(): boolean }, path: string) {
     await Promise.all([loadOverview(), serverSettings.loadServerSettings()]);
     if (!request.isCurrent()) return;
     if (path === "/admin/operations") await operations.loadOperations();
-    else if (path === "/admin/skins") await skins.loadSkinCatalog();
   }
 
   async function loadAdminView() {
@@ -295,11 +279,9 @@ export function createAdminController(initial: Options) {
     requests.cancel("overview");
     if (previous === "/admin/server") serverSettings.cancelRequests();
     if (previous === "/admin/operations") operations.cancelRequests();
-    if (previous === "/admin/skins") skins.cancelRequests();
     const snapshot = state();
     if (snapshot.screen !== "admin" || snapshot.loading || snapshot.submitting || snapshot.loggingOut) return;
     if (path === "/admin/operations") void operations.loadOperations();
-    else if (path === "/admin/skins") void skins.loadSkinCatalog();
     else if (path === "/admin") void loadOverview();
   }
 
@@ -321,7 +303,6 @@ export function createAdminController(initial: Options) {
     adminApi,
     serverSettings,
     operations,
-    skins,
     loadAdminView,
     login,
     logout,

@@ -6,9 +6,6 @@ import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import { useI18n, useWebClientMessages } from "@/hooks/use-i18n";
 import { pendingWebClientMessages } from "@/i18n/messages";
-import { getWebClientSkinController } from "@/web-client/skin-controller";
-import { useStore } from "zustand";
-import { applyTheme, getStoredTheme } from "@/services/theme";
 import {
   fetchAndroidRelease,
   formatApkSize,
@@ -34,13 +31,7 @@ export default function DownloadView() {
   const [releaseState, setReleaseState] = useState<ReleaseState>({ status: "loading" });
   const [gatewayOnline, setGatewayOnline] = useState(false);
 
-  const skin = getWebClientSkinController();
-  const skinView = useStore(skin.store);
   useEffect(() => {
-    // 直达 /download 时 html 层 data-theme 尚未落（saveTheme 只在 home 初始化链上
-    // 跑过）：幂等地补一次。皮肤 data-ws-skin 由下方 React 直读单例 store 渲染。
-    applyTheme(getStoredTheme());
-    void skin.initialize();
     let cancelled = false;
     // 网关状态点与 home/admin 同源语义：public-config 可达即在线。
     void fetch("/api/public-config").then((res) => {
@@ -54,13 +45,13 @@ export default function DownloadView() {
     return () => {
       cancelled = true;
     };
-  }, [skin]);
+  }, []);
 
   const release = releaseState.status === "ready" ? releaseState.release : null;
   // 语言包就绪前不渲染任何用户可见文案（hook 已全部执行完，此处分支安全）。
   if (!messages) return null;
   return (
-    <main data-ws-skin={skinView.activeSkinId} className="download-page ws-skin-root min-h-dvh bg-background px-[clamp(12px,3vw,44px)] pb-11 pt-[clamp(14px,2vw,30px)] text-foreground" data-ws-page="download">
+    <main className="download-page ws-skin-root min-h-dvh bg-background px-[clamp(12px,3vw,44px)] pb-11 pt-[clamp(14px,2vw,30px)] text-foreground" data-ws-page="download">
       <header className="mx-auto flex max-w-[1060px] flex-wrap items-center justify-between gap-3.5 max-[640px]:flex-col max-[640px]:items-stretch" data-ws-part="download.header">
         <div className="flex min-w-0 items-center gap-2.5" data-ws-part="download.brand">
           <BrandMark className="size-[38px] [color:var(--wsd-accent,#2b5cd9)]" />

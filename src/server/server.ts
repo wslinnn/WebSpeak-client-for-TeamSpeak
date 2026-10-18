@@ -85,9 +85,9 @@ export function createWebServer(options: WebServerOptions): WebServer {
 
   // Defense-in-depth headers for every response, including API errors and
   // Defense-in-depth headers for every response, including API errors and
-  // static assets. style-src keeps 'unsafe-inline' because the theme layer
-  // injects its CSS as a style element; the frontend has no HTML sink, so the
-  // style channel is not an injection path. HSTS is only meaningful on secure
+  // static assets. style-src keeps 'unsafe-inline': the toast library (sonner)
+  // injects its stylesheet as a style element at runtime; React style props go
+  // through CSSOM and are unaffected either way. HSTS is only meaningful on secure
   // responses — including proxy-terminated TLS once trust proxy is enabled.
   // img-src/font-src allow blob: for client-generated resource URLs; media-src
   // blob: serves the microphone-test playback element, and script-src

@@ -40,7 +40,4 @@ html[data-ws-route="webclient"] input {
   color: var(--text-primary);
 }
 
-.web-client.skin-initializing {
-  visibility: hidden;
-}
 

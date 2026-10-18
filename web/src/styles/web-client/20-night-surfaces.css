@@ -6,86 +6,86 @@
  * the base stylesheet values; the dark attribute is the night switch.
  */
 
-.web-client[data-ws-skin="builtin.dark"] .app-shell,
-.web-client[data-ws-skin="builtin.dark"] .workspace {
+.dark .web-client .app-shell,
+.dark .web-client .workspace {
   background: var(--wsd-bg);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .workspace-header {
+.dark .web-client .workspace-header {
   background: var(--wsd-bg);
   border-bottom-color: var(--wsd-border);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .workspace-content {
+.dark .web-client .workspace-content {
   color: var(--wsd-text);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .member-panel {
+.dark .web-client .member-panel {
   background: var(--wsd-panel);
   border-color: var(--wsd-border);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .voice-card {
+.dark .web-client .voice-card {
   background: var(--wsd-bg);
   border-color: var(--wsd-border);
   box-shadow: none;
 }
 
-.web-client[data-ws-skin="builtin.dark"] .voice-card.speaking {
+.dark .web-client .voice-card.speaking {
   border-color: var(--wsd-accent);
   box-shadow: 0 0 12px var(--wsd-accent-soft);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .voice-card > strong {
+.dark .web-client .voice-card > strong {
   color: var(--wsd-text);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .section-heading h2,
-.web-client[data-ws-skin="builtin.dark"] .member-panel-heading h2,
-.web-client[data-ws-skin="builtin.dark"] .member-copy strong {
+.dark .web-client .section-heading h2,
+.dark .web-client .member-panel-heading h2,
+.dark .web-client .member-copy strong {
   color: var(--wsd-text);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .message-meta strong {
+.dark .web-client .message-meta strong {
   color: var(--wsd-text-muted);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .section-kicker,
-.web-client[data-ws-skin="builtin.dark"] .chat-empty {
+.dark .web-client .section-kicker,
+.dark .web-client .chat-empty {
   color: var(--wsd-text-muted);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .section-counter,
-.web-client[data-ws-skin="builtin.dark"] .message-meta time,
-.web-client[data-ws-skin="builtin.dark"] .member-copy span {
+.dark .web-client .section-counter,
+.dark .web-client .message-meta time,
+.dark .web-client .member-copy span {
   color: var(--wsd-text-dim);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .chat-empty strong {
+.dark .web-client .chat-empty strong {
   color: var(--wsd-text);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .member-presence {
+.dark .web-client .member-presence {
   border-color: var(--wsd-panel);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .member-row:hover,
-.web-client[data-ws-skin="builtin.dark"] .member-row:focus-within {
+.dark .web-client .member-row:hover,
+.dark .web-client .member-row:focus-within {
   background: var(--wsd-hover);
   box-shadow: none;
 }
 
-.web-client[data-ws-skin="builtin.dark"] .member-channel-heading {
+.dark .web-client .member-channel-heading {
   color: var(--wsd-text);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .member-channel-group.current .member-channel-heading {
+.dark .web-client .member-channel-group.current .member-channel-heading {
   color: var(--wsd-text);
   background: var(--wsd-raised);
   box-shadow: none;
 }
 
-.web-client[data-ws-skin="builtin.dark"] .member-channel-group.current .member-channel-heading::before {
+.dark .web-client .member-channel-group.current .member-channel-heading::before {
   position: absolute;
   left: 0;
   top: 5px;
@@ -96,84 +96,309 @@
   border-radius: 0 4px 4px 0;
 }
 
-.web-client[data-ws-skin="builtin.dark"] .breadcrumbs {
+.dark .web-client .breadcrumbs {
   color: var(--wsd-text-dim);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .breadcrumbs strong {
+.dark .web-client .breadcrumbs strong {
   color: var(--wsd-text);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .member-search {
-  color: var(--wsd-text);
-  background: var(--wsd-raised);
-  border-color: var(--wsd-border);
-}
-
-.web-client[data-ws-skin="builtin.dark"] .member-search input {
-  color: var(--wsd-text);
-}
-
-.web-client[data-ws-skin="builtin.dark"] .chat-panel,
-.web-client[data-ws-skin="builtin.dark"] .chat-heading {
-  border-color: var(--wsd-border);
-}
-
-.web-client[data-ws-skin="builtin.dark"] .message-composer {
+.dark .web-client .member-search {
   color: var(--wsd-text);
   background: var(--wsd-raised);
   border-color: var(--wsd-border);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .message-composer :is(input, textarea) {
+.dark .web-client .member-search input {
+  color: var(--wsd-text);
+}
+
+.dark .web-client .chat-panel,
+.dark .web-client .chat-heading {
+  border-color: var(--wsd-border);
+}
+
+.dark .web-client .message-composer {
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border-color: var(--wsd-border);
+}
+
+.dark .web-client .message-composer :is(input, textarea) {
   color: var(--wsd-text);
   background: transparent;
 }
 
-.web-client[data-ws-skin="builtin.dark"] .message-composer :is(input, textarea)::placeholder {
+.dark .web-client .message-composer :is(input, textarea)::placeholder {
   color: var(--wsd-text-dim);
 }
 
 /* Status banners: day keeps the pale paper cards; night re-themes them to
  * dimmed semantic tints over the panel color (warn amber / danger red). */
-.web-client[data-ws-skin="builtin.dark"] .reconnect-banner {
+.dark .web-client .reconnect-banner {
   color: var(--ws-warning);
   border-color: color-mix(in srgb, var(--ws-warning) 35%, transparent);
   background: color-mix(in srgb, var(--ws-warning) 10%, var(--wsd-panel));
 }
 
-.web-client[data-ws-skin="builtin.dark"] .reconnect-banner.failed {
+.dark .web-client .reconnect-banner.failed {
   color: var(--ws-danger);
   border-color: color-mix(in srgb, var(--ws-danger) 35%, transparent);
   background: color-mix(in srgb, var(--ws-danger) 10%, var(--wsd-panel));
 }
 
-.web-client[data-ws-skin="builtin.dark"] .reconnect-banner.degraded {
+.dark .web-client .reconnect-banner.degraded {
   color: var(--ws-warning);
   border-color: color-mix(in srgb, var(--ws-warning) 30%, transparent);
   background: color-mix(in srgb, var(--ws-warning) 8%, var(--wsd-panel));
 }
 
-.web-client[data-ws-skin="builtin.dark"] .poke-banner {
+.dark .web-client .poke-banner {
   color: var(--wsd-text-muted);
   border-color: color-mix(in srgb, var(--ws-warning) 32%, transparent);
   background: color-mix(in srgb, var(--ws-warning) 9%, var(--wsd-panel));
   box-shadow: 0 8px 22px rgba(0, 0, 0, .32);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .poke-banner > .ui-icon {
+.dark .web-client .poke-banner > .ui-icon {
   color: var(--ws-warning);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .poke-banner strong {
+.dark .web-client .poke-banner strong {
   color: color-mix(in srgb, var(--ws-warning) 80%, #fff);
 }
 
-.web-client[data-ws-skin="builtin.dark"] .poke-banner button {
+.dark .web-client .poke-banner button {
   color: color-mix(in srgb, var(--ws-warning) 55%, var(--wsd-text-muted));
 }
 
-.web-client[data-ws-skin="builtin.dark"] .poke-banner button:hover {
+.dark .web-client .poke-banner button:hover {
   color: var(--ws-warning);
   background: color-mix(in srgb, var(--ws-warning) 14%, transparent);
+}
+
+/* ===== 内置主题的日间默认面与夜间组件色（自皮肤包静态化并入；
+ * light 为裸 .ws-skin-root 默认值，dark 以 .dark 前缀覆盖，特异性逐档持平） ===== */
+
+.ws-skin-root {
+  color-scheme: light;
+  --ws-page-bg: #fafafa;
+  --ws-surface-1: #fff;
+  --ws-surface-2: #f4f4f5;
+  --ws-text: #1c1e21;
+  --ws-text-muted: #63696f;
+  /* Graphite × cobalt: neutral surfaces, one interactive hue. Success keeps
+   * its own green (status semantics), separate from the brand accent. */
+  --ws-accent: #2b5cd9;
+  --ws-success: #1e7a40;
+  --ws-warning: #8a5d0b;
+  --ws-danger: #bb3f38;
+  --ws-border: #e5e7eb;
+  --surface-0: var(--ws-page-bg);
+  --surface-1: var(--ws-surface-1);
+  --surface-2: var(--ws-surface-2);
+  --text-primary: var(--ws-text);
+  --text-muted: var(--ws-text-muted);
+  --skin-accent: var(--ws-accent);
+  --success: var(--ws-success);
+  --warning: var(--ws-warning);
+  --danger: var(--ws-danger);
+  --skin-border: var(--ws-border);
+}
+
+.ws-skin-root {
+  background: var(--surface-0);
+  color: var(--text-primary);
+}
+.ws-skin-root .join-page {
+  color: var(--text-primary);
+  background-color: var(--surface-0);
+}
+
+.ws-skin-root .settings-modal {
+  background: var(--surface-1);
+  border-color: var(--skin-border);
+}
+
+.ws-skin-root .join-card {
+  background: color-mix(in srgb, var(--surface-1) 92%, transparent);
+  border-color: var(--skin-border);
+}
+.ws-skin-root .field-wrap,
+.ws-skin-root .mic-mode-switch,
+.ws-skin-root .mode-note {
+  background: var(--surface-2);
+}
+.ws-skin-root .field-wrap input,
+.ws-skin-root .settings-select {
+  color: var(--text-primary);
+}
+.ws-skin-root .room-hero {
+  background: linear-gradient(110deg, color-mix(in srgb, var(--text-primary) 3%, var(--surface-1)), var(--surface-1) 75%);
+}
+.ws-skin-root .settings-modal {
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+.ws-skin-root .room-hero h1,
+.ws-skin-root .join-card h2 {
+  color: var(--text-primary);
+}
+.ws-skin-root .card-kicker,
+.ws-skin-root .settings-label,
+.ws-skin-root .header-note,
+.ws-skin-root .join-description,
+.ws-skin-root .card-lead {
+  color: var(--text-muted);
+}
+.ws-skin-root .settings-header,
+.ws-skin-root .settings-footer,
+.ws-skin-root .settings-separator {
+  border-color: var(--skin-border);
+}
+
+.ws-skin-root .settings-content,
+.ws-skin-root .settings-nav {
+  background: var(--surface-1);
+}
+.ws-skin-root .settings-nav {
+  border-right-color: var(--skin-border);
+}
+.ws-skin-root .settings-section h3,
+.ws-skin-root .settings-header h2 {
+  color: var(--text-primary);
+}
+.ws-skin-root .settings-select {
+  color: var(--text-primary);
+  background: var(--surface-2);
+  border-color: var(--skin-border);
+}
+.ws-skin-root .audio-level-track,
+.ws-skin-root .meter i {
+  background: var(--skin-border);
+}
+
+.ws-skin-root :focus-visible {
+  outline-color: color-mix(in srgb, var(--skin-accent) 55%, transparent);
+}
+
+.dark .ws-skin-root .join-page {
+  color: var(--text-primary);
+  background-color: var(--surface-0);
+}
+
+.dark .ws-skin-root .settings-modal {
+  background: var(--surface-1);
+  border-color: var(--skin-border);
+}
+
+.dark .ws-skin-root .join-card {
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+  border-color: var(--skin-border);
+}
+.dark .ws-skin-root .field-wrap,
+.dark .ws-skin-root .mic-mode-switch,
+.dark .ws-skin-root .mode-note {
+  background: var(--surface-2);
+}
+.dark .ws-skin-root .field-wrap input,
+.dark .ws-skin-root .settings-select {
+  color: var(--text-primary);
+}
+.dark .ws-skin-root .room-hero {
+  background: linear-gradient(110deg, color-mix(in srgb, var(--text-primary) 4%, var(--surface-1)), var(--surface-1) 75%);
+}
+.dark .ws-skin-root .settings-modal {
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+.dark .ws-skin-root .room-hero h1,
+.dark .ws-skin-root .join-card h2 {
+  color: var(--text-primary);
+}
+.dark .ws-skin-root .card-kicker,
+.dark .ws-skin-root .settings-label,
+.dark .ws-skin-root .header-note,
+.dark .ws-skin-root .join-description,
+.dark .ws-skin-root .card-lead {
+  color: var(--text-muted);
+}
+.dark .ws-skin-root .settings-header,
+.dark .ws-skin-root .settings-footer,
+.dark .ws-skin-root .settings-separator {
+  border-color: var(--skin-border);
+}
+
+.dark .ws-skin-root .settings-content,
+.dark .ws-skin-root .settings-nav {
+  background: var(--surface-1);
+}
+.dark .ws-skin-root .settings-nav {
+  border-right-color: var(--skin-border);
+}
+.dark .ws-skin-root .settings-section h3,
+.dark .ws-skin-root .settings-header h2 {
+  color: var(--text-primary);
+}
+.dark .ws-skin-root .settings-select {
+  color: var(--text-primary);
+  background: var(--surface-2);
+  border-color: var(--skin-border);
+}
+.dark .ws-skin-root .audio-level-track,
+.dark .ws-skin-root .meter i {
+  background: var(--skin-border);
+}
+
+.dark .ws-skin-root :focus-visible {
+  outline-color: color-mix(in srgb, var(--skin-accent) 55%, transparent);
+}
+
+.dark .ws-skin-root .channel-password-modal {
+  color: var(--text-primary);
+  border-color: var(--skin-border);
+  background: var(--surface-1);
+  box-shadow: 0 20px 60px color-mix(in srgb, var(--text-primary) 18%, transparent);
+}
+.dark .ws-skin-root .channel-password-modal h2 { color: var(--text-primary); }
+.dark .ws-skin-root .channel-password-modal > p { color: var(--text-muted); }
+.dark .ws-skin-root .channel-password-icon {
+  color: var(--skin-accent);
+  background: color-mix(in srgb, var(--skin-accent) 13%, var(--surface-2));
+}
+
+.dark .ws-skin-root .brand-lockup strong { color: var(--text-primary); }
+.dark .ws-skin-root .brand-lockup strong span { color: var(--text-primary); }
+.dark .ws-skin-root .join-page .brand-lockup small,
+.dark .ws-skin-root .join-page .header-note,
+.dark .ws-skin-root .join-page .join-description,
+.dark .ws-skin-root .join-page .card-lead,
+.dark .ws-skin-root .join-page .field-hint,
+.dark .ws-skin-root .join-page .join-meta,
+.dark .ws-skin-root .join-page .join-footer { color: var(--text-muted); }
+.dark .ws-skin-root .join-page .join-copy h1,
+.dark .ws-skin-root .join-page .join-card h2,
+.dark .ws-skin-root .join-page .field-label { color: var(--text-primary); }
+/* Accent keeps three jobs on the join page: hero emphasis line, links, and
+ * focus; kickers/labels are muted text, not brand color. */
+.dark .ws-skin-root .join-page .join-copy h1 em,
+.dark .ws-skin-root .join-page .join-footer a { color: var(--skin-accent); }
+.dark .ws-skin-root .join-page .card-kicker,
+.dark .ws-skin-root .join-page .field-label span { color: var(--text-muted); }
+.dark .ws-skin-root .join-page .join-card {
+  background: color-mix(in srgb, var(--surface-1) 94%, transparent);
+  border-color: var(--skin-border);
+  box-shadow: 0 20px 52px color-mix(in srgb, var(--text-primary) 14%, transparent);
+}
+.dark .ws-skin-root .join-page .field-wrap { color: var(--text-muted); background: var(--surface-2); }
+.dark .ws-skin-root .join-page .field-wrap input { color: var(--text-primary); }
+.dark .ws-skin-root .join-page .field-wrap input::placeholder { color: var(--text-muted); }
+.dark .ws-skin-root .join-page .join-footer { border-top-color: var(--skin-border); }
+.dark .ws-skin-root .join-page .join-copy h1 {
+  color: var(--text-primary);
+}
+.dark .ws-skin-root .join-page .join-copy h1 em {
+  color: var(--skin-accent);
+}
+.dark .ws-skin-root .join-page .join-description {
+  color: var(--text-muted);
 }

@@ -10,8 +10,7 @@ import { Icon } from "./icon";
 import { MemberActionsMenu } from "./member-actions-menu";
 import { ServerContextMenu } from "./server-context-menu";
 import { LanguageSwitcher } from "./language-switcher";
-import { SkinSwitcher } from "./skin-switcher";
-import type { SkinSwitcherState } from "./skin-switcher";
+import { ThemeToggle } from "./theme-toggle";
 import { VoiceBanners } from "./voice-banners";
 import { VoiceMobileMore } from "./voice-mobile-more";
 import { VoicePerformancePanel } from "./voice-performance-panel";
@@ -64,7 +63,7 @@ interface VoiceShellProps {
   onOpenFavoriteDialog(): void;
   onOpenAudioSettings(): void;
   onVolumeInput(clientId: number, value: number): void;
-  skinSwitcher: SkinSwitcherState;
+  theme: { dark: boolean; onToggle(): void; label: string };
   t(key: string, variables?: Record<string, string | number>): string;
   localizedMessage(message: string): string;
   localizedAudioNotice(code: string, message: string): string;
@@ -251,14 +250,7 @@ export function VoiceShell(props: VoiceShellProps) {
         <button type="button" className="favorite-server-add" data-ws-part="voice.favorite-server-rail.add" aria-label={t("addFavoriteServer")} title={t("addFavoriteServer")} onClick={props.onOpenFavoriteDialog}>
           <Icon name="plus" size={21} />
         </button>
-        <SkinSwitcher
-          value={props.skinSwitcher.value}
-          options={props.skinSwitcher.options}
-          menuLabel={props.skinSwitcher.menuLabel}
-          tile
-          className="rail-switcher-tile"
-          onChange={props.skinSwitcher.onChange}
-        />
+        <ThemeToggle dark={props.theme.dark} onToggle={props.theme.onToggle} label={props.theme.label} className="rail-switcher-tile theme-toggle-tile" />
         <LanguageSwitcher language={i18n.language} onChange={i18n.setLanguage} menuLabel={props.t("languageMenu")} className="rail-switcher-tile" tile />
         <div className="rail-identity" data-ws-part="voice.rail-identity" title={homeState.nickname}>
           <span className="rail-identity-avatar" style={avatarStyle(homeState.nickname, true, "")} aria-hidden="true">{avatarInitial(homeState.nickname)}</span>
@@ -365,7 +357,7 @@ export function VoiceShell(props: VoiceShellProps) {
         <VoiceMobileMore
           onLeave={props.onLeave}
           onOpenAudioSettings={props.onOpenAudioSettings}
-          skinSwitcher={props.skinSwitcher}
+          theme={props.theme}
           language={i18n.language}
           onChangeLanguage={i18n.setLanguage}
           t={t}

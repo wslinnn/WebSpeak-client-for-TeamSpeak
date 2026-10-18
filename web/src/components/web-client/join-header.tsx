@@ -3,7 +3,7 @@ import { useState } from "react";
 import { BrandMark } from "@/components/brand-mark";
 import { Icon } from "./icon";
 import { LanguageSwitcher } from "./language-switcher";
-import { SkinSwitcher, type SkinOption } from "./skin-switcher";
+import { ThemeToggle } from "./theme-toggle";
 import { cn } from "@/lib/utils";
 import type { Language } from "@/i18n/web-client";
 
@@ -17,15 +17,12 @@ interface JoinHeaderProps {
   language: Language;
   onLanguageChange(language: Language): void;
   languageMenuLabel: string;
-  skinValue: string;
-  skinOptions: SkinOption[];
-  onSkinChange(value: string): void;
-  skinMenuLabel: string;
+  theme: { dark: boolean; onToggle(): void; label: string };
 }
 
 /** 首页头（旧 WebClientHeader.vue 平价）：品牌锁扣 + 网关状态 + download/admin 链接 +
- *  皮肤/语言切换器 + ≤740 「更多」折叠。 */
-export function JoinHeader({ brandName, brandSubtitle, gatewayStatus, downloadLabel, adminLabel, moreLabel, language, onLanguageChange, languageMenuLabel, skinValue, skinOptions, onSkinChange, skinMenuLabel }: JoinHeaderProps) {
+ *  日/夜切换 + 语言切换器 + ≤740 「更多」折叠。 */
+export function JoinHeader({ brandName, brandSubtitle, gatewayStatus, downloadLabel, adminLabel, moreLabel, language, onLanguageChange, languageMenuLabel, theme }: JoinHeaderProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   return (
     <header className="join-header" data-ws-part="home.header">
@@ -48,13 +45,7 @@ export function JoinHeader({ brandName, brandSubtitle, gatewayStatus, downloadLa
             <span>{adminLabel}</span>
           </a>
         </div>
-        <SkinSwitcher
-          value={skinValue}
-          options={skinOptions}
-          menuLabel={skinMenuLabel}
-          className="join-skin-switcher"
-          onChange={onSkinChange}
-        />
+        <ThemeToggle dark={theme.dark} onToggle={theme.onToggle} label={theme.label} className="join-theme-toggle" />
         <LanguageSwitcher language={language} onChange={onLanguageChange} menuLabel={languageMenuLabel} />
       </div>
       <button

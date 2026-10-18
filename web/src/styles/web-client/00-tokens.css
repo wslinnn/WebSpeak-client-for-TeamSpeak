@@ -41,8 +41,8 @@
   --wsd-font: 'Geist Variable', 'PingFang SC', 'Microsoft YaHei', 微软雅黑, 'Microsoft JhengHei', sans-serif;
 }
 
-.web-client[data-ws-skin="builtin.dark"],
-.download-page[data-ws-skin="builtin.dark"] {
+.dark .web-client,
+.dark .download-page {
   --wsd-bg: #17181b;
   --wsd-rail: #141518;
   --wsd-panel: #1d1e22;
@@ -85,4 +85,36 @@
 
 *::-webkit-scrollbar-thumb:hover {
   background: var(--wsd-hover);
+}
+
+/* 内置日/夜主题令牌（皮肤系统下架后由静态分片承载；dark 经 html.dark 解析类覆盖） */
+.dark .ws-skin-root {
+  color-scheme: dark;
+  --ws-page-bg: #131316;
+  --ws-surface-1: #1c1c1f;
+  --ws-surface-2: #26262a;
+  --ws-text: #ededf0;
+  --ws-text-muted: #9a9aa2;
+  /* Graphite × cobalt, night side: light cobalt fill carries ink text
+   * (--wsd-accent-contrast); success stays a status green, not the brand. */
+  --ws-accent: #7d96f2;
+  --ws-success: #4cc27a;
+  --ws-warning: #e2b36c;
+  --ws-danger: #ee8a82;
+  --ws-border: #333338;
+  --surface-0: var(--ws-page-bg);
+  --surface-1: var(--ws-surface-1);
+  --surface-2: var(--ws-surface-2);
+  --text-primary: var(--ws-text);
+  --text-muted: var(--ws-text-muted);
+  --skin-accent: var(--ws-accent);
+  --success: var(--ws-success);
+  --warning: var(--ws-warning);
+  --danger: var(--ws-danger);
+  --skin-border: var(--ws-border);
+}
+
+.dark .ws-skin-root {
+  background: var(--surface-0);
+  color: var(--text-primary);
 }

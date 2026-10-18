@@ -1,4 +1,4 @@
-import { ActivityIcon, CompassIcon, DoorOpenIcon, InfoIcon, MoonIcon, ServerIcon, ShareIcon, SunIcon, UsersIcon } from "lucide-react";
+import { ActivityIcon, DoorOpenIcon, InfoIcon, MoonIcon, ServerIcon, ShareIcon, SunIcon, UsersIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useStore } from "zustand";
@@ -7,7 +7,6 @@ import { createAdminController } from "@/admin/admin-controller";
 import { BrandMark } from "@/components/brand-mark";
 import { AdminServerSettings } from "@/components/admin/server-settings";
 import { AdminOperations } from "@/components/admin/operations";
-import { AdminSkins } from "@/components/admin/skins";
 import { ChangePasswordScreen, LoginScreen } from "@/components/admin/auth-screens";
 import { AdminOverview } from "@/components/admin/overview";
 import { LanguageSwitcher } from "@/components/web-client/language-switcher";
@@ -52,7 +51,7 @@ export default function AdminView() {
 
   const currentPageTitle = pathname === "/admin/server" ? tr("server")
     : pathname === "/admin/operations" ? tr("operations")
-    : pathname === "/admin/skins" ? tr("skinLibrary") : tr("overview");
+    : tr("overview");
 
   if (view.loading) {
     return (
@@ -101,10 +100,6 @@ export default function AdminView() {
               <UsersIcon size={18} aria-hidden="true" />
               {tr("operations")}
             </NavLink>
-            <NavLink to="/admin/skins" className={({ isActive }) => (isActive ? "active" : "")}>
-              <CompassIcon size={18} aria-hidden="true" />
-              {tr("skinLibrary")}
-            </NavLink>
           </nav>
           <div className="sidebar-bottom">
             <a href="/">
@@ -144,8 +139,7 @@ export default function AdminView() {
             <AdminServerSettings model={controller.serverSettings} messages={messages} onWebRtcToggle={() => controller.handleWebRtcToggle()} />
           )}
           {pathname === "/admin/operations" && <AdminOperations model={controller.operations} messages={messages} />}
-          {pathname === "/admin/skins" && <AdminSkins model={controller.skins} messages={messages} />}
-          {pathname !== "/admin/server" && pathname !== "/admin/operations" && pathname !== "/admin/skins" && (
+          {pathname !== "/admin/server" && pathname !== "/admin/operations" && (
             <AdminOverview
               overview={view.overview}
               messages={messages}

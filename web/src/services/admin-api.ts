@@ -116,23 +116,6 @@ export function createAdminApi(options: AdminApiOptions) {
     diagnostics: (signal?: AbortSignal) => request("/diagnostics", adminResponses.diagnostics, "GET", undefined, true, signal),
     logs: (signal?: AbortSignal) => request("/logs?limit=100", adminResponses.logs, "GET", undefined, true, signal),
     audit: (signal?: AbortSignal) => request("/audit?limit=50", adminResponses.audit, "GET", undefined, true, signal),
-    skins: (signal?: AbortSignal) => request("/skins", adminResponses.skins, "GET", undefined, true, signal),
-    setDefaultSkin: (id: string, signal?: AbortSignal) => request("/skins/default", adminResponses.defaultSkin, "PUT", { id }, true, signal),
-    setSkinEnabled: (id: string, enabled: boolean, signal?: AbortSignal) => request(`/skins/${encodeURIComponent(id)}/enabled`, adminResponses.updatedSkin, "PUT", { enabled }, true, signal),
-    deleteSkin: (id: string, signal?: AbortSignal) => request(`/skins/${encodeURIComponent(id)}`, adminResponses.ok, "DELETE", {}, true, signal),
-    uploadSkin(file: File, confirmReplace?: (id: string) => boolean, signal?: AbortSignal) {
-      return execute(signal, async context => {
-        const { importSkinPack } = await import("./skin-pack");
-        context.assertCurrent();
-        const skin = await importSkinPack(file);
-        context.assertCurrent();
-        if (confirmReplace && !confirmReplace(skin.id)) return null;
-        const response = await transport(context, `/skins/${encodeURIComponent(skin.id)}`, {
-          method: "PUT", headers: { "content-type": "application/octet-stream" }, body: file,
-        });
-        return (await decode(response, adminResponses.uploadedSkin)).skin;
-      });
-    },
     backup: (signal?: AbortSignal) => execute(signal, async context => (await transport(context, "/backup", { headers: { accept: "application/octet-stream" } })).blob()),
     dismissLegacyNotice: (signal?: AbortSignal) => request("/legacy-import/dismiss", adminResponses.ok, "POST", {}, true, signal),
   };

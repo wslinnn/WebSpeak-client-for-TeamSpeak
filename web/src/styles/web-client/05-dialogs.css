@@ -69,39 +69,6 @@
 }
 
 /* Skin fallback notice: a slim dismissible bar; role=alert for AT. */
-.skin-recovery-notice {
-  position: fixed;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: var(--ws-z-toast);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  max-width: min(480px, calc(100% - 24px));
-  padding: 9px 12px;
-  color: var(--wsd-danger);
-  background: color-mix(in srgb, var(--wsd-danger) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--wsd-danger) 30%, transparent);
-  border-radius: 10px;
-  box-shadow: 0 8px 22px rgba(20, 16, 14, .14);
-  font-size: 12px;
-}
-
-.skin-recovery-notice button {
-  display: grid;
-  place-items: center;
-  padding: 3px;
-  color: color-mix(in srgb, var(--wsd-danger) 70%, var(--wsd-text));
-  background: transparent;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.skin-recovery-notice button:hover {
-  color: var(--wsd-danger);
-  background: color-mix(in srgb, var(--wsd-danger) 14%, transparent);
-}
 
 @media (max-width: 740px) {
   /* Bottom sheet: anchored to the keyboard-safe area, full width. */
