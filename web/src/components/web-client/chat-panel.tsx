@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 
@@ -53,7 +53,10 @@ interface ChatMessageListProps {
 const ChatMessageList = memo(function ChatMessageList({ chat, members, language, t }: ChatMessageListProps) {
   // 消息/成员/代际跨读 session store，必须显式订阅（React Compiler 的 props memo
   // 会漏）；订阅自持在 memo 内，父面板重渲被拦下时列表变化仍能自行更新。
-  useStore(chat.sessionStore, useShallow((state) => ({ chatMessages: state.chatMessages, members: state.members, epoch: state.epoch })));
+  const { chatMessages } = useStore(chat.sessionStore, useShallow((state) => ({ chatMessages: state.chatMessages, members: state.members, epoch: state.epoch })));
+  // 跟随滚动必须在 React 提交之后执行（layout effect）：控制器 microtask 版跑在
+  // DOM 增长前，新行撑高后 48px 距底判定把跟随关死——感知为「消息接收延迟」。
+  useLayoutEffect(() => { chat.scrollToEndIfFollowing(); }, [chat, chatMessages]);
   const visibleMessages = chat.visibleMessages();
   return (
     <>
@@ -124,13 +127,15 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
     return () => onListElement(null);
   }, [onListElement]);
 
-  // 输入框随草稿自动增高，上限 120px。
+  // 输入框随草稿自动增高，上限 120px。依赖带 mobileHidden：移动端面板在
+  // display:none 下挂载时 scrollHeight 恒 0，会把 textarea 钉成 0 高点不开
+  // （切一次 tab 重新挂载才恢复）——可见性翻转时重算。
   useEffect(() => {
     const el = composerRef.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
-  }, [chatUi.messageDraft]);
+  }, [chatUi.messageDraft, mobileHidden]);
 
   function onComposerKeydown(event: React.KeyboardEvent<HTMLTextAreaElement>): void {
     if (event.key !== "Enter") return;

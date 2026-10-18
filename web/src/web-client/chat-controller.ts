@@ -168,6 +168,9 @@ export function createChatController(options: Options) {
       if (generation === scrollGeneration && followingLatest) scrollToEnd();
     });
   }
+  function scrollToEndIfFollowing(): void {
+    if (followingLatest) scrollToEnd();
+  }
 
   // —— 动作 ——
   function openPrivateChat(targetClientId: number): void {
@@ -348,6 +351,11 @@ export function createChatController(options: Options) {
     scrollToEnd,
     onScroll,
     scrollIfFollowing,
+    /** React 提交后的跟随滚动：控制器自带的 microtask 滚动跑在 DOM 增长之前
+     *  （落点是旧底部），新行撑高后 48px 距底判定自杀、跟随永久失效——消息
+     *  全部堆在折叠线下方被感知为「接收延迟」（2026-10-18 移植回归）。面板在
+     *  useLayoutEffect 里调本方法，落点即真底部。 */
+    scrollToEndIfFollowing,
     dispose,
   };
 }

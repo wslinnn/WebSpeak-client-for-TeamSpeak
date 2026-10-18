@@ -277,6 +277,9 @@
 
 .message-avatar-spacer {
   background: transparent;
+  /* 合并行占位只保留几何（缩进对齐）：.message-avatar 基类的圆形 border 会
+   * 在这里渲染成一枚空心圆环（2026-10-18 用户报告）。 */
+  border: 0;
 }
 
 .message-avatar {
