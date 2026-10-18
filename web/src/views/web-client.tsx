@@ -88,6 +88,9 @@ function WebClientRoot() {
   ], [skinView.catalogSkins, skinView.installedSkins, translate]);
   const skinHomeCopy = resolveSkinHomeCopy(skinView.activeSkin, language);
   const skinMessageOverrides = resolveSkinMessages(skinView.activeSkin, language);
+  // data-ws-skin 由状态渲染而非命令式写入：theme.ts 的模块级 applyTheme 跑在
+  // 客户端根挂载之前（夜间选择器键在此属性上，命令式路径有挂载竞态）。
+  const rootSkinId = skinView.activeSkinId || undefined;
   const skinSwitcherState = useMemo(() => ({
     value: skinView.activeSkinId,
     options: skinOptions,
@@ -343,6 +346,7 @@ function WebClientRoot() {
       style={{ "--ws-viewport-height": `${mobileViewport.height}px`, "--ws-viewport-top": `${mobileViewport.top}px` } as CSSProperties}
       data-ws-part="app"
       data-ws-page={voiceShellVisible ? "voice" : "home"}
+      data-ws-skin={rootSkinId}
     >
       {voiceShellVisible && (
         <VoiceShell
