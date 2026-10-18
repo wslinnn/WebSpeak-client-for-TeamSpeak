@@ -7,8 +7,6 @@ import { createMicrophoneCaptureFactory, type MicrophoneCapture } from "./microp
 import { createAudioSinkRouter } from "./audio-sink";
 import { createAccompaniment } from "./accompaniment";
 import { createWebRtcTransport } from "./webrtc-transport";
-import { createVoiceConnection } from "./connection";
-import { clearVoiceSessionIntent, readVoiceSessionIntent, writeVoiceSessionIntent } from "./session-intent";
 import { createVoiceCommands } from "./commands";
 import { createVoiceSessionState } from "./session-state";
 import { createAudioDiagnostics, type VoiceAudioStatusSample } from "./audio-diagnostics";
@@ -18,10 +16,10 @@ import { createMicrophoneMeter, type MicrophoneMeter } from "./microphone-meter"
 import { requestMediaBeforeAudioResume } from "../services/microphone-start";
 import { parseServerMessage } from "@shared/server-messages";
 import type { ClientCommandPayloads, ClientCommandType } from "@shared/client-commands";
-import { splitTeamSpeakTarget } from "../services/teamspeak-target";
-import { closeErrorCode, closeReason, connectionFailureMessage, joinTicketReason, normalizedClientErrorCode, safeClientErrorCode, safeClientErrorDetail } from "./error-messages";
+import { connectionFailureMessage, normalizedClientErrorCode, safeClientErrorCode, safeClientErrorDetail } from "./error-messages";
 import { createAudioPreferences } from "./audio-preferences";
 import { createChatSend } from "./chat-send";
+import { createConnectionLifecycle } from "./connection-lifecycle";
 import { CancelledMediaOperation, MAX_INPUT_VOLUME, clamp, type SinkAudioContext, type VoiceSessionView } from "./session-model";
 
 export type { MicrophoneProcessingSettings } from "./microphone-capture";
@@ -37,7 +35,6 @@ export type { AudioInputDevice, AudioOutputDevice, VoiceSessionView, VoiceState 
  *  composable with the Vue layer replaced by a zustand vanilla store. One
  *  instance per app; React binds through hooks that subscribe to `store`. */
 export function createVoiceSessionController() {
-  let socket: WebSocket | null = null;
   const store = createStore<VoiceSessionView>(() => ({
     connected: false, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false,
     tsClientId: 0, error: "", errorCode: "", retryNotUntil: 0,
@@ -81,101 +78,26 @@ export function createVoiceSessionController() {
   // 聊天发送簇（chat-send.ts）：乐观上屏/撤回与会话代际；代际随断线释放推进。
   const chatSend = createChatSend({
     V,
-    socket: () => socket,
+    socket: () => connection.socket(),
     session: () => sessionState,
     sendCommandAndWait,
   });
-  const voiceConnection = createVoiceConnection({
-    onSocket: value => { socket = value; },
+  // 连接生命周期簇（connection-lifecycle.ts）：socket 所有权、join/断开、
+  // 浏览器级重连预算与 ticket；消息/音频帧仍由门面分发。
+  const connection = createConnectionLifecycle({
+    V,
+    patch,
     onMessage: handleMessage,
     onAudio: handleAudioFrame,
-    onClose(event) {
-      releaseSessionResources();
-      patch({ connected: false, connecting: false, reconnecting: false, tsClientId: 0 });
-      syncVoiceTransport();
-      if (!V().reconnectFailed) sessionState.reset();
-      if (event.code !== 1000 && !V().reconnectFailed && !V().errorCode) {
-        const code = closeErrorCode(event.code, event.reason);
-        patch({ errorCode: code, connectionFailureCode: code, error: closeReason(event.code, event.reason) });
-      }
-      clearMicrophoneError();
-      clearAudioNotice();
-      const retryableDrop = BROWSER_RECONNECTABLE_CLOSE_CODES.has(event.code);
-      if (!retryableDrop) {
-        // Terminal gateway codes (bad ticket, bad target, identity conflicts)
-        // would repeat after a resume: drop the ticket and stop any loop.
-        browserReconnectActive = false;
-        if (BROWSER_TERMINAL_CLOSE_CODES.has(event.code)) dropReconnectTicket();
-        return;
-      }
-      if (!reconnectTicket || V().connected || V().reconnectFailed) return;
-      // A retryable transport drop with a live ticket reconnects in place —
-      // the reconnect banner replaces the kick back to the join form.
-      browserReconnectActive = true;
-      scheduleBrowserReconnect();
-    },
-    onFailure({ code, detail, cause, retryAfterMs }) {
-      const errorCode = normalizedClientErrorCode(code, "REQUEST_FAILED");
-      patch({
-        connecting: false,
-        errorCode,
-        connectionFailureCode: errorCode,
-        error: cause instanceof Error ? cause.message : joinTicketReason(errorCode, detail),
-        ...(errorCode === "PASSWORD_RETRY_LATER" ? {
-          retryNotUntil: Date.now() + (typeof retryAfterMs === "number" && retryAfterMs > 0 ? retryAfterMs : 60_000),
-        } : {}),
-      });
-      if (!browserReconnectActive) return;
-      if (V().errorCode === "RECONNECT_INVALID") {
-        // The gateway no longer knows this session (TTL passed, server
-        // restarted): give up quietly unless the room is on screen.
-        abandonBrowserReconnect();
-        return;
-      }
-      if (errorCode === "RATE_LIMITED") {
-        // 网关限流不是会话故障：按 Retry-After 等窗口过去，且不消耗重连预算
-        // （盲重试会在群体重连里把预算烧光并弹假失败横幅——报告 21 F5）。
-        scheduleBrowserReconnect({ throttled: true, retryAfterMs: typeof retryAfterMs === "number" ? retryAfterMs : 0 });
-        return;
-      }
-      // Transient exchange failures (offline, timeout) get the next slot in the
-      // reconnect budget.
-      scheduleBrowserReconnect();
-    },
+    syncVoiceTransport,
+    resetSessionState: () => sessionState.reset(),
+    releaseSessionResources,
+    clearMicrophoneError,
+    clearAudioNotice,
+    playNotification,
+    audioPreferencesReady: () => audioPrefs.ready,
   });
-  const commands = createVoiceCommands({ socket: () => socket, generation: () => voiceConnection.generation });
-  // A pending browser-reconnect timer must not fire into a disposed page.
-  // React hosts call dispose() from their teardown effect; tests may skip it.
-  let lastConnection: { target: string; channel: string; nickname: string; serverPassword: string; identity?: string; rememberIdentity: boolean } | null = null;
-  // 展示用目标（无凭据）：随 reconnect intent 持久化，刷新恢复后首页
-  // store（header 收藏匹配 / 折叠记忆 serverKey）才有真实目标可回填。
-  let lastConnectTarget: { address: string; port: string } | null = null;
-  // Browser-level reconnect: when the gateway WebSocket itself drops (network
-  // loss, proxy timeout, server restart) the reconnect ticket restores the
-  // whole session. Delays mirror the gateway's
-  // own TeamSpeak-reconnect pacing; after the budget the user retries manually.
-  const BROWSER_RECONNECT_DELAYS_MS = [1_000, 2_000, 4_000];
-  // 限流（429）不计入 1/2/4 秒重连预算：延迟改由网关 Retry-After 决定，但设独立
-  // 上限——持续限流最终仍回落普通预算，不让重连无限续命（报告 21 F5）。
-  const MAX_THROTTLED_RECONNECTS = 3;
-  /** ±20% 抖动：共享限流键（同 NAT、反代漏设 TRUST_PROXY）的群体重连不再同拍敲门。 */
-  const jitteredReconnectDelay = (baseMs: number): number => Math.round(baseMs * (0.8 + Math.random() * 0.4));
-  const BROWSER_RECONNECTABLE_CLOSE_CODES = new Set([1006, 1011, 4004]);
-  // 4006（单网络并发上限，报告 21 S3）在本网络缓解前重连必然再撞墙，按终态处理。
-  const BROWSER_TERMINAL_CLOSE_CODES = new Set([4001, 4002, 4003, 4005, 4006]);
-  // reconnectFailed codes that cannot succeed unchanged: automatic resume must
-  // stop offering the session after these and leave the next move to the user.
-  const TERMINAL_RECONNECT_FAILURE_CODES = new Set([
-    "BANNED", "KICKED", "INVALID_TARGET", "INVALID_NICKNAME", "NICKNAME_IN_USE",
-    "INVALID_SERVER_PASSWORD", "SERVER_PASSWORD_REQUIRED", "IDENTITY_REJECTED",
-    "IDENTITY_IN_USE", "IDENTITY_SECURITY_LEVEL_TOO_LOW", "IDENTITY_LIMIT_REACHED",
-    "CLIENT_VERSION_OUTDATED",
-  ]);
-  let reconnectTicket = "";
-  let browserReconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  let browserReconnectActive = false;
-  let throttledReconnects = 0;
-  let connectedThisLoad = false;
+  const commands = createVoiceCommands({ socket: connection.socket, generation: () => connection.voiceConnection.generation });
   let microphoneStartPromise: Promise<void> | null = null;
   let microphoneGeneration = 0;
 
@@ -218,8 +140,8 @@ export function createVoiceSessionController() {
     onError: code => { patch({ accompanimentErrorCode: code }); },
   });
   const screenShare = createScreenShareController({
-    isOpen: () => socket?.readyState === WebSocket.OPEN,
-    send: message => socket?.send(JSON.stringify(message)),
+    isOpen: () => connection.socket()?.readyState === WebSocket.OPEN,
+    send: message => connection.socket()?.send(JSON.stringify(message)),
   });
   let inputDeviceGeneration = 0;
   let outputDeviceGeneration = 0;
@@ -337,10 +259,10 @@ export function createVoiceSessionController() {
   });
   const audioDiagnostics = createAudioDiagnostics({
     source() {
-      const current = socket;
+      const current = connection.socket();
       if (!current || current.readyState !== WebSocket.OPEN || !V().connected) return null;
       const peer = webrtc.peer;
-      return { socket: current, connection: voiceConnection.generation, transportGeneration: webrtc.generation, peer,
+      return { socket: current, connection: connection.voiceConnection.generation, transportGeneration: webrtc.generation, peer,
         transport: webrtc.active ? "webrtc" : peer ? "negotiating" : "websocket" };
     },
     presentation({ peer }) {
@@ -517,8 +439,8 @@ export function createVoiceSessionController() {
 
   async function refreshAudioDevices(): Promise<void> {
     const generation = ++deviceListGeneration;
-    const sequence = voiceConnection.generation;
-    const isCurrent = () => generation === deviceListGeneration && sequence === voiceConnection.generation;
+    const sequence = connection.voiceConnection.generation;
+    const isCurrent = () => generation === deviceListGeneration && sequence === connection.voiceConnection.generation;
     if (!navigator.mediaDevices?.enumerateDevices) {
       patch({ inputDevices: [], outputDevices: [] });
       setAudioNotice("DEVICE_LIST_UNAVAILABLE", "无法读取音频设备列表，将使用浏览器默认音频设备：请在系统或浏览器隐私设置中允许读取设备信息");
@@ -580,7 +502,7 @@ export function createVoiceSessionController() {
     if (!input.length) return;
     // 电平显示改由预增益抽头（inputMeter）供给：本 tap 在广播门控（gain 0）
     // 之后，测试/静音期 rms 恒零，声波条会被错误地按满门限清零（2026-10-18）。
-    const current = socket;
+    const current = connection.socket();
     const shouldSend = !V().microphoneMuted
       && !V().microphoneTestActive
       && !webrtc.active
@@ -777,7 +699,7 @@ export function createVoiceSessionController() {
 
   async function startWebRtcTransport(sequence: number, current: WebSocket): Promise<void> {
     await webrtc.start({
-      isCurrent: () => sequence === voiceConnection.generation && socket === current
+      isCurrent: () => sequence === connection.voiceConnection.generation && connection.socket() === current
         && current.readyState === WebSocket.OPEN && V().connected,
       send: message => current.send(JSON.stringify(message)),
     });
@@ -829,10 +751,10 @@ export function createVoiceSessionController() {
   async function reconfigureMicrophone(): Promise<void> {
     const generation = ++inputDeviceGeneration;
     deviceListGeneration++;
-    const sequence = voiceConnection.generation;
-    const current = socket;
-    const isCurrent = () => generation === inputDeviceGeneration && sequence === voiceConnection.generation;
-    const shouldRestartWebRtc = webrtc.active && Boolean(socket);
+    const sequence = connection.voiceConnection.generation;
+    const current = connection.socket();
+    const isCurrent = () => generation === inputDeviceGeneration && sequence === connection.voiceConnection.generation;
+    const shouldRestartWebRtc = webrtc.active && Boolean(connection.socket());
     try {
       // Keep the current peer alive until the replacement microphone is ready.
       if (micStream) await startMicrophone();
@@ -881,8 +803,8 @@ export function createVoiceSessionController() {
     audioPrefs.markTouched("outputDevice");
     const generation = ++outputDeviceGeneration;
     deviceListGeneration++;
-    const sequence = voiceConnection.generation;
-    const isCurrent = () => generation === outputDeviceGeneration && sequence === voiceConnection.generation;
+    const sequence = connection.voiceConnection.generation;
+    const isCurrent = () => generation === outputDeviceGeneration && sequence === connection.voiceConnection.generation;
     const previousDeviceId = audioPrefs.committed().selectedOutputDeviceId;
     patch({ selectedOutputDeviceId: deviceId });
     try {
@@ -940,172 +862,6 @@ export function createVoiceSessionController() {
     patch({ volumes: next });
   }
 
-  function connect(target: string, channel: string, nickname: string, serverPassword = "", identity = "", rememberIdentity = false): void {
-    const switchingServer = lastConnection !== null && lastConnection.target !== target;
-    let started = false;
-    const startJoin = (): void => {
-      if (started) return;
-      started = true;
-      lastConnection = { target, channel, nickname, serverPassword, ...(identity ? { identity } : {}), rememberIdentity };
-      lastConnectTarget = splitTeamSpeakTarget(target);
-      patch({
-        identityMaterial: identity,
-        error: "",
-        errorCode: "",
-        retryNotUntil: 0,
-        // Audio diagnostics belong to the previous session, never to the new one.
-        connecting: true,
-        reconnecting: false,
-        reconnectAttempt: 0,
-        reconnectFailed: false,
-      });
-      clearMicrophoneError();
-      clearAudioNotice();
-      voiceConnection.start(JSON.stringify({
-        target, nickname, channel, serverPassword,
-        ...(rememberIdentity && identity ? { identity } : {}),
-        ...(rememberIdentity ? { rememberIdentity: true } : {}),
-      }), audioPrefs.ready);
-    };
-    if (!switchingServer) {
-      disconnect(true);
-      startJoin();
-      return;
-    }
-    // 切换服务器先完整退出（语义拍板 2026-10-18）：等旧 socket 的 close 握手
-    // 落地——网关收到 1000 即启动旧 TS 会话 teardown——再开新 join。并行赛跑会
-    // 让同身份在 TS 服务器侧撞上尚未退场的旧连接，新连接挂到 8s 连接超时由
-    // 浏览器重试兜底。400ms 上限只防 close 事件丢失，正常路径即达。
-    const safety = setTimeout(startJoin, 400);
-    disconnect(true, () => { clearTimeout(safety); startJoin(); });
-  }
-
-  function disconnect(preserveConnection = false, onClosed?: () => void): void {
-    const keepRememberedIdentity = lastConnection?.rememberIdentity === true;
-    if (!preserveConnection) {
-      lastConnection = null;
-      dropReconnectTicket();
-    }
-    cancelBrowserReconnect();
-    clearMicrophoneError();
-    clearAudioNotice();
-    patch({
-      connected: false, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false,
-      tsClientId: 0, errorCode: "", connectionFailureCode: "", channelSwitchedChannelId: "",
-      ...(keepRememberedIdentity ? {} : { identityMaterial: "" }),
-    });
-    // 标志位补丁必须在 stop 之前落地：切服串行化时 onClosed 会在 stop 内同步
-    // 触发 startJoin（connecting:true），若补丁在其后会把新 join 的状态翻回
-    // false——（voiceConnection.stop 的 onClosed 语义，2026-10-18）。
-    voiceConnection.stop(() => releaseSessionResources(!preserveConnection), onClosed);
-    syncVoiceTransport();
-    sessionState.reset();
-    patch({ volumes: {} });
-  }
-
-  // --- Browser-level reconnect machinery ---------------------------------
-  function storeReconnectTicket(token: string): void {
-    reconnectTicket = token;
-    writeVoiceSessionIntent({
-      reconnectToken: token,
-      savedAt: Date.now(),
-      ...(lastConnectTarget ? { target: lastConnectTarget } : {}),
-    });
-  }
-
-  function dropReconnectTicket(): void {
-    reconnectTicket = "";
-    clearVoiceSessionIntent();
-  }
-
-  function cancelBrowserReconnect(): void {
-    if (browserReconnectTimer !== null) {
-      clearTimeout(browserReconnectTimer);
-      browserReconnectTimer = null;
-    }
-    browserReconnectActive = false;
-    throttledReconnects = 0;
-  }
-
-  function scheduleBrowserReconnect(options: { throttled?: boolean; retryAfterMs?: number } = {}): void {
-    if (!reconnectTicket || V().connected || V().reconnectFailed) {
-      browserReconnectActive = false;
-      return;
-    }
-    if (browserReconnectTimer !== null) return;
-    const retryAfterMs = Math.max(0, options.retryAfterMs ?? 0);
-    const throttled = options.throttled === true && throttledReconnects < MAX_THROTTLED_RECONNECTS;
-    if (throttled) throttledReconnects += 1;
-    // 限流重试停在当前档位（不消耗 1/2/4 秒预算），其余尝试逐档递增。
-    const attempt = throttled ? Math.max(1, V().reconnectAttempt) : V().reconnectAttempt + 1;
-    patch({ reconnecting: true, connecting: false, reconnectAttempt: attempt });
-    if (attempt > BROWSER_RECONNECT_DELAYS_MS.length) {
-      abandonBrowserReconnect();
-      return;
-    }
-    // 限流档以 Retry-After 为准（仍加抖动：同一限流窗口的客户端别同拍再来）。
-    const base = throttled
-      ? Math.max(retryAfterMs, BROWSER_RECONNECT_DELAYS_MS[0]!)
-      : BROWSER_RECONNECT_DELAYS_MS[attempt - 1]!;
-    browserReconnectTimer = setTimeout(() => {
-      browserReconnectTimer = null;
-      attemptBrowserReconnect();
-    }, jitteredReconnectDelay(base));
-  }
-
-  function attemptBrowserReconnect(): void {
-    if (!reconnectTicket || V().connected) {
-      browserReconnectActive = false;
-      patch({ reconnecting: false });
-      return;
-    }
-    browserReconnectActive = true;
-    patch({ connecting: true });
-    voiceConnection.start(JSON.stringify({ reconnect: reconnectTicket }), audioPrefs.ready);
-  }
-
-  /** Budget exhausted or the gateway forgot the session. A page that never
-   *  connected this load (reload resume with a stale token) falls back to the
-   *  join form silently; an established session shows the failure banner. */
-  function abandonBrowserReconnect(): void {
-    cancelBrowserReconnect();
-    dropReconnectTicket();
-    if (!connectedThisLoad) {
-      patch({ connecting: false, reconnecting: false, reconnectAttempt: 0, error: "", errorCode: "" });
-      return;
-    }
-    const code = "GATEWAY_NETWORK_LOST";
-    patch({
-      connecting: false,
-      reconnecting: false,
-      reconnectFailed: true,
-      errorCode: code,
-      connectionFailureCode: code,
-      error: connectionFailureMessage(code),
-    });
-    playNotification("reconnectFailed");
-  }
-
-  /** Page-load recovery: exchange the stored reconnect token for a fresh join
-   *  ticket and rebuild the session. Returns false when there is nothing to
-   *  resume, leaving the normal join form untouched. */
-  function tryResumeVoiceSession(): boolean {
-    if (V().connected || V().connecting || V().reconnecting) return false;
-    const intent = readVoiceSessionIntent();
-    if (!intent) return false;
-    // 本加载从未 connect 过：目标只能来自上次会话的 intent，续票成功后
-    // storeReconnectTicket 才能把同一目标写回 intent。
-    if (intent.target) lastConnectTarget = intent.target;
-    reconnectTicket = intent.reconnectToken;
-    patch({
-      error: "", errorCode: "", retryNotUntil: 0, reconnectFailed: false, reconnectAttempt: 0, reconnecting: true,
-    });
-    clearMicrophoneError();
-    clearAudioNotice();
-    attemptBrowserReconnect();
-    return true;
-  }
-
   /** All ways a session ends release the same owned media and pending work. */
   function releaseSessionResources(sendScreenStop = false): void {
     chatSend.advanceGeneration();
@@ -1129,8 +885,8 @@ export function createVoiceSessionController() {
   function startWebRtcVoice(): Promise<void> {
     clearAudioNotice("WEBRTC_DISABLED");
     clearAudioNotice("WEBRTC_UNSUPPORTED");
-    const current = socket;
-    return current ? startWebRtcTransport(voiceConnection.generation, current) : Promise.resolve();
+    const current = connection.socket();
+    return current ? startWebRtcTransport(connection.voiceConnection.generation, current) : Promise.resolve();
   }
 
   /** The WebSocket fallback must never degrade silently: say why voice is on PCM. */
@@ -1155,12 +911,10 @@ export function createVoiceSessionController() {
           tsClientId: Number(msg.tsClientId) || 0,
         });
         syncVoiceTransport();
-        browserReconnectActive = false;
-        throttledReconnects = 0;
-        connectedThisLoad = true;
+        connection.notifyConnected();
         // Fresh ticket per connection: it is what a reload or the next drop
         // will exchange, so it must replace the consumed previous one.
-        if (typeof msg.reconnectTicket === "string" && msg.reconnectTicket) storeReconnectTicket(msg.reconnectTicket);
+        if (typeof msg.reconnectTicket === "string" && msg.reconnectTicket) connection.storeReconnectTicket(msg.reconnectTicket);
         // The mute preference is local to the browser, while TeamSpeak shows
         // the gateway's own client_input_muted flag to other clients. Send it
         // as soon as the session is ready so a muted reconnect is visible to
@@ -1172,7 +926,8 @@ export function createVoiceSessionController() {
         applyWhisperState(msg.whisperTargetIds, msg.whisperActive);
         if (typeof msg.identity === "string" && msg.identity.length <= 8192) {
           patch({ identityMaterial: msg.identity });
-          if (lastConnection) lastConnection.identity = msg.identity;
+          const last = connection.lastConnection();
+          if (last) last.identity = msg.identity;
         }
         if (wasReconnecting) {
           const start = msg.webrtcAvailable === true && typeof RTCPeerConnection !== "undefined"
@@ -1181,7 +936,7 @@ export function createVoiceSessionController() {
           // A failed microphone must not look like a failed connection: record it
           // as an audio diagnostic so the room stays visible with a clear reason.
           start.catch((error: unknown) => { setMicrophoneError(error); });
-        } else if (msg.webrtcAvailable === true && typeof RTCPeerConnection !== "undefined" && socket) {
+        } else if (msg.webrtcAvailable === true && typeof RTCPeerConnection !== "undefined" && connection.socket()) {
           void startWebRtcVoice().catch((error: unknown) => { setMicrophoneError(error); });
         } else {
           void startCompatibilityVoice().catch((error: unknown) => { setMicrophoneError(error); });
@@ -1214,7 +969,7 @@ export function createVoiceSessionController() {
           patch({ error: "TeamSpeak 连接已断开" });
           // A non-recoverable TeamSpeak disconnect tore the session down for
           // good; a resume would only rebuild the same dead end.
-          dropReconnectTicket();
+          connection.dropReconnectTicket();
         }
         releaseSessionResources();
         break;
@@ -1241,7 +996,7 @@ export function createVoiceSessionController() {
         // Deterministic refusals (ban, changed password, identity conflict)
         // can only repeat: drop the resume intent so a reload stops at the
         // join form instead of re-hitting the same rejection.
-        if (TERMINAL_RECONNECT_FAILURE_CODES.has(V().errorCode)) dropReconnectTicket();
+        if (connection.isTerminalReconnectFailure(V().errorCode)) connection.dropReconnectTicket();
         break;
       }
       case "connectionFailed": {
@@ -1263,7 +1018,7 @@ export function createVoiceSessionController() {
         void webrtc.applyAnswer(msg.payload?.sdp);
         break;
       case "webrtcError":
-        if (socket) void webrtc.fallback(safeClientErrorCode(msg.code) || "WEBRTC_NEGOTIATION_FAILED");
+        if (connection.socket()) void webrtc.fallback(safeClientErrorCode(msg.code) || "WEBRTC_NEGOTIATION_FAILED");
         break;
       case "audioError": {
         // The gateway could not encode our microphone audio (for example its Opus
@@ -1374,22 +1129,6 @@ export function createVoiceSessionController() {
       }
     }
     syncWhisperState(active === true);
-  }
-
-  function reconnectNow(): void {
-    if (V().connecting) return;
-    if (reconnectTicket) {
-      // Prefer the ticket: it restores the exact session payload, unlike a
-      // manual form reconnect.
-      cancelBrowserReconnect();
-      patch({
-        reconnectFailed: false, reconnectAttempt: 0, reconnecting: true, error: "", errorCode: "",
-      });
-      attemptBrowserReconnect();
-      return;
-    }
-    if (!lastConnection) return;
-    connect(lastConnection.target, lastConnection.channel, lastConnection.nickname, lastConnection.serverPassword, lastConnection.rememberIdentity ? V().identityMaterial || lastConnection.identity : "", lastConnection.rememberIdentity);
   }
 
   /** True when nothing needs the WebAudio uplink graph and the raw capture
@@ -1570,11 +1309,6 @@ export function createVoiceSessionController() {
     audioPrefs.queueSave();
   }
 
-  /** Releases reconnect timers; React hosts call this from their teardown. */
-  function dispose(): void {
-    cancelBrowserReconnect();
-  }
-
   return {
     /** Main view store: VoiceSessionView snapshot, subscribe with selectors. */
     store,
@@ -1584,8 +1318,8 @@ export function createVoiceSessionController() {
     /** Speaking-badge store (see speaking-state.ts). */
     speakingStore: speakingState.store,
     screenShare,
-    ws: () => socket,
-    dispose,
+    ws: connection.socket,
+    dispose: connection.dispose,
     setVolume,
     setInputVolume,
     setNoiseSuppressionEnabled,
@@ -1604,10 +1338,10 @@ export function createVoiceSessionController() {
     stopMicrophoneTest,
     playNotification,
     setMicrophoneTestPlayback,
-    connect,
-    reconnectNow,
-    tryResumeVoiceSession,
-    disconnect,
+    connect: connection.connect,
+    reconnectNow: connection.reconnectNow,
+    tryResumeVoiceSession: connection.tryResumeVoiceSession,
+    disconnect: connection.disconnect,
     switchChannel,
     moveClient,
     sendTextMessage: chatSend.sendTextMessage,
