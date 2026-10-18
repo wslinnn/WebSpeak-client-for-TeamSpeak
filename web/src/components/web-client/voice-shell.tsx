@@ -31,11 +31,10 @@ import type { MembersController } from "@/web-client/members-controller";
 import type { ChannelFold } from "@/web-client/channel-fold";
 import type { VoiceServerSwitch } from "@/web-client/server-switch";
 import type { HomeStore } from "@/web-client/home-store";
+import type { MobileSection } from "@/web-client/mobile-section";
 import type { FavoriteServer } from "@/services/local-persistence";
 import type { Language } from "@/i18n/web-client";
 import { cn } from "@/lib/utils";
-
-export type MobileSection = "channels" | "chat" | "voice" | "more";
 
 interface VoiceShellProps {
   voice: VoiceSessionController;

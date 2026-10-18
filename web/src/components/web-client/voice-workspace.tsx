@@ -13,7 +13,7 @@ import type { VoiceSessionController } from "@/voice/session-controller";
 import type { WebClientChatTab } from "@/web-client/home-store";
 import type { ChannelMember, ServerEvent } from "@shared/voice-models";
 import type { Language } from "@/i18n/web-client";
-import type { MobileSection } from "./voice-shell";
+import type { MobileSection } from "@/web-client/mobile-section";
 
 interface VoiceWorkspaceProps {
   voice: VoiceSessionController;

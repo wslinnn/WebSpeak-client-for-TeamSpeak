@@ -3,6 +3,7 @@ import type { StoreApi } from "zustand";
 
 import type { ChannelInfo, ChannelMember, ChatMessage } from "@shared/voice-models";
 import { loadChatHistory, normalizeChatHistoryServerKey, saveChatHistoryMessage } from "@/services/local-persistence";
+import type { MobileSection } from "./mobile-section";
 import type { WebClientChatTab } from "./home-store";
 
 export type { WebClientChatTab as ChatTab };
@@ -42,8 +43,8 @@ interface Options {
   getCurrentChannelName(): string;
   getSelectedChannelId(): string;
   isMobileViewport(): boolean;
-  getMobileSection(): "channels" | "chat" | "voice" | "more";
-  setMobileSection(section: "channels" | "chat" | "voice" | "more"): void;
+  getMobileSection(): MobileSection;
+  setMobileSection(section: MobileSection): void;
   closeMemberMenu(): void;
   sendTextMessage(text: string, targetId?: string): Promise<void>;
   sendServerMessage(text: string): Promise<void>;

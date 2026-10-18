@@ -14,7 +14,7 @@ import { createPerformanceMonitor } from "@/web-client/performance-monitor";
 import { createVoiceServerSwitch, settleSwitchOnConnected } from "@/web-client/server-switch";
 import type { HomeConnection } from "@/web-client/home-connection";
 import type { HomeStoreController } from "@/web-client/home-store";
-import type { MobileSection } from "@/components/web-client/voice-shell";
+import type { MobileSection } from "@/web-client/mobile-section";
 
 interface InRoomOptions {
   voice: VoiceSessionController;
