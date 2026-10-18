@@ -24,6 +24,10 @@ const FRAME_FLOOD_CLOSE_DROPS = 200;
 // 每帧刷新时间戳，不受影响。
 const EGRESS_CLIENT_PRUNE_THRESHOLD = 256;
 const EGRESS_CLIENT_TTL_MS = 10 * 60_000;
+/** TS 客户端开麦静默期的周期帧 = ≤3 字节的数字舒适噪声（RFC 6716 最小有意义
+ *  载荷远大于此；voice.md 62-63 档案的 0xfc 3 字节实锤）。不向下游转发：浏览器
+ *  说话指示吃 packetsReceived 增量，舒适噪声会让磁贴在静音期误报说话。 */
+const COMFORT_NOISE_FRAME_BYTES = 3;
 
 export interface VoiceEncoder {
   encode(frame: Buffer): Buffer;
@@ -177,6 +181,11 @@ export class SessionAudioTransport {
     if (data.clientId === this.options.selfId()) return;
     if (!Number.isInteger(data.clientId) || data.clientId < 1 || data.clientId > 65_535
       || !Number.isInteger(data.codec) || data.codec < 0 || data.codec > 255 || !Buffer.isBuffer(data.data)) {
+      stats.egressDroppedFrames++;
+      return;
+    }
+    // 舒适噪声过滤：不占 egress 记账（转发数/活跃表），WebRTC 与兼容 WS 两路同滤。
+    if (data.data.length <= COMFORT_NOISE_FRAME_BYTES) {
       stats.egressDroppedFrames++;
       return;
     }

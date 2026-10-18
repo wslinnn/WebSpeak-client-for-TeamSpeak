@@ -29,7 +29,8 @@ function fixture() {
     selfId: () => 1, peer: () => state.peer, whisperTargets: () => state.targets,
     sendJson: message => { notices.push(message); },
   }, encoder, () => state.now);
-  const remote = (clientId = 513) => ({ clientId, codec: 4, data: Buffer.from([11, 12, 13]) });
+  // 载荷取现实尺寸（≥4 字节）：≤3 字节是舒适噪声帧，下行过滤器会拦（见下方专测）。
+  const remote = (clientId = 513) => ({ clientId, codec: 4, data: Buffer.from([11, 12, 13, 14]) });
   return { transport, audio, state, socket, client, encoder, packets, encoded, forwarded, notices, closes, remote };
 }
 
@@ -115,10 +116,30 @@ test("TeamSpeak packets keep the three-byte header and exclude self playback", (
   const remote = f.remote();
   f.transport.receiveTeamSpeak(remote);
   remote.data.fill(0);
-  assert.deepEqual([...f.packets[0]!], [4, 2, 1, 11, 12, 13]);
+  assert.deepEqual([...f.packets[0]!], [4, 2, 1, 11, 12, 13, 14]);
   assert.equal(f.audio.tsReceiveFrames, 2);
   assert.equal(f.audio.egressFrames, 1);
   assert.deepEqual(f.audio.egressFramesByClient, { "513": 1 });
+});
+
+test("comfort noise frames (≤3 bytes) are not forwarded to either downlink", () => {
+  const pushed: TSVoiceData[] = [];
+  const f = fixture();
+  f.state.peer = { pushTeamSpeakVoice: (data: TSVoiceData) => { pushed.push(data); } };
+  // 开麦静默期 TS 客户端发的 3 字节数字舒适噪声：不转发（说话指示吃
+  // packetsReceived 增量，转发会让磁贴静音期误报说话），计 egressDropped。
+  const before = f.audio.egressDroppedFrames;
+  f.transport.receiveTeamSpeak({ clientId: 513, codec: 4, data: Buffer.from([252, 3, 7]) });
+  f.transport.receiveTeamSpeak({ clientId: 513, codec: 4, data: Buffer.from([1]) });
+  f.transport.receiveTeamSpeak({ clientId: 513, codec: 4, data: Buffer.alloc(0) });
+  assert.equal(f.packets.length, 0, "兼容 WS 不收到舒适噪声");
+  assert.equal(pushed.length, 0, "WebRTC 槽不收到舒适噪声");
+  assert.equal(f.audio.egressDroppedFrames, before + 3);
+  assert.deepEqual(f.audio.egressFramesByClient, {}, "不占每客户端转发记账");
+  // 现实载荷不受影响。
+  f.transport.receiveTeamSpeak(f.remote(513));
+  assert.equal(pushed.length, 1);
+  assert.deepEqual([...pushed[0]!.data], [11, 12, 13, 14]);
 });
 
 test("backpressure drops bursts above 4096 bytes and resumes without a retained queue", () => {
