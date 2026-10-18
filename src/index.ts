@@ -2,7 +2,6 @@ import path from "node:path";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { normalizeScreenShareIceServers, type ScreenShareIceServer } from "./server/screen-share.js";
-import { SkinRegistry } from "./admin/skin-registry.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..");
@@ -85,8 +84,7 @@ async function main() {
       serverPasswordGuard,
     },
     adminService,
-    skinRegistry: new SkinRegistry(path.join(DATA_DIR, "skins")),
-    logger,
+        logger,
     trustProxy,
     serverPasswordGuard,
     androidReleaseLookup,

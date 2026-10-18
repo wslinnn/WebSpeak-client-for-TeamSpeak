@@ -1,6 +1,5 @@
 import express from "express";
 import compression from "compression";
-import { createHash } from "node:crypto";
 import { createServer as createHttpsServer } from "node:https";
 import { createServer as createHttpServer } from "node:http";
 import { readFileSync } from "node:fs";
@@ -19,14 +18,12 @@ import { isSafeOpenTargetForPrefill, resolveSafeOpenTarget } from "../security/o
 import { isSameOrigin } from "../security/same-origin.js";
 import { identityFromString } from "@echosixhiya/teamspeak-client";
 import { JoinRateLimiter } from "./join-rate-limit.js";
-import { ByteBucketRateLimiter } from "./byte-bucket-rate-limit.js";
 import { FixedWindowRateLimiter } from "./fixed-window-rate-limit.js";
 import { rateLimitPeerKey, resolveClientAddress } from "./client-ip.js";
 import { createProxyHint } from "./proxy-hint.js";
 import type { ServerPasswordGuard } from "./server-password-guard.js";
 import type { AndroidReleaseInfo } from "./downloads.js";
 import { teamSpeakTargetKey } from "../domain/teamspeak-target.js";
-import type { SkinRegistry } from "../admin/skin-registry.js";
 
 export interface WebServerOptions {
   port: number;
@@ -36,7 +33,6 @@ export interface WebServerOptions {
   certDir?: string; // path to cert.pem + key.pem for HTTPS
   voiceBridgeOptions: VoiceBridgeOptions;
   adminService: AdminService;
-  skinRegistry?: SkinRegistry;
   logger: Logger;
   trustProxy?: boolean;
   serverPasswordGuard: ServerPasswordGuard;
@@ -88,19 +84,18 @@ export function createWebServer(options: WebServerOptions): WebServer {
   }
 
   // Defense-in-depth headers for every response, including API errors and
-  // static assets. style-src keeps 'unsafe-inline' because skins inject their
-  // CSS as a style element and Vue writes style attributes; the frontend has
-  // no HTML sink, so the style channel is not an injection path. HSTS is only
-  // meaningful on secure responses — including proxy-terminated TLS once
-  // trust proxy is enabled. img-src/font-src allow blob: because compiled skin
-  // packs reference their bundled assets as blob: URLs (created client-side
-  // from whitelisted in-package files, so they are same-origin by
-  // construction); media-src blob: serves the microphone-test playback
-  // element, and script-src 'wasm-unsafe-eval' is required by the optional
-  // RNNoise denoiser WASM module. connect-src is deliberately narrowed to
-  // 'self': the voice WebSocket is always same-origin (location.host) and the
-  // browser floor (WebCodecs-capable) postdates the Safari 15.4 fix for
-  // 'self' matching websocket schemes.
+  // Defense-in-depth headers for every response, including API errors and
+  // static assets. style-src keeps 'unsafe-inline' because the theme layer
+  // injects its CSS as a style element; the frontend has no HTML sink, so the
+  // style channel is not an injection path. HSTS is only meaningful on secure
+  // responses — including proxy-terminated TLS once trust proxy is enabled.
+  // img-src/font-src allow blob: for client-generated resource URLs; media-src
+  // blob: serves the microphone-test playback element, and script-src
+  // 'wasm-unsafe-eval' is required by the optional RNNoise denoiser WASM
+  // module. connect-src is deliberately narrowed to 'self': the voice
+  // WebSocket is always same-origin (location.host) and the browser floor
+  // (WebCodecs-capable) postdates the Safari 15.4 fix for 'self' matching
+  // websocket schemes.
   app.use((request, response, next) => {
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -119,8 +114,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
   app.use(express.json({ limit: "100kb" }));
   // Voice and API traffic shares a 3 Mbit/s uplink; compressing the JSON API
   // and static assets is close to a free tripling of its capacity. WebSocket
-  // upgrades and binary downloads (skins) are not compressible types and stay
-  // untouched by the default filter.
+  // upgrades stay untouched by the default filter.
   app.use(compression());
 
   // RTP isolation lab (diagnostics only): mount is a no-op unless
@@ -143,9 +137,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
   const joinRateLimiter = new JoinRateLimiter();
   // S5（报告 21）：皮肤包/预览按字节记账（满桶首下载恒放行，持续回填 8MiB/分
   // ≈ 1.1Mbps，把单对端压到 3Mbps 上行的公平份额）；桶容量覆盖单包 20MiB 上限。
-  const skinPackageLimiter = new ByteBucketRateLimiter(24 * 1024 * 1024, 8 * 1024 * 1024);
-  const skinPreviewLimiter = new ByteBucketRateLimiter(4 * 1024 * 1024, 8 * 1024 * 1024);
-  // A page fetches one avatar per roster member on first sight; the window
+      // A page fetches one avatar per roster member on first sight; the window
   // quota covers the 100-session roster burst with room for reloads. Avatars
   // are tiny, so a per-request count still bounds them fairly.
   const avatarLimiter = new FixedWindowRateLimiter(1024, 240);
@@ -198,14 +190,6 @@ export function createWebServer(options: WebServerOptions): WebServer {
     });
   });
 
-  app.get("/api/skins", async (_request, response) => {
-    response.setHeader("Cache-Control", "no-cache");
-    response.json({
-      skins: await options.skinRegistry?.list() ?? [],
-      defaultSkinId: await options.skinRegistry?.getDefaultSkinId() ?? "builtin.light",
-    });
-  });
-
   // Cached release metadata for the download page. The lookup itself throttles
   // GitHub to one call per TTL, so visitors never share one API rate budget.
   if (options.androidReleaseLookup) {
@@ -215,66 +199,6 @@ export function createWebServer(options: WebServerOptions): WebServer {
       response.json({ ok: true, release });
     });
   }
-
-  app.get("/api/skins/:id/package", async (request, response) => {
-    const id = typeof request.params.id === "string" ? request.params.id : "";
-    // Skins are unauthenticated downloads of up to 20 MB; without a per-peer
-    // byte budget a looping client monopolizes the 3 Mbit/s uplink for minutes
-    // (报告 21 S5: count-based limiting let 10×20MiB/min ≈ 27Mbps through).
-    const archive = await options.skinRegistry?.readArchive(id);
-    if (!archive) {
-      response.status(404).json({ ok: false, code: "SKIN_NOT_FOUND" });
-      return;
-    }
-    // A package for a given id only changes when an administrator re-uploads
-    // it, so browsers may revalidate with the content hash instead of paying
-    // for the full download again.
-    const etag = `"${createHash("sha256").update(archive).digest("hex").slice(0, 32)}"`;
-    const revalidated = request.headers["if-none-match"] === etag;
-    // A 304 answer is a few hundred bytes and must stay free, or legit caching
-    // clients would burn their budget on revalidations.
-    if (!revalidated) {
-      const peer = peerKey(request);
-      if (!skinPackageLimiter.allow(peer, archive.length)) {
-        const retryAfterMs = skinPackageLimiter.blockedForMs(peer, archive.length);
-        response.setHeader("Retry-After", String(Math.max(1, Math.ceil(retryAfterMs / 1000))));
-        response.status(429).json({ ok: false, code: "RATE_LIMITED", retryAfterMs });
-        return;
-      }
-    }
-    response.setHeader("Cache-Control", "public, max-age=300");
-    response.setHeader("ETag", etag);
-    if (revalidated) {
-      response.status(304).end();
-      return;
-    }
-    response.setHeader("Content-Type", "application/octet-stream");
-    response.setHeader("Content-Disposition", `attachment; filename="${id}.wskin"`);
-    response.setHeader("X-Content-Type-Options", "nosniff");
-    response.send(archive);
-  });
-
-  app.get("/api/skins/:id/preview", async (request, response) => {
-    const id = typeof request.params.id === "string" ? request.params.id : "";
-    // Previews are unauthenticated images up to the per-file skin asset cap;
-    // bound them by bytes like packages (报告 21 S5).
-    const preview = await options.skinRegistry?.readPreview(id);
-    if (!preview) {
-      response.status(404).end();
-      return;
-    }
-    const peer = peerKey(request);
-    if (!skinPreviewLimiter.allow(peer, preview.bytes.length)) {
-      const retryAfterMs = skinPreviewLimiter.blockedForMs(peer, preview.bytes.length);
-      response.setHeader("Retry-After", String(Math.max(1, Math.ceil(retryAfterMs / 1000))));
-      response.status(429).json({ ok: false, code: "RATE_LIMITED", retryAfterMs });
-      return;
-    }
-    response.setHeader("Cache-Control", "public, max-age=300");
-    response.setHeader("Content-Type", preview.mimeType);
-    response.setHeader("X-Content-Type-Options", "nosniff");
-    response.send(preview.bytes);
-  });
 
   // Avatar bytes ride plain cacheable HTTP, not the voice WebSocket: the WS
   // path hands out capability URLs (/avatars/<hmac>?v=<content-hash>) whose
@@ -423,8 +347,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
     getSessionSummaries: () => voiceBridge.getSessionSummaries(),
     getVoiceTransportStats: () => voiceBridge.getTransportOutcomes(),
     terminateSession: (id) => voiceBridge.terminateSession(id),
-    skinRegistry: options.skinRegistry,
-    version: options.version,
+        version: options.version,
     logFile: options.logFile,
     startedAt,
   }));
@@ -437,10 +360,6 @@ export function createWebServer(options: WebServerOptions): WebServer {
         // other bundles); they can be cached forever. Everything else —
         // index.html and plain public/ files — must revalidate.
         if (/-[A-Za-z0-9_-]{8}\.[A-Za-z0-9]+$/.test(path.basename(filePath))) {
-          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-        } else if (path.basename(filePath).endsWith(".wskin") && Boolean(res.req?.query?.v)) {
-          // A versioned skin package is immutable: the version query string is
-          // part of the cache key and changes with every package bump.
           res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
         } else {
           res.setHeader("Cache-Control", "no-cache");
