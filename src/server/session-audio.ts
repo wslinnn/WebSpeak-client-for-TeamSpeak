@@ -28,6 +28,15 @@ const EGRESS_CLIENT_TTL_MS = 10 * 60_000;
  *  载荷远大于此；voice.md 62-63 档案的 0xfc 3 字节实锤）。不向下游转发：浏览器
  *  说话指示吃 packetsReceived 增量，舒适噪声会让磁贴在静音期误报说话。 */
 const COMFORT_NOISE_FRAME_BYTES = 3;
+/** 上行静音门控阈值（Int16 归一化 rms）：低于它视为静默，迟滞释放窗过后不再
+ *  向 TS 转发——浏览器静默期发的是真实编码近静音帧（非 3 字节舒适噪声），
+ *  转发会让 TS 保持「说话中」并使扬声器回灌路径常驻（2026-10-18 实测）。 */
+const UPLINK_SPEECH_RMS = 0.006;
+const UPLINK_RELEASE_MS = 350;
+/** 测量解码器接口：仅 decode（Int16 PCM）。生产用 OpusEncoder，测试可注入桩。 */
+export interface UplinkFrameDecoder {
+  decode(frame: Buffer): Buffer;
+}
 
 export interface VoiceEncoder {
   encode(frame: Buffer): Buffer;
@@ -59,7 +68,8 @@ export class SessionAudioTransport {
   private floodWindowDrops = 0;
   private readonly egressClientLastSeen = new Map<string, number>();
 
-  constructor(private readonly options: SessionAudioOptions, encoder: VoiceEncoder, private readonly clock: () => number = Date.now) {
+  constructor(private readonly options: SessionAudioOptions, encoder: VoiceEncoder, private readonly clock: () => number = Date.now,
+    private readonly uplinkDecoder?: UplinkFrameDecoder) {
     this.encoder = encoder;
     this.frameTokensAt = this.clock();
   }
@@ -167,7 +177,39 @@ export class SessionAudioTransport {
   receiveWebRtc(data: Buffer, codec: number): void {
     if (!this.isCurrent() || !this.options.isReady()) return;
     this.recordIngress();
+    // 上行静音门控：解码测电平，迟滞释放窗（350ms，保词尾）过后静默期不向
+    // TS 转发。伴奏混音（codec 5）不门控；解码失败放行（fail-open）。
+    if (codec === 4 && !this.uplinkSpeech(this.clock(), data)) {
+      this.options.audio.egressDroppedFrames++;
+      return;
+    }
     this.sendVoice(data, codec);
+  }
+
+  private uplinkVoiceUntil = 0;
+
+  private uplinkSpeech(now: number, frame: Buffer): boolean {
+    let rms: number | null = null;
+    try {
+      const pcm = this.uplinkDecoder?.decode(frame);
+      if (pcm && pcm.length >= 2) {
+        let sum = 0;
+        const samples = Math.floor(pcm.length / 2);
+        for (let index = 0; index < samples; index++) {
+          const value = pcm.readInt16LE(index * 2) / 32_768;
+          sum += value * value;
+        }
+        rms = Math.sqrt(sum / samples);
+      }
+    } catch {
+      return true;
+    }
+    if (rms === null) return true;
+    if (rms >= UPLINK_SPEECH_RMS) {
+      this.uplinkVoiceUntil = now + UPLINK_RELEASE_MS;
+      return true;
+    }
+    return now < this.uplinkVoiceUntil;
   }
 
   receiveTeamSpeak(data: TSVoiceData): void {

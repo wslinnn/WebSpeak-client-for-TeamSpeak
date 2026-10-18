@@ -18,7 +18,7 @@ import { parseScreenShareMessage, type ScreenShareIceServer } from "../screen-sh
 import { handleCommand } from "../voice-commands.js";
 import { createAudioFlowStats } from "../audio-stats.js";
 import { SessionAudioTransport } from "../session-audio.js";
-import { createVoiceEncoder } from "../opus-codec.js";
+import { createVoiceEncoder, OpusEncoder } from "../opus-codec.js";
 import { CommandRateLimiter, shouldReportRateLimit } from "../command-rate-limit.js";
 import { resolveClientAddress, rateLimitPeerKey } from "../client-ip.js";
 import type { ScreenShareCoordinator } from "../screen-share-coordinator.js";
@@ -188,11 +188,40 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
         if (predecessor.identityLeaseKey) deps.identityLeases.release(predecessor.identityLeaseKey, predecessor.id);
       }
     }
+    // 同身份跨目标切换（两个收藏指向同一 TS 服务器的不同域名/端口）：旧 entry
+    // 的 TS 客户端仍持着同一身份登在服务器上，新登录会被服务器拒身份冲突；
+    // 旧世界只逐出同目标的 reconnect 前任。这里按身份部分匹配逐出所有前任
+    // （2026-10-18 用户拍板：切服跟随实际连接成败，不做前端身份拦截）。
+    if (identity) {
+      const identitySuffix = `:${identity.toString()}`;
+      for (const other of deps.entries.values()) {
+        if (other.id === entryId || other.identityLeaseKey === identityLeaseKey) continue;
+        if (!other.identityLeaseKey || !other.identityLeaseKey.endsWith(identitySuffix)) continue;
+        await Promise.race([
+          deps.sessionManager.teardown(other.id, "superseded"),
+          new Promise<void>((resolve) => setTimeout(resolve, 1_500)),
+        ]);
+        deps.identityLeases.release(other.identityLeaseKey, other.id);
+      }
+    }
     if (identityLeaseKey && !deps.identityLeases.acquire(identityLeaseKey, entryId)) {
-      deps.logger.warn({ entryId, nickname, target: formatTeamSpeakTarget(target) }, "TeamSpeak identity already in use");
-      void deps.sessionManager.teardown(entryId, "teamSpeak-connect-failed");
-      ws.close(4005, "IDENTITY_IN_USE");
-      return;
+      // 同目标租约仍被占（另一浏览器页面的真实并发）：逐出持约者后重试一次，
+      // 仍失败才终止——切服跟随实际连接成败，不做前端身份拦截。
+      const holder = [...deps.entries.values()].find(
+        (candidate) => candidate.identityLeaseKey === identityLeaseKey && candidate.id !== entryId);
+      if (holder) {
+        await Promise.race([
+          deps.sessionManager.teardown(holder.id, "superseded"),
+          new Promise<void>((resolve) => setTimeout(resolve, 1_500)),
+        ]);
+        deps.identityLeases.release(identityLeaseKey, holder.id);
+      }
+      if (!deps.identityLeases.acquire(identityLeaseKey, entryId)) {
+        deps.logger.warn({ entryId, nickname, target: formatTeamSpeakTarget(target) }, "TeamSpeak identity already in use");
+        void deps.sessionManager.teardown(entryId, "teamSpeak-connect-failed");
+        ws.close(4005, "IDENTITY_IN_USE");
+        return;
+      }
     }
 
     deps.logger.info({
@@ -282,7 +311,7 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       peer: () => entry!.webrtc,
       whisperTargets: () => entry!.whisperActive ? [...entry!.whisperTargetIds] : null,
       sendJson: message => sendJson(message),
-    }, deps.dependencies.createEncoder?.() ?? createVoiceEncoder());
+    }, deps.dependencies.createEncoder?.() ?? createVoiceEncoder(), undefined, new OpusEncoder(48_000, 1));
     try {
       entry.audioTransport = createAudioTransport(ws);
     } catch (error: unknown) {

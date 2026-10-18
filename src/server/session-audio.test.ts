@@ -5,7 +5,7 @@ import { createAudioFlowStats } from "./audio-stats.js";
 import type { ServerMessage } from "../shared/server-messages.js";
 import type { TSVoiceData } from "./ts-client.js";
 
-function fixture() {
+function fixture(uplinkDecoder?: { decode(frame: Buffer): Buffer }) {
   const state = { current: true, ready: true, now: 0, targets: null as number[] | null, disposed: 0,
     peer: null as { pushTeamSpeakVoice(data: TSVoiceData): void } | null };
   const audio = createAudioFlowStats();
@@ -28,7 +28,7 @@ function fixture() {
     audio, socket, client, isCurrent: () => state.current, isReady: () => state.ready,
     selfId: () => 1, peer: () => state.peer, whisperTargets: () => state.targets,
     sendJson: message => { notices.push(message); },
-  }, encoder, () => state.now);
+  }, encoder, () => state.now, uplinkDecoder);
   // 载荷取现实尺寸（≥4 字节）：≤3 字节是舒适噪声帧，下行过滤器会拦（见下方专测）。
   const remote = (clientId = 513) => ({ clientId, codec: 4, data: Buffer.from([11, 12, 13, 14]) });
   return { transport, audio, state, socket, client, encoder, packets, encoded, forwarded, notices, closes, remote };
@@ -140,6 +140,38 @@ test("comfort noise frames (≤3 bytes) are not forwarded to either downlink", (
   f.transport.receiveTeamSpeak(f.remote(513));
   assert.equal(pushed.length, 1);
   assert.deepEqual([...pushed[0]!.data], [11, 12, 13, 14]);
+});
+
+test("uplink silence gate drops near-silent frames after the release window and passes speech", () => {
+  // 解码桩：帧首字节 1 = 语音（rms≈0.09），否则为数字静音（rms=0）。
+  const voicePcm = Buffer.from(Int16Array.from({ length: 960 }, () => 3000).buffer);
+  const decoder = { decode: (frame: Buffer) => (frame[0] === 1 ? voicePcm : Buffer.alloc(1_920)) };
+  const f = fixture(decoder);
+  // 静音帧：释放窗未武装 → 直接拦截。
+  const silence = Buffer.from([2, 9]);
+  f.transport.receiveWebRtc(silence, 4);
+  assert.equal(f.forwarded.length, 0);
+  assert.equal(f.audio.egressDroppedFrames, 1);
+  // 语音帧：放行并武装释放窗（350ms）。
+  f.transport.receiveWebRtc(Buffer.from([1, 9]), 4);
+  assert.equal(f.forwarded.length, 1);
+  // 窗内静音帧放行（词尾保护）。
+  f.state.now += 100;
+  f.transport.receiveWebRtc(silence, 4);
+  assert.equal(f.forwarded.length, 2);
+  // 窗外静音帧拦截；codec 5（伴奏混音）永不门控。
+  f.state.now += 1_000;
+  f.transport.receiveWebRtc(silence, 4);
+  assert.equal(f.forwarded.length, 2);
+  assert.equal(f.audio.egressDroppedFrames, 2);
+  f.transport.receiveWebRtc(Buffer.from([5, 9]), 5);
+  assert.equal(f.forwarded.length, 3);
+});
+
+test("uplink silence gate fails open when no decoder is wired (legacy construction)", () => {
+  const f = fixture();
+  f.transport.receiveWebRtc(Buffer.from([2, 9]), 4);
+  assert.equal(f.forwarded.length, 1);
 });
 
 test("backpressure drops bursts above 4096 bytes and resumes without a retained queue", () => {
