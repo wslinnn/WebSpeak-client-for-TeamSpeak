@@ -297,8 +297,7 @@ html[data-ws-route="webclient"] #app {
     bottom: calc(24px / var(--ui-scale));
   }
   .poke-banner {
-    top: calc(82px / var(--ui-scale));
-    right: calc(24px / var(--ui-scale));
+    width: calc(100% - 30px);
   }
 }
 

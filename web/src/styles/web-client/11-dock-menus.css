@@ -711,15 +711,15 @@ html[data-ws-route="webclient"] body {
   }
 }
 
+/* 戳一戳横幅随 .voice-banners 弹性栈内联排列：原 fixed 定位让多条 poke 全部
+ * 落在同一坐标互相叠盖（2026-10-18 用户报告「样式显示有问题」）。 */
 .poke-banner {
-  position: fixed;
-  z-index: var(--ws-z-toast);
-  top: 82px;
-  right: 24px;
+  position: static;
   display: flex;
   align-items: center;
   gap: 9px;
-  max-width: min(380px, calc(100% - 48px));
+  width: min(380px, calc(100% - 48px));
+  margin: 0;
   padding: 10px 11px;
   color: #52645c;
   background: #fffdf6;
