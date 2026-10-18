@@ -35,6 +35,7 @@ import { useInRoomControllers } from "@/web-client/use-inroom-controllers";
 import { useAudioSettingsState } from "@/web-client/use-audio-settings";
 import { useWebClientControllers } from "@/web-client/use-web-client-controllers";
 import { useRetryCountdown } from "@/web-client/use-retry-countdown";
+import { installTestHooks } from "@/web-client/test-hooks";
 import { cn } from "@/lib/utils";
 import type { Language } from "@/i18n/web-client";
 
@@ -59,6 +60,11 @@ function WebClientRoot() {
   const { t: translate, localizedMessage, localizedAudioNotice, localizedMicrophoneError, visibleErrorCode } = messages ?? pendingWebClientMessages;
   const { store, home, publicConfig, favorites, identity, connection, showToast } = useWebClientControllers();
   const config = useStore(publicConfig.store);
+
+  // 冒烟测试桥：函数体在普通构建里是常量折叠后的死分支，生产产物不含生效桥。
+  useEffect(() => {
+    installTestHooks(voice);
+  }, [voice]);
 
   // —— 皮肤控制（旧 usePublicSkin + 皮肤消息/首页文案覆盖的根装配）。模块级
   // 单例：StrictMode 双挂载会先 dispose 再重跑 effect，挂在 cleanup 上的
