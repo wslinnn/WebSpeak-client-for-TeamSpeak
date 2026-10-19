@@ -242,7 +242,7 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
             ><strong>{Math.round(displayMicLevel * 100)}%</strong></div
           >
           <div className="audio-level-track dock-level-track"
-            ><i style={{ width: `${Math.round(displayMicLevel * 100)}%` }}></i></div>
+            ><i style={{ transform: `scaleX(${Math.max(0, displayMicLevel)})` }}></i></div>
           <div className="dock-panel-divider"></div>
           <label className="dock-switch-row"
             ><span

@@ -217,7 +217,7 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
                 ><span>{t("micLevel")}</span
                 ><strong>{Math.round(micLevel * 100)}%</strong></div
               ><div className="audio-level-track"
-                ><i style={{ width: `${Math.round(micLevel * 100)}%` }}></i></div
+                ><i style={{ transform: `scaleX(${Math.max(0, micLevel)})` }}></i></div
               ><div className="mic-test"
                 ><div className="mic-test-header"
                   ><strong>{t("microphoneTest")}</strong
