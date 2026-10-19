@@ -22,13 +22,14 @@
 | `--wsd-accent` / `-hover` | 交互色（文字/图标/描边） | `#2b5cd9` / `#234db8` | `#7d96f2` / `#93a9f5` |
 | `--wsd-accent-fill` / `-fill-hover` | 填充类控件底色 | 同 accent | 同 accent |
 | `--wsd-accent-contrast` | accent 填充上的文字 | `#ffffff` | `#101318` |
+| `--wsd-on-fill` | 非主题填充上的常白字形（内联哈希色头像首字母、滑杆白盘、通知圆点符号；双主题同值，不随夜间翻转） | `#ffffff` | 同左 |
 | `--wsd-accent-soft` | accent 淡底（选中态、焦点晕染） | `rgba(43,92,217,.10)` | `rgba(125,150,242,.16)` |
 | `--wsd-success` / `-warning` / `-danger`（+ `-contrast`） | 状态语义色 | `#1e7a40` / `#8a5d0b` / `#bb3f38` | `#4cc27a` / `#e2b36c` / `#ee8a82` |
 | `--wsd-backdrop` | 模态遮罩（双主题同值） | `rgba(12,14,16,.52)` | 同左 |
 | `--wsd-radius` | 基准圆角 | `9px` | 同左 |
 | `--wsd-font` | 应用字体栈 | Geist Variable + 苹方/雅黑 CJK 回落 | 同左 |
 
-口径：**Graphite × cobalt**——中性石墨面 + 唯一交互钴蓝；success 保持独立绿（状态语义），不与品牌色混用。组件层禁止裸 hex（stylelint + 棘轮测试强制）；新颜色先扩令牌表再消费。
+口径：**Graphite × cobalt**——中性石墨面 + 唯一交互钴蓝；success 保持独立绿（状态语义），不与品牌色混用。组件层颜色使用点禁止裸 hex（棘轮测试强制，见 §5）；新颜色先落成命名变量（全局令牌或组件根语义变量）再消费。
 
 ## 2. 浮层层级：`--ws-z-*` 阶梯
 
@@ -86,10 +87,12 @@ ws-tokens < ws-base < ws-ui < ws-join < ws-chrome < ws-room
 `web/stylelint.config.js` + `web/src/styles/declaration-discipline.test.ts`：
 
 - z-index 只准 `var(--ws-z-*)`（0–3 局部阶梯豁免）；transition 禁 `all` 与 `width/height/top/left/right/bottom/margin/padding/gap`（布局过渡必致回流；`grid-template-*` 是工作区折叠动画的刻意豁免）。
-- 裸 hex 债务按文件钉顶只许降不许涨；`--ws-z-*` 单源；`!important` 锁面盘点。
+- 颜色使用点零裸 hex：十文件逐一断言为 0，色值只允许住在命名变量定义里——全局 `--wsd-*`（tokens.css）或组件根语义局部变量（如 `--toast-bg`、`--reconnect-fg`，横幅/恒暗 toast 等组件私有调色板）。`--ws-z-*` 单源；`!important` 锁面盘点。
+- 颜色取用向导：落在 accent 填充上的文字/字形走 `--wsd-accent-contrast`（夜间翻墨色）；哈希色头像首字母、滑杆白盘等非主题填充走 `--wsd-on-fill`（恒白）；日/夜各自成套的组件调色板（纸色横幅、恒暗 toast）收在组件根的语义变量里，夜间由 night.css 直接覆盖声明。
 
 ## 6. 沿革
 
 - 报告 19（KAAK 对齐）确立四栏工作区与磁贴语言；随后整体重定调为 Graphite × cobalt。
 - 2026-10-18 皮肤系统整体下架：日/夜改 `html.dark` 静态承载，`night.css` 接管夜间组件面。
 - 2026-10-19 令牌单轨（遗留 `--ws-*`/`--surface-*`/`--skin-*` 全部 1:1 映射进 `--wsd-*` 后删除）+ 组件族归位 + 语义层阶梯（原批次序号层 w00–w22 废止）。
+- 2026-10-19 hex 清偿：web-client 十文件颜色使用点裸 hex 归零（原存量约 110 处）；旧绿调色板残留（面包屑/成员面板/聊天输入、移动端收藏 chip）归入石墨令牌；横幅与 toast 改组件根语义变量；新增 `--wsd-on-fill`；夜间层删除日间归一后冗余的覆盖规则；menus 语言切换器剥除失效的 admin 回退值（admin 由 base-auth.css 全套 `--admin-*` 重建）。

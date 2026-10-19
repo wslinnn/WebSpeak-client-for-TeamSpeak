@@ -65,7 +65,7 @@
   appearance: none;
   border: 2px solid var(--wsd-accent-fill);
   border-radius: 50%;
-  background: #fff;
+  background: var(--wsd-on-fill);
   box-shadow: 0 2px 4px rgba(0,0,0,.12);
   cursor: pointer;
 }
@@ -76,7 +76,7 @@
   height: 16px;
   border: 2px solid var(--wsd-accent-fill);
   border-radius: 50%;
-  background: #fff;
+  background: var(--wsd-on-fill);
   box-shadow: 0 2px 4px rgba(0,0,0,.12);
   cursor: pointer;
 }
@@ -410,7 +410,11 @@
 }
 }
 
+/* The toast is a deliberately theme-independent dark surface: its palette
+ * stays constant in day and night, so it owns scoped vars instead of tokens. */
 .toast {
+  --toast-fg: #fff;
+  --toast-bg: #24262b;
   position: fixed;
   z-index: var(--ws-z-toast);
   right: 24px;
@@ -419,8 +423,8 @@
   align-items: center;
   gap: 8px;
   padding: 11px 15px;
-  color: #fff;
-  background: #24262b;
+  color: var(--toast-fg);
+  background: var(--toast-bg);
   border-radius: 9px;
   box-shadow: 0 10px 24px rgba(14,16,20,.2);
   font-size: 11px;
@@ -428,12 +432,13 @@
 }
 
 .toast.warn {
-  background: #5c312b;
+  --toast-bg: #5c312b;
+  --toast-icon: #ffb0a6;
   box-shadow: 0 10px 24px rgba(20,14,13,.28);
 }
 
 .toast.warn .ui-icon {
-  color: #ffb0a6;
+  color: var(--toast-icon);
 }
 
 .channel-password-modal {
@@ -779,7 +784,7 @@
 
 .settings-hint {
   margin: -1px 0 19px;
-  color: #8f939b;
+  color: var(--wsd-text-dim);
   font-size: 11px;
 }
 

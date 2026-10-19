@@ -1,25 +1,9 @@
-
-
-.dark .web-client .member-row:focus-within {
-  background: var(--wsd-hover);
-  box-shadow: none;
-}
-
-@media (hover: hover) {
-
-.dark .web-client .member-row:hover {
-  background: var(--wsd-hover);
-  box-shadow: none;
-}
-}/* 夜间面：html.dark 前缀覆盖，与日间同特异性逐档持平；
- * 只放颜色/阴影类覆盖，不改布局。 */
-
-/*
- * Night surfaces for the workspace regions that moved onto the --wsd-*
- * tokens: these rules take over the night re-theming the built-in skins used
- * to provide on these selectors (now removed from the builtin skin files),
- * so the token layer owns the colors at every viewport width. Day mode keeps
- * the base stylesheet values; the dark attribute is the night switch.
+/* 夜间面：html.dark 前缀覆盖，与日间同特异性逐档持平；
+ * 只放颜色/阴影类覆盖，不改布局。
+ *
+ * Only keep rules whose day counterpart renders differently: day rules read
+ * the same --wsd-* tokens now, so a .dark override is dead weight unless it
+ * moves the value (e.g. surfaces that sink below the panel at night).
  */
 
 .dark .web-client .app-shell,
@@ -30,15 +14,6 @@
 .dark .web-client .workspace-header {
   background: var(--wsd-bg);
   border-bottom-color: var(--wsd-border);
-}
-
-.dark .web-client .workspace-content {
-  color: var(--wsd-text);
-}
-
-.dark .web-client .member-panel {
-  background: var(--wsd-panel);
-  border-color: var(--wsd-border);
 }
 
 .dark .web-client .voice-card {
@@ -52,41 +27,9 @@
   box-shadow: 0 0 12px var(--wsd-accent-soft);
 }
 
-.dark .web-client .voice-card > strong {
-  color: var(--wsd-text);
-}
-
-.dark .web-client .section-heading h2,
-.dark .web-client .member-panel-heading h2,
-.dark .web-client .member-copy strong {
-  color: var(--wsd-text);
-}
-
-.dark .web-client .message-meta strong {
-  color: var(--wsd-text-muted);
-}
-
 .dark .web-client .section-kicker,
 .dark .web-client .chat-empty {
   color: var(--wsd-text-muted);
-}
-
-.dark .web-client .section-counter,
-.dark .web-client .message-meta time,
-.dark .web-client .member-copy span {
-  color: var(--wsd-text-dim);
-}
-
-.dark .web-client .chat-empty strong {
-  color: var(--wsd-text);
-}
-
-.dark .web-client .member-presence {
-  border-color: var(--wsd-panel);
-}
-
-.dark .web-client .member-channel-heading {
-  color: var(--wsd-text);
 }
 
 .dark .web-client .member-channel-group.current .member-channel-heading {
@@ -110,38 +53,12 @@
   color: var(--wsd-text-dim);
 }
 
-.dark .web-client .breadcrumbs strong {
-  color: var(--wsd-text);
-}
-
 .dark .web-client .member-search {
   color: var(--wsd-text);
-  background: var(--wsd-raised);
-  border-color: var(--wsd-border);
 }
 
 .dark .web-client .member-search input {
   color: var(--wsd-text);
-}
-
-.dark .web-client .chat-panel,
-.dark .web-client .chat-heading {
-  border-color: var(--wsd-border);
-}
-
-.dark .web-client .message-composer {
-  color: var(--wsd-text);
-  background: var(--wsd-raised);
-  border-color: var(--wsd-border);
-}
-
-.dark .web-client .message-composer :is(input, textarea) {
-  color: var(--wsd-text);
-  background: transparent;
-}
-
-.dark .web-client .message-composer :is(input, textarea)::placeholder {
-  color: var(--wsd-text-dim);
 }
 
 /* Status banners: day keeps the pale paper cards; night re-themes them to
@@ -176,7 +93,7 @@
 }
 
 .dark .web-client .poke-banner strong {
-  color: color-mix(in srgb, var(--wsd-warning) 80%, #fff);
+  color: color-mix(in srgb, var(--wsd-warning) 80%, white);
 }
 
 .dark .web-client .poke-banner button {

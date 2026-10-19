@@ -4,9 +4,9 @@ import { describe, expect, it } from "vitest";
 
 /*
  * 声明纪律棘轮（stylelint 的测试侧补充）：
- * 1. 裸 hex 债务——web-client 组件级一次性色值存量按文件钉顶，只许降不许涨
- *    （≤ 断言，还清后可从基线移除）；清偿路径是收敛到 tokens.css 的 --wsd-*。
- *    tokens.css 是令牌定义点，不计。
+ * 1. 裸 hex 债务——web-client 组件声明面禁止裸 hex：颜色使用点一律 var() 引用
+ *    （全局 --wsd-* 或组件根语义局部变量）。豁免的唯一定义点是 custom property
+ *    定义行（--xxx: #值）；新色值必须先落成有名字的变量再消费。
  * 2. --ws-z-* 阶梯单源——只允许定义在 index.css :root，防副本复活。
  * 3. !important 锁面盘点——每文件数量钉顶，新增锁必须有意更新基线；
  *    锁面单源约束见 cascade-locks.test.ts。
@@ -30,21 +30,24 @@ function allCssKeys(): string[] {
 
 const countMatches = (css: string, re: RegExp): number => (css.match(re) ?? []).length;
 
+/** 使用点 hex 计数：跳过 custom property 定义行（`--name: …`）——那是
+ * 组件局部调色板的定义点，与 tokens.css 同属「命名色值」的合法落点。 */
+function countUseSiteHex(css: string): number {
+  let n = 0;
+  for (const line of css.split("\n")) {
+    if (/^\s*--[\w-]+\s*:/.test(line)) continue;
+    n += (line.match(/#[0-9a-fA-F]{3,8}\b/g) ?? []).length;
+  }
+  return n;
+}
+
 describe("声明纪律棘轮", () => {
-  it("web-client 裸 hex 债务只许降不许涨", () => {
-    const baseline: Record<string, number> = {
-      "styles/web-client/chrome.css": 30,
-      "styles/web-client/dialogs.css": 7,
-      "styles/web-client/join.css": 2,
-      "styles/web-client/menus.css": 42, // 含 hover 门禁拆分的状态/悬停两份同值声明
-      "styles/web-client/mobile.css": 1,
-      "styles/web-client/night.css": 1,
-      "styles/web-client/room.css": 24,
-      "styles/web-client/ui.css": 3,
-    };
-    for (const [file, max] of Object.entries(baseline)) {
-      const n = countMatches(read(join("src", file)), /#[0-9a-fA-F]{3,8}\b/g);
-      expect(n, `${file} 裸 hex ${n} > 基线 ${max}；新颜色一律走 --wsd-* 令牌`).toBeLessThanOrEqual(max);
+  it("web-client 颜色使用点零裸 hex（色值只住在命名变量定义里）", () => {
+    for (const name of readdirSync(join(stylesDir, "web-client"))) {
+      if (!name.endsWith(".css")) continue;
+      const key = `styles/web-client/${name}`;
+      const n = countUseSiteHex(read(join("src", key)));
+      expect(n, `${key} 使用点裸 hex ${n}；颜色一律 var() 引用，新色值先落成命名变量`).toBe(0);
     }
   });
 

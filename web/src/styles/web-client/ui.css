@@ -63,7 +63,7 @@
   flex: 0 0 auto;
   border-radius: 50%;
   background: currentColor;
-  color: #fff;
+  color: var(--wsd-on-fill);
   font-size: 10px;
   font-weight: 800;
 }
@@ -142,8 +142,8 @@
 .button-spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255,255,255,.4);
-  border-top-color: #fff;
+  border: 2px solid color-mix(in srgb, var(--wsd-accent-contrast) 40%, transparent);
+  border-top-color: var(--wsd-accent-contrast);
   border-radius: 50%;
   animation: spin .8s linear infinite;
 }
@@ -154,7 +154,7 @@
   width: 31px;
   height: 31px;
   flex: 0 0 auto;
-  color: #71817c;
+  color: var(--wsd-text-muted);
   background: transparent;
   border-radius: 8px;
   cursor: pointer;

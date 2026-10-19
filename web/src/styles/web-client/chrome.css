@@ -45,7 +45,7 @@
   display: grid;
   grid-template-columns: 76px 292px minmax(0, 1fr) 246px;
   overflow: hidden;
-  background: #fff;
+  background: var(--wsd-panel);
 }
 
 .empty-icon {
@@ -62,7 +62,7 @@
 .workspace {
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--wsd-panel);
 }
 
 .favorite-server-strip {
@@ -226,9 +226,9 @@
 }
 
 .favorite-server-chip.active {
-  color: #ffffff;
+  color: var(--wsd-accent-contrast);
   background: var(--wsd-accent);
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--wsd-accent) 72%, #000);
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--wsd-accent) 72%, black);
 }
 
 .favorite-server-chip:disabled {
@@ -279,7 +279,7 @@
   justify-content: space-between;
   min-height: 73px;
   padding: 0 29px;
-  border-bottom: 1px solid #eef2f0;
+  border-bottom: 1px solid var(--wsd-border);
 }
 
 .breadcrumbs {
@@ -287,19 +287,19 @@
   align-items: center;
   gap: 9px;
   min-width: 0;
-  color: #52605b;
+  color: var(--wsd-text-muted);
   font-size: 12px;
 }
 
 .breadcrumbs strong {
   overflow: hidden;
-  color: #26332f;
+  color: var(--wsd-text);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .crumb-muted {
-  color: #98a39f;
+  color: var(--wsd-text-dim);
 }
 
 .mobile-brand {
@@ -309,7 +309,7 @@
 .header-action {
   display: grid;
   place-items: center;
-  color: #75847f;
+  color: var(--wsd-text-muted);
   background: transparent;
   border-radius: 8px;
   cursor: pointer;
@@ -473,7 +473,7 @@
     width: 38px;
     height: 38px;
     border-radius: 12px;
-    color: #fff;
+    color: var(--wsd-on-fill);
     font-size: 15px;
   }
   .favorite-server-chip-label {
@@ -491,8 +491,8 @@
   }
   }
   .favorite-server-chip.active {
-    color: #277970;
-    background: #e3efec;
+    color: var(--wsd-accent);
+    background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-panel));
     box-shadow: none;
   }
   .crumb-muted,
@@ -533,7 +533,12 @@
   min-width: 0;
 }
 
+/* Day banner palette lives in component-scoped vars (night.css re-themes
+ * color/border/background under .dark); use sites only read the vars. */
 .reconnect-banner {
+  --reconnect-fg: #6c5a2c;
+  --reconnect-border: #f0dfae;
+  --reconnect-bg: #fff9e8;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -541,22 +546,22 @@
   margin: 0;
   width: min(950px, calc(100% - 64px));
   padding: 12px 16px;
-  color: #6c5a2c;
-  border: 1px solid #f0dfae;
+  color: var(--reconnect-fg);
+  border: 1px solid var(--reconnect-border);
   border-radius: 10px;
-  background: #fff9e8;
+  background: var(--reconnect-bg);
 }
 
 .reconnect-banner.failed {
-  color: #8f4540;
-  border-color: #f2d1cd;
-  background: #fff2f1;
+  --reconnect-fg: #8f4540;
+  --reconnect-border: #f2d1cd;
+  --reconnect-bg: #fff2f1;
 }
 
 .reconnect-banner.degraded {
-  color: #7a4d1d;
-  border-color: #f3d9a9;
-  background: #fff7ec;
+  --reconnect-fg: #7a4d1d;
+  --reconnect-border: #f3d9a9;
+  --reconnect-bg: #fff7ec;
 }
 
 .reconnect-copy {
@@ -729,6 +734,14 @@
 }
 
 .poke-banner {
+  --poke-fg: #52645c;
+  --poke-bg: #fffdf6;
+  --poke-border: #f0dfbd;
+  --poke-icon: #d2973d;
+  --poke-strong: #8f6532;
+  --poke-btn: #9b8a6e;
+  --poke-btn-hover-fg: #735020;
+  --poke-btn-hover-bg: #f9eed9;
   position: static;
   display: flex;
   align-items: center;
@@ -736,16 +749,16 @@
   width: min(380px, calc(100% - 48px));
   margin: 0;
   padding: 10px 11px;
-  color: #52645c;
-  background: #fffdf6;
-  border: 1px solid #f0dfbd;
+  color: var(--poke-fg);
+  background: var(--poke-bg);
+  border: 1px solid var(--poke-border);
   border-radius: 9px;
   box-shadow: 0 8px 22px rgba(88, 65, 28, .12);
   font-size: 12px;
 }
 
 .poke-banner > .ui-icon {
-  color: #d2973d;
+  color: var(--poke-icon);
 }
 
 .poke-banner span {
@@ -757,7 +770,7 @@
 }
 
 .poke-banner strong {
-  color: #8f6532;
+  color: var(--poke-strong);
 }
 
 .poke-banner small {
@@ -768,7 +781,7 @@
   display: grid;
   place-items: center;
   padding: 3px;
-  color: #9b8a6e;
+  color: var(--poke-btn);
   background: transparent;
   border-radius: 5px;
   cursor: pointer;
@@ -777,8 +790,8 @@
 @media (hover: hover) {
 
 .poke-banner button:hover {
-  color: #735020;
-  background: #f9eed9;
+  color: var(--poke-btn-hover-fg);
+  background: var(--poke-btn-hover-bg);
 }
 }
 
@@ -1415,7 +1428,7 @@
 }
 
 .web-client .mobile-gate-primary {
-  color: #fff;
+  color: var(--wsd-accent-contrast);
   background: var(--wsd-accent);
   text-decoration: none;
 }

@@ -125,7 +125,7 @@
 @media (hover: hover) {
 
 .language-switch:hover {
-  color: #fff;
+  color: var(--wsd-accent-contrast);
   background: var(--wsd-accent);
   border-color: var(--wsd-accent);
 }
@@ -450,7 +450,7 @@
 }
 
 .local-server-select.active {
-  color: #ffffff;
+  color: var(--wsd-accent-contrast);
   background: var(--wsd-accent);
   border-color: var(--wsd-accent);
 }

@@ -34,6 +34,11 @@
   --wsd-accent-fill-hover: #234db8;
   --wsd-accent-contrast: #ffffff;
   --wsd-accent-soft: rgba(43, 92, 217, .10);
+  /* Constant white for glyphs on non-themed fills: avatar initials on inline
+   * pastel/hash colors, slider knobs, the notice symbol. Unlike the
+   * *-contrast pair this does not flip at night — white stays correct on
+   * fills that ignore the theme. */
+  --wsd-on-fill: #ffffff;
   --wsd-success: #1e7a40;
   --wsd-warning: #8a5d0b;
   --wsd-danger: #bb3f38;
@@ -68,6 +73,7 @@
   --wsd-warning: #e2b36c;
   --wsd-danger: #ee8a82;
   --wsd-danger-contrast: #131316;
+  --wsd-on-fill: #ffffff;
   --wsd-backdrop: rgba(12, 14, 16, .52);
 }
 

@@ -35,33 +35,33 @@
 
 .language-option:focus-visible,
 .language-option.selected {
-  color: var(--wsd-accent, #2b5cd9);
-  background: color-mix(in srgb, var(--wsd-accent, #2b5cd9) 12%, var(--wsd-panel, #fff));
-  border-color: color-mix(in srgb, var(--wsd-accent, #2b5cd9) 28%, var(--wsd-border, #e5e7eb));
+  color: var(--wsd-accent);
+  background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-panel));
+  border-color: color-mix(in srgb, var(--wsd-accent) 28%, var(--wsd-border));
 }
 
 @media (hover: hover) {
 
 .language-option:hover {
-  color: var(--wsd-accent, #2b5cd9);
-  background: color-mix(in srgb, var(--wsd-accent, #2b5cd9) 12%, var(--wsd-panel, #fff));
-  border-color: color-mix(in srgb, var(--wsd-accent, #2b5cd9) 28%, var(--wsd-border, #e5e7eb));
+  color: var(--wsd-accent);
+  background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-panel));
+  border-color: color-mix(in srgb, var(--wsd-accent) 28%, var(--wsd-border));
 }
 }
 
 .language-switcher.open .language-trigger {
-  color: #fff;
-  background: var(--wsd-accent, #2b5cd9);
-  border-color: var(--wsd-accent, #2b5cd9);
+  color: var(--wsd-accent-contrast);
+  background: var(--wsd-accent);
+  border-color: var(--wsd-accent);
   box-shadow: 0 7px 16px rgba(16, 18, 22, .12);
 }
 
 @media (hover: hover) {
 
 .language-trigger:hover {
-  color: #fff;
-  background: var(--wsd-accent, #2b5cd9);
-  border-color: var(--wsd-accent, #2b5cd9);
+  color: var(--wsd-accent-contrast);
+  background: var(--wsd-accent);
+  border-color: var(--wsd-accent);
   box-shadow: 0 7px 16px rgba(16, 18, 22, .12);
 }
 }
@@ -120,16 +120,23 @@
 }
 }
 
+/* Power control keeps one accent pair for its armed states (focus/hover are
+ * the same face; the hover-gate split must not drift them apart). */
+.desktop-audio-dock-power {
+  --dock-power-fg: #ff8498;
+  --dock-power-bg: #3a292b;
+}
+
 .desktop-audio-dock-power:focus-visible {
-  color: #ff8498;
-  background: #3a292b;
+  color: var(--dock-power-fg);
+  background: var(--dock-power-bg);
 }
 
 @media (hover: hover) {
 
 .desktop-audio-dock-power:hover {
-  color: #ff8498;
-  background: #3a292b;
+  color: var(--dock-power-fg);
+  background: var(--dock-power-bg);
 }
 }/* 指针浮层：右键菜单/成员菜单/服务器切换、桌面音频坞、性能面板、
  * 语言坞、语言切换器、主题切换、弹层原语（ws-popup）。 */
@@ -228,7 +235,7 @@
 @media (hover: hover) {
 
 .desktop-audio-dock-share.is-stop:hover {
-  background: color-mix(in srgb, var(--wsd-danger) 85%, #fff);
+  background: color-mix(in srgb, var(--wsd-danger) 85%, white);
 }
 }
 
@@ -243,7 +250,7 @@
   padding: 0 8px;
   border: 0;
   border-radius: 9px 0 0 9px;
-  color: #fff;
+  color: var(--wsd-accent-contrast);
   background: transparent;
   font-size: 12px;
   font-weight: 700;
@@ -261,9 +268,9 @@
   place-items: center;
   flex: 0 0 26px;
   border: 0;
-  border-left: 1px solid rgb(255 255 255 / .3);
+  border-left: 1px solid color-mix(in srgb, var(--wsd-accent-contrast) 30%, transparent);
   border-radius: 0 9px 9px 0;
-  color: #fff;
+  color: var(--wsd-accent-contrast);
   background: transparent;
   cursor: pointer;
 }
@@ -271,7 +278,7 @@
 @media (hover: hover) {
 
 .desktop-audio-dock-share-gear:hover {
-  background: rgb(255 255 255 / .16);
+  background: color-mix(in srgb, var(--wsd-accent-contrast) 16%, transparent);
 }
 }
 
@@ -284,14 +291,14 @@
   padding: 0;
   border: 0;
   border-radius: 9px;
-  color: #fff;
+  color: var(--wsd-accent-contrast);
   background: var(--wsd-accent-fill);
   cursor: pointer;
 }
 
 .desktop-audio-dock-accompaniment.active {
   background: var(--wsd-accent-hover);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 40%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--wsd-accent-contrast) 40%, transparent);
 }
 
 .desktop-audio-dock-controls {
@@ -322,7 +329,7 @@
 }
 
 .desktop-audio-dock-noise[aria-pressed="true"] {
-  color: #fff;
+  color: var(--wsd-accent-contrast);
   background: var(--wsd-accent-fill);
 }
 
@@ -509,7 +516,7 @@
   appearance: none;
   border: 2px solid var(--wsd-accent-fill);
   border-radius: 50%;
-  background: #fff;
+  background: var(--wsd-on-fill);
   cursor: pointer;
 }
 
@@ -518,7 +525,7 @@
   height: 16px;
   border: 2px solid var(--wsd-accent-fill);
   border-radius: 50%;
-  background: #fff;
+  background: var(--wsd-on-fill);
   cursor: pointer;
 }
 
@@ -562,7 +569,8 @@
   height: 7px;
   margin: 7px 0 17px;
   overflow: hidden;
-  background: #ececef;
+  /* Groove color comes from the ws-night layer (:is(...) .audio-level-track
+   * sets --wsd-border in both modes); this rule only owns geometry. */
   border-radius: 999px;
 }
 
@@ -1184,7 +1192,7 @@
   appearance: none;
   border: 2px solid var(--wsd-accent-fill);
   border-radius: 50%;
-  background: #fff;
+  background: var(--wsd-on-fill);
   box-shadow: 0 2px 4px color-mix(in srgb, var(--wsd-text) 14%, transparent);
   cursor: pointer;
 }
@@ -1194,7 +1202,7 @@
   height: 16px;
   border: 2px solid var(--wsd-accent-fill);
   border-radius: 50%;
-  background: #fff;
+  background: var(--wsd-on-fill);
   box-shadow: 0 2px 4px color-mix(in srgb, var(--wsd-text) 14%, transparent);
   cursor: pointer;
 }
@@ -1413,10 +1421,10 @@
   position: relative;
   z-index: var(--ws-z-dropdown);
   flex: 0 0 auto;
-  /* Token surfaces with day fallbacks: the client flips with the skin
-   * attribute; admin (no --wsd-* scope) keeps the day values and its own
-   * [data-theme] dark overrides below. */
-  color: var(--wsd-accent, #2b5cd9);
+  /* No var() fallbacks here on purpose: web-client/download-page get the
+   * tokens from the ws-tokens scope, and admin re-skins this component with
+   * --admin-* rules in admin/base-auth.css (unlayered, always wins). */
+  color: var(--wsd-accent);
   font-family: inherit;
 }
 
@@ -1427,9 +1435,9 @@
   min-width: 70px;
   min-height: 32px;
   padding: 0 9px;
-  color: var(--wsd-accent, #2b5cd9);
-  background: color-mix(in srgb, var(--wsd-accent, #2b5cd9) 12%, var(--wsd-panel, #fff));
-  border: 1px solid color-mix(in srgb, var(--wsd-accent, #2b5cd9) 28%, var(--wsd-border, #e5e7eb));
+  color: var(--wsd-accent);
+  background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-panel));
+  border: 1px solid color-mix(in srgb, var(--wsd-accent) 28%, var(--wsd-border));
   border-radius: 8px;
   font: inherit;
   font-size: 11px;
@@ -1478,7 +1486,7 @@
   gap: 8px;
   min-height: 38px;
   padding: 6px 8px;
-  color: var(--wsd-text, #1c1e21);
+  color: var(--wsd-text);
   background: transparent;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -1516,7 +1524,7 @@
 
 .language-option small {
   flex: 0 0 auto;
-  color: var(--wsd-text-dim, #9099a1);
+  color: var(--wsd-text-dim);
   font-size: 10px;
   font-weight: 700;
 }
@@ -1598,12 +1606,12 @@
 @media (hover: hover) {
 
 .member-server-switcher-item:hover {
-  background: var(--wsd-hover, #e9eef0);
+  background: var(--wsd-hover);
 }
 }
 
 .member-server-switcher-item[data-ws-state="current"] {
-  color: var(--wsd-accent, #2b5cd9);
+  color: var(--wsd-accent);
   font-weight: 700;
 }
 
@@ -1615,7 +1623,7 @@
   height: 28px;
   overflow: hidden;
   border-radius: 50%;
-  color: #fff;
+  color: var(--wsd-on-fill);
   font-size: 12px;
   font-weight: 700;
 }

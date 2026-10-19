@@ -59,7 +59,7 @@ npm --prefix web ci --no-audit --no-fund
 - 文档级页面样式必须由 `html[data-ws-route]` 门控（路由加载后 CSS 常驻）；`data-ws-part` 是部件锚点（冒烟测试与部件契约用），新增须保持静态字面量。
 - **CSS 架构（2026-10-19 定稿，详见 docs/DESIGN.md）**：`web-client.css` manifest 顶部 `@layer` 声明即覆盖契约——`ws-tokens < ws-base < ws-ui < ws-join < ws-chrome < ws-room < ws-dialogs < ws-menus < ws-night < ws-mobile`。**一个组件族只住一个文件**，同族规则的响应式/暗色变体就近共置（media query 不加特异性）；跨文件覆盖只有层序一条路，**抬特异性跨层无效**。改规则前先读目标文件头分工表。结构由 `web-client-manifest.test.ts` 钉死。
 - 浮层层级必须取 `--ws-z-*` 阶梯变量（`web/src/index.css` `:root` 单点定义，admin 与 web-client 共用：raised 10 / header 100 / dropdown 200 / menu-mask 300 / menu 310 / modal-mask 400 / toast 500），禁止裸 z-index 数字；`isolation: isolate` 容器内部的 1/2/3 局部小阶梯除外（stylelint 强制）。
-- 颜色一律走 `--wsd-*` 令牌（`tokens.css` 唯一事实源，日间默认 + `.dark` 覆盖）；组件层裸 hex 是棘轮债务（`declaration-discipline.test.ts` 钉顶，只许降不许涨），新颜色禁止新增裸 hex。
+- 颜色一律走命名变量：全局 `--wsd-*` 令牌（`tokens.css` 唯一事实源，日间默认 + `.dark` 覆盖）或组件根语义局部变量（横幅/恒暗 toast 等组件私有调色板）；颜色**使用点**裸 hex 为 0（`declaration-discipline.test.ts` 逐文件断言，豁免仅 custom property 定义行），新色值必须先落成命名变量再消费。落在 accent 填充上的字形走 `--wsd-accent-contrast`（夜间翻墨），哈希色头像首字母/滑杆白盘等非主题填充走 `--wsd-on-fill`（恒白）。
 - `!important` 是锁面：每文件数量钉顶（同测试），同一锁面只允许住在一个文件（`cascade-locks.test.ts` 钉单源）；新增锁前确认同族没有更早层的锁（important 跨层按早层胜裁决）。
 - 频道/成员等状态变更命令一律走应答式 `sendCommandAndWait` 并在失败时回滚本地乐观状态（错误对象携带 `code` 供分支处理）——`switchChannel` 曾因 fire-and-forget 导致界面漂移到未进入的频道且无任何提示。
 - 全局弹窗/通知必须放模板根部（页面分支渲染之外），进房态与首页态都要可达。
