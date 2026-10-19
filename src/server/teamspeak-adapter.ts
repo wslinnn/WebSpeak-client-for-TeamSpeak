@@ -143,10 +143,14 @@ export class TeamSpeakAdapter {
   private async detectProtocol(): Promise<TeamSpeakProtocol | null> {
     try {
       const rows = await this.client.execCommandWithResponse("version", 3000);
-      const versionText = rows
-        .flatMap((row) => Object.values(row))
-        .filter((value): value is string => typeof value === "string")
-        .join(" ");
+      // Prefer the field the protocol names: the detector reads only the leading
+      // version, so a server that reports its fields in another order would
+      // otherwise lose detection even though the value is right there.
+      const reported = rows
+        .map((row) => row.version)
+        .find((value): value is string => typeof value === "string" && value.trim().length > 0);
+      const versionText = reported
+        ?? rows.flatMap((row) => Object.values(row)).filter((value): value is string => typeof value === "string").join(" ");
       return detectTeamSpeakProtocol(versionText);
     } catch {
       // Version discovery is an optimization; connection success is enough to proceed.
@@ -156,8 +160,14 @@ export class TeamSpeakAdapter {
 }
 
 export function detectTeamSpeakProtocol(versionText: string): TeamSpeakProtocol | null {
-  const text = versionText.trim().toLocaleLowerCase();
-  if (/teamspeak\s*6|(?:^|\D)6\.\d+/.test(text)) return "ts6";
-  if (/teamspeak\s*3|(?:^|\D)3\.\d+/.test(text)) return "ts3";
+  const text = versionText.trim().toLowerCase();
+  // `version` 响应以服务器版本号开头（前面可能带产品名）。只认开头的主版本号：
+  // 扫全串会把 TeamSpeak 3.6.7 里的「6.」误判成 TeamSpeak 6（3.6.x 服务器被
+  // 当成 TS6 后，屏幕共享与流命令会走错协议路径）。
+  const match = /^(?:teamspeak\s*)?(\d+)/.exec(text);
+  if (!match) return null;
+  const major = Number(match[1]);
+  if (major === 6) return "ts6";
+  if (major === 3) return "ts3";
   return null;
 }

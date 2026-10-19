@@ -385,6 +385,18 @@ export class WebRtcAudioSession {
     this.accompanimentActive = active;
   }
 
+  /** Releases the slot of a speaker who left the server. Without this the
+   *  binding (and the announced route list) keeps naming a client that is gone
+   *  until some other speaker happens to claim the slot, which also inflates
+   *  the active-speaker count in diagnostics. */
+  releaseClient(clientId: number): void {
+    const slot = this.slots.find(candidate => candidate.clientId === clientId);
+    if (!slot) return;
+    slot.clientId = 0;
+    slot.markerPending = true;
+    this.onVoiceRoutes(this.slots.map(assigned => assigned.clientId));
+  }
+
   /** Finds the speaker's slot, assigning a free one or evicting the least
    *  recently active speaker when the pool is full. Every reassignment is
    *  published so the browser can bind its playback streams. */

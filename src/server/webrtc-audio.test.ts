@@ -192,6 +192,25 @@ test("slot assignment announces routes with free slots as zero", () => {
     "an already-bound speaker continues its stream without restarting");
 });
 
+test("a departed speaker releases its downstream slot", () => {
+  const routes: number[][] = [];
+  const f = fixture();
+  (f.session as unknown as { onVoiceRoutes: (slots: readonly number[]) => void }).onVoiceRoutes = slots => routes.push([...slots]);
+  f.session.pushTeamSpeakVoice({ clientId: 7, codec: 4, data: VOICE_20MS });
+  f.session.pushTeamSpeakVoice({ clientId: 9, codec: 4, data: VOICE_20MS });
+  f.session.releaseClient(7);
+  assert.deepEqual(routes, [[7, 0], [7, 9], [0, 9]], "the announced table must stop naming a client that left");
+  assert.equal(f.resources.slots[0].clientId, 0);
+  assert.equal(f.session.getStats().webrtcActiveSpeakerSlots, 1);
+  // 未绑定的 client 不触发多余广播。
+  f.session.releaseClient(7);
+  assert.equal(routes.length, 3);
+  // 槽位保持可用：新说话者接管同一槽位，并以标记位重开时间线。
+  f.session.pushTeamSpeakVoice({ clientId: 11, codec: 4, data: VOICE_20MS });
+  assert.equal(f.resources.slots[0].clientId, 11);
+  assert.equal(f.sent.at(-1)!.header.marker, true);
+});
+
 test("a full slot pool evicts the least recently active speaker", () => {
   const routes: number[][] = [];
   const f = fixture();

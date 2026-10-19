@@ -373,6 +373,9 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       sendJson, addEvent: addServerEvent, onDirectoryReady: sendInitialState,
       onClientLeave: id => {
         deps.screenShares.onClientLeave(entry!, id);
+        // 说话者离开即释放其下行槽位：否则槽位绑定与已广播的路由表继续挂着
+        // 一个已不在服务器上的 client id，活跃槽位统计也跟着虚高。
+        entry!.webrtc?.releaseClient(id);
       },
       onClientMove: (id, channelId) => deps.screenShares.onClientMove(entry!, id, channelId),
       onNotification: notification => deps.screenShares.handleNotification(entry!, notification),
