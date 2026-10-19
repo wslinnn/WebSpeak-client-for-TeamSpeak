@@ -30,8 +30,10 @@ class Peer {
   iceConnectionState = "new";
   localDescription: unknown;
   parameters: { encodings: Array<Record<string, unknown>> } | null = null;
+  codecPreferences: Array<{ mimeType: string }> = [];
   closed = false;
   configuration: { iceServers?: unknown };
+  private readonly transceivers: Array<Record<string, unknown>> = [];
   constructor(configuration: { iceServers?: unknown }) {
     this.configuration = configuration;
     Peer.instances.push(this);
@@ -41,14 +43,27 @@ class Peer {
   setLocalDescription(description: unknown) { this.localDescription = description; return Promise.resolve(); }
   setRemoteDescription() { return Promise.resolve(); }
   addIceCandidate() { return Promise.resolve(); }
-  addTransceiver() {}
-  addTrack() {
+  addTransceiver(kind: string) {
+    const transceiver = {
+      sender: { track: null },
+      receiver: { track: { kind } },
+      setCodecPreferences: (codecs: Array<{ mimeType: string }>) => { this.codecPreferences = codecs; },
+    };
+    this.transceivers.push(transceiver);
+    return transceiver;
+  }
+  addTrack(track: { kind?: string }) {
+    this.transceivers.push({
+      sender: { track },
+      receiver: { track: null },
+      setCodecPreferences: (codecs: Array<{ mimeType: string }>) => { this.codecPreferences = codecs; },
+    });
     return {
       getParameters: () => ({ encodings: [] as Array<Record<string, unknown>> }),
       setParameters: async (parameters: { encodings: Array<Record<string, unknown>> }) => { this.parameters = parameters; },
     };
   }
-  getTransceivers() { return []; }
+  getTransceivers() { return this.transceivers; }
   getStats() { return Peer.stats(); }
   close() { this.closed = true; this.connectionState = "closed"; }
 }
@@ -150,4 +165,33 @@ test("ICE configuration belongs to each controller independently", async () => {
       [{ urls: "stun:first.example" }], [{ urls: "stun:second.example" }],
     ]);
   } finally { second.stopTransport(false); }
+});
+
+test("screen share codecs are ordered H.264, AV1, then VP8 independent of browser order", async () => {
+  const codecs = [
+    { mimeType: "video/vp8", clockRate: 90_000 },
+    { mimeType: "video/rtx", clockRate: 90_000, sdpFmtpLine: "apt=96" },
+    { mimeType: "video/av1", clockRate: 90_000 },
+    { mimeType: "video/h264", clockRate: 90_000, sdpFmtpLine: "packetization-mode=1;profile-level-id=42e01f" },
+  ];
+  vi.stubGlobal("RTCRtpSender", { getCapabilities: () => ({ codecs }) });
+  controller.handleMessage({ type: "screenShareJoined", stream: remote } as never);
+  await nextTurn();
+  assert.deepEqual(Peer.instances[0]?.codecPreferences.map(codec => codec.mimeType), [
+    "video/h264", "video/av1", "video/vp8", "video/rtx",
+  ]);
+});
+
+test("AV1 keeps its fallback priority over VP8 when the browser has no H.264", async () => {
+  const codecs = [
+    { mimeType: "video/vp8", clockRate: 90_000 },
+    { mimeType: "video/av1", clockRate: 90_000 },
+    { mimeType: "video/rtx", clockRate: 90_000, sdpFmtpLine: "apt=96" },
+  ];
+  vi.stubGlobal("RTCRtpSender", { getCapabilities: () => ({ codecs }) });
+  controller.handleMessage({ type: "screenShareJoined", stream: remote } as never);
+  await nextTurn();
+  assert.deepEqual(Peer.instances[0]?.codecPreferences.map(codec => codec.mimeType), [
+    "video/av1", "video/vp8", "video/rtx",
+  ]);
 });
