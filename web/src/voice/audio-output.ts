@@ -271,6 +271,15 @@ export function createAudioOutput(deps: AudioOutputDeps) {
     deps.audioPrefs.queueVolumeSave(clientId);
   }
 
+  /** 偏好回填后的同路应用（不含落库与 uid 记账）：成员先出声时播放流已按旧
+   *  音量建立，只改状态会让保存的音量等用户再拖一次滑条才生效。 */
+  function refreshMemberVolumes(clientIds: readonly number[]): void {
+    for (const clientId of clientIds) {
+      remotePlayback.updateVolume(clientId);
+      deps.webrtc().refreshSpeakerVolume(clientId);
+    }
+  }
+
   function setOutputVolume(volume: number): void {
     patch({ outputVolume: Math.max(0, Math.min(1, volume)) });
     applyOutputVolume();
@@ -349,6 +358,7 @@ export function createAudioOutput(deps: AudioOutputDeps) {
     checkBrowserWarning,
     playNotification,
     setVolume,
+    refreshMemberVolumes,
     setOutputVolume,
     toggleOutputMute,
     setOutputDevice,

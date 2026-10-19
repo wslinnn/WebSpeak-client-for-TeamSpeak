@@ -119,6 +119,46 @@ test("member-enter preserves status fields and updates an already listed member"
   assert.equal(S().channels[0]?.members?.[0]?.inputMuted, false);
 });
 
+test("a restored member volume reaches already-live playback, not just the state map", async () => {
+  preferenceStore.current = { schemaVersion: 1, volumesByUid: { "stable-peer": 0.25 } };
+  const scoped = createVoiceSessionController();
+  try {
+    scoped.connect("voice.example:9987", "", "Visitor");
+    await nextTurn();
+    const socket = TestSocket.instances.at(-1)!;
+    socket.receive({ type: "connected", tsClientId: 1 });
+    await nextTurn();
+    // 成员先出声（目录还没到）：兼容回放流按默认音量建立。
+    const before = AudioContextStub.gains.length;
+    receiveAudio(socket, 7);
+    const gain = AudioContextStub.gains[before];
+    assert.ok(gain, "a compat playback stream builds its own gain node");
+    assert.equal(gain.gain.value, 1);
+    // 目录到达 → 按 uid 回填偏好：状态与已在播的流必须一起更新，否则保存的
+    // 音量要等用户再拖一次滑条才生效。
+    socket.receive({ type: "channelList", channels: [{ id: "1", parentID: "0", name: "Lobby", members: [{ id: 7, uid: "stable-peer", nickname: "Peer" }] }] });
+    assert.equal(scoped.view().volumes[7], 0.25);
+    assert.equal(gain.gain.value, 0.25);
+  } finally {
+    scoped.disconnect();
+  }
+});
+
+test("a corrupt stored member volume is ignored instead of poisoning the mix", async () => {
+  preferenceStore.current = { schemaVersion: 1, volumesByUid: { "bad-peer": Number.NaN } };
+  const scoped = createVoiceSessionController();
+  try {
+    scoped.connect("voice.example:9987", "", "Visitor");
+    await nextTurn();
+    const socket = TestSocket.instances.at(-1)!;
+    socket.receive({ type: "connected", tsClientId: 1 });
+    socket.receive({ type: "channelList", channels: [{ id: "1", parentID: "0", name: "Lobby", members: [{ id: 7, uid: "bad-peer", nickname: "Peer" }] }] });
+    assert.equal(scoped.view().volumes[7], undefined, "NaN must not become a playback gain");
+  } finally {
+    scoped.disconnect();
+  }
+});
+
 test("member departure immediately removes every directory projection and per-ID state", async () => {
   const socket = await connect();
   socket.receive({ type: "connected", tsClientId: 1, members: [{ id: 7, uid: "user", nickname: "Leaving" }] });

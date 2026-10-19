@@ -27,6 +27,9 @@ interface AudioPreferencesDeps {
   patch(partial: Partial<VoiceSessionView>): void;
   /** 会话成员实时目录（按 uid 回填每成员音量）。 */
   membersLive(): readonly ChannelMember[];
+  /** 回填音量后把它推回播放图（兼容解码器 gain 与 WebRTC 每槽音轨）；
+   *  只更新状态的话，先出声的成员的播放流会一直用旧音量。 */
+  applyMemberVolumes(clientIds: readonly number[]): void;
 }
 
 export function createAudioPreferences(deps: AudioPreferencesDeps) {
@@ -69,18 +72,24 @@ export function createAudioPreferences(deps: AudioPreferencesDeps) {
     else autoGainControlTouched = true;
   }
 
-  function syncKnownMemberVolumes(): void {
+  /** 按 uid 把保存的音量回填到连接内的 client id 上，并把改动推回播放图。
+   *  返回实际改动的 client id（测试与调用方诊断用）。 */
+  function syncKnownMemberVolumes(): number[] {
     const updates: Record<number, number> = {};
-    let changed = false;
+    const changedIds: number[] = [];
     for (const member of deps.membersLive()) {
       if (!member.uid) continue;
       const saved = storedVolumesByUid[member.uid];
-      if (saved !== undefined && (V().volumes[member.id] ?? 1) !== Math.max(0, Math.min(4, saved))) {
-        updates[member.id] = Math.max(0, Math.min(4, saved));
-        changed = true;
-      }
+      if (typeof saved !== "number" || !Number.isFinite(saved)) continue;
+      const normalized = Math.max(0, Math.min(4, saved));
+      if ((V().volumes[member.id] ?? 1) === normalized) continue;
+      updates[member.id] = normalized;
+      changedIds.push(member.id);
     }
-    if (changed) patch({ volumes: { ...V().volumes, ...updates } });
+    if (!changedIds.length) return changedIds;
+    patch({ volumes: { ...V().volumes, ...updates } });
+    deps.applyMemberVolumes(changedIds);
+    return changedIds;
   }
 
   /** 滑条拖动的落盘去抖：每个 input tick 全量序列化偏好曾在移动端把帧预算

@@ -97,6 +97,8 @@ export function createVoiceSessionController() {
     V,
     patch,
     membersLive: () => sessionState.membersLive(),
+    // audioOutput 在同一作用域稍后装配：回填只发生在偏好装载与目录变更之后。
+    applyMemberVolumes: clientIds => audioOutput.refreshMemberVolumes(clientIds),
   });
 
   const screenShare = createScreenShareController({
