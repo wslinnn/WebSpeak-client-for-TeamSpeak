@@ -1,3 +1,6 @@
+/* 主题覆盖：明暗两套的管理台表面色微调。位于 settings 与 layout 之间
+ * 的历史级联位，勿挪动（同特异性时源序决定胜负）。 */
+
 /* One palette is shared by explicit dark mode and system dark mode. */
 
 .admin-root {
@@ -227,4 +230,3 @@ html[data-ws-route="admin"][data-theme="dark"] .admin-root {
   color: #ededf0;
   background: var(--admin-accent);
 }
-

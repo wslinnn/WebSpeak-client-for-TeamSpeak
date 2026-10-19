@@ -1,3 +1,7 @@
+/* 管理台基座：认证/改密两屏、共享按钮与语言控件、reduced-motion 降级。
+ * 所有规则未分层，经构建期插件统一加 .admin-root 作用域；与 web-client
+ * 共享类名（primary-button 等）的规则只在此文件维护基座。 */
+
 /* Feature presentation is owned by this scoped page across admin components. Preserve selector order and specificity; shell and shared language controls retain their original boundaries. */
 
 /* Overlay ladder values come from index.css :root（全局入口样式，随路由恒在）；

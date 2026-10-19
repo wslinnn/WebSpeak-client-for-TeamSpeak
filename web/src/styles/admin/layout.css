@@ -1,0 +1,747 @@
+/* 管理台布局终版：整体布局、响应式、运营面板终版覆盖、首页对齐。
+ * 本文件最后导入，同特异性时压过前面所有文件。 */
+
+@media (max-width:1050px) {
+  .target-settings-layout {
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  }
+  .target-fields,
+  .target-test-result,
+  .target-runtime-block {
+    grid-column: 1/-1;
+  }
+  .target-settings-layout>.password-row {
+    grid-column: 1;
+  }
+  .target-settings-layout>.target-test-button {
+    grid-column: 2;
+  }
+  .access-settings-layout,
+  .advanced-settings-grid {
+    grid-template-columns: minmax(0,1fr);
+  }
+}
+
+@media (max-width:850px) {
+  .server-page .settings-grid {
+    grid-template-columns: minmax(0,1fr);
+    grid-auto-rows: auto;
+    overflow: visible;
+  }
+  .settings-accordion-header {
+    min-height: 64px;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+  .settings-accordion-statuses {
+    justify-content: flex-start;
+  }
+  .settings-accordion-content {
+    padding: 13px 14px 15px;
+  }
+}
+
+@media (max-width:560px) {
+  .settings-accordion-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .settings-accordion-heading {
+    flex-basis: calc(100% - 34px);
+  }
+  .settings-accordion-statuses {
+    order: 3;
+    width: 100%;
+    padding-right: 25px;
+  }
+  .settings-accordion-header>.ui-icon {
+    margin-left: auto;
+  }
+  .target-settings-layout>.password-row,
+  .target-settings-layout>.target-test-button,
+  .target-test-result,
+  .target-runtime-block {
+    grid-column: 1;
+  }
+  .target-runtime-facts>div:first-child {
+    grid-column: auto;
+  }
+  .target-settings-layout,
+  .access-settings-layout,
+  .advanced-settings-grid {
+    gap: 11px;
+  }
+  .access-mode-fieldset .choice {
+    padding: 10px;
+  }
+}
+
+/* Admin layout contract: the desktop shell stays in the viewport, the main
+   content is the only page-level scroller, and cards size to their content. */
+
+html[data-ws-route="admin"],
+html[data-ws-route="admin"] body,
+html[data-ws-route="admin"] #root {
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.admin-root {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.admin-shell {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: 236px minmax(0,1fr);
+  overflow: hidden;
+}
+
+.admin-main {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.admin-topbar {
+  flex: 0 0 auto;
+  gap: 16px;
+  padding-block: 12px;
+}
+
+.admin-page-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-tools {
+  flex-shrink: 0;
+}
+
+.gateway-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.gateway-status .running-dot {
+  flex: 0 0 7px;
+}
+
+.admin-topbar .theme-toggle {
+  white-space: nowrap;
+}
+
+.admin-main>.page-alert {
+  flex: 0 0 auto;
+  margin: 12px clamp(18px,2.4vw,44px) 0;
+}
+
+.page-content {
+  display: block;
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: clamp(18px,2vw,32px) clamp(18px,2.4vw,44px) 34px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.login-page {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.login-card {
+  max-height: calc(100dvh - 50px);
+  overflow-y: auto;
+}
+
+.overview-page {
+  display: grid;
+  align-content: start;
+  grid-template-columns: minmax(0,1fr);
+  gap: 14px;
+}
+
+.overview-page .import-notice,
+.overview-page .metric-grid {
+  margin: 0;
+}
+
+.overview-page .hero-status {
+  padding: clamp(18px,2vw,28px);
+}
+
+.overview-page .metric-grid {
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 14px;
+}
+
+.overview-page .overview-columns {
+  display: grid;
+  grid-template-columns: minmax(0,1fr);
+  align-content: start;
+  gap: 14px;
+}
+
+.overview-page .overview-card {
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.overview-page .target-health-card dl {
+  grid-template-columns: repeat(3,minmax(0,1fr));
+}
+
+.overview-page .recent-events-card .event-list {
+  grid-template-columns: repeat(auto-fit,minmax(min(100%,360px),1fr));
+  max-height: none;
+  overflow: visible;
+}
+
+.server-page {
+  min-width: 0;
+}
+
+.server-page .settings-grid {
+  grid-template-columns: minmax(0,1fr);
+  align-content: start;
+  gap: 12px;
+}
+
+.server-page .settings-card {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.operations-page {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.operations-page .page-heading,
+.operations-page .system-notice {
+  margin: 0;
+}
+
+.operations-page .operations-grid {
+  min-width: 0;
+}
+
+.operations-primary {
+  grid-template-columns: repeat(auto-fit,minmax(min(100%,400px),1fr));
+}
+
+.lower-operations {
+  grid-template-columns: repeat(auto-fit,minmax(min(100%,340px),1fr));
+  margin-top: 0;
+}
+
+.operation-card {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.operation-empty {
+  min-height: 84px;
+}
+
+.operations-primary .table-wrap {
+  max-height: min(42vh,420px);
+  overflow: auto;
+}
+
+.operations-primary .invite-list {
+  max-height: min(32vh,280px);
+  overflow-y: auto;
+}
+
+.connection-list {
+  max-height: min(34vh,280px);
+  overflow-y: auto;
+}
+
+.logs-card .log-list,
+.audit-card .event-list {
+  max-height: min(38vh,340px);
+  overflow-y: auto;
+}
+
+.logs-card,
+.audit-card {
+  min-height: 0;
+}
+
+/* Long log messages should wrap on every screen size instead of widening the
+   log card or introducing page-level horizontal scrolling. */
+
+.logs-card .log-row {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.logs-card .log-row>div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.logs-card .log-row strong,
+.logs-card .log-row small {
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: break-word;
+}
+
+@media (max-width:1100px) {
+  .target-settings-layout {
+    grid-template-columns: minmax(0,1fr) minmax(180px,.42fr);
+  }
+  .target-fields {
+    grid-column: 1;
+    grid-row: 1;
+    grid-template-columns: minmax(0,1fr) 132px;
+  }
+  .target-settings-layout>.password-row {
+    grid-column: 1/-1;
+    grid-row: 2;
+  }
+  .target-settings-layout>.target-test-button {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .access-settings-layout,
+  .advanced-settings-grid {
+    grid-template-columns: minmax(0,1fr);
+  }
+}
+
+@media (max-width:850px) {
+  html[data-ws-route="admin"],
+  html[data-ws-route="admin"] body,
+  html[data-ws-route="admin"] #root {
+    height: auto;
+    min-height: 100%;
+    max-height: none;
+    overflow: auto;
+  }
+  .admin-root {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .admin-shell {
+    display: flex;
+    height: auto;
+    min-height: 100dvh;
+    flex-direction: column;
+    overflow: visible;
+  }
+  .admin-sidebar {
+    position: static;
+    display: grid;
+    grid-template-columns: minmax(0,1fr) auto;
+    gap: 10px;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    align-items: center;
+    padding: 12px 16px;
+  }
+  .admin-sidebar .admin-brand {
+    padding: 0;
+  }
+  .admin-sidebar .admin-brand small {
+    display: none;
+  }
+  .admin-sidebar nav {
+    display: grid;
+    grid-column: 1/-1;
+    grid-row: 2;
+    grid-template-columns: repeat(4,minmax(0,1fr));
+    margin: 0;
+  }
+  .admin-sidebar nav a {
+    justify-content: center;
+    gap: 0;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px;
+  }
+  .sidebar-bottom {
+    display: flex;
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .sidebar-bottom a {
+    display: none;
+  }
+  .sidebar-bottom button {
+    justify-content: center;
+    gap: 0;
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 0;
+  }
+  .admin-main {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .admin-topbar {
+    min-height: 68px;
+    padding: 0 18px;
+  }
+  .admin-main>.page-alert {
+    margin: 10px 14px 0;
+  }
+  .page-content {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    padding: 20px clamp(14px,3vw,28px) 28px;
+    overflow: visible;
+  }
+  .login-page {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .login-card {
+    max-height: none;
+    overflow: visible;
+  }
+  .overview-page {
+    min-height: 0;
+  }
+  .overview-page .metric-grid {
+    grid-template-columns: repeat(auto-fit,minmax(min(100%,210px),1fr));
+    gap: 9px;
+  }
+  .overview-page .overview-columns {
+    grid-template-columns: repeat(auto-fit,minmax(min(100%,360px),1fr));
+  }
+  .operations-page .operations-primary {
+    grid-template-columns: repeat(auto-fit,minmax(min(100%,360px),1fr));
+  }
+  .operations-page .lower-operations {
+    grid-template-columns: repeat(auto-fit,minmax(min(100%,320px),1fr));
+  }
+  .operations-page .operation-card {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .operations-primary .table-wrap {
+    max-height: min(48vh,420px);
+    overflow: auto;
+  }
+  .operations-primary .invite-list {
+    max-height: min(38vh,320px);
+    overflow-y: auto;
+  }
+  .connection-list {
+    max-height: min(38vh,320px);
+    overflow-y: auto;
+  }
+  .logs-card .log-list,
+  .audit-card .event-list {
+    max-height: min(45vh,380px);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width:560px) {
+  .admin-topbar {
+    gap: 8px;
+  }
+  .admin-topbar>div:last-child {
+    gap: 5px;
+  }
+  .gateway-status {
+    margin-inline: 5px;
+  }
+  .gateway-status-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .admin-topbar .theme-toggle {
+    width: 36px;
+    height: 36px;
+    justify-content: center;
+    padding: 0;
+  }
+  .admin-topbar .theme-toggle>span {
+    display: none;
+  }
+  .overview-page .hero-status {
+    padding: 18px;
+  }
+  .overview-page .hero-status h2 {
+    font-size: 24px;
+  }
+  .overview-page .metric-grid article {
+    padding: 14px;
+  }
+  .overview-page .metric-grid article>span {
+    top: 11px;
+    right: 11px;
+    width: 30px;
+    height: 30px;
+  }
+  .overview-page .metric-grid strong {
+    margin-top: 10px;
+    font-size: 16px;
+  }
+  .overview-page .target-health-card dl {
+    grid-template-columns: repeat(auto-fit,minmax(min(100%,190px),1fr));
+  }
+  .operations-page .operations-primary,
+  .operations-page .lower-operations {
+    grid-template-columns: minmax(0,1fr);
+  }
+  .operations-page .operation-card {
+    padding: 16px;
+  }
+  .operations-page .table-wrap {
+    margin-right: -16px;
+    margin-left: -16px;
+    margin-bottom: -16px;
+  }
+  .operations-page .invite-form-grid,
+  .operations-page .diagnostic-list {
+    grid-template-columns: minmax(0,1fr);
+  }
+  .operations-page .generated-link {
+    display: grid;
+  }
+  .operations-page .invite-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .operations-page .invite-row-meta {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .operations-page .connection-row {
+    display: grid;
+    gap: 7px;
+  }
+  .operations-page .connection-detail {
+    justify-items: start;
+    text-align: left;
+  }
+  .target-settings-layout {
+    grid-template-columns: minmax(0,1fr);
+  }
+  .target-fields,
+  .port-inputs,
+  .target-runtime-facts {
+    grid-template-columns: minmax(0,1fr);
+  }
+  .target-fields {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .target-settings-layout>.password-row {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .target-settings-layout>.target-test-button {
+    grid-column: 1;
+    grid-row: 3;
+    justify-self: stretch;
+    width: 100%;
+  }
+  .target-test-result {
+    grid-column: 1;
+    grid-row: 4;
+  }
+  .target-runtime-block {
+    grid-column: 1;
+    grid-row: 5;
+  }
+  .target-runtime-block {
+    grid-template-columns: minmax(0,1fr);
+  }
+  .target-runtime-facts {
+    grid-column: auto;
+  }
+}
+
+.operations-page .operations-grid {
+  grid-template-columns: minmax(0,1fr);
+  align-items: start;
+  gap: 14px;
+}
+
+.operations-page .operations-primary,
+.operations-page .lower-operations {
+  grid-template-columns: minmax(0,1fr);
+  margin-top: 0;
+}
+
+.operations-page .operation-card {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.operations-page .operation-empty {
+  min-height: 84px;
+}
+
+.operations-page .diagnostic-list {
+  grid-template-columns: repeat(auto-fit,minmax(min(100%,140px),1fr));
+}
+
+.operations-page .audit-card .event-list {
+  grid-template-columns: repeat(auto-fit,minmax(min(100%,260px),1fr));
+}
+
+@media (min-width:1101px) {
+  .operations-page .invite-form {
+    grid-template-columns: minmax(220px,1.2fr) minmax(280px,1fr) auto;
+    align-items: end;
+    gap: 12px 16px;
+  }
+  .operations-page .invite-form>label {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .operations-page .invite-form-grid {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+  }
+  .operations-page .invite-form>.field-help {
+    grid-column: 1/3;
+    grid-row: 2;
+  }
+  .operations-page .invite-form>.primary-button {
+    grid-column: 3;
+    grid-row: 1;
+    white-space: nowrap;
+  }
+  .operations-page .diagnostics-card {
+    display: grid;
+    grid-template-columns: minmax(0,1fr);
+  }
+  .operations-page .diagnostics-card>header {
+    grid-column: 1/-1;
+  }
+  .operations-page .diagnostics-card>.diagnostic-list {
+    grid-column: 1;
+    grid-row: 2;
+    grid-template-columns: repeat(5,minmax(0,1fr));
+  }
+  .operations-page .diagnostics-card>.secondary-button {
+    grid-column: 1;
+    grid-row: 3;
+    justify-self: end;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width:1100px) {
+  .operations-page .diagnostic-list {
+    grid-template-columns: repeat(auto-fit,minmax(min(100%,140px),1fr));
+  }
+}
+
+@media (max-width:850px) {
+  .operations-page .operations-primary,
+  .operations-page .lower-operations {
+    grid-template-columns: minmax(0,1fr);
+  }
+  .operations-page .invite-form {
+    grid-template-columns: minmax(0,1fr);
+  }
+  .operations-page .invite-form>label,
+  .operations-page .invite-form-grid,
+  .operations-page .invite-form>.field-help,
+  .operations-page .invite-form>.primary-button {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .operations-page .diagnostics-card {
+    display: block;
+  }
+}
+
+@media (max-width:560px) {
+  .operations-page .diagnostic-list {
+    grid-template-columns: minmax(0,1fr);
+  }
+}
+
+/* 色彩对齐 home（用户拍板：布局不动，登录/改密屏与 home 同族色彩，随明暗主题）。
+ * 高特异性覆盖平移分片的写死色值；token 与 home 同源（index.css @theme +
+ * .dark），侧栏深绿品牌底保留。 */
+.admin-root .login-page {
+  background: var(--background);
+}
+
+.admin-root .login-card,
+.admin-root .setup-card {
+  background: var(--card);
+  border-color: var(--border);
+  box-shadow: 0 20px 52px rgba(35, 68, 63, .08);
+}
+
+.admin-root .login-card h1,
+.admin-root .setup-card h1,
+.admin-root .login-card h2,
+.admin-root .login-card p,
+.admin-root .login-card label,
+.admin-root .setup-card label {
+  color: var(--foreground);
+}
+
+.admin-root .login-card input,
+.admin-root .setup-card input {
+  background: var(--background);
+  border-color: var(--border);
+  color: var(--foreground);
+}
+
+.admin-root .primary-button {
+  background: var(--primary);
+}
+
+.admin-root .primary-button:hover {
+  background: color-mix(in srgb, var(--primary) 85%, #000);
+}

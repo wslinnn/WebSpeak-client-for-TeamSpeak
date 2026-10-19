@@ -1,21 +1,17 @@
 /*
  * Admin scoped-style entry. ORDER IS SEMANTIC: postcss-import inlines these
- * shards in listed order and cascade order is preserved, so this file must stay
- * a pure @import manifest. Shards in admin/ are byte-exact slices of the
- * original admin.css (split audited by sha256 equality); do not reflow,
- * reorder, or merge them without re-running that audit. Method: see report 14 §3.
+ * shards in listed order and cascade order is preserved, so this file must
+ * stay a pure @import manifest. Shards are responsibility groups assembled by
+ * order-preserving concatenation of the original numbered slices (rule
+ * multiset verified equal on merge); do not reorder without re-running that
+ * audit. All rules stay UNLAYERED: the vite build scopes them under
+ * .admin-root (see vite.config.ts), and unlayered rules structurally beat
+ * every layered web-client rule, which is what keeps the two surfaces
+ * independent.
  */
 
-@import "./admin/01-base-auth.css";
-@import "./admin/02-shell-cards.css";
-@import "./admin/03-responsive-dark.css";
-@import "./admin/04-operations.css";
-@import "./admin/05-target-webrtc.css";
-@import "./admin/06-modals.css";
-@import "./admin/07-connections.css";
-@import "./admin/08-accordion.css";
-@import "./admin/09-theme-overrides.css";
-@import "./admin/10-layout.css";
-@import "./admin/11-responsive.css";
-@import "./admin/13-operations-final.css";
-@import "./admin/14-home-aligned.css";
+@import "./admin/base-auth.css";
+@import "./admin/shell-dark.css";
+@import "./admin/settings.css";
+@import "./admin/theme-overrides.css";
+@import "./admin/layout.css";

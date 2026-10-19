@@ -1,3 +1,7 @@
+/* 管理台壳与卡片：侧栏/顶栏/总览卡片/事件列表，及 ≤850/520 响应式与
+ * prefers-color-scheme 暗色覆盖。本文件在 settings 之前导入，settings
+ * 内的同名规则按序覆盖。 */
+
 .admin-shell {
   min-height: 100dvh;
 }
@@ -426,3 +430,165 @@
   text-align: center;
 }
 
+@media (max-width:850px) {
+  .admin-shell {
+    display: block;
+  }
+  .admin-sidebar {
+    flex-direction: row;
+  }
+  .admin-sidebar nav {
+    display: flex;
+    margin-left: auto;
+  }
+  .admin-sidebar nav a {
+    font-size: 0;
+  }
+  .admin-sidebar nav a .ui-icon {
+    width: 20px;
+    height: 20px;
+  }
+  .sidebar-bottom {
+    margin: 0 0 0 8px;
+  }
+  .settings-grid,
+  .overview-columns {
+    grid-template-columns: 1fr;
+  }
+  .page-content {
+    width: min(100% - 28px,700px);
+    padding-top: 24px;
+  }
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+  .hero-status {
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .hero-status p {
+    max-width: 75%;
+  }
+}
+
+@media (max-width:520px) {
+  .setup-card,
+  .login-card {
+    padding: 25px 20px;
+    border-radius: 15px;
+  }
+  .admin-topbar>div:last-child {
+    font-size: 0;
+  }
+  .page-heading {
+    gap: 15px;
+  }
+  .page-heading .primary-button {
+    padding-inline: 12px;
+  }
+  .settings-card,
+  .readonly-card,
+  .overview-card {
+    padding: 18px;
+  }
+  .readonly-card dl,
+  .overview-card dl {
+    grid-template-columns: 1fr;
+  }
+  .password-row {
+    grid-template-columns: 1fr;
+  }
+  .password-actions {
+    padding: 0;
+  }
+  .hero-status {
+    padding: 23px;
+  }
+  .status-badge {
+    display: none;
+  }
+}
+
+.security-note {
+  margin: 18px 0 0;
+  color: #8f939b;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+html[data-ws-route="admin"][data-theme="dark"] .admin-root,
+html[data-ws-route="admin"][data-theme="dark"] .login-page,
+html[data-ws-route="admin"][data-theme="dark"] .auth-panel {
+  color: #ededf0;
+  background: #131316;
+}
+
+html[data-ws-route="admin"][data-theme="dark"] .admin-topbar,
+html[data-ws-route="admin"][data-theme="dark"] .setup-card,
+html[data-ws-route="admin"][data-theme="dark"] .login-card,
+html[data-ws-route="admin"][data-theme="dark"] .settings-card,
+html[data-ws-route="admin"][data-theme="dark"] .readonly-card,
+html[data-ws-route="admin"][data-theme="dark"] .overview-card,
+html[data-ws-route="admin"][data-theme="dark"] input,
+html[data-ws-route="admin"][data-theme="dark"] textarea {
+  color: #ededf0;
+  background: #1c1c1f;
+  border-color: #333338;
+}
+
+html[data-ws-route="admin"][data-theme="dark"] .admin-topbar,
+html[data-ws-route="admin"][data-theme="dark"] .settings-card,
+html[data-ws-route="admin"][data-theme="dark"] .readonly-card,
+html[data-ws-route="admin"][data-theme="dark"] .overview-card {
+  border-color: #333338;
+}
+
+html[data-ws-route="admin"][data-theme="dark"] .admin-topbar h1,
+html[data-ws-route="admin"][data-theme="dark"] .page-heading h2,
+html[data-ws-route="admin"][data-theme="dark"] .settings-card h3,
+html[data-ws-route="admin"][data-theme="dark"] .readonly-card h3,
+html[data-ws-route="admin"][data-theme="dark"] .overview-card h3,
+html[data-ws-route="admin"][data-theme="dark"] .login-card h1 {
+  color: #ededf0;
+}
+
+html[data-ws-route="admin"][data-theme="dark"] .page-heading p,
+html[data-ws-route="admin"][data-theme="dark"] .admin-topbar small,
+html[data-ws-route="admin"][data-theme="dark"] label > span {
+  color: #9a9aa2;
+}
+
+html[data-ws-route="admin"][data-theme="dark"] .metric-grid article,
+html[data-ws-route="admin"][data-theme="dark"] .readonly-card dl div,
+html[data-ws-route="admin"][data-theme="dark"] .overview-card dl div,
+html[data-ws-route="admin"][data-theme="dark"] .event-list li {
+  background: #26262a;
+  border-color: #333338;
+}
+
+html[data-ws-route="admin"][data-theme="dark"] .admin-topbar button,
+html[data-ws-route="admin"][data-theme="dark"] .admin-topbar .language-select,
+html[data-ws-route="admin"][data-theme="dark"] .language-link,
+html[data-ws-route="admin"][data-theme="dark"] .home-link {
+  color: var(--admin-text);
+  background: var(--admin-raised);
+  border-color: var(--admin-border);
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-ws-route="admin"][data-theme="system"] .admin-root,
+  html[data-ws-route="admin"][data-theme="system"] .login-page,
+  html[data-ws-route="admin"][data-theme="system"] .auth-panel {
+    color: #ededf0;
+    background: #131316;
+  }
+  html[data-ws-route="admin"][data-theme="system"] .admin-topbar,
+  html[data-ws-route="admin"][data-theme="system"] .setup-card,
+  html[data-ws-route="admin"][data-theme="system"] .login-card,
+  html[data-ws-route="admin"][data-theme="system"] .settings-card,
+  html[data-ws-route="admin"][data-theme="system"] .readonly-card,
+  html[data-ws-route="admin"][data-theme="system"] .overview-card {
+    background: #1c1c1f;
+    border-color: #333338;
+  }
+}
