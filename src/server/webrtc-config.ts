@@ -1,14 +1,10 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { MAX_ACTIVE_SESSIONS } from "../constants.js";
+import { DEFAULT_WEBRTC_UDP_PORT_RANGE, MAX_ACTIVE_SESSIONS } from "../constants.js";
 import { normalizeVoiceMediaHost } from "../shared/voice-ice.js";
 
-/** Default WebRTC media port range used by WebSpeak and its Docker image.
- *  100 ports covered ~50 sessions at two sockets per session（报告 21 F2）:
- *  the default now covers the 100-session ceiling with an address margin. */
-export const DEFAULT_WEBRTC_UDP_PORT_RANGE: [number, number] = [40000, 41999];
-
 // Kept as a public alias for callers that used the original fixed-range name.
+export { DEFAULT_WEBRTC_UDP_PORT_RANGE } from "../constants.js";
 export const WEBRTC_UDP_PORT_RANGE = DEFAULT_WEBRTC_UDP_PORT_RANGE;
 export const WEBRTC_UDP_PORT_MIN = 1024;
 export const WEBRTC_UDP_PORT_MAX = 65535;

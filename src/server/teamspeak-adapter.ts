@@ -7,9 +7,9 @@ import {
 import { WebSpeakTeamSpeakResolver } from "./teamspeak-resolver.js";
 import type { Logger } from "../logger.js";
 import { normalizeTeamSpeakError } from "../errors.js";
-import { formatTeamSpeakTarget, teamSpeakTargetKey, type TeamSpeakTarget } from "../domain/teamspeak-target.js";
+import { formatTeamSpeakTarget, teamSpeakTargetKey, type TeamSpeakProtocol, type TeamSpeakTarget } from "../domain/teamspeak-target.js";
 
-export type TeamSpeakProtocol = "ts3" | "ts6";
+export type { TeamSpeakProtocol };
 
 interface CacheEntry {
   protocol: TeamSpeakProtocol;

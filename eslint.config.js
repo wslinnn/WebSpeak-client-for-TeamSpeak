@@ -21,4 +21,40 @@ export default tseslint.config(
       }],
     },
   },
+  {
+    // 门禁：持久层不依赖组合根（server/）。共享常量下沉 constants，线上类型
+    // 下沉 domain/shared——2026-10-19 起 persistence→server 为零豁免。
+    files: ["src/persistence/**/*.ts"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        patterns: [{
+          group: ["../server/**", "./server/**"],
+          message: "persistence 不得 import server/：常量入 constants、类型入 domain/shared。",
+        }],
+      }],
+    },
+  },
+  {
+    // 门禁：admin→server 只准消费既列服务（组合现实：探针/别名/网络探测由
+    // server 层持有 TSClient）。清单只许减不许增；新依赖优先下沉
+    // constants/domain/shared，确需 server 服务则把服务改为注入。
+    files: ["src/admin/**/*.ts"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        patterns: [{
+          group: [
+            "../server/**",
+            "!../server/client-ip.js",
+            "!../server/network-probe.js",
+            "!../server/teamspeak-alias.js",
+            "!../server/teamspeak-probe.js",
+            "!../server/voice-bridge.js",
+            "!../server/webrtc-audio.js",
+            "!../server/webrtc-config.js",
+          ],
+          message: "admin→server 新依赖须评审：下沉 constants/domain/shared 或改注入，勿扩本清单。",
+        }],
+      }],
+    },
+  },
 );

@@ -14,3 +14,10 @@ export const MAX_SESSIONS_PER_PEER = 10;
 export function canAcceptSession(activeSessionCount: number): boolean {
   return Number.isInteger(activeSessionCount) && activeSessionCount >= 0 && activeSessionCount < MAX_ACTIVE_SESSIONS;
 }
+
+/** Default WebRTC media port range used by WebSpeak and its Docker image.
+ *  100 ports covered ~50 sessions at two sockets per session（报告 21 F2）:
+ *  the default now covers the 100-session ceiling with an address margin.
+ *  Lives beside the deployment constants so the persistence layer can default
+ *  settings without reaching into the server layer. */
+export const DEFAULT_WEBRTC_UDP_PORT_RANGE: [number, number] = [40000, 41999];

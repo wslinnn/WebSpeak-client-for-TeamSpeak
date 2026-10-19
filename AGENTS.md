@@ -49,7 +49,7 @@ npm --prefix web ci --no-audit --no-fund
 - 网关默认端口 3040（`src/constants.ts` `APP_PORT`，`WEBSPEAK_PORT` 覆写）；仅当 `certs/cert.pem` + `certs/key.pem` 存在才启用 HTTPS；会话上限 100（`MAX_ACTIVE_SESSIONS`）、单对端（IPv6 /64）并发 10（`MAX_SESSIONS_PER_PEER`，超限关闭码 4006）。
 - 语音/会话/目录代码受大量生命周期不变量约束（会话 generation、陈旧回调失效、资源释放顺序、所有权归属）——**改动前先读 CLAUDE.md 对应章节**，这是本仓库最易出错的部分；语音链路另读 `.agents/notes/voice.md`。
 - 组件测试跑 jsdom（`web/vitest.config.ts` `environment: "jsdom"`）；依赖时钟/预算的测试必须钉死时钟而非在替身里推进。
-- SQLite schema 版本在 `src/persistence/database.ts`（当前 v11：v10 移除中继配置列，v11 将 `webrtc_enabled` 一次性置 1——WebRTC 是本 fork 的主语音路径，管理员事后关闭仍持久生效）；schema 迁移与结构性重构分开提交。
+- SQLite schema 版本在 `src/persistence/database.ts`（当前 v12：v10 移除中继配置列，v11 将 `webrtc_enabled` 一次性置 1——WebRTC 是本 fork 的主语音路径，v12 删除管理端邀请表）；schema 迁移与结构性重构分开提交。
 - 语音路径禁止逐帧持久日志；音频计数走内存诊断快照。
 
 ## 前端约定

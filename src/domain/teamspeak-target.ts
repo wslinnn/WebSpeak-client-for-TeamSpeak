@@ -1,5 +1,10 @@
 export const DEFAULT_TEAM_SPEAK_PORT = 9987;
 
+/** Wire-level TeamSpeak protocol generation, negotiated per connection and
+ *  persisted with settings (detection result). Lives in the domain layer so
+ *  persistence can type settings without reaching into the server layer. */
+export type TeamSpeakProtocol = "ts3" | "ts6";
+
 export interface TeamSpeakTarget {
   host: string;
   port: number;

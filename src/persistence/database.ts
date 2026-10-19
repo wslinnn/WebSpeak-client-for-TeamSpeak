@@ -3,8 +3,8 @@ import { randomBytes } from "node:crypto";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import type { AdminCredential } from "../security/admin-password.js";
-import type { TeamSpeakProtocol } from "../server/teamspeak-adapter.js";
-import { DEFAULT_WEBRTC_UDP_PORT_RANGE } from "../server/webrtc-config.js";
+import { DEFAULT_WEBRTC_UDP_PORT_RANGE } from "../constants.js";
+import type { TeamSpeakProtocol } from "../domain/teamspeak-target.js";
 
 export const DATABASE_SCHEMA_VERSION = 12;
 export type AccessMode = "fixed" | "open";
