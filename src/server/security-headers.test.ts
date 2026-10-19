@@ -23,10 +23,12 @@ async function availablePort(): Promise<number> {
   return address.port;
 }
 
-// The CSP whitelist is load-bearing for shipped features: skin packs load
-// their assets as blob: URLs, the microphone test plays back a blob: clip and
-// the optional RNNoise denoiser compiles WASM. A hardening pass that drops any
-// of these silently breaks those features (regression 2026-10-10), so pin them.
+// The CSP whitelist is load-bearing for shipped features: the microphone test
+// plays back a blob: clip and the optional RNNoise denoiser compiles WASM. A
+// hardening pass that drops either silently breaks those features (regression
+// 2026-10-10), so pin them. The skin-era blob:/data: channels on img-src and
+// font-src were removed after an inventory showed zero consumers (2026-10-19);
+// the negative assertions keep them from creeping back.
 test("security headers keep the feature-critical CSP sources", async (context) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "webspeak-headers-"));
   const database = new WebSpeakDatabase(path.join(directory, "webspeak.db"));
@@ -54,8 +56,6 @@ test("security headers keep the feature-critical CSP sources", async (context) =
   assert.equal(response.status, 200);
   const csp = response.headers.get("content-security-policy") ?? "";
   assert.match(csp, /script-src [^;]*'wasm-unsafe-eval'/);
-  assert.match(csp, /img-src [^;]*'self'[^;]*blob:/);
-  assert.match(csp, /font-src [^;]*'self'[^;]*blob:/);
   assert.match(csp, /media-src [^;]*'self'[^;]*blob:/);
   // Theme CSS ships as static stylesheets; no inline style channel is allowed.
   // The toast library injects its stylesheet as a style element at runtime.
@@ -63,7 +63,12 @@ test("security headers keep the feature-critical CSP sources", async (context) =
   // Deliberate narrowing: the voice WebSocket is always same-origin, and the
   // app requires WebCodecs anyway (post-Safari-15.4 'self'/ws matching).
   assert.doesNotMatch(csp, /connect-src [^;]*\b(?:ws|wss):/);
-  assert.doesNotMatch(csp, /font-src [^;]*data:/);
+  // Skin-era leftovers stay out: images and fonts are same-origin only
+  // (avatars are capability URLs behind 'self'; fonts are bundled assets).
+  assert.match(csp, /img-src 'self'/);
+  assert.match(csp, /font-src 'self'/);
+  assert.doesNotMatch(csp, /img-src [^;]*(?:blob:|data:)/);
+  assert.doesNotMatch(csp, /font-src [^;]*(?:blob:|data:)/);
   assert.equal(response.headers.get("x-frame-options"), "DENY");
   assert.equal(response.headers.get("permissions-policy"), null);
 });

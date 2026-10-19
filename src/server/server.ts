@@ -84,18 +84,17 @@ export function createWebServer(options: WebServerOptions): WebServer {
   }
 
   // Defense-in-depth headers for every response, including API errors and
-  // Defense-in-depth headers for every response, including API errors and
   // static assets. style-src keeps 'unsafe-inline': the toast library (sonner)
   // injects its stylesheet as a style element at runtime; React style props go
   // through CSSOM and are unaffected either way. HSTS is only meaningful on secure
   // responses — including proxy-terminated TLS once trust proxy is enabled.
-  // img-src/font-src allow blob: for client-generated resource URLs; media-src
-  // blob: serves the microphone-test playback element, and script-src
-  // 'wasm-unsafe-eval' is required by the optional RNNoise denoiser WASM
-  // module. connect-src is deliberately narrowed to 'self': the voice
-  // WebSocket is always same-origin (location.host) and the browser floor
-  // (WebCodecs-capable) postdates the Safari 15.4 fix for 'self' matching
-  // websocket schemes.
+  // media-src blob: serves the microphone-test playback element (the only
+  // client-generated resource URL in the app; backup/identity downloads are
+  // anchor downloads, not media). script-src 'wasm-unsafe-eval' is required by
+  // the optional RNNoise denoiser WASM module. connect-src is deliberately
+  // narrowed to 'self': the voice WebSocket is always same-origin
+  // (location.host) and the browser floor (WebCodecs-capable) postdates the
+  // Safari 15.4 fix for 'self' matching websocket schemes.
   app.use((request, response, next) => {
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -103,7 +102,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
     response.setHeader(
       "Content-Security-Policy",
       "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; "
-        + "img-src 'self' data: blob:; font-src 'self' blob:; media-src 'self' blob:; "
+        + "img-src 'self'; font-src 'self'; media-src 'self' blob:; "
         + "connect-src 'self'; "
         + "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
     );
