@@ -250,7 +250,7 @@ fieldset {
 }
 
 .primary-button:hover {
-  background: color-mix(in srgb, var(--wsd-accent) 82%, black);
+  background: var(--wsd-accent-fill-hover);
 }
 
 .primary-button:disabled,
