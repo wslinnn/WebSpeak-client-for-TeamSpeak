@@ -1099,14 +1099,13 @@
 }
 
 @media (min-width: 741px) {
+  /* In-flow, not absolute: the floating card overlaid the last rows of the
+   * member tree, so scrolling to the end left them hidden behind it. In flow
+   * the tree flexes above the dock and every row stays reachable. */
   .desktop-audio-dock {
-    position: absolute;
-    z-index: var(--ws-z-raised);
-    left: 0;
-    right: 0;
-    bottom: 18px;
+    position: static;
     width: min(282px, calc(100% - 22px));
-    margin: 0 auto;
+    margin: 12px auto 4px;
   }
   .workspace-actions .network-performance {
     display: none;

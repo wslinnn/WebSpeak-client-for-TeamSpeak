@@ -1514,10 +1514,12 @@
 }
 
 @media (min-width: 741px) {
+  /* position/overflow belong to the absolutely-positioned artwork ::before;
+   * the old 82px bottom reserve served the floating dock and stayed short of
+   * its real height, so the dock now sits in flow instead (menus.css). */
   .app-shell .member-panel {
     position: relative;
     overflow: visible;
-    padding-bottom: calc(18px + 12px + 52px);
   }
   .app-shell .chat-panel {
     position: relative;
