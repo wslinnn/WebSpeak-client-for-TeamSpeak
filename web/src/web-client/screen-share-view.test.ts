@@ -12,6 +12,8 @@ import {
   DEFAULT_SCREEN_SHARE_PRESETS,
   findScreenShareStreamForMember,
   readScreenSharePresets,
+  resolveScreenShareViewerAvatar,
+  screenShareViewersOf,
   type ScreenSharePresets,
   type ScreenShareViewStorage,
 } from "./screen-share-view";
@@ -119,6 +121,19 @@ test("known screen owner IDs cannot fall back to another member with the same ni
   assert.equal(match({ id: 8, nickname: "Same" }), null);
   streams[0] = { streamId: "legacy", ownerPeerId: "unknown", ownerNickname: "Same", name: "", source: "browser", audio: false, createdAt: 1, viewerCount: 0, viewers: [] };
   assert.equal(match({ id: 8, nickname: "Same" })?.streamId, "legacy");
+});
+
+test("viewer avatars resolve from the local directory by client id", () => {
+  const members = [
+    { id: 7, nickname: "Renamed", avatar: "/avatars/aid-7" },
+    { id: 8, nickname: "NoAvatar" },
+  ];
+  assert.equal(resolveScreenShareViewerAvatar({ peerId: "peer", nickname: "Old name", clientId: 7 }, members), "/avatars/aid-7");
+  // 目录里没有该 id（或该成员没头像）时退到旧网关的内联头像，再退空串由调用点兜首字符。
+  assert.equal(resolveScreenShareViewerAvatar({ peerId: "peer", nickname: "Gone", clientId: 9 }, members), "");
+  assert.equal(resolveScreenShareViewerAvatar({ peerId: "peer", nickname: "Legacy", avatar: "data:image/png;base64,AA" }, members), "data:image/png;base64,AA");
+  assert.equal(resolveScreenShareViewerAvatar({ peerId: "peer", nickname: "Nobody", clientId: 8 }, members), "");
+  assert.equal(screenShareViewersOf({ streamId: "s", ownerPeerId: "p", ownerNickname: "O", name: "", source: "browser", audio: false, createdAt: 1, viewerCount: 6, viewers: Array.from({ length: 6 }, (_, index) => ({ peerId: `peer-${index}`, nickname: `V${index}`, clientId: index })) }).length, 5);
 });
 
 test("share settings submit the selected resolution and frame rate", async () => {

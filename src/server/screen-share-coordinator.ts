@@ -187,10 +187,23 @@ export class ScreenShareCoordinator {
       .map((entryId) => this.entries.get(entryId))
       .filter((entry): entry is ScreenShareParticipant => Boolean(entry))
       .slice(0, 64)
-      .map((entry) => ({
-        peerId: entry.screenPeerId,
-        nickname: entry.nickname,
-      }));
+      .map((entry) => {
+        // Send the client id instead of an avatar: receivers already hold
+        // member avatars from the directory, and this roster is rebroadcast to
+        // the whole channel on every join and leave. An entry whose TeamSpeak
+        // client is mid-teardown simply arrives without one.
+        let clientId: number | undefined;
+        try {
+          clientId = entry.tsClient.getClientId();
+        } catch {
+          clientId = undefined;
+        }
+        return {
+          peerId: entry.screenPeerId,
+          nickname: entry.nickname,
+          ...(typeof clientId === "number" && clientId > 0 ? { clientId } : {}),
+        };
+      });
   }
 
   private screenShareViewerCountMessage(stream: ScreenStreamRecord): ServerMessage {

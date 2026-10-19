@@ -80,6 +80,20 @@ test("signaling permits owner-viewer pairs but rejects viewer-to-viewer injectio
   assert.equal(f.messages.at(-1)?.message.type, "screenShareSignal");
 });
 
+test("the viewer roster carries client ids, never avatars", () => {
+  const f = fixture();
+  const owner = f.participant("owner", 1);
+  const viewer = f.participant("viewer", 2);
+  const streamId = f.start(owner);
+  f.handle(viewer, { type: "screenShareJoin", streamId });
+  const share = f.list(owner)[0];
+  assert.deepEqual(share?.viewers, [{ peerId: viewer.screenPeerId, nickname: "viewer", clientId: 2 }]);
+  // A viewer whose TeamSpeak client cannot report an id still lists, without
+  // one, rather than the roster dropping it or inlining a payload.
+  viewer.tsClient.getClientId = () => { throw new Error("not connected"); };
+  assert.deepEqual(f.list(owner)[0]?.viewers, [{ peerId: viewer.screenPeerId, nickname: "viewer" }]);
+});
+
 test("another member moving channels cannot stop the owner's share or evict its viewer", () => {
   const f = fixture();
   const owner = f.participant("owner", 1);

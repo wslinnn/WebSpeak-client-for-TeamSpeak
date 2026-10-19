@@ -127,6 +127,7 @@ export function VoiceWorkspace(props: VoiceWorkspaceProps) {
                 onPlayerElement={screenShare.setPlayerElement}
                 onVideoElement={screenShare.setVideoElement}
                 nickname={props.nickname}
+                members={currentMembers}
                 t={t}
               />
             )}

@@ -1,4 +1,5 @@
-import type { ScreenShareStreamDescription as ScreenShareStream } from "@shared/screen-share";
+import type { ScreenShareStreamDescription as ScreenShareStream, ScreenShareViewerDescription } from "@shared/screen-share";
+import type { ChannelMember } from "@shared/voice-models";
 import type { ScreenShareOutputSettings } from "@/voice/screen-share";
 
 export type ScreenShareResolutionPreset = "source" | "720p" | "1080p";
@@ -110,8 +111,19 @@ export function screenShareErrorTextOf(error: string, errorCode: string, t: (key
 }
 
 /** Only the last five viewers get avatar chips; the counter carries the rest. */
-export function screenShareViewersOf(stream: ScreenShareStream | null): Array<{ peerId: string; nickname: string; avatar?: string }> {
+export function screenShareViewersOf(stream: ScreenShareStream | null): ScreenShareViewerDescription[] {
   return stream?.viewers.slice(-5) ?? [];
+}
+
+/** 观众头像：网关只发 clientId，头像从本机成员目录取（目录里是 capability
+ *  URL）；旧网关的内联头像与目录未覆盖的观众依次回退，两者都没有时由调用点
+ *  用首字符兜底。 */
+export function resolveScreenShareViewerAvatar(viewer: ScreenShareViewerDescription, members: readonly ChannelMember[]): string {
+  if (typeof viewer.clientId === "number") {
+    const member = members.find((candidate) => candidate.id === viewer.clientId);
+    if (member?.avatar) return member.avatar;
+  }
+  return viewer.avatar ?? "";
 }
 
 export function screenShareViewerCountOf(stream: ScreenShareStream | null): number {

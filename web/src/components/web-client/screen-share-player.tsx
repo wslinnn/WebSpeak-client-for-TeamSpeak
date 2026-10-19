@@ -1,7 +1,8 @@
 import { Icon } from "./icon";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
-import { screenShareErrorTextOf, screenShareViewersOf, screenShareViewerCountOf } from "@/web-client/screen-share-view";
+import { resolveScreenShareViewerAvatar, screenShareErrorTextOf, screenShareViewersOf, screenShareViewerCountOf } from "@/web-client/screen-share-view";
 import type { ScreenShareUi } from "@/web-client/use-screen-share";
+import type { ChannelMember } from "@shared/voice-models";
 import type { ScreenShareViewerDescription } from "@shared/screen-share";
 
 interface ScreenSharePlayerProps {
@@ -13,12 +14,14 @@ interface ScreenSharePlayerProps {
   onVideoElement(element: HTMLVideoElement | null): void;
   /** 本机昵称：观众头像 self 高亮比对。 */
   nickname: string;
+  /** 本频道成员：观众头像按 clientId 从目录解析（网关只发 id，不发图）。 */
+  members: ChannelMember[];
   t(key: string, variables?: Record<string, string | number>): string;
 }
 
 /** 屏幕共享播放器（旧 ScreenSharePlayer.vue 平价）：远端视频/占位、观众条、
  *  音量与全屏控制。元素经 onPlayerElement/onVideoElement 进绑定工厂。 */
-export function ScreenSharePlayer({ ui, onPlayerElement, onVideoElement, nickname, t }: ScreenSharePlayerProps) {
+export function ScreenSharePlayer({ ui, onPlayerElement, onVideoElement, nickname, members, t }: ScreenSharePlayerProps) {
   const { state } = ui;
   const activeStream = state.streams.find((stream) => stream.streamId === state.viewingStreamId) ?? null;
   const viewers = screenShareViewersOf(activeStream);
@@ -26,7 +29,7 @@ export function ScreenSharePlayer({ ui, onPlayerElement, onVideoElement, nicknam
   const ownerName = activeStream?.ownerNickname ?? t("screenShare");
   const errorText = screenShareErrorTextOf(state.error, state.errorCode, t);
   const viewerStyle = (viewer: ScreenShareViewerDescription) =>
-    avatarStyle(viewer.nickname, viewer.nickname === nickname, viewer.avatar ?? "");
+    avatarStyle(viewer.nickname, viewer.nickname === nickname, resolveScreenShareViewerAvatar(viewer, members));
   return (
     <section
       ref={onPlayerElement}
@@ -74,7 +77,7 @@ export function ScreenSharePlayer({ ui, onPlayerElement, onVideoElement, nicknam
                 data-ws-part="voice.screen-player.viewer-avatar"
                 style={viewerStyle(viewer)}
                 title={viewer.nickname}
-              >{viewer.avatar ? "" : avatarInitial(viewer.nickname)}</span>
+              >{resolveScreenShareViewerAvatar(viewer, members) ? "" : avatarInitial(viewer.nickname)}</span>
             ))}
           </span>
         </div>

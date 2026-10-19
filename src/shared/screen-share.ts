@@ -83,6 +83,12 @@ export type ScreenSharePeerSignal =
 export interface ScreenShareViewerDescription {
   peerId: string;
   nickname: string;
+  /** TeamSpeak client id; the client resolves the viewer's avatar from the
+   *  member directory it already holds instead of the roster shipping the
+   *  image on every viewer-count broadcast. */
+  clientId?: number;
+  /** Legacy inline avatar. Current gateways do not set this; it is still
+   *  parsed so the client keeps rendering avatars against an older gateway. */
   avatar?: string;
 }
 

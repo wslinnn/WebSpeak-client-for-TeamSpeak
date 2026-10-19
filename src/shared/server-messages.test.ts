@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseServerMessage, parseScreenShareStream, parseVoiceAudioBridgeStats, type ServerMessage } from "./server-messages.js";
+import { parseServerMessage, parseScreenShareStream, parseScreenShareViewers, parseVoiceAudioBridgeStats, type ServerMessage } from "./server-messages.js";
 
 const stream = {
   streamId: "stream-1", source: "browser" as const, ownerPeerId: "owner", ownerClientId: 1,
@@ -96,4 +96,16 @@ test("legacy screen streams receive defaults and untrusted viewer data is bounde
   assert.equal(message.streams[0]?.viewers[0]?.peerId.length, 128);
   assert.equal(message.streams[0]?.viewers[0]?.nickname.length, 120);
   assert.equal(parseScreenShareStream({ streamId: "s", ownerPeerId: [] }), null);
+});
+
+test("viewer client ids survive parsing so avatars resolve from the local directory", () => {
+  const viewers = parseScreenShareViewers([
+    { peerId: "a", nickname: "A", clientId: 42 },
+    { peerId: "b", nickname: "B", clientId: 0 },
+    { peerId: "c", nickname: "C", clientId: 65_536 },
+    { peerId: "d", nickname: "D", clientId: "7" },
+    { peerId: "e", nickname: "E", clientId: 8, avatar: "data:image/png;base64,AA" },
+  ]);
+  assert.deepEqual(viewers.map(viewer => viewer.clientId), [42, undefined, undefined, undefined, 8]);
+  assert.equal(viewers[4]?.avatar, "data:image/png;base64,AA");
 });
