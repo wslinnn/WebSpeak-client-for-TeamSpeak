@@ -13,10 +13,12 @@ export function getStoredTheme(): ThemeMode {
 }
 
 /**
- * 日/夜主题唯一通道：html[data-theme] 供管理台独立外观规则、html.dark 供
- * Tailwind dark: 变体与客户端夜间选择器（.dark .web-client …，特异性与原
- * [data-ws-skin] 形态逐档持平）。外观本身（令牌翻转、组件夜色）全部住在
- * 静态分片里，本函数不再注入任何样式元素。
+ * 日/夜主题唯一通道：html.dark 是唯一的视觉开关——Tailwind dark: 变体、
+ * 客户端夜间选择器（.dark .web-client …）与管理台暗色规则
+ * （html[data-ws-route="admin"].dark …）全部读它；system 偏好在此解析成
+ * 具体的明暗。data-theme 属性只记录偏好本身（system/light/dark），不参与
+ * 样式匹配。外观本身（令牌翻转、组件夜色）全部住在静态分片里，本函数不
+ * 再注入任何样式元素。
  */
 export function applyTheme(theme: ThemeMode): void {
   if (typeof document === "undefined") return;

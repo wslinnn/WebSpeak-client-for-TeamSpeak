@@ -267,36 +267,36 @@
   background: #fff0ee;
 }
 
-html[data-ws-route="admin"][data-theme="dark"] .connection-row,
-html[data-ws-route="admin"][data-theme="dark"] .connection-history-heading {
+html[data-ws-route="admin"].dark .connection-row,
+html[data-ws-route="admin"].dark .connection-history-heading {
   color: #ededf0;
   background: #26262a;
   border-color: #333338;
 }
 
-html[data-ws-route="admin"][data-theme="dark"] .operation-card,
-html[data-ws-route="admin"][data-theme="dark"] .invite-row,
-html[data-ws-route="admin"][data-theme="dark"] .diagnostic-list div,
-html[data-ws-route="admin"][data-theme="dark"] .log-row {
+html[data-ws-route="admin"].dark .operation-card,
+html[data-ws-route="admin"].dark .invite-row,
+html[data-ws-route="admin"].dark .diagnostic-list div,
+html[data-ws-route="admin"].dark .log-row {
   color: #ededf0;
   background: #26262a;
   border-color: #333338;
 }
 
-html[data-ws-route="admin"][data-theme="dark"] .table-wrap {
+html[data-ws-route="admin"].dark .table-wrap {
   border-color: #333338;
 }
 
-html[data-ws-route="admin"][data-theme="dark"] .table-wrap th,
-html[data-ws-route="admin"][data-theme="dark"] .table-wrap td,
-html[data-ws-route="admin"][data-theme="dark"] .invite-list {
+html[data-ws-route="admin"].dark .table-wrap th,
+html[data-ws-route="admin"].dark .table-wrap td,
+html[data-ws-route="admin"].dark .invite-list {
   border-color: #333338;
 }
 
-html[data-ws-route="admin"][data-theme="dark"] .operation-card header p,
-html[data-ws-route="admin"][data-theme="dark"] .table-wrap th,
-html[data-ws-route="admin"][data-theme="dark"] .table-wrap td small,
-html[data-ws-route="admin"][data-theme="dark"] .invite-row small {
+html[data-ws-route="admin"].dark .operation-card header p,
+html[data-ws-route="admin"].dark .table-wrap th,
+html[data-ws-route="admin"].dark .table-wrap td small,
+html[data-ws-route="admin"].dark .invite-row small {
   color: #9a9aa2;
 }
 
@@ -388,16 +388,16 @@ html[data-ws-route="admin"] *::-webkit-scrollbar-thumb:hover {
   border-width: 1px;
 }
 
-:root[data-ws-route="admin"][data-theme="dark"] * {
+:root[data-ws-route="admin"].dark * {
   scrollbar-color: #3f424a transparent;
 }
 
-:root[data-ws-route="admin"][data-theme="dark"] *::-webkit-scrollbar-thumb {
+:root[data-ws-route="admin"].dark *::-webkit-scrollbar-thumb {
   background: #3f424a;
   border-color: transparent;
 }
 
-:root[data-ws-route="admin"][data-theme="dark"] *::-webkit-scrollbar-thumb:hover {
+:root[data-ws-route="admin"].dark *::-webkit-scrollbar-thumb:hover {
   background: #5f6067;
 }
 
@@ -550,44 +550,44 @@ html[data-ws-route="admin"] *::-webkit-scrollbar-thumb:hover {
   line-height: 1.7;
 }
 
-html[data-ws-route="admin"][data-theme="dark"] .webrtc-port-fields {
+html[data-ws-route="admin"].dark .webrtc-port-fields {
   background: #26262a;
   border-color: #333338;
 }
 
-html[data-ws-route="admin"][data-theme="dark"] .port-fields-heading small {
+html[data-ws-route="admin"].dark .port-fields-heading small {
   color: #9a9aa2;
 }
 
-html[data-ws-route="admin"][data-theme="dark"] .port-inputs input:disabled {
+html[data-ws-route="admin"].dark .port-inputs input:disabled {
   color: #9a9aa2;
   background: #26262a;
   border-color: #333338;
 }
 
-html[data-ws-route="admin"][data-theme="dark"] .welcome-editor {
+html[data-ws-route="admin"].dark .welcome-editor {
   background: #26262a;
   border-color: #333338;
 }
 
-html[data-ws-route="admin"][data-theme="dark"] .welcome-editor select,
-html[data-ws-route="admin"][data-theme="dark"] .welcome-editor textarea {
+html[data-ws-route="admin"].dark .welcome-editor select,
+html[data-ws-route="admin"].dark .welcome-editor textarea {
   color: #ededf0;
   background: #1c1c1f;
   border-color: #333338;
 }
 
-html[data-ws-route="admin"][data-theme="dark"] .welcome-editor-heading>small {
+html[data-ws-route="admin"].dark .welcome-editor-heading>small {
   color: #9a9aa2;
 }
 
-html[data-ws-route="admin"][data-theme="dark"] .modal-card {
+html[data-ws-route="admin"].dark .modal-card {
   color: #ededf0;
   background: #1c1c1f;
   border-color: #333338;
 }
 
-html[data-ws-route="admin"][data-theme="dark"] .modal-card p {
+html[data-ws-route="admin"].dark .modal-card p {
   color: #9a9aa2;
 }
 
