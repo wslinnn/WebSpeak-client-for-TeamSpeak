@@ -1,36 +1,30 @@
 import { WebSocket } from "ws";
 import type { IncomingMessage } from "node:http";
-import { identityFromString } from "@echosixhiya/teamspeak-client";
-import { MAX_SESSIONS_PER_PEER } from "../../constants.js";
 import { TSClient } from "../ts-client.js";
 import type { Logger as LoggerType } from "../../logger.js";
 import { clientConnectionFailureCode, describeTeamSpeakError, normalizeTeamSpeakError } from "../../errors.js";
 import type { ServerMessage } from "../../shared/server-messages.js";
-import { parseWebRtcClientMessage } from "../../shared/webrtc.js";
 import { formatTeamSpeakTarget, teamSpeakTargetKey } from "../../domain/teamspeak-target.js";
 import type { JoinTicketPayload } from "../join-ticket.js";
 import { SessionEventCoordinator } from "../session-events.js";
 import type { SessionTeardownReason } from "../session-manager.js";
-import { parseClientCommand } from "../voice-protocol.js";
 import { isRecoverable, reconnectDelayMs, reconnectWindowOpen } from "../reconnect-policy.js";
 import type { WebRtcAudioOptions, WebRtcSessionDescription } from "../webrtc-audio.js";
-import { parseScreenShareMessage, type ScreenShareIceServer } from "../screen-share.js";
-import { handleCommand } from "../voice-commands.js";
+import type { ScreenShareIceServer } from "../screen-share.js";
 import { createAudioFlowStats } from "../audio-stats.js";
 import { SessionAudioTransport } from "../session-audio.js";
 import { createVoiceEncoder, OpusEncoder } from "../opus-codec.js";
-import { CommandRateLimiter, shouldReportRateLimit } from "../command-rate-limit.js";
-import { resolveClientAddress, rateLimitPeerKey } from "../client-ip.js";
+import { CommandRateLimiter } from "../command-rate-limit.js";
 import type { ScreenShareCoordinator } from "../screen-share-coordinator.js";
 import type { SessionManager } from "../session-manager.js";
 import type { IdentityLeaseStore } from "../identity-lease.js";
 import type { AvatarService } from "../avatar-service.js";
 import type { DetachedSessionPool } from "./detached-pool.js";
 import type { ServerEvent, VoiceBridgeDependencies, VoiceBridgeOptions, WebClientEntry } from "./types.js";
-
-/** 首连与重连共用的拨号上限：黑洞主机不再拖满系统级 TCP 超时（20s+），
- *  失败在 8 秒内浮出，重试节奏（1/2/4s 三轮）才有意义。 */
-const CONNECT_TIMEOUT_MS = 8_000;
+import { admitConnection, notePasswordFailure } from "./connection-admission.js";
+import { publicFailureDetail } from "./connection-request.js";
+import { bindSocketHandlers } from "./connection-socket.js";
+import { connectWithDialTimeout } from "./connection-dial.js";
 
 export interface VoiceConnectionHandlerDeps {
   entries: Map<string, WebClientEntry>;
@@ -51,57 +45,6 @@ export interface VoiceConnectionHandlerDeps {
   getScreenShareIceServers: () => ScreenShareIceServer[];
   stopWebRtc: (entry: WebClientEntry) => Promise<void>;
   handleWebRtcOffer: (entry: WebClientEntry, offer: WebRtcSessionDescription, sendJson: (message: ServerMessage) => void) => Promise<void>;
-}
-
-function publicFailureDetail(error: ReturnType<typeof normalizeTeamSpeakError>): string | undefined {
-  const serverMessage = error.diagnostics.serverMessage?.trim();
-  const serverId = error.diagnostics.id?.trim();
-  const detail = [serverMessage, serverId ? `server error id=${serverId}` : ""].filter(Boolean).join("; ");
-  const safe = detail.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 160);
-  return safe || undefined;
-}
-
-function resolveClientIp(request: IncomingMessage, trustProxy: boolean): string {
-  const header = request.headers["x-forwarded-for"];
-  return resolveClientAddress(
-    request.socket.remoteAddress,
-    Array.isArray(header) ? header[0] : header,
-    trustProxy,
-  );
-}
-
-function resolveWebRtcPublicHost(request: IncomingMessage, trustProxy: boolean): string | undefined {
-  // S2（报告 21）：转发头只在声明了可信反代时采信，与 client-ip.ts 的语义
-  // 对齐；直连部署只看 Host。请求派生的值在 voice-rtc 里还只允许 IP 字面量
-  // ——网关不替客户端触发 DNS 解析。
-  const candidates = trustProxy
-    ? [firstHeader(request.headers.origin), firstHeader(request.headers["x-forwarded-host"]), firstHeader(request.headers.host)]
-    : [firstHeader(request.headers.host)];
-  for (const candidate of candidates) {
-    const host = normalizeWebRtcHost(candidate);
-    if (host) return host;
-  }
-  return undefined;
-}
-
-function firstHeader(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-function normalizeWebRtcHost(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  const trimmed = value.split(",", 1)[0]?.trim();
-  if (!trimmed || trimmed.toLowerCase() === "null") return undefined;
-  try {
-    const parsed = new URL(trimmed.includes("://") ? trimmed : `https://${trimmed}`);
-    return parsed.hostname || undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function sendProtocolError(sendJson: (message: ServerMessage) => void, code: string, message: string, requestId?: string): void {
-  sendJson({ type: "error", ...(requestId ? { requestId } : {}), error: { code, message, recoverable: false } });
 }
 
 /** Builds the per-socket connection listener. The factory runs once per
@@ -139,98 +82,19 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
 
     const { target, serverPassword, nickname } = connection;
     const channelName = connection.channel;
-    const clientIp = resolveClientIp(req, deps.options.trustProxy === true);
-    const webrtcPublicHost = resolveWebRtcPublicHost(req, deps.options.trustProxy === true);
-    let identity;
-    try {
-      identity = connection.identity ? identityFromString(connection.identity) : undefined;
-    } catch {
-      // Send a structured failure before the close so the browser can tell
-      // an invalid remembered identity apart from a real connection failure.
-      if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "connectionFailed", code: "IDENTITY_INVALID", detail: "Invalid identity" }));
-      ws.close(4003, "IDENTITY_INVALID");
-      return;
-    }
     const entryId = `w-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
     let entry: WebClientEntry | null = null;
-    // S3（报告 21）：per-IP(/64) 并发会话上限，键与限流同源（client-ip 聚合）。
-    const session = deps.sessionManager.admit(entryId, async (reason) => {
-      if (entry) await deps.cleanupEntry(entry, reason);
-    }, rateLimitPeerKey(clientIp));
-    if (!session) {
-      if (deps.sessionManager.rejectReason === "peer-limit") {
-        deps.logger.warn({ clientIp, max: MAX_SESSIONS_PER_PEER }, "Per-peer session limit reached");
-        ws.close(4006, "PEER_SESSION_LIMIT");
-        return;
-      }
-      deps.logger.warn({ max: deps.sessionManager.maxSessions }, "Max clients reached");
-      ws.close(4004, "GATEWAY_FULL");
-      return;
-    }
-
-    const identityLeaseKey = identity
-      ? `${teamSpeakTargetKey(target)}:${identity.toString()}`
-      : "";
-    // A reconnect successor takes over its predecessor's session: the old
-    // socket may be a zombie for up to a heartbeat interval, and without
-    // this eviction the rebuilt connection would trip the identity lease.
-    const predecessorEntryId = typeof connection.reconnectOfEntryId === "string" ? connection.reconnectOfEntryId : "";
-    if (predecessorEntryId) {
-      const predecessor = deps.entries.get(predecessorEntryId);
-      if (predecessor && predecessor.id !== entryId) {
-        // A hung TeamSpeak disconnect must not stall admission forever: the
-        // explicit lease release below is idempotent and unblocks the lease
-        // even if the full teardown is still waiting on the SDK.
-        await Promise.race([
-          deps.sessionManager.teardown(predecessor.id, "superseded"),
-          new Promise<void>((resolve) => setTimeout(resolve, 1_500)),
-        ]);
-        if (predecessor.identityLeaseKey) deps.identityLeases.release(predecessor.identityLeaseKey, predecessor.id);
-      }
-    }
-    // 同身份跨目标切换（两个收藏指向同一 TS 服务器的不同域名/端口）：旧 entry
-    // 的 TS 客户端仍持着同一身份登在服务器上，新登录会被服务器拒身份冲突；
-    // 旧世界只逐出同目标的 reconnect 前任。这里按身份部分匹配逐出所有前任
-    // （2026-10-18 用户拍板：切服跟随实际连接成败，不做前端身份拦截）。
-    if (identity) {
-      const identitySuffix = `:${identity.toString()}`;
-      for (const other of deps.entries.values()) {
-        if (other.id === entryId || other.identityLeaseKey === identityLeaseKey) continue;
-        if (!other.identityLeaseKey || !other.identityLeaseKey.endsWith(identitySuffix)) continue;
-        await Promise.race([
-          deps.sessionManager.teardown(other.id, "superseded"),
-          new Promise<void>((resolve) => setTimeout(resolve, 1_500)),
-        ]);
-        deps.identityLeases.release(other.identityLeaseKey, other.id);
-      }
-    }
-    if (identityLeaseKey && !deps.identityLeases.acquire(identityLeaseKey, entryId)) {
-      // 同目标租约仍被占（另一浏览器页面的真实并发）：逐出持约者后重试一次，
-      // 仍失败才终止——切服跟随实际连接成败，不做前端身份拦截。
-      const holder = [...deps.entries.values()].find(
-        (candidate) => candidate.identityLeaseKey === identityLeaseKey && candidate.id !== entryId);
-      if (holder) {
-        await Promise.race([
-          deps.sessionManager.teardown(holder.id, "superseded"),
-          new Promise<void>((resolve) => setTimeout(resolve, 1_500)),
-        ]);
-        deps.identityLeases.release(identityLeaseKey, holder.id);
-      }
-      if (!deps.identityLeases.acquire(identityLeaseKey, entryId)) {
-        deps.logger.warn({ entryId, nickname, target: formatTeamSpeakTarget(target) }, "TeamSpeak identity already in use");
-        void deps.sessionManager.teardown(entryId, "teamSpeak-connect-failed");
-        ws.close(4005, "IDENTITY_IN_USE");
-        return;
-      }
-    }
-
-    deps.logger.info({
+    const admission = await admitConnection(deps, {
+      ws,
+      req,
+      connection,
       entryId,
-      nickname,
-      clientIp,
-      channel: channelName,
-      target: formatTeamSpeakTarget(target),
-    }, "WebClient connecting");
+      onTeardown: async (reason) => {
+        if (entry) await deps.cleanupEntry(entry, reason);
+      },
+    });
+    if (!admission.ok) return;
+    const { session, clientIp, webrtcPublicHost, identity, identityLeaseKey } = admission;
     let tsClient: TSClient;
     try {
       const createClient = deps.dependencies.createTeamSpeakClient ?? ((options, logger) => new TSClient(options, logger));
@@ -389,7 +253,7 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       // terminate this fresh socket, which never received a ping to answer.
       entry!.isAlive = true;
       entry!.reconnectTicketToken = deps.options.reconnectTickets?.issue(currentConnection, entryId);
-      bindSocketHandlers(next);
+      attachSocketHandlers(next);
       try {
         entry!.audioTransport = createAudioTransport(next);
       } catch (error: unknown) {
@@ -410,14 +274,6 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       initialStateSent = false;
     };
 
-    // Wrong server passwords are the one credential a browser client may
-    // guess freely, so they are counted per target in the shared guard and
-    // the join endpoint refuses user-supplied passwords while it cools down.
-    const notePasswordFailure = (failureCode: string | undefined) => {
-      if (failureCode !== "SERVER_PASSWORD_REQUIRED" && failureCode !== "INVALID_SERVER_PASSWORD") return;
-      deps.options.serverPasswordGuard?.recordFailure(teamSpeakTargetKey(entry!.target));
-    };
-
     const failReconnect = (normalized: ReturnType<typeof normalizeTeamSpeakError>) => {
       if (entry!.reconnectTimer) {
         clearTimeout(entry!.reconnectTimer);
@@ -429,7 +285,7 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       const failureCode = clientConnectionFailureCode(normalized, serverPassword);
       const failureDetail = publicFailureDetail(normalized);
       entry!.connectionFailureCode = failureCode;
-      notePasswordFailure(failureCode);
+      notePasswordFailure(deps.options, teamSpeakTargetKey(entry!.target), failureCode);
       sendJson({ type: "reconnectFailed", code: failureCode, ...(failureDetail ? { detail: failureDetail } : {}) });
       void deps.teardown(entryId, "teamSpeak-connect-failed");
     };
@@ -467,32 +323,9 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       entry!.reconnectTimer.unref?.();
     };
 
-    /** 拨号包裹超时：超时分支里 SDK 的拨号仍在后台挂着，显式断开它，
-     *  避免下一次尝试叠在幽灵连接上。 */
-    const connectWithTimeout = async (): Promise<void> => {
-      let timer: ReturnType<typeof setTimeout> | null = null;
-      let timedOut = false;
-      try {
-        await Promise.race([
-          tsClient.connect(),
-          new Promise<never>((_, reject) => {
-            timer = setTimeout(() => {
-              timedOut = true;
-              reject(new Error(`TeamSpeak connect did not complete within ${CONNECT_TIMEOUT_MS / 1000}s`));
-            }, CONNECT_TIMEOUT_MS);
-          }),
-        ]);
-      } catch (error) {
-        if (timedOut) void tsClient.disconnect().catch(() => undefined);
-        throw error;
-      } finally {
-        if (timer) clearTimeout(timer);
-      }
-    };
-
     const connectTeamSpeak = async (isReconnect: boolean): Promise<void> => {
       try {
-        await connectWithTimeout();
+        await connectWithDialTimeout(tsClient);
         if (session.state !== "authenticating") return;
         session.transition("syncing");
         tsReady = true;
@@ -507,7 +340,7 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
         const failureCode = clientConnectionFailureCode(normalized, serverPassword);
         const failureDetail = publicFailureDetail(normalized);
         entry!.connectionFailureCode = failureCode;
-        notePasswordFailure(failureCode);
+        notePasswordFailure(deps.options, teamSpeakTargetKey(entry!.target), failureCode);
         deps.logger.warn({
           code: failureCode,
           normalizedCode: normalized.code,
@@ -565,7 +398,7 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
         const failureCode = clientConnectionFailureCode(kick, serverPassword);
         const failureDetail = publicFailureDetail(kick);
         entry!.connectionFailureCode = failureCode;
-        notePasswordFailure(failureCode);
+        notePasswordFailure(deps.options, teamSpeakTargetKey(entry!.target), failureCode);
         deps.logger.warn({ entryId, code: failureCode, normalizedCode: kick.code, failureDetail: describeTeamSpeakError(kick) }, "TeamSpeak session ended by kick/ban");
         sendJson({ type: "connectionFailed", code: failureCode, ...(failureDetail ? { detail: failureDetail } : {}) });
         void deps.teardown(entryId, "teamSpeak-kicked");
@@ -581,92 +414,19 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
     });
     entry.events = events;
 
-    /** Register the browser-socket handlers. Runs for the initial join and
-     *  again for every adopted resume socket; all state it touches is
-     *  entry-level or closure-level, never socket-level. */
-    const bindSocketHandlers = (socket: WebSocket): void => {
-      socket.on("pong", () => { if (entry) entry.isAlive = true; });
-      socket.on("message", (data: Buffer | string, isBinary: boolean) => {
-        if (deps.entries.get(entryId) !== entry) return;
-        if (isBinary) {
-          entry!.audioTransport?.receivePcm(typeof data === "string" ? Buffer.from(data) : data);
-          return;
-        }
-        // Control messages (probes, chat, screen share, renegotiations) all end
-        // in gateway or TeamSpeak work; the TS server's flood protection bans
-        // the gateway identity shared by every session, so one abusive client
-        // must not be able to trigger it for everyone.
-        if (!entry!.commandLimiter.tryRemoveToken()) {
-          const now = Date.now();
-          if (shouldReportRateLimit(entry!.lastRateLimitNoticeAt, now)) {
-            entry!.lastRateLimitNoticeAt = now;
-            sendProtocolError(sendJson, "RATE_LIMITED", "操作过于频繁，请稍后重试");
-          }
-          return;
-        }
-
-        const rawMessage = typeof data === "string" ? data : data.toString("utf-8");
-        const webRtcMessage = parseWebRtcClientMessage(rawMessage);
-        if (webRtcMessage?.type === "webrtcOffer") {
-          if (deps.getWebRtcOptions()?.enabled !== true) {
-            sendProtocolError(sendJson, "WEBRTC_DISABLED", "WebRTC 音频传输未启用");
-            return;
-          }
-          if (!tsReady || session.state !== "connected") {
-            sendProtocolError(sendJson, "SESSION_NOT_READY", "TeamSpeak 会话尚未就绪");
-            return;
-          }
-          const { sdp, muted, accompanimentActive } = webRtcMessage.payload;
-          void deps.handleWebRtcOffer(entry!, { ...sdp, muted, accompanimentActive }, sendJson);
-          return;
-        }
-        if (webRtcMessage?.type === "webrtcStop") {
-          void deps.stopWebRtc(entry!);
-          return;
-        }
-        const screenShareMessage = parseScreenShareMessage(rawMessage);
-        if (screenShareMessage) {
-          if ("error" in screenShareMessage) {
-            sendProtocolError(sendJson, screenShareMessage.error.code, screenShareMessage.error.message);
-            return;
-          }
-          if (!tsReady || session.state !== "connected") {
-            sendProtocolError(sendJson, "SESSION_NOT_READY", "TeamSpeak 会话尚未就绪");
-            return;
-          }
-          deps.screenShares.handleMessage(entry!, screenShareMessage, sendJson);
-          return;
-        }
-        const command = parseClientCommand(rawMessage);
-        if ("error" in command) {
-          sendProtocolError(sendJson, command.error.code, command.error.message);
-          return;
-        }
-        if (!tsReady || session.state !== "connected") {
-          sendProtocolError(sendJson, "SESSION_NOT_READY", "TeamSpeak 会话尚未就绪", command.requestId);
-          return;
-        }
-        void handleCommand(entry!, command, sendJson);
-      });
-      socket.on("close", (code) => {
-        deps.logger.info({ entryId, code, detached: entry?.detached === true }, "WebSocket closed");
-        // 1000 is a deliberate leave (user disconnect or server-initiated
-        // teardown): release everything. Any other close — reload, network
-        // loss, proxy drop — keeps the TeamSpeak session for the resume
-        // window when the session holds a reconnect ticket at all.
-        if (code === 1000 || !deps.detachedPool.canDetach(entry)) {
-          void deps.teardown(entryId, "websocket-close");
-          return;
-        }
-        deps.detachedPool.detach(entry!);
-      });
-      // The close event decides detach vs teardown; an error alone (usually
-      // followed by an abnormal close) must not pre-empt that decision.
-      socket.on("error", (error) => {
-        deps.logger.warn({ entryId, err: error instanceof Error ? error.message : String(error) }, "WebSocket error");
-      });
+    /** Register the browser-socket handlers for the initial join and again
+     *  for every adopted resume socket; the router only touches entry-level
+     *  state via the context getters, never socket-level state. */
+    const attachSocketHandlers = (socket: WebSocket): void => {
+      bindSocketHandlers({
+        deps,
+        entryId,
+        getEntry: () => entry,
+        isSessionReady: () => tsReady && session.state === "connected",
+        sendJson,
+      }, socket);
     };
-    bindSocketHandlers(ws);
+    attachSocketHandlers(ws);
 
     try {
       session.transition("connecting");
