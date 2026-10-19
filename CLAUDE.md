@@ -136,7 +136,8 @@ Settings responses merge against the submitted snapshot instead of replacing new
 | `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` | Screen-sharing ICE configuration read at startup |
 | `WEBSPEAK_LOG_LEVEL` | Set to `debug` to restore verbose rotating-file logging, including SDK protocol chatter; defaults to `info` |
 | `WEBSPEAK_SDK_DEBUG` | Set to `1` to enable TeamSpeak SDK protocol debug logging; the raw output may contain credentials, so keep it off unless diagnosing |
-| `WEBSPEAK_TRUST_PROXY` | Set to `1` to declare a reverse proxy; forwarded headers then identify clients for rate limits and logs, and proxy-terminated TLS keeps secure cookies |
+| `WEBSPEAK_TRUST_PROXY` | Set to `1` to declare a reverse proxy on the same host; forwarded headers from a loopback peer then identify clients for rate limits and logs, and proxy-terminated TLS keeps secure cookies |
+| `WEBSPEAK_TRUSTED_PROXIES` | Comma-separated IPs/CIDRs whose `X-Forwarded-For` may be believed, for a proxy that is not on loopback. Overrides `WEBSPEAK_TRUST_PROXY`; an invalid entry stops startup. Forwarding headers from any other peer are ignored |
 | Browser IndexedDB and localStorage | Local identities, preferences, server history and theme preference |
 
 The current SQLite schema version is defined in `src/persistence/database.ts`. Keep schema migrations separate from structural refactors. Legacy fields such as `voiceToken`, `tsApiKey`, `tsQueryPort`, `port` and `maxClients` do not configure the current gateway.

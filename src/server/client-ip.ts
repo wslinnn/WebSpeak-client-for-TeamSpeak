@@ -1,4 +1,4 @@
-import { isIP } from "node:net";
+import { BlockList, isIP } from "node:net";
 
 /**
  * Peer key for rate limiting. Direct IPv6 clients can rotate an entire /64 for
@@ -14,29 +14,119 @@ export function rateLimitPeerKey(ip: string): string {
   return `${prefix.join(":")}::/64`;
 }
 
+// A reverse proxy on the same host reaches us over loopback, which is also what
+// the published host-network container sees. Anything else has to be declared,
+// because whoever we believe can choose the address we record.
+const DEFAULT_TRUSTED_PROXIES = ["127.0.0.1", "::1"] as const;
+
+/** Matcher with nothing in it: every peer is untrusted, so forwarded headers
+ *  are ignored. Used when the operator has not declared a reverse proxy. */
+export const NO_TRUSTED_PROXIES: BlockList = new BlockList();
+
+/**
+ * Build the matcher that decides whether forwarding headers may be believed.
+ * Entries are IPs or CIDRs; an invalid entry throws instead of silently
+ * narrowing what is trusted.
+ */
+export function createTrustedProxies(entries: readonly string[] | undefined): BlockList {
+  const list = new BlockList();
+  const effective = entries?.length ? entries : DEFAULT_TRUSTED_PROXIES;
+  for (const entry of effective) {
+    const trimmed = entry.trim();
+    if (!trimmed) continue;
+    const separator = trimmed.indexOf("/");
+    const address = normalizeSocketAddress(separator === -1 ? trimmed : trimmed.slice(0, separator));
+    const family = address ? isIP(address) : 0;
+    if (!address || (family !== 4 && family !== 6)) {
+      throw new Error(`Invalid WEBSPEAK_TRUSTED_PROXIES entry: ${entry}`);
+    }
+    if (separator === -1) {
+      list.addAddress(address, family === 4 ? "ipv4" : "ipv6");
+      continue;
+    }
+    const prefixText = trimmed.slice(separator + 1);
+    const prefix = Number(prefixText);
+    if (!/^\d+$/.test(prefixText) || prefix > (family === 4 ? 32 : 128)) {
+      throw new Error(`Invalid WEBSPEAK_TRUSTED_PROXIES prefix: ${entry}`);
+    }
+    list.addSubnet(address, prefix, family === 4 ? "ipv4" : "ipv6");
+  }
+  return list;
+}
+
+/** Operator configuration. `WEBSPEAK_TRUST_PROXY` declares the same-host
+ *  reverse proxy (loopback), `WEBSPEAK_TRUSTED_PROXIES` names any other proxy.
+ *  Neither means forwarded headers are ignored, which is the documented
+ *  default for a directly exposed gateway. */
+export function createConfiguredTrustedProxies(options: {
+  trustProxy?: boolean;
+  entries?: readonly string[] | undefined;
+}): BlockList {
+  if (options.entries?.length) return createTrustedProxies(options.entries);
+  if (options.trustProxy === true) return createTrustedProxies(undefined);
+  return NO_TRUSTED_PROXIES;
+}
+
+function isTrustedProxy(address: string, trustedProxies: BlockList): boolean {
+  const family = isIP(address);
+  if (family !== 4 && family !== 6) return false;
+  try {
+    return trustedProxies.check(address, family === 4 ? "ipv4" : "ipv6");
+  } catch {
+    return false;
+  }
+}
+
+/** Whether this peer itself is a declared proxy, i.e. whether any forwarding
+ *  header it sent may be believed. Mapped IPv4 forms are normalized first so a
+ *  dual-stack socket matches an IPv4 entry. */
+export function isTrustedProxyPeer(remoteAddress: string | undefined, trustedProxies: BlockList): boolean {
+  const address = normalizeSocketAddress(remoteAddress);
+  return address !== undefined && isTrustedProxy(address, trustedProxies);
+}
+
 /**
  * Resolve the client IP for logging and limiter keys.
  *
- * Forwarded headers are only consulted when the operator has declared a
- * trusted proxy (`WEBSPEAK_TRUST_PROXY`); otherwise they are attacker-
- * controlled and would poison both the logs and the rate-limit keys.
- * `X-Forwarded-For` is append-only: every entry left of the last one was
- * supplied by the client itself. In the supported single-proxy deployment
- * (nginx `proxy_add_x_forwarded_for`) the real client address is the entry
- * our own proxy appended, i.e. the last one — so only that entry is trusted,
- * and a missing or malformed one falls back to the socket address.
+ * Forwarding headers are believed only when the peer that sent them is a
+ * declared proxy: every visitor can set them on the upgrade request, so
+ * without this check the recorded address would be chosen by the client.
+ * `X-Forwarded-For` is append-only, so a trusted chain is walked from the hop
+ * nearest to us towards the client and the first untrusted address is
+ * reported — a value a client injected to the left of its proxy's entry is
+ * never recorded. `X-Real-IP` is used only for a trusted peer that sent no
+ * chain: a proxy appends to `X-Forwarded-For`, whereas `X-Real-IP` is only as
+ * good as the proxy configuration.
  */
 export function resolveClientAddress(
   remoteAddress: string | undefined,
   forwardedFor: string | string[] | undefined,
-  trustProxy: boolean,
+  trustedProxies: BlockList,
+  realIp?: string | string[] | undefined,
 ): string {
-  if (trustProxy) {
-    const header = Array.isArray(forwardedFor) ? forwardedFor.join(",") : forwardedFor;
-    const last = header?.slice(header.lastIndexOf(",") + 1).trim();
-    if (last && isIP(last)) return last;
+  const direct = normalizeSocketAddress(remoteAddress);
+  if (!direct || !isTrustedProxy(direct, trustedProxies)) return direct ?? "unknown";
+
+  const header = Array.isArray(forwardedFor) ? forwardedFor.join(",") : forwardedFor;
+  const hops: string[] = [];
+  if (header) {
+    for (const candidate of header.split(",")) {
+      const hop = normalizeSocketAddress(candidate);
+      if (hop) hops.push(hop);
+    }
+    hops.reverse();
   }
-  return normalizeSocketAddress(remoteAddress) ?? "unknown";
+  for (const hop of hops) {
+    if (!isTrustedProxy(hop, trustedProxies)) return hop;
+  }
+  if (!hops.length) {
+    // A single-hop proxy may be configured to send only X-Real-IP.
+    const realAddress = normalizeSocketAddress(Array.isArray(realIp) ? realIp[0] : realIp);
+    if (realAddress && !isTrustedProxy(realAddress, trustedProxies)) return realAddress;
+  }
+  // Every address we can see belongs to a proxy we trust. Report the furthest
+  // one instead of inventing a client address that was never forwarded.
+  return hops.length ? hops[hops.length - 1]! : direct;
 }
 
 /**

@@ -1,4 +1,5 @@
 import { WebSocket } from "ws";
+import type { BlockList } from "node:net";
 import type { IncomingMessage } from "node:http";
 import { identityFromString } from "@echosixhiya/teamspeak-client";
 import { MAX_SESSIONS_PER_PEER } from "../../constants.js";
@@ -32,6 +33,8 @@ export interface AdmissionDeps {
   options: VoiceBridgeOptions;
   sessionManager: SessionManager;
   identityLeases: IdentityLeaseStore;
+  /** Declared proxies; forwarding headers from anyone else are ignored. */
+  trustedProxies: BlockList;
 }
 
 /** Strictly ordered admission for one accepted socket: identity parse,
@@ -52,8 +55,8 @@ export async function admitConnection(
   const { ws, req, connection, entryId } = input;
   const { target, nickname } = connection;
   const channelName = connection.channel;
-  const clientIp = resolveClientIp(req, deps.options.trustProxy === true);
-  const webrtcPublicHost = resolveWebRtcPublicHost(req, deps.options.trustProxy === true);
+  const clientIp = resolveClientIp(req, deps.trustedProxies);
+  const webrtcPublicHost = resolveWebRtcPublicHost(req, deps.trustedProxies);
   let identity;
   try {
     identity = connection.identity ? identityFromString(connection.identity) : undefined;

@@ -58,6 +58,11 @@ async function main() {
   // proxy-terminated TLS keeps secure cookies and HSTS working.
   const trustProxyEnv = process.env.WEBSPEAK_TRUST_PROXY?.trim().toLowerCase();
   const trustProxy = trustProxyEnv === "1" || trustProxyEnv === "true";
+  // WEBSPEAK_TRUSTED_PROXIES names proxies other than the same-host one
+  // (comma/space separated IPs or CIDRs). Forwarded headers are believed only
+  // from a declared peer: anyone can set them on the upgrade request, and the
+  // address they choose would otherwise land in the audit trail.
+  const trustedProxies = readTrustedProxies(process.env.WEBSPEAK_TRUSTED_PROXIES);
   // One guard instance serves both sides: the web endpoint consults it before
   // issuing tickets, the voice bridge records wrong-password failures into it.
   const serverPasswordGuard = new ServerPasswordGuard();
@@ -81,11 +86,13 @@ async function main() {
       webRtc: () => adminService.getWebRtcAudioOptions(),
       screenShareIceServers: () => SCREEN_SHARE_ICE_SERVERS,
       trustProxy,
+      trustedProxies,
       serverPasswordGuard,
     },
     adminService,
         logger,
     trustProxy,
+    trustedProxies,
     serverPasswordGuard,
     androidReleaseLookup,
   });
@@ -118,6 +125,13 @@ function removeObsoleteBootstrapFile(): void {
   } catch (error: unknown) {
     if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
   }
+}
+
+/** Split the declared proxy list; an invalid entry surfaces as a startup
+ *  failure from createTrustedProxies rather than being silently ignored. */
+function readTrustedProxies(value: string | undefined): string[] | undefined {
+  const entries = value?.split(/[\s,]+/).filter(Boolean) ?? [];
+  return entries.length ? entries : undefined;
 }
 
 function readScreenShareIceServers(value: string | undefined): ScreenShareIceServer[] {

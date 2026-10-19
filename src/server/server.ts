@@ -19,7 +19,7 @@ import { isSameOrigin } from "../security/same-origin.js";
 import { identityFromString } from "@echosixhiya/teamspeak-client";
 import { JoinRateLimiter } from "./join-rate-limit.js";
 import { FixedWindowRateLimiter } from "./fixed-window-rate-limit.js";
-import { rateLimitPeerKey, resolveClientAddress } from "./client-ip.js";
+import { createConfiguredTrustedProxies, isTrustedProxyPeer, rateLimitPeerKey, resolveClientAddress } from "./client-ip.js";
 import { createProxyHint } from "./proxy-hint.js";
 import type { ServerPasswordGuard } from "./server-password-guard.js";
 import type { AndroidReleaseInfo } from "./downloads.js";
@@ -35,6 +35,10 @@ export interface WebServerOptions {
   adminService: AdminService;
   logger: Logger;
   trustProxy?: boolean;
+  /** IPs/CIDRs of proxies whose forwarding headers may be believed. Overrides
+   *  `trustProxy`; absent means only the same-host loopback proxy when that
+   *  flag is set, otherwise none. */
+  trustedProxies?: readonly string[];
   serverPasswordGuard: ServerPasswordGuard;
   /** Latest Android-client release metadata for the download page; absent on
    *  deployments that do not ship the lookup. */
@@ -59,12 +63,19 @@ export function createWebServer(options: WebServerOptions): WebServer {
   app.disable("x-powered-by");
   const logger = options.logger.child({ component: "web" });
   const trustProxy = options.trustProxy === true;
-  if (trustProxy) app.set("trust proxy", true);
+  const trustedProxies = createConfiguredTrustedProxies({ trustProxy, entries: options.trustedProxies });
+  // Express's own trust-proxy switch also governs request.secure, which keeps
+  // the admin cookie's Secure flag when TLS ends at the proxy. It is scoped to
+  // the declared proxies rather than "true", so an undeclared peer cannot
+  // claim HTTPS either.
+  if (trustProxy || options.trustedProxies?.length) {
+    app.set("trust proxy", (address: string) => isTrustedProxyPeer(address, trustedProxies));
+  }
   // Without a declared trusted proxy, forwarded headers are ignored by design
   // — which renders a same-host proxy invisible: every client looks like
   // 127.0.0.1 in logs and shares one rate-limit bucket. Surface that
   // misconfiguration once instead of letting it degrade silently.
-  if (!trustProxy) {
+  if (!trustProxy && !options.trustedProxies?.length) {
     const hintProxyMisconfigured = createProxyHint((message) => logger.warn(message));
     app.use((request, _response, next) => {
       hintProxyMisconfigured(request.socket.remoteAddress, request.headers["x-forwarded-for"]);
@@ -147,7 +158,8 @@ export function createWebServer(options: WebServerOptions): WebServer {
     return rateLimitPeerKey(resolveClientAddress(
       request.socket.remoteAddress,
       request.headers["x-forwarded-for"],
-      trustProxy,
+      trustedProxies,
+      request.headers["x-real-ip"],
     ));
   };
 
@@ -340,6 +352,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
     sessions: adminSessions,
     logger,
     trustProxy,
+    trustedProxies,
     getActiveSessions: () => voiceBridge.getActiveCount(),
     getPeakSessions: () => voiceBridge.getPeakCount(),
     getCreatedSessions: () => voiceBridge.getCreatedCount(),

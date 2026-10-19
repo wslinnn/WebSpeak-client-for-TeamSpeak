@@ -22,7 +22,13 @@ export interface VoiceBridgeOptions {
   resumeGraceMs?: number;
   webRtc?: WebRtcAudioOptions | (() => WebRtcAudioOptions);
   screenShareIceServers?: ScreenShareIceServer[] | (() => ScreenShareIceServer[]);
+  /** Declares the reverse proxy in front of the gateway. Forwarded headers are
+   *  believed only when the peer that sent them is in `trustedProxies`; this
+   *  flag alone means the same-host (loopback) proxy. */
   trustProxy?: boolean;
+  /** IPs/CIDRs of proxies whose forwarding headers may be believed. Overrides
+   *  `trustProxy`. Empty or absent with no `trustProxy` means never believe. */
+  trustedProxies?: readonly string[];
   serverPasswordGuard?: ServerPasswordGuard;
 }
 

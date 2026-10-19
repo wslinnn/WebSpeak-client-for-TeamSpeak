@@ -1,4 +1,5 @@
 import { WebSocket } from "ws";
+import type { BlockList } from "node:net";
 import type { IncomingMessage } from "node:http";
 import { TSClient } from "../ts-client.js";
 import type { Logger as LoggerType } from "../../logger.js";
@@ -30,6 +31,8 @@ import { connectWithDialTimeout } from "./connection-dial.js";
 export interface VoiceConnectionHandlerDeps {
   entries: Map<string, WebClientEntry>;
   logger: LoggerType;
+  /** Declared proxies whose forwarding headers may be believed. */
+  trustedProxies: BlockList;
   /** Passed through as a whole: expanding it into individual fields would
    *  break the "options are immutable per bridge" contract. */
   options: VoiceBridgeOptions;

@@ -4,7 +4,7 @@ import { isSessionDescription } from "../shared/webrtc.js";
 import { isSameOrigin } from "../security/same-origin.js";
 import { isAcceptableRemoteIceCandidate } from "./webrtc-config.js";
 import { FixedWindowRateLimiter } from "./fixed-window-rate-limit.js";
-import { rateLimitPeerKey, resolveClientAddress } from "./client-ip.js";
+import { NO_TRUSTED_PROXIES, rateLimitPeerKey, resolveClientAddress } from "./client-ip.js";
 import { OpusEncoder } from "./opus-codec.js";
 import type { WebRtcAudioOptions } from "./webrtc-audio.js";
 import type { Logger as LoggerType } from "../logger.js";
@@ -67,7 +67,7 @@ export function mountRtpLabIfEnabled(app: express.Express, options: RtpLabOption
     rateLimitPeerKey(resolveClientAddress(
       request.socket.remoteAddress,
       request.headers["x-forwarded-for"],
-      false,
+      NO_TRUSTED_PROXIES,
     ));
 
   app.get("/_rtp-lab", (_request, response) => {

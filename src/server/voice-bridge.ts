@@ -13,6 +13,7 @@ import { WebRtcAudioSession, type WebRtcAudioOptions, type WebRtcAudioSessionOpt
 import { normalizeScreenShareIceServers, type ScreenShareIceServer } from "./screen-share.js";
 import { AvatarLruCache } from "./avatar-cache.js";
 import { AvatarService } from "./avatar-service.js";
+import { createConfiguredTrustedProxies } from "./client-ip.js";
 import { createVoiceConnectionHandler } from "./voice-bridge/connection-handler.js";
 import { DetachedSessionPool } from "./voice-bridge/detached-pool.js";
 import { createVoiceRtc, type VoiceRtc } from "./voice-bridge/voice-rtc.js";
@@ -92,6 +93,10 @@ export class VoiceBridge {
     this.connectionHandler = createVoiceConnectionHandler({
       entries: this.entries,
       logger: this.logger,
+      trustedProxies: createConfiguredTrustedProxies({
+        trustProxy: options.trustProxy,
+        entries: options.trustedProxies,
+      }),
       options: this.options,
       dependencies: this.dependencies,
       sessionManager: this.sessionManager,

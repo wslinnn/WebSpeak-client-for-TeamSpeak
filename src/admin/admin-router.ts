@@ -1,4 +1,5 @@
 import { Router, type NextFunction, type Request, type Response } from "express";
+import type { BlockList } from "node:net";
 import { existsSync } from "node:fs";
 import { readConnectionHistory, readRecentLogs } from "./admin-logs.js";
 
@@ -17,6 +18,8 @@ export interface AdminRouterOptions {
   logger: Logger;
   /** Declares the reverse proxy so login rate limiting keys on the real client. */
   trustProxy?: boolean;
+  /** Declared proxies; forwarding headers from anyone else are ignored. */
+  trustedProxies: BlockList;
   getActiveSessions(): number;
   getPeakSessions(): number;
   getCreatedSessions?: () => number;
@@ -62,12 +65,12 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
     // Resolve the real client (only trusting forwarded headers when the
     // operator declared a proxy) and aggregate IPv6 the same way as the other
     // limiters.
-    const trustProxy = options.trustProxy === true;
     const peerFor = (request: Request): string => {
       return rateLimitPeerKey(resolveClientAddress(
         request.socket.remoteAddress,
         request.headers["x-forwarded-for"],
-        trustProxy,
+        options.trustedProxies,
+        request.headers["x-real-ip"],
       ));
     };
     const peer = peerFor(request);
