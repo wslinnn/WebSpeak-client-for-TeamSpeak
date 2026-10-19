@@ -1,6 +1,6 @@
 # WebSpeak · 简体中文
 
-[返回项目首页](../README.md) · [English](./README.en.md) · [Deutsch](./README.de.md) · [Русский](./README.ru.md) · [日本語](./README.ja.md)
+[返回项目首页](../README.md) · [English](./README.en.md)
 
 WebSpeak 是一个可自行部署的 TeamSpeak 3 / TeamSpeak 6 网页客户端与语音网关。用户无需安装桌面客户端即可从浏览器加入频道，管理员可以在控制台管理目标服务器、访问方式和运行状态。
 
@@ -24,8 +24,7 @@ WebSpeak 是一个可自行部署的 TeamSpeak 3 / TeamSpeak 6 网页客户端�
 | 身份与访问 | 支持身份保持、访客自定义目标，以及 TeamSpeak 3 身份导入、转换、校验与导出。 |
 | 工程结构 | 0.2.6 将网关语音、会话事件、音频和屏幕共享拆分为独立模块；前端语音与管理页拆分为组件、composables 和服务，并补充生命周期与重连测试。 |
 | 管理控制台 | 管理目标、访问策略、WebRTC、会话、日志、诊断和备份。 |
-| 皮肤 | 提供日间、夜间两款受保护皮肤，并支持实例自定义 `.wskin` 外观与管理员默认/启用管理。 |
-| 界面体验 | 提供中文、English、Deutsch、Русский、日本語及响应式桌面/移动布局。 |
+| 界面体验 | 提供中文、English 及响应式桌面/移动布局，内置日间/夜间主题。 |
 | 自托管 | 数据由部署者保存，支持 Docker amd64/arm64、Windows x64、Linux x64/ARM64 服务端包。 |
 
 ## 🖼️ 界面截图

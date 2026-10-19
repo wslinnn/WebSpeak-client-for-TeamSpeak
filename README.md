@@ -21,10 +21,7 @@
 
   <p>
     <a href="./docs/README.zh-CN.md">简体中文文档</a> ·
-    <a href="./docs/README.en.md">English documentation</a> ·
-    <a href="./docs/README.de.md">Deutsche Dokumentation</a> ·
-    <a href="./docs/README.ru.md">Русская документация</a> ·
-    <a href="./docs/README.ja.md">日本語ドキュメント</a>
+    <a href="./docs/README.en.md">English documentation</a>
   </p>
 </div>
 
@@ -40,11 +37,7 @@
 
 - [简体中文](./docs/README.zh-CN.md)
 - [English](./docs/README.en.md)
-- [Deutsch](./docs/README.de.md)
-- [Русский](./docs/README.ru.md)
-- [日本語](./docs/README.ja.md)
-- [皮肤开发规范 / Skin Development Guide](./docs/SKIN_DEVELOPMENT.md)
-- [皮肤开发 Agent Skill / Skin Development Agent Skill](./.agents/skills/webspeak-skin-development/SKILL.md)
+- [设计系统 / Design System](./docs/DESIGN.md)
 
 ## 社区 · Community
 

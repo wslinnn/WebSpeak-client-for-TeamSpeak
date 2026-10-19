@@ -1,6 +1,6 @@
 # WebSpeak · English
 
-[Project home](../README.md) · [简体中文](./README.zh-CN.md) · [Deutsch](./README.de.md) · [Русский](./README.ru.md) · [日本語](./README.ja.md)
+[Project home](../README.md) · [简体中文](./README.zh-CN.md)
 
 WebSpeak is a self-hosted browser client and voice gateway for TeamSpeak 3 and TeamSpeak 6. Visitors can join channels without installing a desktop client, while administrators manage the target servers, access policy, and runtime state from the web console.
 
@@ -24,8 +24,8 @@ No public live demo is available at the moment. To try WebSpeak, deploy your own
 | Identity and access | Remembered identity, visitor-defined targets, and TeamSpeak 3 identity import, conversion, validation, and export. |
 | Administration | Manage targets, access policy, public media address, IPv6 candidates, voice STUN, sessions, logs, diagnostics, and backups. |
 | Engineering structure | In 0.2.6, gateway voice, session events, audio, and screen-share coordination were split into modules; frontend voice and admin pages were decomposed into components, composables, and services, with lifecycle and reconnect tests. |
-| Skins | Protected Day and Night skins, plus instance-managed `.wskin` appearances with administrator enable/default controls. |
-| User experience | Chinese, English, German, Russian, and Japanese UI with responsive desktop/mobile layouts. |
+| Administration | Manage targets, access policy, public media address, IPv6 candidates, voice STUN, sessions, logs, diagnostics, and backups. |
+| User experience | Chinese and English UI with responsive desktop/mobile layouts and built-in Day/Night themes. |
 | Self-hosting | Data stays with the operator; packages include Windows x64 and Linux x64/ARM64, and Docker supports amd64/arm64. |
 
 ## 🖼️ Screenshots
