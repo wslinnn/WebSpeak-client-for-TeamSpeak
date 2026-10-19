@@ -263,6 +263,34 @@ test("a rejected peer shutdown is shared without repeating partial cleanup", asy
   assert.deepEqual(f.released, ["peer"]);
 });
 
+test("a failing uplink setup closes the half-built peer before the constructor throws", () => {
+  // The constructor never returns when a post-creation step fails, so the
+  // caller's `peer?.close()` is a no-op. Instrument the prototype to observe
+  // that the rollback happens inside the constructor instead. Count distinct
+  // peers: werift re-enters close() on the same instance while tearing down.
+  const originalAddTransceiver = RTCPeerConnection.prototype.addTransceiver;
+  const originalClose = RTCPeerConnection.prototype.close;
+  const closedPeers = new Set<RTCPeerConnection>();
+  const setupFailure = new Error("Uplink transceiver unavailable");
+  RTCPeerConnection.prototype.addTransceiver = function patchedAddTransceiver(): never {
+    throw setupFailure;
+  };
+  RTCPeerConnection.prototype.close = function patchedClose(this: RTCPeerConnection): Promise<void> {
+    closedPeers.add(this);
+    return originalClose.call(this);
+  };
+  try {
+    assert.throws(
+      () => new WebRtcAudioSession(sessionOptions({ connectionId: "uplink-failure" })),
+      error => error === setupFailure,
+    );
+  } finally {
+    RTCPeerConnection.prototype.addTransceiver = originalAddTransceiver;
+    RTCPeerConnection.prototype.close = originalClose;
+  }
+  assert.equal(closedPeers.size, 1, "the constructor must roll back the peer it already created");
+});
+
 test("codec parameter pinning merges browser parameters and overrides conflicting pins", () => {
   assert.equal(pinOpusCodecParameters("minptime=10;useinbandfec=1;maxaveragebitrate=32000;usedtx=1"), "minptime=10;useinbandfec=1;maxaveragebitrate=60000;usedtx=0");
   assert.equal(pinOpusCodecParameters(undefined), "maxaveragebitrate=60000;usedtx=0");

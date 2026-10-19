@@ -161,39 +161,48 @@ export class WebRtcAudioSession {
       iceFilterStunResponse: message => message.attributesKeys.includes("MESSAGE-INTEGRITY"),
       ...(iceAdditionalHostAddresses ? { iceAdditionalHostAddresses } : {}),
     });
-    this.peer.onconnectionstatechange = () => {
-      this.logger.info({ state: this.peer.connectionState }, "WebRTC connection state changed");
-    };
+    // A throw in here must not strand the peer: the factory never returns, so
+    // the caller's `peer` handle stays null and its `peer?.close()` is a no-op.
+    let uplink: ReturnType<RTCPeerConnection["addTransceiver"]>;
+    try {
+      this.peer.onconnectionstatechange = () => {
+        this.logger.info({ state: this.peer.connectionState }, "WebRTC connection state changed");
+      };
 
-    // The uplink transceiver is created eagerly so the RTP subscription is in
-    // place before any offer arrives: werift fires onTrack synchronously while
-    // setRemoteDescription registers the browser's SSRC, so a subscription
-    // made later (during createAnswer) would miss the event entirely and the
-    // microphone RTP would arrive with no consumer.
-    this.uplink = this.peer.addTransceiver("audio", { direction: "sendrecv" });
-    this.uplink.onTrack.subscribe((track) => {
-      track.onReceiveRtp.subscribe((rtp) => {
-        if (this.closed) return;
-        const receivedAt = performance.now();
-        if (this.lastIngressRtpAt !== null) this.stats.webrtcIngressRtpMaxGapMs = Math.max(this.stats.webrtcIngressRtpMaxGapMs, Math.round(receivedAt - this.lastIngressRtpAt));
-        this.lastIngressRtpAt = receivedAt;
-        this.stats.webrtcIngressRtpFirstAt ??= Date.now();
-        this.stats.webrtcIngressRtpLastAt = Date.now();
-        this.stats.webrtcIngressRtpFrames++;
-        if (!this.opusPayloadTypes.has(rtp.header.payloadType)) return;
-        // A muted microphone must stop the browser user's TeamSpeak voice
-        // packets at the gateway. Browser-side track.enabled/gain changes
-        // still produce RTP comfort-silence on some browsers, and forwarding
-        // those packets makes TeamSpeak keep the user in the speaking state.
-        // When accompaniment is active, keep forwarding the mixed track: the
-        // browser has already removed only the microphone component.
-        if (this.microphoneMuted && !this.accompanimentActive) return;
-        // F7（报告 21）：Buffer 复制放在静音/伴奏短路之后——被静音丢弃的帧
-        // 不再付出逐帧拷贝。
-        const payload = Buffer.from(rtp.payload);
-        this.onVoiceFrame(payload, this.accompanimentActive ? 5 : 4);
+      // The uplink transceiver is created eagerly so the RTP subscription is in
+      // place before any offer arrives: werift fires onTrack synchronously while
+      // setRemoteDescription registers the browser's SSRC, so a subscription
+      // made later (during createAnswer) would miss the event entirely and the
+      // microphone RTP would arrive with no consumer.
+      uplink = this.peer.addTransceiver("audio", { direction: "sendrecv" });
+      uplink.onTrack.subscribe((track) => {
+        track.onReceiveRtp.subscribe((rtp) => {
+          if (this.closed) return;
+          const receivedAt = performance.now();
+          if (this.lastIngressRtpAt !== null) this.stats.webrtcIngressRtpMaxGapMs = Math.max(this.stats.webrtcIngressRtpMaxGapMs, Math.round(receivedAt - this.lastIngressRtpAt));
+          this.lastIngressRtpAt = receivedAt;
+          this.stats.webrtcIngressRtpFirstAt ??= Date.now();
+          this.stats.webrtcIngressRtpLastAt = Date.now();
+          this.stats.webrtcIngressRtpFrames++;
+          if (!this.opusPayloadTypes.has(rtp.header.payloadType)) return;
+          // A muted microphone must stop the browser user's TeamSpeak voice
+          // packets at the gateway. Browser-side track.enabled/gain changes
+          // still produce RTP comfort-silence on some browsers, and forwarding
+          // those packets makes TeamSpeak keep the user in the speaking state.
+          // When accompaniment is active, keep forwarding the mixed track: the
+          // browser has already removed only the microphone component.
+          if (this.microphoneMuted && !this.accompanimentActive) return;
+          // F7（报告 21）：Buffer 复制放在静音/伴奏短路之后——被静音丢弃的帧
+          // 不再付出逐帧拷贝。
+          const payload = Buffer.from(rtp.payload);
+          this.onVoiceFrame(payload, this.accompanimentActive ? 5 : 4);
+        });
       });
-    });
+    } catch (error: unknown) {
+      void this.peer.close().catch(() => { /* rollback is best effort */ });
+      throw error;
+    }
+    this.uplink = uplink;
   }
 
   getStats(): WebRtcAudioStats {
