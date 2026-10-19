@@ -23,6 +23,7 @@ import type { DetachedSessionPool } from "./detached-pool.js";
 import type { ServerEvent, VoiceBridgeDependencies, VoiceBridgeOptions, WebClientEntry } from "./types.js";
 import { admitConnection, notePasswordFailure } from "./connection-admission.js";
 import { publicFailureDetail } from "./connection-request.js";
+import { createConnectionFailureReporter } from "./connection-failure.js";
 import { bindSocketHandlers } from "./connection-socket.js";
 import { connectWithDialTimeout } from "./connection-dial.js";
 
@@ -188,6 +189,11 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
     let hasConnectedOnce = false;
     let reconnectStartedAt = 0;
     let reconnectAttempt = 0;
+    // `connected` is only published once the directory sync has landed (see
+    // sendInitialState), so the session is already past authentication while
+    // hasConnectedOnce is still false. A transport drop inside that gap must
+    // be handled rather than swallowed.
+    const isSettling = () => session.state === "authenticating" || session.state === "syncing";
     const addServerEvent = (kind: ServerEvent["kind"], message: string) => {
       const event: ServerEvent = {
         id: `event-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
@@ -274,21 +280,10 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       initialStateSent = false;
     };
 
-    const failReconnect = (normalized: ReturnType<typeof normalizeTeamSpeakError>) => {
-      if (entry!.reconnectTimer) {
-        clearTimeout(entry!.reconnectTimer);
-        entry!.reconnectTimer = null;
-      }
-      try {
-        if (session.state !== "disconnecting" && session.state !== "idle") session.transition("failed");
-      } catch { /* teardown below remains authoritative */ }
-      const failureCode = clientConnectionFailureCode(normalized, serverPassword);
-      const failureDetail = publicFailureDetail(normalized);
-      entry!.connectionFailureCode = failureCode;
-      notePasswordFailure(deps.options, teamSpeakTargetKey(entry!.target), failureCode);
-      sendJson({ type: "reconnectFailed", code: failureCode, ...(failureDetail ? { detail: failureDetail } : {}) });
-      void deps.teardown(entryId, "teamSpeak-connect-failed");
-    };
+    const { failConnect, failReconnect } = createConnectionFailureReporter({
+      entryId, entry: entry!, session, options: deps.options, targetKey: teamSpeakTargetKey(entry!.target),
+      serverPassword, sendJson, ws, teardown: deps.teardown,
+    });
 
     const scheduleReconnect = (normalized: ReturnType<typeof normalizeTeamSpeakError> | null) => {
       if (session.state === "disconnecting" || session.state === "idle" || session.state === "failed") return;
@@ -338,7 +333,6 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       } catch (error: unknown) {
         const normalized = normalizeTeamSpeakError(error);
         const failureCode = clientConnectionFailureCode(normalized, serverPassword);
-        const failureDetail = publicFailureDetail(normalized);
         entry!.connectionFailureCode = failureCode;
         notePasswordFailure(deps.options, teamSpeakTargetKey(entry!.target), failureCode);
         deps.logger.warn({
@@ -351,15 +345,7 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
           attempt: reconnectAttempt,
         }, "TS connect failed");
         if (!isReconnect) {
-          try {
-            if (session.state !== "disconnecting" && session.state !== "idle") session.transition("failed");
-          } catch { /* teardown below remains authoritative */ }
-          // Send the structured failure before closing. Some browsers and
-          // reverse proxies do not preserve a WebSocket close reason, which
-          // would otherwise collapse every failure into a generic message.
-          sendJson({ type: "connectionFailed", code: failureCode, ...(failureDetail ? { detail: failureDetail } : {}) });
-          if (ws.readyState === WebSocket.OPEN) ws.close(4003, failureCode);
-          void deps.teardown(entryId, "teamSpeak-connect-failed");
+          failConnect(normalized);
           return;
         }
         if (isReconnect && isRecoverable(normalized)) {
@@ -393,7 +379,11 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       onKick: kick => {
         // A transport drop may arrive first and already start recovery. A
         // subsequent kick is still terminal and must cancel that recovery.
-        if (!hasConnectedOnce) return;
+        // A kick that lands before the session ever settled in (during the
+        // first connect or a reconnect handshake) is terminal too: ignoring it
+        // would leave the client on the connecting screen while the gateway
+        // kept the dead session alive.
+        if (!hasConnectedOnce && !isSettling()) return;
         resetDirectoryForReconnect();
         const failureCode = clientConnectionFailureCode(kick, serverPassword);
         const failureDetail = publicFailureDetail(kick);
@@ -404,10 +394,36 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
         void deps.teardown(entryId, "teamSpeak-kicked");
       },
       onDisconnect: error => {
+        const normalized = error ? normalizeTeamSpeakError(error) : null;
+        if (isSettling()) {
+          // `connected` was never published, so there is no live session to
+          // interrupt -- but staying in `syncing` would leave the client on the
+          // connecting screen with no recovery scheduled.
+          if (!hasConnectedOnce) {
+            deps.logger.warn({
+              entryId,
+              normalizedCode: normalized?.code,
+              ...(normalized ? { failureDetail: describeTeamSpeakError(normalized) } : {}),
+            }, "TeamSpeak connection lost before the session became usable");
+            failConnect(normalized ?? normalizeTeamSpeakError(new Error("TeamSpeak connection lost during startup")));
+            return;
+          }
+          // A reconnect attempt dropped mid-handshake. Detach the dead
+          // transport and fall back into the recovery loop rather than
+          // stalling in `syncing`.
+          resetDirectoryForReconnect();
+          try {
+            session.transition("reconnecting");
+          } catch {
+            failReconnect(normalized ?? normalizeTeamSpeakError(new Error("TeamSpeak connection lost during reconnect")));
+            return;
+          }
+          scheduleReconnect(normalized);
+          return;
+        }
         if (!hasConnectedOnce || session.state !== "connected") return;
         deps.screenShares.removePeer(entryId);
         resetDirectoryForReconnect();
-        const normalized = error ? normalizeTeamSpeakError(error) : null;
         sendJson({ type: "disconnected", recoverable: isRecoverable(normalized) });
         scheduleReconnect(normalized);
       },

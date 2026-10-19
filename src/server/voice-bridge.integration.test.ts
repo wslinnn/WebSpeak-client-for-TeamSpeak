@@ -18,10 +18,18 @@ import type { WebRtcAudioSession } from "./webrtc-audio.js";
 // replaced. This validates gateway wiring, not a connection to TeamSpeak.
 class TeamSpeakStub extends EventEmitter {
   disconnected = false;
+  connectCalls = 0;
+  // A slow server can resolve `connect()` long before its directory arrives;
+  // the drop tests park the session in that window on purpose.
+  emitDirectorySnapshotOnConnect = true;
   sent: Buffer[] = [];
   directory: TSDirectorySnapshot = { channels: [], clients: [] };
   avatarRequest: (id: number, uid: string) => Promise<TSClientAvatar | null> = async () => null;
-  async connect() { this.disconnected = false; this.emit("directorySnapshot", this.directory); }
+  async connect() {
+    this.connectCalls += 1;
+    this.disconnected = false;
+    if (this.emitDirectorySnapshotOnConnect) this.emit("directorySnapshot", this.directory);
+  }
   async disconnect() { this.disconnected = true; }
   getClientId() { return 1; }
   getChannelId() { return 1n; }
@@ -33,11 +41,30 @@ class TeamSpeakStub extends EventEmitter {
   getClientAvatar(id: number, uid: string) { return this.avatarRequest(id, uid); }
 }
 
+function messageTypes(messages: Array<{ data: Buffer; binary: boolean }>): string[] {
+  return messages
+    .filter(message => !message.binary)
+    .map(message => (JSON.parse(message.data.toString()) as { type: string }).type);
+}
+
+function waitForMessage<T extends Record<string, unknown>>(socket: WebSocket, type: string): Promise<T> {
+  return new Promise(resolve => {
+    socket.on("message", (data, binary) => {
+      if (binary) return;
+      const message = JSON.parse(data.toString()) as { type?: string };
+      if (message.type === type) resolve(message as unknown as T);
+    });
+  });
+}
+
 async function fixture(t: TestContext, overrides: {
   createTeamSpeakClient?: () => TSClient;
   createEncoder?: () => Pick<OpusEncoder, "encode" | "dispose">;
   configureSdk?: (sdk: TeamSpeakStub) => void;
   bridgeOptions?: { reconnectTickets?: ReconnectTicketStore };
+  /** Settling-state tests must not block on a first frame the gateway will
+   *  never send before the failure they are provoking. */
+  waitForFirstMessage?: boolean;
 } = {}) {
   const sdk = new TeamSpeakStub();
   overrides.configureSdk?.(sdk);
@@ -67,7 +94,7 @@ async function fixture(t: TestContext, overrides: {
     await bridge.shutdown();
     await new Promise<void>(resolve => server.close(() => resolve()));
   });
-  await first;
+  if (overrides.waitForFirstMessage !== false) await first;
   const entries = (bridge as unknown as { entries: Map<string, {
     id: string; ws: WebSocket; audio: AudioFlowStats; webrtc: WebRtcAudioSession | null;
     isAlive: boolean; avatarCache: Map<string, string | null>;
@@ -256,6 +283,72 @@ for (const order of ["kick-first", "disconnect-first"] as const) {
     assert.match(failures[0].detail, /Removed by operator/);
   });
 }
+
+test("a TeamSpeak drop before the directory sync fails the connection instead of stalling", { timeout: 5_000 }, async t => {
+  const f = await fixture(t, {
+    waitForFirstMessage: false,
+    configureSdk(sdk) { sdk.emitDirectorySnapshotOnConnect = false; },
+  });
+  while (!f.sdk.connectCalls) await nextTurn();
+  await nextTurn();
+  // The session is past authentication, but `connected` was never published.
+  assert.deepEqual(messageTypes(f.messages), []);
+
+  const failure = waitForMessage<{ code: string }>(f.socket, "connectionFailed");
+  f.sdk.emit("disconnected");
+  assert.ok((await failure).code.length > 0);
+  await nextTurn();
+  assert.equal(f.bridge.getActiveCount(), 0);
+});
+
+test("a kick before the directory sync is reported instead of leaving the session alive", { timeout: 5_000 }, async t => {
+  const f = await fixture(t, {
+    waitForFirstMessage: false,
+    configureSdk(sdk) { sdk.emitDirectorySnapshotOnConnect = false; },
+  });
+  while (!f.sdk.connectCalls) await nextTurn();
+  await nextTurn();
+  assert.deepEqual(messageTypes(f.messages), []);
+
+  const failure = waitForMessage<{ code: string; detail?: string }>(f.socket, "connectionFailed");
+  f.sdk.emit("kicked", normalizeTeamSpeakKickedReason("Removed by operator", 4));
+  const message = await failure;
+  assert.equal(message.code, "KICKED");
+  assert.match(message.detail ?? "", /Removed by operator/);
+  await nextTurn();
+  assert.equal(f.bridge.getActiveCount(), 0);
+});
+
+test("a drop during a reconnect handshake resumes recovery instead of stalling in syncing", { timeout: 15_000 }, async t => {
+  const f = await fixture(t, {
+    configureSdk(sdk) {
+      // Only the first handshake publishes the directory, so the reconnect
+      // attempt parks in `syncing` the way a slow server would.
+      let connects = 0;
+      sdk.connect = async () => {
+        sdk.connectCalls += 1;
+        sdk.disconnected = false;
+        connects += 1;
+        if (connects === 1) sdk.emit("directorySnapshot", sdk.directory);
+      };
+    },
+  });
+  assert.ok(messageTypes(f.messages).includes("connected"));
+
+  const firstReconnect = waitForMessage<{ attempt: number }>(f.socket, "reconnecting");
+  f.sdk.emit("disconnected");
+  assert.equal((await firstReconnect).attempt, 1);
+
+  while (f.sdk.connectCalls < 2) await nextTurn();
+  await nextTurn();
+  await nextTurn();
+  assert.ok(!messageTypes(f.messages).includes("reconnected"));
+
+  const secondReconnect = waitForMessage<{ attempt: number }>(f.socket, "reconnecting");
+  f.sdk.emit("disconnected");
+  assert.equal((await secondReconnect).attempt, 2);
+  assert.ok(f.bridge.getActiveCount() > 0);
+});
 
 async function waitFor(condition: () => boolean, timeoutMs = 2_000): Promise<void> {
   const start = Date.now();
