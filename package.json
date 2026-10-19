@@ -13,7 +13,7 @@
     "build": "tsc",
     "test": "node scripts/run-tests.mjs",
     "benchmark": "node --import tsx scripts/benchmark-audio.mjs",
-    "verify": "npm run lint && npm test && npm run build && npm run web:ci",
+    "verify": "npm run lint && npm run check:cycles && npm test && npm run build && npm run web:ci",
     "start": "node dist/index.js",
     "web:dev": "npm --prefix web run dev",
     "web:build": "npm --prefix web run build",
@@ -21,7 +21,8 @@
     "lint": "eslint .",
     "web:lint": "npm --prefix web run lint",
     "web:test": "npm --prefix web run test",
-    "web:ci": "npm --prefix web run ci"
+    "web:ci": "npm --prefix web run ci",
+    "check:cycles": "node scripts/check-import-cycles.mjs"
   },
   "prepare": "husky",
   "dependencies": {

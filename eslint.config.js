@@ -22,6 +22,27 @@ export default tseslint.config(
     },
   },
   {
+    // 门禁 §3.5：单文件 400 行（跳过空行与注释）。存量超限文件在下一块豁免，
+    // 豁免清单只许减不许增——拆分时顺手摘除。
+    files: ["src/**/*.ts"],
+    rules: {
+      "max-lines": ["error", { max: 400, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  {
+    // 存量超限（2026-10-19 复量）：screen-share-coordinator 663 /
+    // connection-handler 596 / database 471 / ts-client 428 /
+    // voice-bridge.integration.test 420（测试性长装配可接受，暂豁免）。
+    files: [
+      "src/server/screen-share-coordinator.ts",
+      "src/server/voice-bridge/connection-handler.ts",
+      "src/persistence/database.ts",
+      "src/server/ts-client.ts",
+      "src/server/voice-bridge.integration.test.ts",
+    ],
+    rules: { "max-lines": "off" },
+  },
+  {
     // 门禁：持久层不依赖组合根（server/）。共享常量下沉 constants，线上类型
     // 下沉 domain/shared——2026-10-19 起 persistence→server 为零豁免。
     files: ["src/persistence/**/*.ts"],
