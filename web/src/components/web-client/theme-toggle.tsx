@@ -13,7 +13,7 @@ export function ThemeToggle({ dark, onToggle, label, className }: ThemeTogglePro
   return (
     <button
       type="button"
-      className={className ?? "theme-toggle"}
+      className={className ? `theme-toggle ${className}` : "theme-toggle"}
       data-ws-part="theme.toggle"
       data-ws-state={dark ? "dark" : "light"}
       aria-label={label}

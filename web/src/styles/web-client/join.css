@@ -966,16 +966,7 @@
   font-size: 14.3px;
 }
 
-.join-theme-toggle { flex: 0 0 auto; }
-
-@media (max-width: 420px) {
-  .join-theme-toggle {
-    width: 28px;
-    min-width: 28px;
-    min-height: 28px;
-    padding: 0;
-  }
-}
+/* ThemeToggle 的 join 变体随组件族住在 menus.css（基类在 ws-menus 层）。 */
 
 .device-setup > [data-ws-part="home.device-setup.open"] {
   display: flex;

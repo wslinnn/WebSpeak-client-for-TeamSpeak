@@ -1722,10 +1722,39 @@
 
 .mobile-theme-toggle {
   width: 100%;
-  min-height: 44px;
+  min-height: 46px;
   justify-content: flex-start;
   padding-inline: 12px;
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
+  border-radius: 9px;
   font-size: 12px;
+}
+
+/* The more-panel row recipe lives in ws-chrome; this modifier restates the
+ * surface it needs because the ws-menus base rule loads later and would
+ * otherwise win with transparent/none. */
+@media (hover: hover) {
+
+.mobile-theme-toggle:hover {
+  color: var(--wsd-accent);
+  background: var(--wsd-raised);
+  border-color: var(--wsd-accent);
+}
+}
+
+.join-theme-toggle {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 420px) {
+  .join-theme-toggle {
+    width: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    padding: 0;
+  }
 }
 
 @media (max-width: 740px) {
