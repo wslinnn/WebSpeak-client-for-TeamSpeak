@@ -5,15 +5,19 @@
  * resolves the tri-state preference onto the single html.dark signal. */
 
 .admin-root {
-  /* 输入域面是管理台唯一的局部令牌（夜间刻意凹陷）；其余色值全部走全局 --wsd-*。
-   * 日间输入面即面板色；夜间字面量在散装清扫批次并入 --wsd-bg。 */
+  /* 管理台局部令牌（其余色值全部走全局 --wsd-*）：field 输入域面（夜间刻意
+   * 凹陷）、sunk 常暗井色（侧栏轨道/夜间输入面）、sidebar-muted 常暗轨道上
+   * 的弱化字色、hero-muted 登录英雄带（深青底）的弱化字色。 */
   --admin-field: var(--wsd-panel);
+  --admin-sunk: #17171a;
+  --admin-sidebar-muted: #b9babf;
+  --admin-hero-muted: #a8d8d1;
   color: var(--wsd-text);
   background: var(--wsd-bg);
 }
 
 html[data-ws-route="admin"].dark .admin-root {
-  --admin-field: #17171a;
+  --admin-field: var(--admin-sunk);
 }
 
 
@@ -164,9 +168,9 @@ html[data-ws-route="admin"].dark .admin-root {
 .admin-root .password-actions button.danger,
 .admin-root .danger-button,
 .admin-root .text-danger {
-  color: #d66d65;
-  background: color-mix(in srgb,#d66d65 12%,var(--wsd-panel));
-  border-color: color-mix(in srgb,#d66d65 30%,var(--wsd-border));
+  color: var(--wsd-danger);
+  background: color-mix(in srgb,var(--wsd-danger) 12%,var(--wsd-panel));
+  border-color: color-mix(in srgb,var(--wsd-danger) 30%,var(--wsd-border));
 }
 
 /* Secondary actions are neutral raised surfaces; accent stays on primary
@@ -191,10 +195,10 @@ html[data-ws-route="admin"].dark .admin-root {
 }
 
 .admin-root .admin-sidebar nav a {
-  color: #b9babf;
+  color: var(--admin-sidebar-muted);
 }
 
 .admin-root .admin-sidebar nav a.active {
-  color: #ededf0;
+  color: var(--wsd-text);
   background: var(--wsd-accent);
 }

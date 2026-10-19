@@ -13,8 +13,8 @@
   height: 100dvh;
   flex-direction: column;
   padding: 26px 18px;
-  background: #17171a;
-  color: #ededf0;
+  background: var(--admin-sunk);
+  color: var(--wsd-text);
 }
 
 .admin-sidebar .admin-brand {
@@ -33,7 +33,7 @@
   align-items: center;
   gap: 10px;
   padding: 11px 12px;
-  color: #b9babf;
+  color: var(--admin-sidebar-muted);
   text-decoration: none;
   background: transparent;
   border: 0;
@@ -62,8 +62,8 @@
   justify-content: space-between;
   min-height: 82px;
   padding: 0 clamp(24px,4vw,58px);
-  background: #fff;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--wsd-panel);
+  border-bottom: 1px solid var(--wsd-border);
 }
 
 .admin-topbar small,
@@ -73,7 +73,7 @@
 }
 
 .admin-topbar small {
-  color: #8f939b;
+  color: var(--wsd-text-dim);
   font-size: 10px;
   text-transform: uppercase;
 }
@@ -87,7 +87,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #63696f;
+  color: var(--wsd-text-muted);
   font-size: 11px;
 }
 
@@ -122,7 +122,7 @@
 
 .page-heading p {
   margin: 7px 0 0;
-  color: #8f939b;
+  color: var(--wsd-text-dim);
   font-size: 12px;
 }
 
@@ -136,8 +136,8 @@
 .readonly-card,
 .overview-card {
   padding: 24px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--wsd-panel);
+  border: 1px solid var(--wsd-border);
   border-radius: 14px;
 }
 
@@ -170,8 +170,8 @@
 .password-actions button {
   height: 42px;
   padding: 0 10px;
-  color: #63696f;
-  background: #f4f4f5;
+  color: var(--wsd-text-muted);
+  background: var(--wsd-raised);
   border: 0;
   border-radius: 8px;
   font-size: 10px;
@@ -184,10 +184,6 @@
   background: var(--wsd-accent);
 }
 
-.password-actions button.danger {
-  color: #a24640;
-  background: #fff0ef;
-}
 
 .readonly-card dl,
 .overview-card dl {
@@ -200,13 +196,13 @@
 .readonly-card dl div,
 .overview-card dl div {
   padding: 13px;
-  background: #f4f4f5;
+  background: var(--wsd-raised);
   border-radius: 9px;
 }
 
 .readonly-card dt,
 .overview-card dt {
-  color: #8f939b;
+  color: var(--wsd-text-dim);
   font-size: 10px;
 }
 
@@ -256,7 +252,7 @@
 
 .hero-status p {
   margin: 0;
-  color: #a8d8d1;
+  color: var(--admin-hero-muted);
   font-size: 12px;
 }
 
@@ -274,7 +270,7 @@
 .status-badge i {
   width: 7px;
   height: 7px;
-  background: #69e78b;
+  background: var(--wsd-success);
   border-radius: 50%;
 }
 
@@ -288,8 +284,8 @@
 .metric-grid article {
   position: relative;
   padding: 21px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--wsd-panel);
+  border: 1px solid var(--wsd-border);
   border-radius: 13px;
 }
 
@@ -313,7 +309,7 @@
 }
 
 .metric-grid small {
-  color: #8f939b;
+  color: var(--wsd-text-dim);
   font-size: 10px;
 }
 
@@ -328,7 +324,7 @@
 
 .metric-grid em {
   margin-top: 7px;
-  color: #63696f;
+  color: var(--wsd-text-muted);
   font-size: 10px;
   font-style: normal;
 }
@@ -346,7 +342,7 @@
 
 .overview-card header p {
   margin: 5px 0 0;
-  color: #7e8c88;
+  color: var(--wsd-text-dim);
   font-size: 10px;
 }
 
@@ -370,16 +366,16 @@
 .overview-card dd i {
   width: 7px;
   height: 7px;
-  background: #9a9ea6;
+  background: var(--wsd-text-dim);
   border-radius: 50%;
 }
 
 .overview-card dd i.reachable {
-  background: #55cb76;
+  background: var(--wsd-success);
 }
 
 .overview-card dd i.unreachable {
-  background: #d85f57;
+  background: var(--wsd-danger);
 }
 
 .event-list {
@@ -395,7 +391,7 @@
   align-items: center;
   gap: 10px;
   padding: 10px;
-  background: #f4f4f5;
+  background: var(--wsd-raised);
   border-radius: 9px;
 }
 
@@ -420,13 +416,13 @@
 
 .event-list small {
   margin-top: 3px;
-  color: #8f939b;
+  color: var(--wsd-text-dim);
   font-size: 9px;
 }
 
 .event-list .empty-event {
   display: block;
-  color: #8f939b;
+  color: var(--wsd-text-dim);
   text-align: center;
 }
 
@@ -511,7 +507,7 @@
 
 .security-note {
   margin: 18px 0 0;
-  color: #8f939b;
+  color: var(--wsd-text-dim);
   font-size: 11px;
   line-height: 1.5;
 }
@@ -519,8 +515,8 @@
 html[data-ws-route="admin"].dark .admin-root,
 html[data-ws-route="admin"].dark .login-page,
 html[data-ws-route="admin"].dark .auth-panel {
-  color: #ededf0;
-  background: #131316;
+  color: var(--wsd-text);
+  background: var(--wsd-bg);
 }
 
 html[data-ws-route="admin"].dark .admin-topbar,
@@ -531,16 +527,16 @@ html[data-ws-route="admin"].dark .readonly-card,
 html[data-ws-route="admin"].dark .overview-card,
 html[data-ws-route="admin"].dark input,
 html[data-ws-route="admin"].dark textarea {
-  color: #ededf0;
-  background: #1c1c1f;
-  border-color: #333338;
+  color: var(--wsd-text);
+  background: var(--wsd-panel);
+  border-color: var(--wsd-border);
 }
 
 html[data-ws-route="admin"].dark .admin-topbar,
 html[data-ws-route="admin"].dark .settings-card,
 html[data-ws-route="admin"].dark .readonly-card,
 html[data-ws-route="admin"].dark .overview-card {
-  border-color: #333338;
+  border-color: var(--wsd-border);
 }
 
 html[data-ws-route="admin"].dark .admin-topbar h1,
@@ -549,21 +545,21 @@ html[data-ws-route="admin"].dark .settings-card h3,
 html[data-ws-route="admin"].dark .readonly-card h3,
 html[data-ws-route="admin"].dark .overview-card h3,
 html[data-ws-route="admin"].dark .login-card h1 {
-  color: #ededf0;
+  color: var(--wsd-text);
 }
 
 html[data-ws-route="admin"].dark .page-heading p,
 html[data-ws-route="admin"].dark .admin-topbar small,
 html[data-ws-route="admin"].dark label > span {
-  color: #9a9aa2;
+  color: var(--wsd-text-muted);
 }
 
 html[data-ws-route="admin"].dark .metric-grid article,
 html[data-ws-route="admin"].dark .readonly-card dl div,
 html[data-ws-route="admin"].dark .overview-card dl div,
 html[data-ws-route="admin"].dark .event-list li {
-  background: #26262a;
-  border-color: #333338;
+  background: var(--wsd-raised);
+  border-color: var(--wsd-border);
 }
 
 html[data-ws-route="admin"].dark .admin-topbar button,

@@ -19,8 +19,8 @@ html[data-ws-route="admin"] * {
 
 html[data-ws-route="admin"] body {
   margin: 0;
-  color: #1c1e21;
-  background: #fafafa;
+  color: var(--wsd-text);
+  background: var(--wsd-bg);
 }
 
 .admin-root {
@@ -56,18 +56,18 @@ html[data-ws-route="admin"] body {
 
 .admin-brand small {
   margin-top: 3px;
-  color: #9a9aa2;
+  color: var(--wsd-text-muted);
   font-size: 11px;
 }
 
 .step-list button.active {
-  color: #fff;
+  color: var(--wsd-on-fill);
   background: rgba(255,255,255,.08);
   border-color: rgba(255,255,255,.1);
 }
 
 .step-list button.done {
-  color: #4cc27a;
+  color: var(--wsd-success);
 }
 
 .panel-tools button,
@@ -87,8 +87,8 @@ html[data-ws-route="admin"] body {
 .login-card {
   width: min(560px,100%);
   padding: 36px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--wsd-panel);
+  border: 1px solid var(--wsd-border);
   border-radius: 20px;
   box-shadow: 0 20px 55px rgba(27,69,61,.09);
 }
@@ -103,7 +103,7 @@ html[data-ws-route="admin"] body {
 .setup-card header p,
 .login-card header p {
   margin: 0;
-  color: #63696f;
+  color: var(--wsd-text-muted);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -119,13 +119,13 @@ label>span,
 fieldset legend {
   display: block;
   margin-bottom: 7px;
-  color: #3f424a;
+  color: var(--wsd-text-muted);
   font-size: 12px;
   font-weight: 700;
 }
 
 label em {
-  color: #9099a1;
+  color: var(--wsd-text-dim);
   font-size: 10px;
   font-style: normal;
   font-weight: 500;
@@ -134,7 +134,7 @@ label em {
 label small {
   display: block;
   margin-top: 6px;
-  color: #8f939b;
+  color: var(--wsd-text-dim);
   font-size: 10px;
   line-height: 1.5;
 }
@@ -145,9 +145,9 @@ html[data-ws-route="admin"] input,
 html[data-ws-route="admin"] textarea {
   width: 100%;
   padding: 11px 12px;
-  color: #1c1e21;
-  background: #fafafa;
-  border: 1px solid #e5e7eb;
+  color: var(--wsd-text);
+  background: var(--wsd-bg);
+  border: 1px solid var(--wsd-border);
   border-radius: 9px;
   font: inherit;
   font-size: 13px;
@@ -171,7 +171,7 @@ html[data-ws-route="admin"] textarea {
 .strength {
   height: 4px;
   overflow: hidden;
-  background: #e5e7eb;
+  background: var(--wsd-border);
   border-radius: 4px;
 }
 
@@ -195,7 +195,7 @@ fieldset {
   align-items: flex-start;
   gap: 10px;
   padding: 13px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--wsd-border);
   border-radius: 10px;
   cursor: pointer;
 }
@@ -223,7 +223,7 @@ fieldset {
 
 .choice small {
   margin-top: 4px;
-  color: #8f939b;
+  color: var(--wsd-text-dim);
   font-size: 10px;
   line-height: 1.45;
 }
@@ -245,12 +245,12 @@ fieldset {
 }
 
 .primary-button {
-  color: #fff;
+  color: var(--wsd-accent-contrast);
   background: var(--wsd-accent);
 }
 
 .primary-button:hover {
-  background: color-mix(in srgb, var(--wsd-accent) 82%, #000);
+  background: color-mix(in srgb, var(--wsd-accent) 82%, black);
 }
 
 .primary-button:disabled,
@@ -266,7 +266,7 @@ fieldset {
 }
 
 .text-button {
-  color: #63696f;
+  color: var(--wsd-text-muted);
   background: transparent;
 }
 
@@ -305,9 +305,9 @@ fieldset {
 }
 
 .alert.error {
-  color: #a3423d;
-  background: #fff0ef;
-  border: 1px solid #f4cbc8;
+  color: var(--wsd-danger);
+  background: color-mix(in srgb, var(--wsd-danger) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--wsd-danger) 30%, transparent);
 }
 
 .alert.info {
@@ -324,13 +324,13 @@ fieldset {
 }
 
 .test-result.success {
-  color: #246c52;
-  background: #eaf8f0;
+  color: var(--wsd-success);
+  background: color-mix(in srgb, var(--wsd-success) 8%, transparent);
 }
 
 .test-result.error {
-  color: #a3423d;
-  background: #fff0ef;
+  color: var(--wsd-danger);
+  background: color-mix(in srgb, var(--wsd-danger) 8%, transparent);
 }
 
 .test-result strong,
@@ -352,7 +352,7 @@ fieldset {
   min-height: 100dvh;
   place-items: center;
   padding: 25px;
-  background: radial-gradient(circle at 50% 10%,rgba(95,211,191,.2),transparent 30rem),#fafafa;
+  background: radial-gradient(circle at 50% 10%,rgba(95,211,191,.2),transparent 30rem),var(--wsd-bg);
 }
 
 .login-card {
@@ -382,7 +382,7 @@ fieldset {
   display: grid;
   place-content: center;
   justify-items: center;
-  color: #63696f;
+  color: var(--wsd-text-muted);
 }
 
 /* Same exemption net the public client carries (04-room): decorative

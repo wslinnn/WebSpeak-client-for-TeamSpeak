@@ -743,5 +743,5 @@ html[data-ws-route="admin"] #root {
 }
 
 .admin-root .primary-button:hover {
-  background: color-mix(in srgb, var(--primary) 85%, #000);
+  background: color-mix(in srgb, var(--primary) 85%, black);
 }
