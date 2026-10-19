@@ -1,4 +1,5 @@
 import { WebSocket } from "ws";
+import type { Logger as LoggerType } from "../logger.js";
 import type { ServerMessage } from "../shared/server-messages.js";
 import type { AudioFlowStats } from "./audio-stats.js";
 import type { TSClient, TSVoiceData } from "./ts-client.js";
@@ -47,6 +48,9 @@ export interface SessionAudioOptions {
   audio: AudioFlowStats;
   socket: Pick<WebSocket, "readyState" | "bufferedAmount" | "close"> & { send(packet: Buffer): void };
   client: Pick<TSClient, "sendVoice" | "sendWhisper">;
+  /** Optional: audio faults are also surfaced here so operators can see them.
+   *  Writes stay on the report window above — never per frame. */
+  logger?: LoggerType;
   isCurrent(): boolean;
   isReady(): boolean;
   selfId(): number;
@@ -59,6 +63,7 @@ export interface SessionAudioOptions {
 export class SessionAudioTransport {
   private encoder: VoiceEncoder | null;
   private closed = false;
+  private readonly logger: LoggerType | null;
   private warnedAt: number | null = null;
   private invalidFrameStreak = 0;
   private lastInvalidFrameReportAt = Number.NEGATIVE_INFINITY;
@@ -71,6 +76,7 @@ export class SessionAudioTransport {
   constructor(private readonly options: SessionAudioOptions, encoder: VoiceEncoder, private readonly clock: () => number = Date.now,
     private readonly uplinkDecoder?: UplinkFrameDecoder) {
     this.encoder = encoder;
+    this.logger = options.logger ?? null;
     this.frameTokensAt = this.clock();
   }
 
@@ -130,6 +136,7 @@ export class SessionAudioTransport {
     const now = this.clock();
     if (this.warnedAt !== null && now - this.warnedAt < 5_000) return;
     this.warnedAt = now;
+    this.logger?.warn({ code: "AUDIO_ENCODER_UNAVAILABLE" }, "Opus encoder unavailable for the browser uplink");
     try {
       this.options.sendJson({ type: "audioError", code: "AUDIO_ENCODER_UNAVAILABLE", detail: "Opus encoder unavailable" });
     } catch { /* the socket may have closed while reporting the failure */ }
@@ -139,6 +146,13 @@ export class SessionAudioTransport {
     if (!this.isCurrent()) return;
     if (!this.consumeFrameBudget()) return;
     const stats = this.options.audio;
+    // Resolve the route before judging the frame. A frame that arrives while
+    // the route is down (session not ready, or a WebRTC peer has taken over)
+    // is discarded whatever its size, so calling it malformed misattributes
+    // the drop — and the browser renders that error, which aborts an in-flight
+    // quick connect. Late TCP frames from before a WebRTC switch must not
+    // duplicate RTP audio either.
+    if (!this.options.isReady() || this.options.peer()) { stats.ingressDroppedFrames++; return; }
     if (frame.length !== AUDIO_FRAME_BYTES) {
       stats.ingressDroppedFrames++;
       this.invalidFrameStreak++;
@@ -149,6 +163,12 @@ export class SessionAudioTransport {
       }
       if (now - this.lastInvalidFrameReportAt >= INVALID_FRAME_REPORT_INTERVAL_MS) {
         this.lastInvalidFrameReportAt = now;
+        // 报告给浏览器的故障同时进日志（同一条限流窗口内）：出站错误本身不落
+        // 日志，运维此前只能等会话拆除后从流量统计里反推持续发坏帧的客户端。
+        this.logger?.warn(
+          { code: "INVALID_AUDIO_FRAME", frameBytes: frame.length, expectedBytes: AUDIO_FRAME_BYTES, droppedFrames: stats.ingressDroppedFrames },
+          "Discarded malformed browser audio frame",
+        );
         try {
           this.options.sendJson({ type: "error", error: { code: "INVALID_AUDIO_FRAME", message: "音频帧格式无效", recoverable: false } });
         } catch { /* the socket may have closed while reporting the failure */ }
@@ -156,8 +176,6 @@ export class SessionAudioTransport {
       return;
     }
     this.invalidFrameStreak = 0;
-    // Late TCP frames from before a WebRTC switch must not duplicate RTP audio.
-    if (!this.options.isReady() || this.options.peer()) { stats.ingressDroppedFrames++; return; }
     this.recordIngress();
     const startedAt = this.clock();
     let encoded: Buffer;

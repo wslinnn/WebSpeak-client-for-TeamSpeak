@@ -13,6 +13,7 @@ function fixture(uplinkDecoder?: { decode(frame: Buffer): Buffer }) {
   const encoded: Buffer[] = [];
   const forwarded: Array<{ data: Buffer; codec: number; targets?: number[] }> = [];
   const notices: ServerMessage[] = [];
+  const warnings: Array<Record<string, unknown>> = [];
   const closes: Array<{ code: number; reason: string }> = [];
   const socket = { readyState: 1 as 0 | 1 | 2 | 3, bufferedAmount: 0, send: (packet: Buffer) => { packets.push(packet); },
     close: (code: number, reason: string) => { closes.push({ code, reason }); } };
@@ -24,14 +25,19 @@ function fixture(uplinkDecoder?: { decode(frame: Buffer): Buffer }) {
     encode(frame: Buffer) { encoded.push(frame); state.now += 3; return Buffer.from([9, 8, 7]); },
     dispose() { state.disposed++; },
   };
+  const logger = {
+    debug: () => {}, info: () => {}, error: () => {},
+    warn: (objOrMessage: unknown) => { if (typeof objOrMessage === "object" && objOrMessage !== null) warnings.push(objOrMessage as Record<string, unknown>); },
+    child: () => logger,
+  };
   const transport = new SessionAudioTransport({
-    audio, socket, client, isCurrent: () => state.current, isReady: () => state.ready,
+    audio, socket, client, logger, isCurrent: () => state.current, isReady: () => state.ready,
     selfId: () => 1, peer: () => state.peer, whisperTargets: () => state.targets,
     sendJson: message => { notices.push(message); },
   }, encoder, () => state.now, uplinkDecoder);
   // 载荷取现实尺寸（≥4 字节）：≤3 字节是舒适噪声帧，下行过滤器会拦（见下方专测）。
   const remote = (clientId = 513) => ({ clientId, codec: 4, data: Buffer.from([11, 12, 13, 14]) });
-  return { transport, audio, state, socket, client, encoder, packets, encoded, forwarded, notices, closes, remote };
+  return { transport, audio, state, socket, client, encoder, packets, encoded, forwarded, notices, warnings, closes, remote };
 }
 
 test("PCM framing preserves codec, whisper routing and timing counters", () => {
@@ -68,6 +74,31 @@ test("invalid PCM replies are rate limited and a sustained streak closes the soc
   f.transport.receivePcm(Buffer.alloc(1_920));
   assert.equal(f.audio.ingressDroppedFrames, droppedBefore + 1);
   assert.equal(f.notices.length, 1);
+});
+
+test("a frame the route discards is never reported as malformed", () => {
+  const f = fixture();
+  // 路由关闭期（会话未就绪 / WebRTC 已接管）任何帧都会被丢弃：把它算作坏帧
+  // 会给出错误归因，浏览器还会把该 code 当会话错误渲染，打断进行中的快速连接；
+  // 连发 20 帧更不能因此触发 1008 关闭。
+  f.state.ready = false;
+  for (let i = 0; i < 25; i++) f.transport.receivePcm(Buffer.alloc(1_919));
+  assert.equal(f.notices.length, 0);
+  assert.equal(f.warnings.length, 0);
+  assert.equal(f.closes.length, 0);
+  assert.equal(f.audio.ingressDroppedFrames, 25);
+  // 同尺寸的帧在路由就绪后仍然是坏帧：顺序换了，判据没放宽。
+  f.state.ready = true;
+  f.transport.receivePcm(Buffer.alloc(1_919));
+  assert.equal(f.notices.length, 1);
+  assert.equal(f.warnings.length, 1);
+  assert.deepEqual(f.warnings[0], { code: "INVALID_AUDIO_FRAME", frameBytes: 1_919, expectedBytes: 1_920, droppedFrames: 26 });
+  // WebRTC 接管后同理：迟到的 TCP 帧只记路由丢弃。
+  f.state.peer = { pushTeamSpeakVoice() {} };
+  f.state.now = 10_000;
+  f.transport.receivePcm(Buffer.alloc(1_919));
+  assert.equal(f.notices.length, 1);
+  assert.equal(f.closes.length, 0);
 });
 
 test("the ingress token bucket drops burst overflow and closes sustained floods", () => {

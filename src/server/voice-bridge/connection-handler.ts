@@ -173,6 +173,7 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
     };
     const createAudioTransport = (socket: WebSocket): SessionAudioTransport => new SessionAudioTransport({
       audio: entry!.audio, socket, client: tsClient,
+      logger: deps.logger.child({ component: "session-audio", entryId }),
       isCurrent: () => deps.entries.get(entryId) === entry,
       isReady: () => tsReady && session.state === "connected",
       selfId: () => entry!.events?.selfId ?? 0,
