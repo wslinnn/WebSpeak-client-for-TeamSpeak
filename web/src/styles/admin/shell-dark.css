@@ -44,8 +44,8 @@
 }
 
 .admin-sidebar nav a.active {
-  color: var(--admin-accent-contrast);
-  background: var(--admin-accent);
+  color: var(--wsd-accent-contrast);
+  background: var(--wsd-accent);
 }
 
 .sidebar-bottom {
@@ -94,7 +94,7 @@
 .running-dot {
   width: 7px;
   height: 7px;
-  background: var(--admin-accent);
+  background: var(--wsd-accent);
   border-radius: 50%;
 }
 
@@ -180,8 +180,8 @@
 }
 
 .password-actions button.active {
-  color: var(--admin-accent-contrast);
-  background: var(--admin-accent);
+  color: var(--wsd-accent-contrast);
+  background: var(--wsd-accent);
 }
 
 .password-actions button.danger {
@@ -225,7 +225,7 @@
 }
 
 .import-notice button {
-  color: var(--admin-accent);
+  color: var(--wsd-accent);
   background: transparent;
   border: 0;
   font-weight: 800;
@@ -237,13 +237,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 30px;
-  color: var(--admin-accent-contrast);
-  background: var(--admin-accent);
+  color: var(--wsd-accent-contrast);
+  background: var(--wsd-accent);
   border-radius: 16px;
 }
 
 .hero-status small {
-  color: color-mix(in srgb, var(--admin-accent-contrast) 72%, transparent);
+  color: color-mix(in srgb, var(--wsd-accent-contrast) 72%, transparent);
   font-size: 10px;
   font-weight: 800;
   letter-spacing: .1em;
@@ -301,8 +301,8 @@
   place-items: center;
   width: 35px;
   height: 35px;
-  color: var(--admin-accent);
-  background: var(--admin-accent-soft);
+  color: var(--wsd-accent);
+  background: var(--wsd-accent-soft);
   border-radius: 9px;
 }
 
@@ -351,7 +351,7 @@
 }
 
 .overview-card header a {
-  color: var(--admin-accent);
+  color: var(--wsd-accent);
   font-size: 11px;
   font-weight: 700;
   text-decoration: none;
@@ -404,8 +404,8 @@
   place-items: center;
   width: 27px;
   height: 27px;
-  color: var(--admin-accent);
-  background: var(--admin-accent-soft);
+  color: var(--wsd-accent);
+  background: var(--wsd-accent-soft);
   border-radius: 8px;
 }
 
@@ -570,8 +570,8 @@ html[data-ws-route="admin"].dark .admin-topbar button,
 html[data-ws-route="admin"].dark .admin-topbar .language-select,
 html[data-ws-route="admin"].dark .language-link,
 html[data-ws-route="admin"].dark .home-link {
-  color: var(--admin-text);
-  background: var(--admin-raised);
-  border-color: var(--admin-border);
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border-color: var(--wsd-border);
 }
 

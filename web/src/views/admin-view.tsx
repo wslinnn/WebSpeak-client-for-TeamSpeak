@@ -84,7 +84,7 @@ export default function AdminView() {
       <div className="admin-shell">
         <aside className="admin-sidebar">
           <div className="admin-brand">
-            <BrandMark className="size-[26px] [color:var(--admin-accent)]" aria-hidden="true" />
+            <BrandMark className="size-[26px] [color:var(--wsd-accent)]" aria-hidden="true" />
             <div><strong>WebSpeak</strong><small>{tr("adminConsole")}</small></div>
           </div>
           <nav>

@@ -42,7 +42,7 @@
 }
 
 .operation-card header>strong {
-  color: var(--admin-accent);
+  color: var(--wsd-accent);
   font-size: 22px;
 }
 
@@ -87,8 +87,8 @@
 .state-pill {
   display: inline-flex;
   padding: 4px 7px;
-  color: var(--admin-muted);
-  background: var(--admin-raised);
+  color: var(--wsd-text-muted);
+  background: var(--wsd-raised);
   border-radius: 99px;
   font-size: 10px;
   font-weight: 700;
@@ -158,7 +158,7 @@
 }
 
 .text-link {
-  color: var(--admin-accent);
+  color: var(--wsd-accent);
   font-size: 10px;
   font-weight: 700;
   text-decoration: none;
@@ -250,8 +250,8 @@
   flex: none;
   padding: 3px 5px;
   border-radius: 4px;
-  color: var(--admin-muted);
-  background: var(--admin-raised);
+  color: var(--wsd-text-muted);
+  background: var(--wsd-raised);
   font-size: 8px;
   font-weight: 800;
 }
@@ -457,7 +457,7 @@ html[data-ws-route="admin"] *::-webkit-scrollbar-thumb:hover {
 }
 
 .welcome-editor select:focus {
-  border-color: var(--admin-accent);
+  border-color: var(--wsd-accent);
   box-shadow: 0 0 0 3px rgba(43,92,217,.13);
 }
 
@@ -533,8 +533,8 @@ html[data-ws-route="admin"] *::-webkit-scrollbar-thumb:hover {
   place-items: center;
   width: 38px;
   height: 38px;
-  color: var(--admin-accent);
-  background: var(--admin-accent-soft);
+  color: var(--wsd-accent);
+  background: var(--wsd-accent-soft);
   border-radius: 11px;
 }
 
@@ -766,9 +766,9 @@ html[data-ws-route="admin"].dark .modal-card p {
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  color: var(--admin-text);
-  background: var(--admin-raised);
-  border: 1px solid var(--admin-border);
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
   border-radius: 8px;
   font-size: 11px;
   font-weight: 700;
@@ -776,7 +776,7 @@ html[data-ws-route="admin"].dark .modal-card p {
 }
 
 .home-link:hover {
-  background: var(--admin-hover, var(--admin-raised));
+  background: var(--wsd-raised);
 }
 
 .language-link {
@@ -861,7 +861,7 @@ html[data-ws-route="admin"].dark .modal-card p {
 }
 
 .settings-accordion-header:focus-visible {
-  outline: 3px solid color-mix(in srgb,var(--admin-accent) 42%,transparent);
+  outline: 3px solid color-mix(in srgb,var(--wsd-accent) 42%,transparent);
   outline-offset: 3px;
   border-radius: 10px;
 }
@@ -875,7 +875,7 @@ html[data-ws-route="admin"].dark .modal-card p {
 
 .settings-accordion-heading strong {
   overflow: hidden;
-  color: var(--admin-text);
+  color: var(--wsd-text);
   font-size: 14px;
   font-weight: 800;
   text-overflow: ellipsis;
@@ -884,7 +884,7 @@ html[data-ws-route="admin"].dark .modal-card p {
 
 .settings-accordion-heading small {
   overflow: hidden;
-  color: var(--admin-muted);
+  color: var(--wsd-text-muted);
   font-size: 10px;
   line-height: 1.45;
   text-overflow: ellipsis;
@@ -893,12 +893,12 @@ html[data-ws-route="admin"].dark .modal-card p {
 
 .settings-accordion-header>.ui-icon {
   flex: none;
-  color: var(--admin-muted);
+  color: var(--wsd-text-muted);
   transition: transform .18s ease;
 }
 
 .settings-accordion[open]>.settings-accordion-header {
-  border-bottom: 1px solid var(--admin-border);
+  border-bottom: 1px solid var(--wsd-border);
 }
 
 .settings-accordion[open]>.settings-accordion-header>.ui-icon {
@@ -919,9 +919,9 @@ html[data-ws-route="admin"].dark .modal-card p {
   align-items: center;
   gap: 6px;
   padding: 6px 9px;
-  color: var(--admin-muted);
-  background: var(--admin-raised);
-  border: 1px solid var(--admin-border);
+  color: var(--wsd-text-muted);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
   border-radius: 999px;
   font-size: 10px;
   line-height: 1.2;
@@ -937,7 +937,7 @@ html[data-ws-route="admin"].dark .modal-card p {
 }
 
 .settings-summary-chip i.active {
-  background: var(--admin-accent);
+  background: var(--wsd-accent);
 }
 
 .settings-accordion-content {
@@ -1009,7 +1009,7 @@ html[data-ws-route="admin"].dark .modal-card p {
 
 .target-runtime-block h4 {
   margin: 0;
-  color: var(--admin-text);
+  color: var(--wsd-text);
   font-size: 11px;
 }
 
@@ -1024,8 +1024,8 @@ html[data-ws-route="admin"].dark .modal-card p {
 .target-runtime-facts>div {
   min-width: 0;
   padding: 9px;
-  background: var(--admin-surface);
-  border: 1px solid var(--admin-border);
+  background: var(--wsd-panel);
+  border: 1px solid var(--wsd-border);
   border-radius: 8px;
 }
 
@@ -1034,14 +1034,14 @@ html[data-ws-route="admin"].dark .modal-card p {
 }
 
 .target-runtime-facts dt {
-  color: var(--admin-muted);
+  color: var(--wsd-text-muted);
   font-size: 9px;
 }
 
 .target-runtime-facts dd {
   margin: 4px 0 0;
   overflow-wrap: anywhere;
-  color: var(--admin-text);
+  color: var(--wsd-text);
   font-size: 11px;
   font-weight: 700;
 }
@@ -1064,7 +1064,7 @@ html[data-ws-route="admin"].dark .modal-card p {
 .access-mode-fieldset legend {
   grid-column: 1/-1;
   margin-bottom: 2px;
-  color: var(--admin-muted);
+  color: var(--wsd-text-muted);
   font-size: 10px;
   font-weight: 700;
 }
@@ -1076,7 +1076,7 @@ html[data-ws-route="admin"].dark .modal-card p {
 
 .site-identity-fields>label>span,
 .access-mode-fieldset .choice strong {
-  color: var(--admin-text);
+  color: var(--wsd-text);
 }
 
 .site-identity-fields .welcome-editor {
@@ -1090,8 +1090,8 @@ html[data-ws-route="admin"].dark .modal-card p {
   align-content: start;
   gap: 12px;
   padding: 15px;
-  background: var(--admin-raised);
-  border: 1px solid var(--admin-border);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
   border-radius: 11px;
 }
 
@@ -1104,34 +1104,34 @@ html[data-ws-route="admin"].dark .modal-card p {
 
 .settings-subsection-heading h4 {
   margin: 0;
-  color: var(--admin-text);
+  color: var(--wsd-text);
   font-size: 13px;
 }
 
 .settings-subsection-heading .card-help {
   margin: 4px 0 0;
-  color: var(--admin-muted);
+  color: var(--wsd-text-muted);
   font-size: 10px;
   line-height: 1.5;
 }
 
 .settings-subsection .choice {
   margin: 0;
-  background: var(--admin-surface);
-  border-color: var(--admin-border);
+  background: var(--wsd-panel);
+  border-color: var(--wsd-border);
 }
 
 .settings-subsection .choice strong {
-  color: var(--admin-text);
+  color: var(--wsd-text);
 }
 
 .settings-subsection .choice small {
-  color: var(--admin-muted);
+  color: var(--wsd-text-muted);
 }
 
 .settings-subsection .field-help {
   margin: 0;
-  color: var(--admin-muted);
+  color: var(--wsd-text-muted);
   line-height: 1.5;
 }
 

@@ -7,9 +7,13 @@
  * audit. All rules stay UNLAYERED: the vite build scopes them under
  * .admin-root (see vite.config.ts), and unlayered rules structurally beat
  * every layered web-client rule, which is what keeps the two surfaces
- * independent.
+ * independent. tokens.css ships first: admin routes load this chunk only —
+ * the ws-tokens layer in the web-client manifest is not present here — so
+ * the --wsd-* definitions must ride along (the file is pure custom-property
+ * definitions, so unlayered inclusion has no cascade effect).
  */
 
+@import "./web-client/tokens.css";
 @import "./admin/base-auth.css";
 @import "./admin/shell-dark.css";
 @import "./admin/settings.css";

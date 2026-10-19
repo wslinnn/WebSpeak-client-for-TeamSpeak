@@ -38,8 +38,8 @@ html[data-ws-route="admin"] body {
   place-items: center;
   width: 42px;
   height: 42px;
-  color: var(--admin-accent-contrast);
-  background: var(--admin-accent);
+  color: var(--wsd-accent-contrast);
+  background: var(--wsd-accent);
   border-radius: 12px;
   box-shadow: 0 8px 22px rgba(0,0,0,.15);
 }
@@ -73,9 +73,9 @@ html[data-ws-route="admin"] body {
 .panel-tools button,
 .language-link,
 .admin-topbar button {
-  color: var(--admin-text);
-  background: var(--admin-raised);
-  border: 1px solid var(--admin-border);
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 11px;
@@ -160,7 +160,7 @@ html[data-ws-route="admin"] input {
 
 html[data-ws-route="admin"] input:focus,
 html[data-ws-route="admin"] textarea:focus {
-  border-color: var(--admin-accent);
+  border-color: var(--wsd-accent);
   box-shadow: 0 0 0 3px rgba(43,92,217,.13);
 }
 
@@ -178,7 +178,7 @@ html[data-ws-route="admin"] textarea {
 .strength i {
   display: block;
   height: 100%;
-  background: var(--admin-accent);
+  background: var(--wsd-accent);
   transition: .2s;
 }
 
@@ -201,8 +201,8 @@ fieldset {
 }
 
 .choice:has(input:checked) {
-  border-color: var(--admin-accent);
-  background: var(--admin-accent-soft);
+  border-color: var(--wsd-accent);
+  background: var(--wsd-accent-soft);
 }
 
 .choice input {
@@ -246,11 +246,11 @@ fieldset {
 
 .primary-button {
   color: #fff;
-  background: var(--admin-accent);
+  background: var(--wsd-accent);
 }
 
 .primary-button:hover {
-  background: color-mix(in srgb, var(--admin-accent) 82%, #000);
+  background: color-mix(in srgb, var(--wsd-accent) 82%, #000);
 }
 
 .primary-button:disabled,
@@ -260,9 +260,9 @@ fieldset {
 }
 
 .secondary-button {
-  color: var(--admin-text);
-  background: var(--admin-raised);
-  border: 1px solid var(--admin-border);
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
 }
 
 .text-button {
@@ -278,8 +278,8 @@ fieldset {
   display: inline-block;
   width: 22px;
   height: 22px;
-  border: 2px solid color-mix(in srgb, var(--admin-accent) 25%, transparent);
-  border-top-color: var(--admin-accent);
+  border: 2px solid color-mix(in srgb, var(--wsd-accent) 25%, transparent);
+  border-top-color: var(--wsd-accent);
   border-radius: 50%;
   animation: spin .7s linear infinite;
 }
@@ -311,9 +311,9 @@ fieldset {
 }
 
 .alert.info {
-  color: var(--admin-muted);
-  background: var(--admin-raised);
-  border: 1px solid var(--admin-border);
+  color: var(--wsd-text-muted);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
 }
 
 .test-result {
@@ -396,16 +396,16 @@ fieldset {
   }
 }
 
-
 /* —— LanguageSwitcher（共享 web-client 组件）的 admin 作用域样式 ——
- * 组件类样式住在 web-client 分块（21-components），admin 分块拿不到；
- * 这里按其几何用 --admin-* token 重建（明暗随 09-token 块自动翻转）。
- * 21-components 头注所述「admin 有自己的切换器样式」即本段。 */
+ * admin 路由是独立懒加载 chunk，其 CSS 不含 web-client 清单里的 ws-menus
+ * 层——组件的类样式在 admin 路由加载面上不存在，必须在 admin 侧重建。
+ * 色值消费 --wsd-*（tokens.css 作用域含 .admin-root），与客户端永远同源，
+ * 几何（尺寸/间距/圆角）与 web-client 侧逐字对齐，改动需两处同步。 */
 .language-switcher {
   position: relative;
   z-index: var(--ws-z-dropdown);
   flex: 0 0 auto;
-  color: var(--admin-accent);
+  color: var(--wsd-accent);
   font-family: inherit;
 }
 
@@ -416,9 +416,9 @@ fieldset {
   min-width: 70px;
   min-height: 32px;
   padding: 0 9px;
-  color: var(--admin-accent);
-  background: color-mix(in srgb, var(--admin-accent) 12%, var(--admin-surface));
-  border: 1px solid color-mix(in srgb, var(--admin-accent) 28%, var(--admin-border));
+  color: var(--wsd-accent);
+  background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-panel));
+  border: 1px solid color-mix(in srgb, var(--wsd-accent) 28%, var(--wsd-border));
   border-radius: 8px;
   font: inherit;
   font-size: 11px;
@@ -429,9 +429,9 @@ fieldset {
 
 .language-trigger:hover,
 .language-switcher.open .language-trigger {
-  color: var(--admin-accent-contrast);
-  background: var(--admin-accent);
-  border-color: var(--admin-accent);
+  color: var(--wsd-accent-contrast);
+  background: var(--wsd-accent);
+  border-color: var(--wsd-accent);
   box-shadow: 0 7px 16px rgba(16, 18, 22, .12);
 }
 
@@ -474,8 +474,8 @@ fieldset {
   max-height: none;
   padding: 7px;
   overflow: visible;
-  background: var(--admin-surface);
-  border: 1px solid var(--admin-border);
+  background: var(--wsd-panel);
+  border: 1px solid var(--wsd-border);
   border-radius: 13px;
   box-shadow: 0 16px 36px rgba(0, 0, 0, .18), 0 3px 8px rgba(0, 0, 0, .07);
   animation: admin-language-menu-in .14s ease-out;
@@ -489,7 +489,7 @@ fieldset {
   gap: 8px;
   min-height: 38px;
   padding: 6px 8px;
-  color: var(--admin-text);
+  color: var(--wsd-text);
   background: transparent;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -502,9 +502,9 @@ fieldset {
 .language-option:hover,
 .language-option:focus-visible,
 .language-option.selected {
-  color: var(--admin-accent);
-  background: color-mix(in srgb, var(--admin-accent) 12%, var(--admin-surface));
-  border-color: color-mix(in srgb, var(--admin-accent) 28%, var(--admin-border));
+  color: var(--wsd-accent);
+  background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-panel));
+  border-color: color-mix(in srgb, var(--wsd-accent) 28%, var(--wsd-border));
 }
 
 .language-option-flag {
@@ -535,7 +535,7 @@ fieldset {
 
 .language-option small {
   flex: 0 0 auto;
-  color: var(--admin-muted);
+  color: var(--wsd-text-muted);
   font-size: 10px;
   font-weight: 700;
 }

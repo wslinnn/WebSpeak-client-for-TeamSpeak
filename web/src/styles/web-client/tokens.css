@@ -10,11 +10,13 @@
  * mapped 1:1 onto these tokens and deleted.
  */
 
-/* Token scope: the workspace (.web-client) and the download route
- * (.download-page reuses header-note/tiny-dot/language-switcher) share the
- * language; day values are the default, night flips under html.dark. */
+/* Token scope: the workspace (.web-client), the download route
+ * (.download-page reuses header-note/tiny-dot/language-switcher) and the
+ * admin console (.admin-root) share the language; day values are the
+ * default, night flips under html.dark. */
 .web-client,
-.download-page {
+.download-page,
+.admin-root {
   color-scheme: light;
   --wsd-bg: #eef1f2;
   --wsd-rail: #e3e8ea;
@@ -52,7 +54,8 @@
 }
 
 .dark .web-client,
-.dark .download-page {
+.dark .download-page,
+.dark .admin-root {
   color-scheme: dark;
   --wsd-bg: #17181b;
   --wsd-rail: #141518;

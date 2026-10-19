@@ -17,7 +17,7 @@ export function LoginScreen({ controller, messages }: { controller: AdminControl
     <main className="login-page">
       <section className="login-card">
         <div className="admin-brand centered">
-          <BrandMark className="size-[28px] [color:var(--admin-accent)]" aria-hidden="true" />
+          <BrandMark className="size-[28px] [color:var(--wsd-accent)]" aria-hidden="true" />
           <div><strong>WebSpeak</strong><small>{tr("adminConsole")}</small></div>
         </div>
         <header>
@@ -62,7 +62,7 @@ export function ChangePasswordScreen({ controller, messages }: { controller: Adm
     <main className="login-page">
       <section className="login-card">
         <div className="admin-brand centered">
-          <BrandMark className="size-[28px] [color:var(--admin-accent)]" aria-hidden="true" />
+          <BrandMark className="size-[28px] [color:var(--wsd-accent)]" aria-hidden="true" />
           <div><strong>WebSpeak</strong><small>{tr("adminConsole")}</small></div>
         </div>
         <header>
