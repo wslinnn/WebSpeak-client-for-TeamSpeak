@@ -30,11 +30,16 @@ const graph = new Map();
 for (const f of files) {
   const css = readFileSync(f, "utf8");
   const deps = [];
-  for (const m of css.matchAll(/(?:import|export)\s+[^'"]*?from\s+["'](\.[^"']+)["']/g)) {
+  // 类型环随编译擦除，不构成运行时环：建图前剥掉 import type / export type。
+  const runtimeCss = css
+    .replace(/import\s+type\s*\{[^}]*\}\s*from\s*["'][^"']+["'];?/gs, "")
+    .replace(/import\s+type\s+\w+\s+from\s*["'][^"']+["'];?/g, "")
+    .replace(/export\s+type\s*\{[^}]*\}\s*from\s*["'][^"']+["'];?/gs, "");
+  for (const m of runtimeCss.matchAll(/(?:import|export)\s+[^'"]*?from\s+["'](\.[^"']+)["']/g)) {
     const target = resolveImport(f, m[1]);
     if (target) deps.push(target);
   }
-  for (const m of css.matchAll(/import\(\s*["'](\.[^"']+)["']\s*\)/g)) {
+  for (const m of runtimeCss.matchAll(/import\(\s*["'](\.[^"']+)["']\s*\)/g)) {
     const target = resolveImport(f, m[1]);
     if (target) deps.push(target);
   }

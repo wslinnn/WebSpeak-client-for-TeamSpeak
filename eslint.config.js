@@ -30,12 +30,11 @@ export default tseslint.config(
     },
   },
   {
-    // 存量超限（2026-10-19 复量）：screen-share-coordinator 663 /
-    // database 471 / ts-client 428 /
+    // 存量超限（2026-10-19 复量）：database 471 / ts-client 428 /
     // voice-bridge.integration.test 420（测试性长装配可接受，暂豁免）。
-    // connection-handler 拆出 request/admission/socket/dial 四模块后摘除豁免。
+    // connection-handler（request/admission/socket/dial 四模块）与
+    // screen-share-coordinator（relay/discovery 两模块）拆分后摘除豁免。
     files: [
-      "src/server/screen-share-coordinator.ts",
       "src/persistence/database.ts",
       "src/server/ts-client.ts",
       "src/server/voice-bridge.integration.test.ts",
