@@ -1,4 +1,17 @@
-/* 夜间面：html.dark 前缀覆盖，与日间同特异性逐档持平；
+
+
+.dark .web-client .member-row:focus-within {
+  background: var(--wsd-hover);
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+
+.dark .web-client .member-row:hover {
+  background: var(--wsd-hover);
+  box-shadow: none;
+}
+}/* 夜间面：html.dark 前缀覆盖，与日间同特异性逐档持平；
  * 只放颜色/阴影类覆盖，不改布局。 */
 
 /*
@@ -70,12 +83,6 @@
 
 .dark .web-client .member-presence {
   border-color: var(--wsd-panel);
-}
-
-.dark .web-client .member-row:hover,
-.dark .web-client .member-row:focus-within {
-  background: var(--wsd-hover);
-  box-shadow: none;
 }
 
 .dark .web-client .member-channel-heading {
@@ -176,9 +183,12 @@
   color: color-mix(in srgb, var(--wsd-warning) 55%, var(--wsd-text-muted));
 }
 
+@media (hover: hover) {
+
 .dark .web-client .poke-banner button:hover {
   color: var(--wsd-warning);
   background: color-mix(in srgb, var(--wsd-warning) 14%, transparent);
+}
 }
 
 .dark :is(.web-client, .download-page) {

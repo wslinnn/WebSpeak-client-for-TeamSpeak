@@ -1,4 +1,137 @@
-/* 指针浮层：右键菜单/成员菜单/服务器切换、桌面音频坞、性能面板、
+
+
+.desktop-audio-dock .performance-trigger:focus-visible,
+.desktop-audio-dock .performance-trigger[aria-expanded="true"] {
+  color: var(--wsd-accent-hover);
+  background: var(--wsd-accent-soft);
+  transform: translateY(-1px);
+}
+
+@media (hover: hover) {
+
+.desktop-audio-dock .performance-trigger:hover {
+  color: var(--wsd-accent-hover);
+  background: var(--wsd-accent-soft);
+  transform: translateY(-1px);
+}
+}
+
+.language-switcher.tile.open .language-trigger {
+  color: var(--wsd-text);
+  background: var(--wsd-hover);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+
+.language-switcher.tile .language-trigger:hover {
+  color: var(--wsd-text);
+  background: var(--wsd-hover);
+  border-color: transparent;
+  box-shadow: none;
+}
+}
+
+.language-option:focus-visible,
+.language-option.selected {
+  color: var(--wsd-accent, #2b5cd9);
+  background: color-mix(in srgb, var(--wsd-accent, #2b5cd9) 12%, var(--wsd-panel, #fff));
+  border-color: color-mix(in srgb, var(--wsd-accent, #2b5cd9) 28%, var(--wsd-border, #e5e7eb));
+}
+
+@media (hover: hover) {
+
+.language-option:hover {
+  color: var(--wsd-accent, #2b5cd9);
+  background: color-mix(in srgb, var(--wsd-accent, #2b5cd9) 12%, var(--wsd-panel, #fff));
+  border-color: color-mix(in srgb, var(--wsd-accent, #2b5cd9) 28%, var(--wsd-border, #e5e7eb));
+}
+}
+
+.language-switcher.open .language-trigger {
+  color: #fff;
+  background: var(--wsd-accent, #2b5cd9);
+  border-color: var(--wsd-accent, #2b5cd9);
+  box-shadow: 0 7px 16px rgba(16, 18, 22, .12);
+}
+
+@media (hover: hover) {
+
+.language-trigger:hover {
+  color: #fff;
+  background: var(--wsd-accent, #2b5cd9);
+  border-color: var(--wsd-accent, #2b5cd9);
+  box-shadow: 0 7px 16px rgba(16, 18, 22, .12);
+}
+}
+
+.performance-trigger[aria-expanded="true"] {
+  background: color-mix(in srgb, var(--wsd-accent) 15%, var(--wsd-panel));
+  border-color: color-mix(in srgb, var(--wsd-accent) 35%, var(--wsd-border));
+}
+
+@media (hover: hover) {
+
+.performance-trigger:hover {
+  background: color-mix(in srgb, var(--wsd-accent) 15%, var(--wsd-panel));
+  border-color: color-mix(in srgb, var(--wsd-accent) 35%, var(--wsd-border));
+}
+}
+
+.status-button.active {
+  color: color-mix(in srgb, var(--wsd-warning) 72%, var(--wsd-text));
+  background: color-mix(in srgb, var(--wsd-warning) 12%, var(--wsd-panel));
+  border-color: color-mix(in srgb, var(--wsd-warning) 35%, transparent);
+}
+
+@media (hover: hover) {
+
+.status-button:hover {
+  color: color-mix(in srgb, var(--wsd-warning) 72%, var(--wsd-text));
+  background: color-mix(in srgb, var(--wsd-warning) 12%, var(--wsd-panel));
+  border-color: color-mix(in srgb, var(--wsd-warning) 35%, transparent);
+}
+}
+
+.desktop-audio-dock-control:focus-visible {
+  color: var(--wsd-text);
+  background: var(--wsd-hover);
+  outline: none;
+}
+
+@media (hover: hover) {
+
+.desktop-audio-dock-control:hover {
+  color: var(--wsd-text);
+  background: var(--wsd-hover);
+  outline: none;
+}
+}
+
+.desktop-audio-dock-accompaniment:focus-visible {
+  background: var(--wsd-accent-fill-hover);
+}
+
+@media (hover: hover) {
+
+.desktop-audio-dock-accompaniment:hover {
+  background: var(--wsd-accent-fill-hover);
+}
+}
+
+.desktop-audio-dock-power:focus-visible {
+  color: #ff8498;
+  background: #3a292b;
+}
+
+@media (hover: hover) {
+
+.desktop-audio-dock-power:hover {
+  color: #ff8498;
+  background: #3a292b;
+}
+}/* 指针浮层：右键菜单/成员菜单/服务器切换、桌面音频坞、性能面板、
  * 语言坞、语言切换器、主题切换、弹层原语（ws-popup）。 */
 
 .desktop-audio-dock {
@@ -57,12 +190,6 @@
   cursor: pointer;
 }
 
-.desktop-audio-dock-power:hover,
-.desktop-audio-dock-power:focus-visible {
-  color: #ff8498;
-  background: #3a292b;
-}
-
 .desktop-audio-dock .performance-panel {
   top: auto;
   right: auto;
@@ -87,16 +214,22 @@
   border-radius: 9px;
 }
 
+@media (hover: hover) {
+
 .desktop-audio-dock-share:not(.is-stop):hover {
   background: var(--wsd-accent-fill-hover);
+}
 }
 
 .desktop-audio-dock-share.is-stop {
   background: var(--wsd-danger);
 }
 
+@media (hover: hover) {
+
 .desktop-audio-dock-share.is-stop:hover {
   background: color-mix(in srgb, var(--wsd-danger) 85%, #fff);
+}
 }
 
 .desktop-audio-dock-share-main {
@@ -135,8 +268,11 @@
   cursor: pointer;
 }
 
+@media (hover: hover) {
+
 .desktop-audio-dock-share-gear:hover {
   background: rgb(255 255 255 / .16);
+}
 }
 
 .desktop-audio-dock-accompaniment {
@@ -151,11 +287,6 @@
   color: #fff;
   background: var(--wsd-accent-fill);
   cursor: pointer;
-}
-
-.desktop-audio-dock-accompaniment:hover,
-.desktop-audio-dock-accompaniment:focus-visible {
-  background: var(--wsd-accent-fill-hover);
 }
 
 .desktop-audio-dock-accompaniment.active {
@@ -190,20 +321,16 @@
   cursor: pointer;
 }
 
-.desktop-audio-dock-control:hover,
-.desktop-audio-dock-control:focus-visible {
-  color: var(--wsd-text);
-  background: var(--wsd-hover);
-  outline: none;
-}
-
 .desktop-audio-dock-noise[aria-pressed="true"] {
   color: #fff;
   background: var(--wsd-accent-fill);
 }
 
+@media (hover: hover) {
+
 .desktop-audio-dock-noise[aria-pressed="true"]:hover {
   background: var(--wsd-accent-fill-hover);
+}
 }
 
 .desktop-audio-dock-control[data-muted="true"],
@@ -270,13 +397,6 @@
   border-radius: 7px;
   font-size: 11px;
   cursor: pointer;
-}
-
-.status-button:hover,
-.status-button.active {
-  color: color-mix(in srgb, var(--wsd-warning) 72%, var(--wsd-text));
-  background: color-mix(in srgb, var(--wsd-warning) 12%, var(--wsd-panel));
-  border-color: color-mix(in srgb, var(--wsd-warning) 35%, transparent);
 }
 
 .status-dot {
@@ -516,6 +636,26 @@
 }
 
 @media (max-width: 740px) {
+  .member-action-button:active {
+    color: var(--wsd-accent);
+    background: color-mix(in srgb, var(--wsd-accent) 14%, var(--wsd-panel));
+  }
+  @media (hover: hover) {
+  .member-action-button:hover {
+    color: var(--wsd-accent);
+    background: color-mix(in srgb, var(--wsd-accent) 14%, var(--wsd-panel));
+  }
+  }
+  .voice-member-action:active {
+    color: var(--wsd-accent);
+    background: color-mix(in srgb, var(--wsd-accent) 14%, var(--wsd-panel));
+  }
+  @media (hover: hover) {
+  .voice-member-action:hover {
+    color: var(--wsd-accent);
+    background: color-mix(in srgb, var(--wsd-accent) 14%, var(--wsd-panel));
+  }
+  }
   .voice-member-action {
     position: absolute;
     top: 7px;
@@ -528,11 +668,6 @@
     background: color-mix(in srgb, var(--wsd-raised) 78%, transparent);
     border-radius: 10px;
     cursor: pointer;
-  }
-  .voice-member-action:hover,
-  .voice-member-action:active {
-    color: var(--wsd-accent);
-    background: color-mix(in srgb, var(--wsd-accent) 14%, var(--wsd-panel));
   }
   .status-button {
     min-height: 34px;
@@ -549,11 +684,6 @@
     background: transparent;
     border-radius: 10px;
     cursor: pointer;
-  }
-  .member-action-button:hover,
-  .member-action-button:active {
-    color: var(--wsd-accent);
-    background: color-mix(in srgb, var(--wsd-accent) 14%, var(--wsd-panel));
   }
   .member-menu-backdrop {
     position: fixed;
@@ -640,12 +770,6 @@
   font-size: 11px;
   cursor: pointer;
   transition: .16s;
-}
-
-.performance-trigger:hover,
-.performance-trigger[aria-expanded="true"] {
-  background: color-mix(in srgb, var(--wsd-accent) 15%, var(--wsd-panel));
-  border-color: color-mix(in srgb, var(--wsd-accent) 35%, var(--wsd-border));
 }
 
 .performance-trigger small {
@@ -1198,9 +1322,12 @@
     border: 1px solid var(--wsd-border);
   }
 
+  @media (hover: hover) {
+
   .status-button:hover {
     color: var(--wsd-text);
     background: var(--wsd-hover);
+  }
   }
 
   .status-button.active {
@@ -1254,9 +1381,12 @@
   cursor: pointer;
 }
 
+@media (hover: hover) {
+
 .ws-menu-item:hover {
   color: var(--wsd-text);
   background: var(--wsd-hover);
+}
 }
 
 .ws-menu-item.danger {
@@ -1306,14 +1436,6 @@
   font-weight: 800;
   cursor: pointer;
   transition: color .16s, background .16s, border-color .16s, box-shadow .16s;
-}
-
-.language-trigger:hover,
-.language-switcher.open .language-trigger {
-  color: #fff;
-  background: var(--wsd-accent, #2b5cd9);
-  border-color: var(--wsd-accent, #2b5cd9);
-  box-shadow: 0 7px 16px rgba(16, 18, 22, .12);
 }
 
 .language-trigger .ui-icon {
@@ -1366,14 +1488,6 @@
   transition: color .14s, background .14s, border-color .14s;
 }
 
-.language-option:hover,
-.language-option:focus-visible,
-.language-option.selected {
-  color: var(--wsd-accent, #2b5cd9);
-  background: color-mix(in srgb, var(--wsd-accent, #2b5cd9) 12%, var(--wsd-panel, #fff));
-  border-color: color-mix(in srgb, var(--wsd-accent, #2b5cd9) 28%, var(--wsd-border, #e5e7eb));
-}
-
 .language-option-flag {
   flex: 0 0 auto;
   font-size: 17px;
@@ -1423,14 +1537,6 @@
   background: var(--wsd-raised);
   border: 2px solid transparent;
   border-radius: 18px;
-  box-shadow: none;
-}
-
-.language-switcher.tile .language-trigger:hover,
-.language-switcher.tile.open .language-trigger {
-  color: var(--wsd-text);
-  background: var(--wsd-hover);
-  border-color: transparent;
   box-shadow: none;
 }
 
@@ -1489,8 +1595,11 @@
   cursor: pointer;
 }
 
+@media (hover: hover) {
+
 .member-server-switcher-item:hover {
   background: var(--wsd-hover, #e9eef0);
+}
 }
 
 .member-server-switcher-item[data-ws-state="current"] {
@@ -1576,7 +1685,10 @@
   cursor: pointer;
 }
 
+@media (hover: hover) {
+
 .theme-toggle:hover { color: var(--wsd-text); background: var(--wsd-raised); }
+}
 
 .theme-toggle-tile {
   width: 58px;
@@ -1591,10 +1703,13 @@
   flex: 0 0 auto;
 }
 
+@media (hover: hover) {
+
 .theme-toggle-tile:hover {
   color: var(--wsd-text);
   background: var(--wsd-hover);
   border-color: transparent;
+}
 }
 
 .mobile-theme-toggle {
@@ -1646,14 +1761,6 @@
     linear-gradient(currentColor, currentColor) 10px 100% / 3px 10px,
     linear-gradient(currentColor, currentColor) 15px 100% / 3px 14px;
   background-repeat: no-repeat;
-}
-
-.desktop-audio-dock .performance-trigger:hover,
-.desktop-audio-dock .performance-trigger:focus-visible,
-.desktop-audio-dock .performance-trigger[aria-expanded="true"] {
-  color: var(--wsd-accent-hover);
-  background: var(--wsd-accent-soft);
-  transform: translateY(-1px);
 }
 
 .desktop-audio-dock .performance-trigger:focus-visible {

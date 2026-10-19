@@ -1,4 +1,28 @@
-/* 应用壳：app-shell 网格、工作区框架、收藏服务器栏、页头、横幅、
+
+
+.favorite-server-button[data-ws-state="current"]:focus-visible {
+  background: var(--wsd-raised);
+}
+
+@media (hover: hover) {
+
+.favorite-server-button[data-ws-state="current"]:hover {
+  background: var(--wsd-raised);
+}
+}
+
+.favorite-server-button:focus-visible,
+.favorite-server-rail .favorite-server-add:focus-visible {
+  background: var(--wsd-hover);
+}
+
+@media (hover: hover) {
+
+.favorite-server-button:hover,
+.favorite-server-rail .favorite-server-add:hover {
+  background: var(--wsd-hover);
+}
+}/* 应用壳：app-shell 网格、工作区框架、收藏服务器栏、页头、横幅、
  * 移动导航、视口契约（--ws-viewport-height 消费方）。 */
 
 :where(html[data-ws-route="webclient"]) .web-client button {
@@ -131,24 +155,12 @@
   -webkit-touch-callout: none;
 }
 
-.favorite-server-button:hover,
-.favorite-server-button:focus-visible,
-.favorite-server-rail .favorite-server-add:hover,
-.favorite-server-rail .favorite-server-add:focus-visible {
-  background: var(--wsd-hover);
-}
-
 .favorite-server-button.active {
   border-color: var(--wsd-accent);
 }
 
 .favorite-server-button[data-ws-state="current"] {
   cursor: default;
-}
-
-.favorite-server-button[data-ws-state="current"]:hover,
-.favorite-server-button[data-ws-state="current"]:focus-visible {
-  background: var(--wsd-raised);
 }
 
 .favorite-server-button.active::before {
@@ -204,10 +216,13 @@
   white-space: nowrap;
 }
 
+@media (hover: hover) {
+
 .favorite-server-chip:hover {
   border-radius: 7px;
   transform: scale(1.05);
   background: var(--wsd-hover);
+}
 }
 
 .favorite-server-chip.active {
@@ -235,9 +250,12 @@
   cursor: pointer;
 }
 
+@media (hover: hover) {
+
 .favorite-server-strip .favorite-server-add:hover {
   color: var(--wsd-accent);
   background: var(--wsd-accent-soft);
+}
 }
 
 .favorite-switch-banner {
@@ -303,9 +321,12 @@
   height: 32px;
 }
 
+@media (hover: hover) {
+
 .header-action:hover {
   color: var(--wsd-accent);
   background: var(--wsd-accent-soft);
+}
 }
 
 .workspace-scroll {
@@ -462,10 +483,12 @@
     font-weight: 600;
     line-height: 1.25;
   }
+  @media (hover: hover) {
   .favorite-server-chip:hover {
     border-radius: 11px;
     transform: none;
     background: transparent;
+  }
   }
   .favorite-server-chip.active {
     color: #277970;
@@ -751,9 +774,12 @@
   cursor: pointer;
 }
 
+@media (hover: hover) {
+
 .poke-banner button:hover {
   color: #735020;
   background: #f9eed9;
+}
 }
 
 .web-client button:focus-visible,
@@ -854,9 +880,11 @@
     text-align: left;
     cursor: pointer;
   }
+  @media (hover: hover) {
   .mobile-more-panel button:hover {
     color: var(--wsd-accent);
     border-color: var(--wsd-accent);
+  }
   }
   .mobile-more-panel button.danger {
     color: var(--wsd-danger);
@@ -953,9 +981,12 @@
   border-radius: 999px;
 }
 
+@media (hover: hover) {
+
 .web-client *::-webkit-scrollbar-thumb:hover {
   background-clip: padding-box;
   border-width: 1px;
+}
 }
 
 @media (max-width: 740px) {
@@ -1145,6 +1176,20 @@
 }
 
 @media (min-width: 981px) {
+
+  .member-search-toggle:focus-visible,
+.member-search-toggle[aria-expanded="true"] {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+  }
+
+  @media (hover: hover) {
+
+  .member-search-toggle:hover {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+  }
+  }
   .app-shell {
     grid-template-columns: 86px 304px minmax(280px, 1fr) minmax(340px, min(38vw, 520px));
     background: var(--wsd-bg);
@@ -1250,13 +1295,6 @@
     border: none;
     border-radius: 7px;
     cursor: pointer;
-  }
-
-  .member-search-toggle:hover,
-  .member-search-toggle:focus-visible,
-  .member-search-toggle[aria-expanded="true"] {
-    color: var(--wsd-text);
-    background: var(--wsd-hover);
   }
   .workspace {
     background: var(--wsd-bg);

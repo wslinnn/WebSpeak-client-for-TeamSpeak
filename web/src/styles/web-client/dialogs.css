@@ -1,4 +1,17 @@
-/* 浮层对话框：设置模态、频道密码、身份导入、收藏服务器管理、
+
+
+.identity-drop-zone.active {
+  background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-panel));
+  border-color: var(--wsd-accent);
+}
+
+@media (hover: hover) {
+
+.identity-drop-zone:hover {
+  background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-panel));
+  border-color: var(--wsd-accent);
+}
+}/* 浮层对话框：设置模态、频道密码、身份导入、收藏服务器管理、
  * 移动门。层序高于页面区域，低于菜单。 */
 
 .field-label,
@@ -24,11 +37,14 @@
   transition: transform .18s, box-shadow .18s, background .18s;
 }
 
+@media (hover: hover) {
+
 .primary-button:hover:not(:disabled),
 .identity-import-submit:hover:not(:disabled) {
   background: var(--wsd-accent-fill-hover);
   box-shadow: 0 9px 20px rgba(16, 18, 22, .14);
   transform: translateY(-1px);
+}
 }
 
 .primary-button:active:not(:disabled),
@@ -384,11 +400,14 @@
   cursor: pointer;
 }
 
+@media (hover: hover) {
+
 .dialog-close:hover,
 .identity-import-close:hover {
   color: var(--wsd-accent);
   background: var(--wsd-accent-soft);
   border-color: color-mix(in srgb, var(--wsd-accent) 28%, transparent);
+}
 }
 
 .toast {
@@ -664,12 +683,6 @@
 
 .identity-drop-zone > .ui-icon {
   color: var(--wsd-accent);
-}
-
-.identity-drop-zone.active,
-.identity-drop-zone:hover {
-  background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-panel));
-  border-color: var(--wsd-accent);
 }
 
 .identity-import-error {

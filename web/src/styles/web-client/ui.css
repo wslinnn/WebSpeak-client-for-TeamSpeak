@@ -161,9 +161,12 @@
   transition: .18s;
 }
 
+@media (hover: hover) {
+
 .round-icon:hover {
   color: var(--wsd-accent);
   background: var(--wsd-accent-soft);
+}
 }
 
 .favorite-server-columns .field-label {
@@ -283,8 +286,11 @@
   cursor: pointer;
 }
 
+@media (hover: hover) {
+
 .secondary-button:hover {
   background: var(--wsd-hover);
+}
 }
 
 .primary-button.size-sm,

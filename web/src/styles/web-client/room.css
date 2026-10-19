@@ -1,4 +1,56 @@
-/* 房间：语音卡网格、成员面板、聊天、屏幕共享、whisper 语音条、
+
+
+.screen-share-settings-button[aria-expanded="true"] {
+  color: var(--wsd-accent);
+  border-color: color-mix(in srgb, var(--wsd-accent) 35%, var(--wsd-border));
+  background: color-mix(in srgb, var(--wsd-accent) 9%, var(--wsd-panel));
+}
+
+@media (hover: hover) {
+
+.screen-share-settings-button:hover {
+  color: var(--wsd-accent);
+  border-color: color-mix(in srgb, var(--wsd-accent) 35%, var(--wsd-border));
+  background: color-mix(in srgb, var(--wsd-accent) 9%, var(--wsd-panel));
+}
+}
+
+.member-row:focus-within {
+  background: var(--wsd-hover);
+}
+
+@media (hover: hover) {
+
+.member-row:hover {
+  background: var(--wsd-hover);
+}
+}
+
+.member-channel-group.current .member-channel-fold {
+  color: var(--wsd-accent);
+  background: var(--wsd-accent-soft);
+}
+
+@media (hover: hover) {
+
+.member-channel-fold:hover {
+  color: var(--wsd-accent);
+  background: var(--wsd-accent-soft);
+}
+}
+
+.member-channel-group.current .member-channel-heading {
+  color: var(--wsd-accent);
+  background: var(--wsd-accent-soft);
+}
+
+@media (hover: hover) {
+
+.member-channel-heading:hover {
+  color: var(--wsd-accent);
+  background: var(--wsd-accent-soft);
+}
+}/* 房间：语音卡网格、成员面板、聊天、屏幕共享、whisper 语音条、
  * 语音活动艺术品。 */
 
 .card-kicker,
@@ -137,11 +189,14 @@
   transition: .18s;
 }
 
+@media (hover: hover) {
+
 .voice-card:hover {
   z-index: 3;
   transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--wsd-text) 24%, transparent);
   box-shadow: 0 11px 24px rgba(16,18,22,.08);
+}
 }
 
 .voice-card.speaking {
@@ -733,9 +788,12 @@
   min-height: 32px;
 }
 
+@media (hover: hover) {
+
 .cancel-connect-button:hover {
   color: var(--wsd-accent);
   text-decoration: underline;
+}
 }
 
 .member-panel {
@@ -788,12 +846,6 @@
   transition: color .14s ease, background-color .14s ease;
 }
 
-.member-channel-heading:hover,
-.member-channel-group.current .member-channel-heading {
-  color: var(--wsd-accent);
-  background: var(--wsd-accent-soft);
-}
-
 .member-channel-heading span {
   min-width: 0;
   flex: 1;
@@ -820,12 +872,6 @@
   background: transparent;
   border-radius: 6px;
   cursor: pointer;
-}
-
-.member-channel-fold:hover,
-.member-channel-group.current .member-channel-fold {
-  color: var(--wsd-accent);
-  background: var(--wsd-accent-soft);
 }
 
 .member-channel-fold .ui-icon {
@@ -1059,9 +1105,12 @@
   cursor: pointer;
 }
 
+@media (hover: hover) {
+
 .chat-tabs button:hover {
   color: var(--wsd-accent);
   background: var(--wsd-accent-soft);
+}
 }
 
 .chat-tabs button.active {
@@ -1081,11 +1130,6 @@
   margin: -4px -6px;
   border-radius: 9px;
   transition: background .16s ease, box-shadow .16s ease;
-}
-
-.member-row:hover,
-.member-row:focus-within {
-  background: var(--wsd-hover);
 }
 
 .message-composer {
@@ -1559,8 +1603,11 @@ button.screen-share-live-indicator {
   cursor: pointer;
 }
 
+@media (hover: hover) {
+
 button.screen-share-live-indicator:hover {
   background: color-mix(in srgb, var(--wsd-danger) 86%, #fff);
+}
 }
 
 button.screen-share-live-indicator:active {
@@ -1634,10 +1681,13 @@ button.screen-share-live-indicator:focus-visible {
   cursor: pointer;
 }
 
+@media (hover: hover) {
+
 .screen-share-stop-button:hover {
   color: var(--wsd-danger-contrast);
   border-color: var(--wsd-danger);
   background: var(--wsd-danger);
+}
 }
 
 .screen-share-stop-button:focus-visible {
@@ -1657,13 +1707,6 @@ button.screen-share-live-indicator:focus-visible {
   border-radius: 50%;
   background: var(--wsd-panel);
   cursor: pointer;
-}
-
-.screen-share-settings-button:hover,
-.screen-share-settings-button[aria-expanded="true"] {
-  color: var(--wsd-accent);
-  border-color: color-mix(in srgb, var(--wsd-accent) 35%, var(--wsd-border));
-  background: color-mix(in srgb, var(--wsd-accent) 9%, var(--wsd-panel));
 }
 
 .screen-share-settings-backdrop {
@@ -1699,9 +1742,12 @@ button.screen-share-live-indicator:focus-visible {
   cursor: pointer;
 }
 
+@media (hover: hover) {
+
 .screen-share-settings-close:hover {
   color: var(--wsd-accent);
   border-color: color-mix(in srgb, var(--wsd-accent) 35%, var(--wsd-border));
+}
 }
 
 .screen-share-settings-heading {
@@ -1876,11 +1922,14 @@ button.screen-share-live-indicator:focus-visible {
   z-index: 3;
 }
 
+@media (hover: hover) {
+
 .screen-share-player-exit:hover,
 .screen-share-player-controls button:hover {
   color: var(--wsd-accent);
   border-color: color-mix(in srgb, var(--wsd-accent) 55%, var(--wsd-border));
   background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-panel));
+}
 }
 
 .screen-share-player-viewers {
@@ -2243,6 +2292,33 @@ button.screen-share-live-indicator:focus-visible {
 }
 
 @media (min-width: 981px) {
+
+  .chat-collapse:focus-visible {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+  }
+
+  @media (hover: hover) {
+
+  .chat-collapse:hover {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+  }
+  }
+
+  .member-server-menu:focus-visible,
+.member-server-menu[aria-expanded="true"] {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+  }
+
+  @media (hover: hover) {
+
+  .member-server-menu:hover {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+  }
+  }
   .member-panel {
     background: var(--wsd-panel);
     border-right: 1px solid var(--wsd-border);
@@ -2261,13 +2337,6 @@ button.screen-share-live-indicator:focus-visible {
     border: 0;
     border-radius: 7px;
     cursor: pointer;
-  }
-
-  .member-server-menu:hover,
-  .member-server-menu:focus-visible,
-  .member-server-menu[aria-expanded="true"] {
-    color: var(--wsd-text);
-    background: var(--wsd-hover);
   }
 
   .member-search {
@@ -2365,12 +2434,6 @@ button.screen-share-live-indicator:focus-visible {
     border-radius: 9px;
   }
 
-  .chat-collapse:hover,
-  .chat-collapse:focus-visible {
-    color: var(--wsd-text);
-    background: var(--wsd-hover);
-  }
-
   .app-shell > .chat-panel .message-list {
     flex: 1 1 auto;
     min-height: 0;
@@ -2384,6 +2447,56 @@ button.screen-share-live-indicator:focus-visible {
 
 @media (min-width: 981px) {
 
+  .member-row:focus-within .member-volume {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  @media (hover: hover) {
+
+  .member-row:hover .member-volume {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  }
+
+  .member-row:focus-within .member-flags {
+    opacity: 0;
+  }
+
+  @media (hover: hover) {
+
+  .member-row:hover .member-flags {
+    opacity: 0;
+  }
+  }
+
+  .member-channel-group.current .member-channel-fold {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+  }
+
+  @media (hover: hover) {
+
+  .member-channel-fold:hover {
+    color: var(--wsd-text);
+    background: var(--wsd-hover);
+  }
+  }
+
+  .chat-reopen:focus-visible {
+    color: var(--wsd-accent-contrast);
+    background: var(--wsd-accent-fill-hover);
+  }
+
+  @media (hover: hover) {
+
+  .chat-reopen:hover {
+    color: var(--wsd-accent-contrast);
+    background: var(--wsd-accent-fill-hover);
+  }
+  }
+
   .chat-reopen {
     display: grid;
     place-items: center;
@@ -2394,12 +2507,6 @@ button.screen-share-live-indicator:focus-visible {
     background: var(--wsd-accent-fill);
     border-radius: 9px;
     box-shadow: 0 5px 14px rgba(16, 18, 22, .16);
-  }
-
-  .chat-reopen:hover,
-  .chat-reopen:focus-visible {
-    color: var(--wsd-accent-contrast);
-    background: var(--wsd-accent-fill-hover);
   }
   .member-panel {
     display: flex;
@@ -2460,9 +2567,12 @@ button.screen-share-live-indicator:focus-visible {
     border-radius: 7px;
   }
 
+  @media (hover: hover) {
+
   .member-channel-heading:hover {
     color: var(--wsd-text);
     background: var(--wsd-hover);
+  }
   }
 
   .member-channel-group.current .member-channel-heading {
@@ -2511,12 +2621,6 @@ button.screen-share-live-indicator:focus-visible {
     color: var(--wsd-text-dim);
   }
 
-  .member-channel-fold:hover,
-  .member-channel-group.current .member-channel-fold {
-    color: var(--wsd-text);
-    background: var(--wsd-hover);
-  }
-
   .member-list {
     gap: 2px;
     margin-top: 6px;
@@ -2544,17 +2648,6 @@ button.screen-share-live-indicator:focus-visible {
     opacity: 0;
     pointer-events: none;
     transition: opacity .14s ease;
-  }
-
-  .member-row:hover .member-flags,
-  .member-row:focus-within .member-flags {
-    opacity: 0;
-  }
-
-  .member-row:hover .member-volume,
-  .member-row:focus-within .member-volume {
-    opacity: 1;
-    pointer-events: auto;
   }
 
   .member-avatar {
@@ -2636,11 +2729,14 @@ button.screen-share-live-indicator:focus-visible {
     transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease;
   }
 
+  @media (hover: hover) {
+
   .voice-card:hover {
     z-index: 3;
     transform: none;
     background: var(--wsd-hover);
     box-shadow: none;
+  }
   }
 
   .voice-card.speaking {
@@ -2798,9 +2894,12 @@ button.screen-share-live-indicator:focus-visible {
     border-color: var(--wsd-border);
   }
 
+  @media (hover: hover) {
+
   .app-shell > .chat-panel .chat-tabs button:hover {
     color: var(--wsd-text);
     background: var(--wsd-hover);
+  }
   }
 
   .app-shell > .chat-panel .chat-tabs button.active {

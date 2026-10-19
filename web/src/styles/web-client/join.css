@@ -122,10 +122,13 @@
   transition: .18s;
 }
 
+@media (hover: hover) {
+
 .language-switch:hover {
   color: #fff;
   background: var(--wsd-accent);
   border-color: var(--wsd-accent);
+}
 }
 
 .language-menu-row {
@@ -232,9 +235,12 @@
   text-decoration: none;
 }
 
+@media (hover: hover) {
+
 .join-footer a:hover {
   color: var(--wsd-accent);
   text-decoration: underline;
+}
 }
 
 .footer-separator {
@@ -436,8 +442,11 @@
   -webkit-touch-callout: none;
 }
 
+@media (hover: hover) {
+
 .local-server-select:hover {
   background: color-mix(in srgb, var(--wsd-accent) 20%, transparent);
+}
 }
 
 .local-server-select.active {
@@ -460,9 +469,12 @@
   cursor: pointer;
 }
 
+@media (hover: hover) {
+
 .local-server-add:hover {
   color: var(--wsd-accent);
   background: var(--wsd-accent-soft);
+}
 }
 
 .server-tab-lock {
@@ -474,9 +486,12 @@
   padding: 0;
 }
 
+@media (hover: hover) {
+
 .clear-local-button:hover {
   color: var(--wsd-danger);
   text-decoration: underline;
+}
 }
 
 .join-page .brand-lockup strong {

@@ -36,7 +36,7 @@ describe("声明纪律棘轮", () => {
       "styles/web-client/chrome.css": 30,
       "styles/web-client/dialogs.css": 7,
       "styles/web-client/join.css": 2,
-      "styles/web-client/menus.css": 32,
+      "styles/web-client/menus.css": 42, // 含 hover 门禁拆分的状态/悬停两份同值声明
       "styles/web-client/mobile.css": 1,
       "styles/web-client/night.css": 1,
       "styles/web-client/room.css": 24,
