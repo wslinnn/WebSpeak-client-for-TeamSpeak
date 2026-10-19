@@ -2060,22 +2060,38 @@ button.screen-share-live-indicator:focus-visible {
   cursor: pointer;
 }
 
+/* Fullscreen surface is fully restated: the base card keeps a 17px top margin
+ * and rounded border, and UA fullscreen styles are not a guarantee to lean on
+ * across browsers. dvh keeps the exit bar reachable under mobile toolbars. */
 .screen-share-player:fullscreen {
+  position: fixed;
+  inset: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
   border: 0;
   border-radius: 0;
-  background: var(--wsd-bg);
+  background: var(--wsd-media-void);
 }
 
 .screen-share-player:fullscreen .screen-share-player-stage {
+  width: 100%;
   height: 100%;
+  min-height: 0;
   max-height: none;
   aspect-ratio: auto;
+  background: var(--wsd-media-void);
+}
+
+.screen-share-player:fullscreen .screen-share-player-video {
+  background: var(--wsd-media-void);
 }
 
 .screen-share-player::backdrop {
-  background: var(--wsd-bg);
+  background: var(--wsd-media-void);
 }
 
 @keyframes screen-share-wave {

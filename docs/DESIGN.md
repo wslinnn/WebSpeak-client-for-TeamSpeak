@@ -26,6 +26,7 @@
 | `--wsd-accent-soft` | accent 淡底（选中态、焦点晕染） | `rgba(43,92,217,.10)` | `rgba(125,150,242,.16)` |
 | `--wsd-success` / `-warning` / `-danger`（+ `-contrast`） | 状态语义色 | `#1e7a40` / `#8a5d0b` / `#bb3f38` | `#4cc27a` / `#e2b36c` / `#ee8a82` |
 | `--wsd-backdrop` | 模态遮罩（双主题同值） | `rgba(12,14,16,.52)` | 同左 |
+| `--wsd-media-void` | 全屏媒体背板/视频信箱底（双主题同值，浅色信箱会被读成布局故障） | `#0b0c0e` | 同左 |
 | `--wsd-shadow-raised` / `-pop` / `-modal` | 浮起三级：卡片/常驻面 · 菜单/下拉/toast · 模态与对话框 | 中性墨色低透明 | 同几何、加深黑（暗底吃阴影） |
 | `--wsd-radius` | 基准圆角 | `9px` | 同左 |
 | `--wsd-font` | 应用字体栈 | Geist Variable + 苹方/雅黑 CJK 回落 | 同左 |

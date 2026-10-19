@@ -47,6 +47,10 @@
   --wsd-danger-contrast: #ffffff;
   /* Shared modal veil; night keeps the same neutral dark. */
   --wsd-backdrop: rgba(12, 14, 16, .52);
+  /* Fullscreen media backdrop: a viewport-filling video keeps a neutral
+   * near-black surround in both themes — themed light letterbox bars read as
+   * a layout bug. Constant value, like --wsd-on-fill. */
+  --wsd-media-void: #0b0c0e;
   /* Elevation, three levels only: raised surfaces (cards, bars floating over
    * content), pop (menus/dropdowns/toasts) and modal (dialogs). Shadow color
    * is neutral ink, never --wsd-text — that token turns near-white at night
@@ -85,6 +89,7 @@
   --wsd-danger-contrast: #131316;
   --wsd-on-fill: #ffffff;
   --wsd-backdrop: rgba(12, 14, 16, .52);
+  --wsd-media-void: #0b0c0e;
   /* Dark surfaces swallow weak shadows: night keeps the geometry and raises
    * the alpha so elevation still reads. */
   --wsd-shadow-raised: 0 1px 2px rgba(0, 0, 0, .38), 0 2px 8px rgba(0, 0, 0, .32);
