@@ -1,3 +1,6 @@
+/* 设计令牌（--wsd-* 唯一调色板 + 滚动条面）。只允许 custom property 定义与
+ * 无组件语义的表面默认；组件规则不进本层。 */
+
 /*
  * WebSpeak Design tokens (--wsd-*): the single color language for the
  * product routes (.web-client, .download-page). Day values are the default;
@@ -88,3 +91,4 @@
 *::-webkit-scrollbar-thumb:hover {
   background: var(--wsd-hover);
 }
+

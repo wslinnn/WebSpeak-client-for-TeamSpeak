@@ -1,44 +1,29 @@
 /*
- * WebClient scoped-style entry. ORDER IS SEMANTIC: postcss-import inlines these
- * shards in listed order and cascade order is preserved, so this file must stay
- * a pure @import manifest. Shards are byte-exact ports of web/src/styles/web-client
- * (Vue scoped 分片剥 :deep()/ :global() 壳的平移；裸元素选择器必须 data-ws-route 门控)。
- * 尾片 21-components.css 收纳三个组件自带的 scoped 样式（语言切换器/手机门/服务器右键菜单），
- * web-client-mobile.css 保持「最后导入必胜」的旧级联位置。
+ * WebClient 产品样式入口。ORDER IS SEMANTIC：postcss-import 按序内联，
+ * 顶部 @layer 声明语句即整份级联的覆盖契约（层序 = 覆盖权限，低 → 高）：
  *
- * 每个分片整体包进自己的 @layer（层名 = wNN-主题，见顶部声明语句）：层序 = 导入序，
- * 层间胜负由结构决定，不再依赖「谁后导入」的记忆。级联裁决规则（详见 AGENTS.md 与
- * docs/SKIN_DEVELOPMENT.md）：未分层样式（皮肤运行时注入）无条件胜过所有层；
- * 分层 !important 强于未分层 !important——15 处应用侧 !important 锁（reduced-motion、
- * 小屏定位、状态语义色）因此对皮肤形成结构性保证。新增分片必须同步层序声明语句。
+ *   ws-tokens < ws-base < ws-ui < ws-join < ws-chrome < ws-room
+ *             < ws-dialogs < ws-menus < ws-night < ws-mobile
+ *
+ * 规则按组件族归位：一个族只住一个文件（各文件头注释即分工表），
+ * 同族规则的响应式/暗色变体就近共置（media query 不加特异性）。
+ * 跨文件覆盖只有层序一条路——禁止用特异性或 !important 硬打，
+ * 更高权限只属于更高层。未分层样式（index.css 尾部、sonner 运行时注入）
+ * 结构性胜过所有分层规则；admin.css 亦未分层（构建期 .admin-root 作用域）。
+ * 结构由 styles/web-client-manifest.test.ts 钉死；跨层 important 锁面
+ * 由 styles/cascade-locks.test.ts 单源化钉死。
  */
 
-@layer w00-tokens, w01-base, w02-join, w03-shell, w04-room, w05-dialogs,
-  w06-responsive-1, w07-connected, w08-reconnect, w09-identity, w10-typography,
-  w11-dock-menus, w12-join-card, w13-whisper-mobile, w14-responsive-2,
-  w15-performance, w16-language-dock, w17-screen-share, w18-artwork-promise,
-  w19-workspace-relayout, w20-night-surfaces, w21-components, w22-mobile;
+@layer ws-tokens, ws-base, ws-ui, ws-join, ws-chrome, ws-room, ws-dialogs,
+  ws-menus, ws-night, ws-mobile;
 
-@import "./web-client/00-tokens.css" layer(w00-tokens);
-@import "./web-client/01-base.css" layer(w01-base);
-@import "./web-client/02-join.css" layer(w02-join);
-@import "./web-client/03-shell.css" layer(w03-shell);
-@import "./web-client/04-room.css" layer(w04-room);
-@import "./web-client/05-dialogs.css" layer(w05-dialogs);
-@import "./web-client/06-responsive-1.css" layer(w06-responsive-1);
-@import "./web-client/07-connected.css" layer(w07-connected);
-@import "./web-client/08-reconnect.css" layer(w08-reconnect);
-@import "./web-client/09-identity.css" layer(w09-identity);
-@import "./web-client/10-typography.css" layer(w10-typography);
-@import "./web-client/11-dock-menus.css" layer(w11-dock-menus);
-@import "./web-client/12-join-card.css" layer(w12-join-card);
-@import "./web-client/13-whisper-mobile.css" layer(w13-whisper-mobile);
-@import "./web-client/14-responsive-2.css" layer(w14-responsive-2);
-@import "./web-client/15-performance.css" layer(w15-performance);
-@import "./web-client/16-language-dock.css" layer(w16-language-dock);
-@import "./web-client/17-screen-share.css" layer(w17-screen-share);
-@import "./web-client/18-artwork-promise.css" layer(w18-artwork-promise);
-@import "./web-client/19-workspace-relayout.css" layer(w19-workspace-relayout);
-@import "./web-client/20-night-surfaces.css" layer(w20-night-surfaces);
-@import "./web-client/21-components.css" layer(w21-components);
-@import "./web-client-mobile.css" layer(w22-mobile);
+@import "./web-client/tokens.css" layer(ws-tokens);
+@import "./web-client/base.css" layer(ws-base);
+@import "./web-client/ui.css" layer(ws-ui);
+@import "./web-client/join.css" layer(ws-join);
+@import "./web-client/chrome.css" layer(ws-chrome);
+@import "./web-client/room.css" layer(ws-room);
+@import "./web-client/dialogs.css" layer(ws-dialogs);
+@import "./web-client/menus.css" layer(ws-menus);
+@import "./web-client/night.css" layer(ws-night);
+@import "./web-client/mobile.css" layer(ws-mobile);

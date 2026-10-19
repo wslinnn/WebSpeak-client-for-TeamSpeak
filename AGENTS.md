@@ -50,8 +50,8 @@ npm --prefix web ci --no-audit --no-fund
 - 管理台 API 响应经 `admin-responses.ts` 校验器按声明字段投影（未声明的字段被静默丢弃），前端再把聚合响应扁平化进 `admin/operations-controller.ts` 的 operations 状态——新增后端诊断/响应字段必须同步三处：校验器声明、扁平化投影、组件消费点；只改校验器会以扁平类型在 `tsc -b` 报错，只改组件则拿到 undefined。
 - 文档级页面样式必须由 `html[data-ws-route]` 门控（路由加载后 CSS 常驻）；保留 `data-ws-part` 皮肤钩子与既有 `:deep` 选择器的顺序和特异性；新增 `data-ws-part` 必须同步登记 docs/SKIN_DEVELOPMENT.md（skin-pack.test 会扫描）；部件审计只认静态 data-ws-part 字面量，动态 part 用 v-bind 表达且全部变体登记。
 - JSX/CSS 格式化改动与行为改动分开。
-- 浮层层级必须取 `--ws-z-*` 阶梯变量（web-client.css 顶部定义，admin.css 同值副本：raised 10 / header 100 / dropdown 200 / menu-mask 300 / menu 310 / modal-mask 400 / toast 500），禁止裸 z-index 数字——header 曾硬编码 z-index:40 压在弹窗遮罩上；`isolation: isolate` 容器内部的 1/2/3 局部小阶梯除外。
-- web-client 样式已 @layer 化（报告 24 方案，2026-10-17 落地）：`web-client.css` manifest 每条 `@import` 挂 `layer(wNN-主题)`，层序=导入序=顶部声明语句序（`web-client-manifest.test.ts` 钉住结构，新增分片必须同步层名）。级联裁决靠层序不靠特异性：**后层胜前层，特异性只在同层内裁决**；未分层规则（皮肤运行时注入）无条件胜过所有层；分层 `!important` 强于未分层 `!important`——15 处应用侧锁（reduced-motion 无障碍、小屏定位/几何/交互锁、权限状态语义色）对皮肤结构性生效。要在早层规则之上生效：落更晚的层（web-client-mobile=w22 恒最后）或把规则迁入目标分片的层（如语言变体字排自 16 号迁 21 号），**抬特异性跨层无效**。
+- 浮层层级必须取 `--ws-z-*` 阶梯变量（`web/src/index.css` `:root` 单点定义，admin 与 web-client 共用同一份：raised 10 / header 100 / dropdown 200 / menu-mask 300 / menu 310 / modal-mask 400 / toast 500），禁止裸 z-index 数字——header 曾硬编码 z-index:40 压在弹窗遮罩上；`isolation: isolate` 容器内部的 1/2/3 局部小阶梯除外。
+- web-client 样式按组件族归位 + @layer 阶梯（P4 重排，2026-10-19 落地）：`styles/web-client/` 十个职责文件（tokens/base/ui/join/chrome/room/dialogs/menus/night/mobile），`web-client.css` manifest 顶部 `@layer` 声明语句即覆盖契约（层序 = 覆盖权限：tokens < base < ui < join < chrome < room < dialogs < menus < night < mobile），每条 `@import` 挂 `layer(ws-*)`（`web-client-manifest.test.ts` 钉住结构）。**一个组件族只住一个文件**，同族规则的响应式/暗色变体就近共置（media query 不加特异性）；跨文件覆盖只有层序一条路，特异性只在同层内裁决（`cascade-locks.test.ts` 钉 important 锁面单源）。要在既有规则之上生效：同文件写在后面，或落更高层（mobile 是终局锁）；**抬特异性跨层无效**。改规则前先看文件头分工表。
 - **important 锁单源化**（报告 26，2026-10-18 起）：层化后跨层 important 按**早层胜**裁决——同一元素族的重要锁若散居多层，早层锁会静默压掉晚层锁（曾致 ≤740 成员面板开关整体失效）。同一锁面只允许住在一层；新增 important 锁前先跑 `reports/layer-tools/layer-conflict-scan.mjs` 查互撞；互撞修法=晚层合并（同层内特异性/顺序裁决）或删除早层锁，**`:where()` 降级只适用同层**（跨层时 (0,0,0) 照样被晚层赢）。状态限定优先用 `:not()`/类切换而非多把锁。
 - **冒烟门禁**（2026-10-18 起）：每批 UI 改动推送前先过门禁——`web:build` 后沙箱网关实测，**先核对浏览器实载 JS 产物文件名与本地构建一致**（防测到旧进程/旧缓存），再跑 4 视口档（1280/1000/760/390）×日夜间×首页/进房的手摆 DOM 探针（getComputedStyle）与走查，全绿才推。部署后靠用户回报是欠债回路；房间态真机走查（真实 TS 会话）仍是门禁盲区，部署侧需顺带看一眼。
 - 皮肤命名空间约束：`.ws-skin-root` 的 `data-ws-skin` 是自定义皮肤 CSS 的作用域锚点（内置皮肤样式按 `[data-ws-skin="builtin.*"]` 高特异性命中），皮肤激活后任何 `applyTheme/saveTheme` 都必须传 `preserveCustomSkins: true`，否则属性被刷回内置皮肤、自定义皮肤整体失效且刷新后才恢复——皮肤切换失效 bug 的根因；社区皮肤的 CSS 是未分层 `<style>`，**结构性强于全部分层应用样式**（不再依赖注入次序，@layer 化后由级联结构保证），注入位置仍勿动（清理/复用逻辑依赖 ID 与次序）。
@@ -78,7 +78,7 @@ npm --prefix web ci --no-audit --no-fund
 - CSS 死类清理对动态类前缀（`mobile-view-` / `language-` / `skin-preview--` / `permission-` 等）豁免；名单随新增动态类维护。
 - i18n 键校验勿依赖缩进（en 块尾部空格曾伪报缺键）。
 - 改样式后先看 diff、按属性数自检（曾整段误删相邻属性声明）。
-- 给已有「直接子级通用规则」的容器加新子元素（如 `.voice-card > span` 状态行），新子元素的类规则必须带容器前缀抬特异性——裸类规则会被 (0,2,1) 压过且 grep 规则文本看不出来（mic 角标错位三轮破案，details 在 decisions/history 五轮）。**跨分片覆写**已由 @layer 化改为层序裁决：同层内仍是同特异性后位胜出，跨层则后层胜前层、特异性无效——在早层规则之上生效要么落更晚的层（web-client-mobile=w22），要么迁入目标分片的层；route-scoped 特异性钉回已被拆除（报告 24 阶段 2），勿再新增。改完必须真浏览器查计算样式确认生效。
+- 给已有「直接子级通用规则」的容器加新子元素（如 `.voice-card > span` 状态行），新子元素的类规则必须带容器前缀抬特异性——裸类规则会被 (0,2,1) 压过且 grep 规则文本看不出来（mic 角标错位三轮破案，details 在 decisions/history 五轮）。**跨文件覆写**按层序裁决：同文件内同特异性后位胜出，跨层则后层胜前层、特异性无效——在既有规则之上生效要么同文件写在后面，要么落更高层（mobile 是终局锁），要么把规则迁入目标组件族所在文件。改完必须真浏览器查计算样式确认生效。
 - 判「样式为什么这样渲染」必须真浏览器查计算样式（产物 CSS + 手摆 DOM 探针 + getComputedStyle），规则文本 grep 与部署状态推断都不算数（四轮曾据此误判「部署过期」）。
 - 全局弹窗/通知必须放组件树根部（页面条件渲染分支之外），进房态与首页态都要可达。
 - React effect 清理在刷新/路由卸载时会同步运行（Vue onUnmounted 在页面卸载时从不运行，旧实现靠这个碰巧工作）——卸载时要保留会话的清理必须 `disconnect(true)`（preserveConnection），否则刷新恢复票被清、F5 掉线回表单（f9e50aa）。

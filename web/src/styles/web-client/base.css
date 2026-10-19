@@ -1,0 +1,51 @@
+/* 元素基座：路由门控 reset、按钮基座、页面根面。特异性刻意压低；
+ * 组件样式不进本层。 */
+
+html[data-ws-route="webclient"] * {
+  box-sizing: border-box;
+}
+
+html[data-ws-route="webclient"] body {
+  margin: 0;
+}
+
+html[data-ws-route="webclient"] button,
+html[data-ws-route="webclient"] input {
+  font: inherit;
+}
+
+html[data-ws-route="webclient"] body {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+html[data-ws-route="webclient"],
+html[data-ws-route="webclient"] body,
+html[data-ws-route="webclient"] #app {
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+@media (min-width: 851px) {
+  html[data-ws-route="webclient"],
+  html[data-ws-route="webclient"] body {
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+}
+
+@media (max-width: 740px) {
+  html[data-ws-route="webclient"],
+  html[data-ws-route="webclient"] body,
+  html[data-ws-route="webclient"] #app {
+    height: 100dvh;
+    height: 100svh;
+    min-height: 100dvh;
+    min-height: 100svh;
+    max-height: 100dvh;
+    max-height: 100svh;
+  }
+}

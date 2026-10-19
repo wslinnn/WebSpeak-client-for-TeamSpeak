@@ -44,8 +44,8 @@ import {
 
 import { cn } from "@/lib/utils";
 
-/** 旧 Icon.vue 的平价映射：DOM 钩子保持 `svg.ui-icon`（皮肤与 21-components.css
- *  依赖该类名），字形取 lucide 同风格描边图标。 */
+/** 旧 Icon.vue 的平价映射：DOM 钩子保持 `svg.ui-icon`（web-client/ui.css 与
+ *  menus.css 依赖该类名），字形取 lucide 同风格描边图标。 */
 const NAME_MAP = {
   server: Server,
   hash: Hash,

@@ -1,3 +1,6 @@
+/* 移动终局锁：≤740 键盘避让（--ws-viewport-height）、触控目标、
+ * 菜单锚定 —— 本层是级联最后一环，规则必须能压过前面所有层。 */
+
 /* Mobile layout owns its visible height; navigation occupies an actual flex row. */
 @media (max-width: 740px) {
   html[data-ws-route="webclient"],
@@ -201,3 +204,4 @@
   .keyboard-open .mobile-nav button { min-height: 44px; }
   .keyboard-open .identity-import-textarea { min-height: 90px; }
 }
+

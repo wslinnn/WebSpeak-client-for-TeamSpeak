@@ -1,3 +1,6 @@
+/* 夜间面：html.dark 前缀覆盖，与日间同特异性逐档持平；
+ * 只放颜色/阴影类覆盖，不改布局。 */
+
 /*
  * Night surfaces for the workspace regions that moved onto the --wsd-*
  * tokens: these rules take over the night re-theming the built-in skins used
@@ -381,3 +384,4 @@
 .dark :is(.web-client, .download-page) .join-page .join-description {
   color: var(--wsd-text-muted);
 }
+
