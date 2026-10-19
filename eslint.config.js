@@ -30,15 +30,12 @@ export default tseslint.config(
     },
   },
   {
-    // 存量超限（2026-10-19 复量）：ts-client 428 /
-    // voice-bridge.integration.test 420（测试性长装配可接受，暂豁免）。
+    // 存量超限（2026-10-19 复量）：仅剩 voice-bridge.integration.test 420
+    // （测试性长装配可接受，暂豁免）。
     // connection-handler（request/admission/socket/dial）、
-    // screen-share-coordinator（relay/discovery）、database（migrations）
-    // 拆分后摘除豁免。
-    files: [
-      "src/server/ts-client.ts",
-      "src/server/voice-bridge.integration.test.ts",
-    ],
+    // screen-share-coordinator（relay/discovery）、database（migrations）、
+    // ts-client（protocol/avatar）拆分后摘除豁免。
+    files: ["src/server/voice-bridge.integration.test.ts"],
     rules: { "max-lines": "off" },
   },
   {

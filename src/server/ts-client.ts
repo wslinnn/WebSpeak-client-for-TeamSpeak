@@ -1,5 +1,4 @@
 import { EventEmitter } from "node:events";
-import { Writable } from "node:stream";
 import {
   Client as TS3FullClient,
   clientMove as tsClientMove,
@@ -12,13 +11,16 @@ import {
   type DirectoryClientInfo,
   type DirectorySnapshot,
   type RawNotification,
-  type TextMessage,
 } from "@echosixhiya/teamspeak-client";
 import type { Logger } from "../logger.js";
 import { describeTeamSpeakError, normalizeTeamSpeakError, normalizeTeamSpeakKickedReason } from "../errors.js";
 import { escapeTeamSpeakValue } from "../security/ts-escaping.js";
 import { TeamSpeakAdapter, type TeamSpeakProtocol } from "./teamspeak-adapter.js";
 import type { TeamSpeakTarget } from "../domain/teamspeak-target.js";
+import { toTSChatMessage, tsListClientsFull } from "./ts-client-protocol.js";
+import { fetchTeamSpeakClientAvatar } from "./ts-client-avatar.js";
+
+export type { TSChatMessage } from "./ts-client-protocol.js";
 
 export interface TSClientOptions {
   target: TeamSpeakTarget;
@@ -41,65 +43,11 @@ export interface TSClientAvatar {
   data: Buffer;
 }
 
-// Keep enough room for avatars produced by the native client. The previous
-// 120 KiB limit rejected the 134 KiB PNG used by the Shanghai test account,
-// so every avatar silently fell back to its initial letter.
-const MAX_CLIENT_AVATAR_BYTES = 256 * 1024;
-
 export type TSDirectorySnapshot = DirectorySnapshot;
 export type TSDirectoryClient = DirectoryClientInfo;
 export type TSRawNotification = RawNotification;
 
 export type TSChatScope = "channel" | "server" | "private";
-
-export interface TSChatMessage {
-  invokerName: string;
-  invokerId: number;
-  invokerUid: string;
-  message: string;
-  targetMode: number;
-  targetId: bigint;
-}
-
-/**
- * Keep the TeamSpeak target id when adapting SDK events for the gateway.
- * Private-message events include a bigint targetID; dropping it makes the
- * bridge dereference undefined while echoing the message to the browser.
- */
-export function toTSChatMessage(msg: TextMessage): TSChatMessage {
-  return {
-    invokerName: msg.invokerName,
-    invokerId: msg.invokerID,
-    invokerUid: msg.invokerUID,
-    message: msg.message,
-    targetMode: msg.targetMode,
-    targetId: msg.targetID,
-  };
-}
-
-/**
- * The vendored SDK's listClients requests `-away -voice` but its parser keeps
- * only identity fields, so every member row arrived without away/mute flags
- * and the web client rendered "status unknown" until a notification happened
- * to carry them (never for the gateway's own client). Parse the same command
- * here so status flags survive; drop this once the SDK keeps them.
- */
-async function tsListClientsFull(client: TS3FullClient): Promise<DirectoryClientInfo[]> {
-  const rows = await client.execCommandWithResponse("clientlist -uid -away -voice -groups", 5_000);
-  return rows.map(row => ({
-    id: Number.parseInt(row.clid ?? "0", 10),
-    nickname: row.client_nickname ?? "",
-    uid: row.client_unique_identifier ?? "",
-    channelID: BigInt(row.cid ?? "0"),
-    type: Number.parseInt(row.client_type ?? "0", 10),
-    serverGroups: (row.client_servergroups ?? "").split(",").filter(Boolean),
-    ...(row.client_away !== undefined ? { away: row.client_away === "1" } : {}),
-    ...(row.client_away_message !== undefined ? { awayMessage: row.client_away_message } : {}),
-    ...(row.client_input_muted !== undefined ? { inputMuted: row.client_input_muted === "1" } : {}),
-    ...(row.client_output_muted !== undefined ? { outputMuted: row.client_output_muted === "1" } : {}),
-    ...(row.client_is_channel_commander !== undefined ? { channelCommander: row.client_is_channel_commander === "1" } : {}),
-  }));
-}
 
 export class TSClient extends EventEmitter {
   private client: TS3FullClient | null = null;
@@ -225,48 +173,23 @@ export class TSClient extends EventEmitter {
 
   /**
    * Load a visible client's TeamSpeak avatar through the client protocol.
-   *
-   * TeamSpeak does not include the avatar bytes in directory notifications.
-   * `clientinfo` exposes the avatar marker and the per-identity filename; the
-   * file itself is then read through the normal TeamSpeak file-transfer port.
    * A missing permission, missing avatar, blocked file-transfer port, or an
    * oversized image is intentionally reported as `null` so the web client can
-   * keep its generated initial avatar.
+   * keep its generated initial avatar. The transfer itself lives in
+   * ts-client-avatar.ts.
    */
   async getClientAvatar(clientId: number, expectedUid = ""): Promise<TSClientAvatar | null> {
     const client = this.client;
     if (!client || !this.connected) throw new Error("TeamSpeak session is not ready");
     if (!Number.isInteger(clientId) || clientId <= 0 || clientId > 65535) throw new Error("Invalid TeamSpeak client id");
     const generation = this.connectionGeneration;
-    const isCurrent = () => this.client === client && this.connected && this.connectionGeneration === generation;
-    const rows = await client.execCommandWithResponse(`clientinfo clid=${clientId}`, 5_000);
-    if (!isCurrent()) return null;
-    const info = rows.find((row) => {
-      if (expectedUid && row.client_unique_identifier !== expectedUid) return false;
-      return typeof row.client_flag_avatar === "string" && typeof row.client_base64HashClientUID === "string";
-    });
-    if (!info) return null;
-    const cacheKey = info.client_flag_avatar?.trim() ?? "";
-    const avatarFileKey = info.client_base64HashClientUID?.trim() ?? "";
-    if (!cacheKey || !/^[A-Za-z0-9+/=_-]{8,256}$/.test(avatarFileKey)) return null;
-
-    const transfer = await client.fileTransferInitDownload(0n, `/avatar_${avatarFileKey}`, "");
-    if (!isCurrent()) return null;
-    const size = Number(transfer.size);
-    if (!Number.isSafeInteger(size) || size <= 0 || size > MAX_CLIENT_AVATAR_BYTES) return null;
-
-    const chunks: Buffer[] = [];
-    const destination = new Writable({
-      write(chunk: Buffer | string, _encoding, callback) {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-        callback();
-      },
-    });
-    await client.downloadFileData(this.options.target.host, transfer, destination);
-    if (!isCurrent()) return null;
-    const data = Buffer.concat(chunks);
-    if (data.length === 0 || data.length > MAX_CLIENT_AVATAR_BYTES) return null;
-    return { cacheKey, data };
+    return fetchTeamSpeakClientAvatar(
+      client,
+      this.options.target.host,
+      clientId,
+      expectedUid,
+      () => this.client === client && this.connected && this.connectionGeneration === generation,
+    );
   }
 
   private attachClientListeners(client: TS3FullClient): void {
