@@ -7,7 +7,7 @@ WebSpeak connects browser users to TeamSpeak 3 and TeamSpeak 6 through a self-ho
 | Location | Responsibility |
 | --- | --- |
 | `src/index.ts` | Gateway startup, SQLite, master secret, admin service and shutdown |
-| `src/server/server.ts` | HTTP or HTTPS, public configuration, skins, join tickets, admin routes and static frontend |
+| `src/server/server.ts` | HTTP or HTTPS, public configuration, join tickets, admin routes and static frontend |
 | `src/server/voice-bridge.ts` | `/ws/voice`, admission, connection/reconnection orchestration and voice transport assembly |
 | `src/server/voice-commands.ts`, `directory-view.ts`, `audio-stats.ts` | Command execution, public directory projection and diagnostic snapshots |
 | `src/server/member-avatars.ts` | Generation-bound optional avatar downloads, bounded sequential batches, cached images and timer cleanup |
@@ -35,12 +35,11 @@ WebSpeak connects browser users to TeamSpeak 3 and TeamSpeak 6 through a self-ho
 | `web/src/web-client/chat-controller.ts`, `channel-tree.ts`, `members-controller.ts` | Destination-owned drafts and pending sends, identity-bound private history, and iterative channel-tree projection |
 | `web/src/web-client/home-identity.ts`, `identity-persistence.ts`, `web/src/services/identity-import.ts` | Page-owned identity reads, parsing, restoration and exports; a presentation dialog with explicit input and action events |
 | `web/src/voice/audio-diagnostics.ts`, `web/src/web-client/performance-monitor.ts` | Session-owned diagnostic probes and compatibility counters, browser statistics, comparable sample scopes and cancellable UI polling |
-| `web/src/services/`, `web/src/i18n/`, `web/src/skins/` | Browser persistence, identity import, skin packages and translations |
-| `web/src/web-client/skin-controller.ts`, `web/src/services/skin-operation.ts` | Shared public-page skin initialization and selection, page ownership, cancellation and bounded loading |
-| `web/src/services/admin-api.ts`, `admin-requests.ts` | Admin HTTP validation and cancellation, session-bound CSRF and per-feature request ownership, including skin uploads and backup downloads |
-| `web/src/admin/server-settings-controller.ts`, `operations-controller.ts`, `skins-controller.ts` | Admin form merging, probes, operational actions and skin state; the page owns authentication, routing and overview |
-| `web/src/components/admin/` | Server settings, operations and skin presentation; the parent page retains the feature controller instances across subroute changes |
-| `web/src/hooks/use-i18n.ts`, `web/src/i18n/` | Admin formatting and error/status mappings; all five languages explicitly implement the same translation keys |
+| `web/src/services/`, `web/src/i18n/` | Browser persistence, identity import and translations (zh is the baseline, en a standalone override) |
+| `web/src/services/admin-api.ts`, `admin-requests.ts` | Admin HTTP validation and cancellation, session-bound CSRF and per-feature request ownership, including backup downloads |
+| `web/src/admin/server-settings-controller.ts`, `operations-controller.ts` | Admin form merging, probes and operational actions; the page owns authentication, routing and overview |
+| `web/src/components/admin/` | Server settings and operations presentation; the parent page retains the feature controller instances across subroute changes |
+| `web/src/hooks/use-i18n.ts`, `web/src/i18n/` | Admin formatting and error/status mappings; both languages implement the same translation keys |
 
 ## Connection and control protocol
 
@@ -91,7 +90,7 @@ The performance panel only subtracts counters from matching scopes, transports a
 
 Accompaniment changes keep the WebRTC sender output alive. Prepare and connect the new source before replacing the old one; a failure preserves the current microphone and accompaniment. The input mixer owns its nodes and output track, never the externally owned capture streams. Release partial allocations and continue cleanup if an individual node fails. Application audio bypasses microphone gain/denoising and retains its source level.
 
-The accompaniment controller owns both active and pending captures. Stop, disconnect and replacement immediately release candidates already returned by the browser, even while optional constraints are pending. Late permissions are stopped on arrival; ended or stale candidates cannot be published. Register ended listeners during preparation and publish activity only after attachment succeeds. Optional content hints and processing constraints may fail without losing capture; distinguish audio attachment errors from permission errors in all five languages.
+The accompaniment controller owns both active and pending captures. Stop, disconnect and replacement immediately release candidates already returned by the browser, even while optional constraints are pending. Late permissions are stopped on arrival; ended or stale candidates cannot be published. Register ended listeners during preparation and publish activity only after attachment succeeds. Optional content hints and processing constraints may fail without losing capture; distinguish audio attachment errors from permission errors in both languages.
 
 Microphone metering is optional and must not interrupt voice. Its nodes and timer belong to one meter instance; a queued old tick cannot read the next session's analyser or publish a level. Allocation, connection and read failures release all meter resources and clear level/speaking presentation, while preserving the capture stream and peer. Keep the 512-sample analyser and 50 ms cadence unless audio validation justifies changing them.
 
@@ -125,7 +124,7 @@ Startup identity restoration must not overwrite a newer import or remember prefe
 
 Admin requests belong to the login session and feature that started them. Invalidate pending work on authentication changes and page disposal; cancel feature work on management subroute exit. A late 401 must not expire a newer session, and late login or backup results must not navigate or download after disposal. Aborted work is not a user-facing failure. Failed logout preserves the authenticated draft; successful logout or session expiry resets private page state.
 
-Settings responses merge against the submitted snapshot instead of replacing newer edits. The password and its action are one atomic draft group. Clear acknowledged secret inputs, retain edits made during the request, and do not restore obsolete probe metadata. Serialize skin mutations and prevent duplicate invite actions; cancelling browser work does not undo a server mutation already executed.
+Settings responses merge against the submitted snapshot instead of replacing newer edits. The password and its action are one atomic draft group. Clear acknowledged secret inputs, retain edits made during the request, and do not restore obsolete probe metadata; cancelling browser work does not undo a server mutation already executed.
 
 | Source | Purpose |
 | --- | --- |
@@ -138,7 +137,7 @@ Settings responses merge against the submitted snapshot instead of replacing new
 | `WEBSPEAK_LOG_LEVEL` | Set to `debug` to restore verbose rotating-file logging, including SDK protocol chatter; defaults to `info` |
 | `WEBSPEAK_SDK_DEBUG` | Set to `1` to enable TeamSpeak SDK protocol debug logging; the raw output may contain credentials, so keep it off unless diagnosing |
 | `WEBSPEAK_TRUST_PROXY` | Set to `1` to declare a reverse proxy; forwarded headers then identify clients for rate limits and logs, and proxy-terminated TLS keeps secure cookies |
-| Browser IndexedDB and localStorage | Local identities, preferences, server history and skin state |
+| Browser IndexedDB and localStorage | Local identities, preferences, server history and theme preference |
 
 The current SQLite schema version is defined in `src/persistence/database.ts`. Keep schema migrations separate from structural refactors. Legacy fields such as `voiceToken`, `tsApiKey`, `tsQueryPort`, `port` and `maxClients` do not configure the current gateway.
 
@@ -157,11 +156,11 @@ npm --prefix web ci --no-audit --no-fund
 npm run verify
 ```
 
-`npm run verify` runs ESLint, unit tests, the backend build and `npm run web:build`. The latter delegates to the frontend build, including `vue-tsc --noEmit`. `npm test` discovers every `*.test.{ts,mjs}` file through `scripts/run-tests.mjs`, so new test files never need a manifest entry. Use `npm run dev` and `npm run web:dev` for development, or `npm start` after building both applications.
+`npm run verify` runs the root ESLint, unit tests, the backend build and `npm run web:ci`, which chains frontend ESLint, stylelint, Vitest and the frontend build (`tsc -b && vite build`). `npm test` discovers every `*.test.{ts,mjs}` file through `scripts/run-tests.mjs`, so new test files never need a manifest entry. Use `npm run dev` and `npm run web:dev` for development, or `npm start` after building both applications.
 
 `npm run benchmark` measures the gateway audio pipeline (Opus encode/decode throughput, the WebRTC mixer per-tick cost projected onto the session × speaker matrix, per-codec memory). Run it before and after touching the audio path or codec parameters, and on the target machine when capacity decisions (worker threads, session limits, quality parameters) are on the table.
 
-Headless Vue tests use Vite middleware mode with both HMR and the WebSocket listener disabled (`hmr: false`, `ws: false`). Disabling HMR alone still reserves Vite's default socket port and causes parallel test processes to conflict.
+Component tests run in jsdom (`vitest.config.ts`). Tests that depend on timers or budgets must pin the clock instead of advancing it inside doubles.
 
 CI verifies pushes to `dev` and `master`, pull requests and manual runs. Docker publication on `master` or release tags, and release packaging on tags or manual runs, call the same verification workflow before publishing or packaging. Verification includes the application checks and a Docker HTTP health smoke test; that smoke test does not prove voice or screen-sharing functionality.
 
@@ -169,15 +168,15 @@ Tests requiring a real TeamSpeak server or browser media devices must document t
 
 ## Repository maintenance
 
-Routes load their page modules on demand. Document-level page styles must be gated by `html[data-ws-route]` because loaded CSS remains after navigation. The admin stylesheet is independent of public skins. Component extraction must retain `data-ws-part` hooks and account for Vue scoped styles across component boundaries.
+Routes load their page modules on demand. Document-level page styles must be gated by `html[data-ws-route]` because loaded CSS remains after navigation. The admin stylesheet is unlayered and build-scoped under `.admin-root` (see the plugin in `vite.config.ts`); product CSS is layered by component family — read `docs/DESIGN.md` before touching `web/src/styles/`. Component extraction must retain `data-ws-part` anchors.
 
-The identity dialog retains page-owned CSS with narrowly targeted `:deep` selectors so the existing declaration order and specificity remain intact. Shared button rules target its dedicated classes across the component boundary. Its close button is positioned within the modal. Public skin-contract tests include Vue files recursively under `components/web-client`; keep new public parts documented.
+The identity import dialog keeps page-owned CSS; shared button rules target its dedicated classes across the component boundary. `data-ws-part` anchors are the contract consumed by the Playwright smoke suite — keep them as static literals.
 
 The public join form uses explicit named field models and emits page actions. The chat panel receives a presentation subset of the single page-owned chat controller; keep its list ref bound to the rendered scroller so tab changes and new messages retain automatic scrolling. Form grid columns must allow shrinking, and narrow identity controls must wrap without clipping translated text.
 
 The member panel and actions menu also share one page-owned member controller. The panel exposes an audio-dock slot; menu placement uses measured viewport bounds, converts through the page CSS zoom, and releases its resize observer/listener on unmount. Only desktop may open the move submenu on hover: mobile bottom-anchored menus change position when expanded and must open on click to avoid moving a member accidentally. Constrain short-window menus and allow scrolling.
 
-Voice member cards receive the current channel projection, speaking/avatar helpers and a narrow sharing interface. Keep the sharing refs stable; member menus and stop-sharing actions return to the page through events. Empty, self, speaking, starting, sharing and viewing states must retain their skin hooks and mobile behavior.
+Voice member cards receive the current channel projection, speaking/avatar helpers and a narrow sharing interface. Keep the sharing refs stable; member menus and stop-sharing actions return to the page through events. Empty, self, speaking, starting, sharing and viewing states must retain their `data-ws-part` anchors and mobile behavior.
 
 Voice diagnostics and screen-sharing presentation also reuse page-owned controllers. Bind the player and video with explicit element callbacks. Rebind an existing stream when its video element changes, clear the previous element, and never stop the media owner's tracks during presentation cleanup. Fullscreen requires a non-null owned player; removing it exits only its own fullscreen. Known screen owner IDs take precedence over nickname fallback, including duplicate nicknames. Sharing settings use the common dialog focus handling.
 
@@ -185,18 +184,12 @@ The audio dock and whisper strip share the page-owned audio controller. Push-to-
 
 Audio settings and password dialogs retain one page-owned media/connection state. Dialog focus supports initial focus, Tab cycling, Escape and return to the opener, with a connect-button fallback after pending connections disable that opener. Settings error feedback belongs to the current opening and latest request; closing synchronously stops recording tests, and scope disposal retires pending feedback and stops tests too. A non-password channel error must release the password dialog's pending state and preserve its draft for retry; reject duplicate submissions while pending.
 
-Admin presentation components receive stable feature controllers; do not instantiate duplicate controllers in children. The welcome-language model remains page-owned and the skin file input belongs to its presentation component. Feature CSS crosses these boundaries with `:deep`, while shell and language-control selectors retain their existing scope. On narrow screens the brand and logout occupy the first row and all four navigation links share a separate row with at least 44 px high targets.
+Admin presentation components receive stable feature controllers; do not instantiate duplicate controllers in children. The welcome-language model remains page-owned. All admin rules live in the admin stylesheet files — presentation components carry no scoped styles. On narrow screens the brand and logout occupy the first row and all four navigation links share a separate row with at least 44 px high targets.
 
 Keep each repair batch tied to its current plan item. Combine related fixes before running the full verification command; use focused checks during diagnosis and repeat the full suite only when subsequent changes or failures warrant it.
 
-Keep template/CSS formatting separate from behavior changes. Preserve inline whitespace text nodes when wrapping Vue tags; compare compiled render output when needed. CSS formatting must retain selector meaning, values and declaration/rule order. Layout assertions should tolerate formatting whitespace while still checking the intended rules and values.
-
-Public skin activation is last-choice-owned across both public pages. Retire previous runtime work before preparing a replacement, and reject results after page disposal, a newer choice or local-data reset. Check ownership before modifying document styles, selected content, asset URLs or stored preferences. An already aborted caller must not cancel a newer page's activation. Release compiled candidate URLs on failed installation.
-
-Skin initialization has an 8-second total deadline covering preference reads, directory fetch and body, package loading and activation. Network stages also have bounded standalone operations. A timeout reveals a usable built-in palette and retires late work; retain the explicit skin choice for a later retry. Normal initialization still respects the enabled instance default unless the visitor made a deliberate choice.
-
-Skin cache writes and preference persistence accept the owning AbortSignal, including while waiting for IndexedDB to open and during its write transaction. Report storage success at transaction completion. Merge preferences within one transaction so concurrent unrelated settings are preserved. Cancellation of optional persistence must never block page use.
+Keep template/CSS formatting separate from behavior changes. CSS formatting must retain selector meaning, values and declaration/rule order. Layout assertions should tolerate formatting whitespace while still checking the intended rules and values.
 
 Validate admin responses before applying them to page state. Network and protocol failures must preserve unsaved input; a failed logout must not be presented as a successful logout. Keep secret keep/replace/remove actions intact and do not persist credentials in UI error messages or diagnostic logs.
 
-Git remotes: `origin` points at the maintained fork repository and `upstream` at `https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak`. Keep private configuration, runtime data and local deployment archives out of source commits. Preserve documented skin hooks and browser persistence formats during component refactors.
+Git remotes: `origin` points at the maintained fork repository and `upstream` at `https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak`. Keep private configuration, runtime data and local deployment archives out of source commits. Preserve `data-ws-part` anchors and browser persistence formats during component refactors.
