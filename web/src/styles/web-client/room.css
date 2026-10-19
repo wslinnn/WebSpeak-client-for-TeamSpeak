@@ -184,7 +184,7 @@
   border: 1px solid var(--wsd-border);
   border-radius: 13px;
   background: var(--wsd-panel);
-  box-shadow: 0 7px 18px rgba(16,18,22,.04);
+  box-shadow: var(--wsd-shadow-raised);
   text-align: center;
   transition: .18s;
 }
@@ -195,7 +195,6 @@
   z-index: 3;
   transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--wsd-text) 24%, transparent);
-  box-shadow: 0 11px 24px rgba(16,18,22,.08);
 }
 }
 
@@ -504,7 +503,7 @@
 .mic-mode-switch button.active {
   color: var(--wsd-accent);
   background: var(--wsd-panel);
-  box-shadow: 0 2px 5px rgba(16,18,22,.08);
+  box-shadow: var(--wsd-shadow-raised);
   font-weight: 700;
 }
 
@@ -1679,7 +1678,7 @@ button.screen-share-live-indicator:focus-visible {
   border: 2px solid var(--wsd-panel);
   border-radius: 7px;
   background: var(--wsd-raised);
-  box-shadow: 0 3px 9px color-mix(in srgb, var(--wsd-text) 18%, transparent);
+  box-shadow: var(--wsd-shadow-raised);
   cursor: pointer;
 }
 
@@ -1725,7 +1724,7 @@ button.screen-share-live-indicator:focus-visible {
   border: 1px solid var(--wsd-border);
   border-radius: 16px;
   background: var(--wsd-panel);
-  box-shadow: 0 20px 60px color-mix(in srgb, var(--wsd-text) 20%, transparent);
+  box-shadow: var(--wsd-shadow-modal);
 }
 
 .screen-share-settings-close {
@@ -1844,7 +1843,7 @@ button.screen-share-live-indicator:focus-visible {
   border: 1px solid var(--wsd-border);
   border-radius: 18px;
   background: var(--wsd-panel);
-  box-shadow: 0 12px 30px color-mix(in srgb, var(--wsd-text) 18%, transparent);
+  box-shadow: var(--wsd-shadow-pop);
 }
 
 .screen-share-player-stage {
@@ -1912,7 +1911,7 @@ button.screen-share-live-indicator:focus-visible {
   border: 1px solid color-mix(in srgb, var(--wsd-border) 78%, transparent);
   border-radius: 50%;
   background: color-mix(in srgb, var(--wsd-panel) 88%, transparent);
-  box-shadow: 0 5px 16px color-mix(in srgb, var(--wsd-text) 14%, transparent);
+  box-shadow: var(--wsd-shadow-pop);
   backdrop-filter: blur(8px);
   cursor: pointer;
 }
@@ -1948,7 +1947,7 @@ button.screen-share-live-indicator:focus-visible {
   border: 1px solid color-mix(in srgb, var(--wsd-border) 78%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--wsd-panel) 88%, transparent);
-  box-shadow: 0 5px 16px color-mix(in srgb, var(--wsd-text) 14%, transparent);
+  box-shadow: var(--wsd-shadow-pop);
   backdrop-filter: blur(8px);
 }
 
@@ -1979,7 +1978,7 @@ button.screen-share-live-indicator:focus-visible {
   border-radius: 50%;
   font-size: 9px;
   font-weight: 800;
-  box-shadow: 0 2px 7px color-mix(in srgb, var(--wsd-text) 22%, transparent);
+  box-shadow: var(--wsd-shadow-raised);
 }
 
 .screen-share-player-live {
@@ -1995,7 +1994,7 @@ button.screen-share-live-indicator:focus-visible {
   border: 1px solid color-mix(in srgb, var(--wsd-border) 78%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--wsd-panel) 88%, transparent);
-  box-shadow: 0 5px 16px color-mix(in srgb, var(--wsd-text) 14%, transparent);
+  box-shadow: var(--wsd-shadow-pop);
   backdrop-filter: blur(8px);
   font-size: 11px;
   font-weight: 800;
@@ -2022,7 +2021,7 @@ button.screen-share-live-indicator:focus-visible {
   border: 1px solid color-mix(in srgb, var(--wsd-border) 78%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--wsd-panel) 88%, transparent);
-  box-shadow: 0 5px 16px color-mix(in srgb, var(--wsd-text) 14%, transparent);
+  box-shadow: var(--wsd-shadow-pop);
   backdrop-filter: blur(8px);
   font-size: 12px;
   font-weight: 800;
@@ -2050,7 +2049,7 @@ button.screen-share-live-indicator:focus-visible {
   border: 1px solid color-mix(in srgb, var(--wsd-border) 78%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--wsd-panel) 88%, transparent);
-  box-shadow: 0 5px 16px color-mix(in srgb, var(--wsd-text) 14%, transparent);
+  box-shadow: var(--wsd-shadow-pop);
   backdrop-filter: blur(8px);
 }
 
@@ -2508,7 +2507,7 @@ button.screen-share-live-indicator:focus-visible {
     color: var(--wsd-accent-contrast);
     background: var(--wsd-accent-fill);
     border-radius: 9px;
-    box-shadow: 0 5px 14px rgba(16, 18, 22, .16);
+    box-shadow: var(--wsd-shadow-raised);
   }
   .member-panel {
     display: flex;

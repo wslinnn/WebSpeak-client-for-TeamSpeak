@@ -41,7 +41,7 @@ html[data-ws-route="admin"] body {
   color: var(--wsd-accent-contrast);
   background: var(--wsd-accent);
   border-radius: 12px;
-  box-shadow: 0 8px 22px rgba(0,0,0,.15);
+  box-shadow: var(--wsd-shadow-raised);
 }
 
 .admin-brand strong,
@@ -90,7 +90,7 @@ html[data-ws-route="admin"] body {
   background: var(--wsd-panel);
   border: 1px solid var(--wsd-border);
   border-radius: 20px;
-  box-shadow: 0 20px 55px rgba(27,69,61,.09);
+  box-shadow: var(--wsd-shadow-raised);
 }
 
 .setup-card header h2,
@@ -432,7 +432,6 @@ fieldset {
   color: var(--wsd-accent-contrast);
   background: var(--wsd-accent);
   border-color: var(--wsd-accent);
-  box-shadow: 0 7px 16px rgba(16, 18, 22, .12);
 }
 
 .language-trigger .ui-icon {
@@ -477,7 +476,7 @@ fieldset {
   background: var(--wsd-panel);
   border: 1px solid var(--wsd-border);
   border-radius: 13px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, .18), 0 3px 8px rgba(0, 0, 0, .07);
+  box-shadow: var(--wsd-shadow-pop);
   animation: admin-language-menu-in .14s ease-out;
 }
 

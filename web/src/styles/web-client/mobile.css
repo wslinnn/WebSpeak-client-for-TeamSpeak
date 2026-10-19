@@ -134,7 +134,7 @@
     background: var(--wsd-panel);
     border: 1px solid var(--wsd-border);
     border-radius: 14px;
-    box-shadow: 0 18px 44px rgba(9, 28, 24, .18);
+    box-shadow: var(--wsd-shadow-pop);
   }
   .join-page .header-links.open .guide-button {
     display: inline-flex;

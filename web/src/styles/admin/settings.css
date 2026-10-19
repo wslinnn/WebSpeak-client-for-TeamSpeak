@@ -513,7 +513,7 @@ html[data-ws-route="admin"] *::-webkit-scrollbar-thumb:hover {
   background: var(--wsd-panel);
   border: 1px solid var(--wsd-border);
   border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(14,62,55,.2);
+  box-shadow: var(--wsd-shadow-modal);
 }
 
 .modal-icon {

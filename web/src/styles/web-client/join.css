@@ -180,7 +180,7 @@
   border: 1px solid color-mix(in srgb, var(--wsd-border) 80%, transparent);
   border-radius: 20px;
   background: color-mix(in srgb, var(--wsd-panel) 86%, transparent);
-  box-shadow: 0 20px 52px rgba(16, 18, 22, .08);
+  box-shadow: var(--wsd-shadow-raised);
   backdrop-filter: blur(12px);
 }
 

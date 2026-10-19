@@ -719,7 +719,7 @@ html[data-ws-route="admin"] #root {
 .admin-root .setup-card {
   background: var(--card);
   border-color: var(--border);
-  box-shadow: 0 20px 52px rgba(35, 68, 63, .08);
+  box-shadow: var(--wsd-shadow-raised);
 }
 
 .admin-root .login-card h1,

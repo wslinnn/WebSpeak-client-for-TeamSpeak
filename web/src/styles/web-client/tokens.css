@@ -47,6 +47,13 @@
   --wsd-danger-contrast: #ffffff;
   /* Shared modal veil; night keeps the same neutral dark. */
   --wsd-backdrop: rgba(12, 14, 16, .52);
+  /* Elevation, three levels only: raised surfaces (cards, bars floating over
+   * content), pop (menus/dropdowns/toasts) and modal (dialogs). Shadow color
+   * is neutral ink, never --wsd-text — that token turns near-white at night
+   * and the same mix would render as a light halo. */
+  --wsd-shadow-raised: 0 1px 2px rgba(16, 18, 22, .05), 0 2px 8px rgba(16, 18, 22, .05);
+  --wsd-shadow-pop: 0 10px 24px rgba(12, 14, 18, .16);
+  --wsd-shadow-modal: 0 24px 56px rgba(8, 10, 14, .22);
   --wsd-radius: 9px;
   /* Geist 是应用字体（index.css @fontsource 加载）：拉丁/数字走 Geist，CJK
    * 落到系统苹方/雅黑——与 admin、download 同一拉丁字形，品牌字标不再分叉。 */
@@ -78,6 +85,11 @@
   --wsd-danger-contrast: #131316;
   --wsd-on-fill: #ffffff;
   --wsd-backdrop: rgba(12, 14, 16, .52);
+  /* Dark surfaces swallow weak shadows: night keeps the geometry and raises
+   * the alpha so elevation still reads. */
+  --wsd-shadow-raised: 0 1px 2px rgba(0, 0, 0, .38), 0 2px 8px rgba(0, 0, 0, .32);
+  --wsd-shadow-pop: 0 10px 24px rgba(0, 0, 0, .5);
+  --wsd-shadow-modal: 0 24px 56px rgba(0, 0, 0, .55);
 }
 
 /* Typography: the token stack is the app-wide font source. */

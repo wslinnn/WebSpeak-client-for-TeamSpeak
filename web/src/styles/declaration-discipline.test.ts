@@ -10,6 +10,8 @@ import { describe, expect, it } from "vitest";
  * 2. --ws-z-* 阶梯单源——只允许定义在 index.css :root，防副本复活。
  * 3. !important 锁面盘点——每文件数量钉顶，新增锁必须有意更新基线；
  *    锁面单源约束见 cascade-locks.test.ts。
+ * 4. 阴影使用点零裸值——层级只有三级 --wsd-shadow-*（tokens.css 单源），
+ *    状态环（0 0 0 …）与引用 --wsd-* 颜色的辉光豁免。
  *
  * 读文件而非 ?raw 导入：vitest 对 CSS 走 stub；web 测试恒经 `npm --prefix web`
  * 运行，cwd = web/ 根。
@@ -41,6 +43,20 @@ function countUseSiteHex(css: string): number {
   return n;
 }
 
+/** 阴影使用点计数：值必须引用 --wsd-* 令牌（三级阴影令牌，或颜色令牌的
+ * 辉光），或为 none / 0 0 0 状态环；裸 rgba 阴影一律不允许。 */
+function countRawShadows(css: string): number {
+  let n = 0;
+  for (const line of css.split("\n")) {
+    const value = line.match(/box-shadow:\s*([^;]+);/)?.[1]?.trim();
+    if (value === undefined || value === "none") continue;
+    if (value.includes("var(--wsd-")) continue;
+    if (/^0 0 0\b/.test(value)) continue;
+    n += 1;
+  }
+  return n;
+}
+
 describe("声明纪律棘轮", () => {
   it("web-client 颜色使用点零裸 hex（色值只住在命名变量定义里）", () => {
     for (const name of readdirSync(join(stylesDir, "web-client"))) {
@@ -48,6 +64,13 @@ describe("声明纪律棘轮", () => {
       const key = `styles/web-client/${name}`;
       const n = countUseSiteHex(read(join("src", key)));
       expect(n, `${key} 使用点裸 hex ${n}；颜色一律 var() 引用，新色值先落成命名变量`).toBe(0);
+    }
+  });
+
+  it("阴影使用点零裸值（层级只有 --wsd-shadow-* 三级）", () => {
+    for (const key of allCssKeys()) {
+      const n = countRawShadows(read(join("src", key)));
+      expect(n, `${key} 裸 box-shadow ${n} 处；用 var(--wsd-shadow-raised|pop|modal)`).toBe(0);
     }
   });
 
