@@ -8,7 +8,7 @@
 
 ## 1. 颜色令牌：`--wsd-*` 单轨
 
-**唯一调色板**定义在 `web/src/styles/web-client/tokens.css`，作用域为产品路由根（`.web-client, .download-page`）。日间值为默认，夜间整块挂在 `.dark .web-client, .dark .download-page` 覆盖（`html.dark` 由 `theme.ts` 维护），`color-scheme` 随令牌块同步翻转。
+**唯一调色板**定义在 `web/src/styles/web-client/tokens.css`，作用域为产品路由根（`.web-client, .download-page, .admin-root`）。日间值为默认，夜间整块挂在 `.dark …` 覆盖（`html.dark` 由 `theme.ts` 维护：system/light/dark 三态偏好解析成单一视觉开关，`data-theme` 属性只记录偏好不参与样式匹配），`color-scheme` 随令牌块同步翻转。管理台路由是独立懒加载 chunk，其清单（`styles/admin.css`）首行引入 tokens.css——ws-tokens 层不在 admin 加载面，令牌定义必须随行。
 
 | 令牌 | 用途 | 日间 | 夜间 |
 | --- | --- | --- | --- |
@@ -73,7 +73,7 @@ ws-tokens < ws-base < ws-ui < ws-join < ws-chrome < ws-room
 - `!important` 是锁面：每文件数量钉顶、同族锁单源（`cascade-locks.test.ts`、`declaration-discipline.test.ts`）；important 跨层按**早层胜**裁决，加锁前先确认同族没有更早层的锁。
 - Tailwind utilities 层位于全部 `ws-*` 层之前——分片规则在共享属性上胜过 utility 类；TSX 里的 Tailwind 只用于分片未接管的布局便利。
 
-管理台样式（`web/src/styles/admin/`，五个职责文件）**刻意不分层**：构建期由 `vite.config.ts` 的插件统一加 `.admin-root` 前缀做作用域，未分层规则结构性胜过 web-client 分层规则，这是两个界面互不污染的根基。文件内级联 = 导入序（layout.css 恒最后）。
+管理台样式（`web/src/styles/admin/`，五个职责文件 + tokens 引入）**刻意不分层**：构建期由 `vite.config.ts` 的插件统一加 `.admin-root` 前缀做作用域，未分层规则结构性胜过 web-client 分层规则，这是两个界面互不污染的根基。文件内级联 = 导入序（layout.css 恒最后）。色值与 web-client 同源（`--wsd-*` 单令牌轨，散装 hex 已清偿）；管理台局部令牌只剩四个语义位（`--admin-field/--admin-sunk/--admin-sidebar-muted/--admin-hero-muted`，定义在 theme-overrides 的 `.admin-root` 块）；共享组件（如 LanguageSwitcher）的类样式在 admin 侧自持一份（路由 chunk 不含 ws-menus 层），几何两处对齐、色值经令牌天然同源。
 
 ## 4. 排印与断点
 
@@ -94,5 +94,6 @@ ws-tokens < ws-base < ws-ui < ws-join < ws-chrome < ws-room
 
 - 报告 19（KAAK 对齐）确立四栏工作区与磁贴语言；随后整体重定调为 Graphite × cobalt。
 - 2026-10-18 皮肤系统整体下架：日/夜改 `html.dark` 静态承载，`night.css` 接管夜间组件面。
+- 2026-10-19 管理台并入单一主题通道与令牌源：暗色键从 `data-theme` 双族（显式 dark + system 经 media query 复制整块）统一到 `html.dark`；`--admin-*` 轨道折叠进 `--wsd-*`（局部只剩四个语义位），散装 hex 163→3（全部是局部令牌定义行）；CSP 收紧皮肤时代的 `img-src/font-src blob:` 遗留通道（盘点零消费）。
 - 2026-10-19 令牌单轨（遗留 `--ws-*`/`--surface-*`/`--skin-*` 全部 1:1 映射进 `--wsd-*` 后删除）+ 组件族归位 + 语义层阶梯（原批次序号层 w00–w22 废止）。
 - 2026-10-19 hex 清偿：web-client 十文件颜色使用点裸 hex 归零（原存量约 110 处）；旧绿调色板残留（面包屑/成员面板/聊天输入、移动端收藏 chip）归入石墨令牌；横幅与 toast 改组件根语义变量；新增 `--wsd-on-fill`；夜间层删除日间归一后冗余的覆盖规则；menus 语言切换器剥除失效的 admin 回退值（admin 由 base-auth.css 全套 `--admin-*` 重建）。
