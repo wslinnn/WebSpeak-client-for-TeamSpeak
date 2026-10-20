@@ -19,6 +19,8 @@ export interface ChannelInfo {
   order?: string;
   name: string;
   description?: string;
+  /** Public "password required" flag from the server; never carries the password. */
+  passwordProtected?: boolean;
   members?: ChannelMember[];
 }
 

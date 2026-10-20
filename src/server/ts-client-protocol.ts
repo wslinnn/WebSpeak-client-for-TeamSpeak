@@ -1,5 +1,6 @@
 import type { DirectoryClientInfo, TextMessage } from "@echosixhiya/teamspeak-client";
 import { Client as TS3FullClient } from "@echosixhiya/teamspeak-client";
+import { parseChannelPasswordProtections } from "./channel-flags.js";
 
 export interface TSChatMessage {
   invokerName: string;
@@ -48,4 +49,15 @@ export async function tsListClientsFull(client: TS3FullClient): Promise<Director
     ...(row.client_output_muted !== undefined ? { outputMuted: row.client_output_muted === "1" } : {}),
     ...(row.client_is_channel_commander !== undefined ? { channelCommander: row.client_is_channel_commander === "1" } : {}),
   }));
+}
+
+/**
+ * TeamSpeak only includes channel flag fields (including the public
+ * password-required bit) when the client asks for flags explicitly, and the
+ * vendored SDK's listChannels never asks. Read the same command here so the
+ * channel tree can mark locked channels; drop this once the SDK keeps flags.
+ */
+export async function tsListChannelFlags(client: TS3FullClient): Promise<Map<bigint, boolean>> {
+  const rows = await client.execCommandWithResponse("channellist -flags", 5_000);
+  return parseChannelPasswordProtections(rows);
 }

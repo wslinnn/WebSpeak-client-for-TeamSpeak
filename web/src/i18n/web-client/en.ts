@@ -160,6 +160,7 @@ export const en: Record<string, string> = {
     serverPasswordRetry: "Enter password and retry",
     serverPasswordRetryPlaceholder: "Enter the server password",
     switchChannel: "Switch channel",
+    channelPasswordRequired: "Channel password required",
     doubleClickToJoin: "Double-click to join",
     collapseChannel: "Collapse channel members",
     expandChannel: "Expand channel members",

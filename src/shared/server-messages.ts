@@ -26,7 +26,7 @@ export type ServerMessage =
   | Message<"avatarUpdate", { uid: string; url: string }>
   | Message<"channelList", { channels: ChannelInfo[] }>
   | Message<"channelCreated", { channel: ChannelInfo }>
-  | Message<"channelUpdated", { id: string; name: string; description?: string }>
+  | Message<"channelUpdated", { id: string; name: string; description?: string; passwordProtected?: boolean }>
   | Message<"channelRemoved", { id: string }>
   | Message<"chatMessage", ChatFields & { scope?: string; senderUid?: string; targetId?: string | number }>
   | Message<"pokeReceived", ChatFields & { invokerUid?: string }>
@@ -74,6 +74,7 @@ function member(value: unknown): value is ChannelMember {
 function channel(value: unknown): value is ChannelInfo {
   return isRecord(value) && text(value.id) && channelId(value.id) && text(value.parentID) && channelId(value.parentID)
     && text(value.name) && optional(value.order, text) && optional(value.description, text)
+    && optional(value.passwordProtected, boolean)
     && optional(value.members, members => arrayOf(members, member));
 }
 
@@ -138,7 +139,7 @@ const valid: Record<ServerMessage["type"], (message: RecordValue) => boolean> = 
   avatarUpdate: m => identifier(m.uid) && avatarUrl(m.url),
   channelList: m => arrayOf(m.channels, channel),
   channelCreated: m => channel(m.channel),
-  channelUpdated: m => channelId(m.id) && text(m.name) && optional(m.description, text),
+  channelUpdated: m => channelId(m.id) && text(m.name) && optional(m.description, text) && optional(m.passwordProtected, boolean),
   channelRemoved: m => channelId(m.id),
   chatMessage: m => text(m.message) && optional(m.invokerId, finite) && optional(m.invokerName, text) && optional(m.timestamp, finite)
     && optional(m.scope, text) && optional(m.senderUid, text) && optional(m.targetId, channelId),

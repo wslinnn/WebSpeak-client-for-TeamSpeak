@@ -198,6 +198,25 @@ test("channel changes preserve large identifiers and publish only actual create,
   assert.equal(f.messages.length, 0);
 });
 
+test("a channel password flag change publishes a channelUpdated delta carrying the flag", t => {
+  const f = fixture(t);
+  const locked = { ...channel(2n, "Room"), passwordProtected: true };
+  f.client.emit("directorySnapshot", { channels: [channel(1n, "Lobby"), locked], clients: [member(1)] });
+  f.coordinator.syncSelf();
+  f.phase.published = true;
+  f.messages.length = 0;
+
+  f.client.emit("channelPasswordProtectionChanged", { channelId: 2n, passwordProtected: false });
+  const updated = f.messages.find(message => message.type === "channelUpdated");
+  assert.deepEqual(updated, { type: "channelUpdated", id: "2", name: "Room", passwordProtected: false });
+  assert.equal(f.state.channelTree.find(item => item.id === "2")?.passwordProtected, false);
+
+  // 未知频道（未进树）不产生任何 delta。
+  f.messages.length = 0;
+  f.client.emit("channelPasswordProtectionChanged", { channelId: 99n, passwordProtected: true });
+  assert.equal(f.messages.length, 0);
+});
+
 test("reset rejects backoff events, keeps shared avatar positives and close detaches only owned listeners", t => {
   const f = fixture(t);
   f.client.emit("directorySnapshot", snapshot(member(1), member(2)));

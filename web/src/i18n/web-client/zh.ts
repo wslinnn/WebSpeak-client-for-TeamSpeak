@@ -160,6 +160,7 @@ export const zh: Record<string, string> = {
     serverPasswordRetry: "输入密码并重试",
     serverPasswordRetryPlaceholder: "请输入服务器密码",
     switchChannel: "切换频道",
+    channelPasswordRequired: "需要频道密码",
     doubleClickToJoin: "双击加入",
     collapseChannel: "折叠频道成员",
     expandChannel: "展开频道成员",

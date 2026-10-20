@@ -29,6 +29,7 @@ interface SdkEvents {
   clientMoved: { id: number; targetChannelID?: bigint };
   clientUpdated: TSDirectoryClient;
   directoryClientsSnapshot: TSDirectoryClient[];
+  channelPasswordProtectionChanged: { channelId: bigint; passwordProtected: boolean };
   rawNotification: TSRawNotification;
   voiceData: TSVoiceData;
   textMessage: TSChatMessage;
@@ -178,6 +179,15 @@ export class SessionEventCoordinator {
       this.directory.applyClientListSnapshot(clients);
       this.refresh();
       this.publishDelta(previousTree, previousMembers);
+    });
+    this.listenDirectory("channelPasswordProtectionChanged", change => {
+      const channelId = String(change.channelId);
+      if (!state.channelTree.some(channel => channel.id === channelId)) return;
+      const previousTree = state.channelTree;
+      state.channelTree = state.channelTree.map(channel => channel.id === channelId
+        ? { ...channel, passwordProtected: change.passwordProtected }
+        : channel);
+      this.publishDelta(previousTree, new Map(state.members));
     });
     this.listen("rawNotification", options.onNotification);
     this.listen("voiceData", options.onVoice);
@@ -333,8 +343,8 @@ export class SessionEventCoordinator {
     for (const channel of state.channelTree) {
       const before = previousChannels.get(channel.id);
       if (!before) deltas.push({ type: "channelCreated", channel });
-      else if (before.name !== channel.name || before.description !== channel.description) {
-        deltas.push({ type: "channelUpdated", id: channel.id, name: channel.name, ...(channel.description ? { description: channel.description } : {}) });
+      else if (before.name !== channel.name || before.description !== channel.description || before.passwordProtected !== channel.passwordProtected) {
+        deltas.push({ type: "channelUpdated", id: channel.id, name: channel.name, ...(channel.description ? { description: channel.description } : {}), ...(channel.passwordProtected !== undefined ? { passwordProtected: channel.passwordProtected } : {}) });
       }
     }
     for (const channel of previousTree) {

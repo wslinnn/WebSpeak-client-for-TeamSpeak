@@ -17,7 +17,8 @@ import { describeTeamSpeakError, normalizeTeamSpeakError, normalizeTeamSpeakKick
 import { escapeTeamSpeakValue } from "../security/ts-escaping.js";
 import { TeamSpeakAdapter, type TeamSpeakProtocol } from "./teamspeak-adapter.js";
 import type { TeamSpeakTarget } from "../domain/teamspeak-target.js";
-import { toTSChatMessage, tsListClientsFull } from "./ts-client-protocol.js";
+import { toTSChatMessage, tsListClientsFull, tsListChannelFlags } from "./ts-client-protocol.js";
+import { applyChannelPasswordFlagNotification } from "./channel-flags.js";
 import { fetchTeamSpeakClientAvatar } from "./ts-client-avatar.js";
 
 export type { TSChatMessage } from "./ts-client-protocol.js";
@@ -43,7 +44,8 @@ export interface TSClientAvatar {
   data: Buffer;
 }
 
-export type TSDirectorySnapshot = DirectorySnapshot;
+export type TSDirectoryChannel = DirectorySnapshot["channels"][number] & { passwordProtected?: boolean };
+export type TSDirectorySnapshot = Omit<DirectorySnapshot, "channels"> & { channels: TSDirectoryChannel[] };
 export type TSDirectoryClient = DirectoryClientInfo;
 export type TSRawNotification = RawNotification;
 
@@ -60,6 +62,9 @@ export class TSClient extends EventEmitter {
   private inputState = { muted: false, accompaniment: false };
   private syncedInputMuted: boolean | null = null;
   private inputStateQueue: Promise<void> = Promise.resolve();
+  /** Public password flags by channel id; reset per connection, updated by
+   *  channel create/edit/delete notifications. */
+  private readonly channelPasswordProtection = new Map<bigint, boolean>();
   private preferredChannelId = 0n;
   // Reason id of the most recent self leave, kept so the SDK `kicked` event can
   // tell a plain kick (4) from a kick with ban (5). The SDK only forwards the
@@ -119,11 +124,17 @@ export class TSClient extends EventEmitter {
     // earlier are visible immediately as well. Realtime events continue to
     // keep the snapshot current after this reconciliation.
     try {
-      const [channels, clients] = await Promise.all([
+      const [channels, clients, flags] = await Promise.all([
         tsListChannels(client),
         tsListClientsFull(client),
+        // Flag 读取失败只损失锁标记，不影响目录本体。
+        tsListChannelFlags(client).catch((flagError: unknown) => {
+          this.logger.warn({ err: flagError instanceof Error ? flagError.message : String(flagError) }, "Could not read TeamSpeak channel flags");
+          return null;
+        }),
       ]);
-      this.emit("directorySnapshot", { channels, clients });
+      if (flags) for (const [id, passwordProtected] of flags) this.channelPasswordProtection.set(id, passwordProtected);
+      this.emit("directorySnapshot", { channels: this.applyChannelFlags(channels), clients });
     } catch (error: unknown) {
       this.logger.warn({
         failureCode: "DIRECTORY_SNAPSHOT_UNAVAILABLE",
@@ -152,6 +163,15 @@ export class TSClient extends EventEmitter {
 
     this.logger.info({ clientId: this.clientId }, "Connected to TeamSpeak");
     this.emit("connected", this.clientId);
+  }
+
+  /** 授权读取的频道锁标记挂到目录频道上；无标记的频道保持原样。 */
+  private applyChannelFlags(channels: DirectorySnapshot["channels"]): TSDirectoryChannel[] {
+    if (!this.channelPasswordProtection.size) return channels;
+    return channels.map((channel) => {
+      const passwordProtected = this.channelPasswordProtection.get(channel.id);
+      return passwordProtected === undefined ? channel : { ...channel, passwordProtected };
+    });
   }
 
   /** Refresh optional member status fields omitted by some client-enter events. */
@@ -208,13 +228,15 @@ export class TSClient extends EventEmitter {
     client.on("directorySnapshot", (snapshot) => {
       if (this.client !== client) return;
       this.emit("directorySnapshot", {
-        channels: snapshot.channels.slice(),
+        channels: this.applyChannelFlags(snapshot.channels.slice()),
         clients: snapshot.clients.slice(),
       });
     });
 
     client.on("rawNotification", (notification: RawNotification) => {
       if (this.client !== client) return;
+      const flagChange = applyChannelPasswordFlagNotification(notification.name, notification.params, this.channelPasswordProtection);
+      if (flagChange) this.emit("channelPasswordProtectionChanged", flagChange);
       this.emit("rawNotification", {
         name: notification.name,
         params: { ...notification.params },
@@ -245,6 +267,7 @@ export class TSClient extends EventEmitter {
       }
       this.connected = false;
       this.clientId = 0;
+      this.channelPasswordProtection.clear();
       this.emit("disconnected", err);
     });
 

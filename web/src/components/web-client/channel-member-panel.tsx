@@ -225,13 +225,14 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
                   className="member-channel-heading"
                   data-ws-part="voice.channel-group.heading"
                   data-ws-state={current ? "current" : "idle"}
+                  data-password-protected={channelItem.passwordProtected ? "true" : undefined}
                   aria-current={current ? "true" : undefined}
-                  title={t("switchChannel")}
+                  title={channelItem.passwordProtected ? `${t("switchChannel")} · ${t("channelPasswordRequired")}` : t("switchChannel")}
                   onClick={() => setPendingJoinId(channelItem.id)}
                   onDoubleClick={() => props.onSelectChannel(channelItem)}
                   onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); props.onSelectChannel(channelItem); } }}
                 >
-                  <Icon name="volume" size={17} />
+                  <Icon name={channelItem.passwordProtected ? "lock" : "volume"} size={17} />
                   <span>{channelItem.name}</span>
                   <small>{channelItem.members.length}</small>
                   {selected && !current && <em className="member-channel-join-hint">{t("doubleClickToJoin")}</em>}

@@ -316,7 +316,11 @@ export function createVoiceSessionState(options: SessionStateOptions) {
         const index = channels.findIndex(candidate => candidate.id === message.id);
         if (index < 0) break;
         const channel = channels[index]!;
-        channels[index] = { ...channel, name: message.name, ...(message.description !== undefined ? { description: message.description } : {}) };
+        channels[index] = {
+          ...channel, name: message.name,
+          ...(message.description !== undefined ? { description: message.description } : {}),
+          ...(message.passwordProtected !== undefined ? { passwordProtected: message.passwordProtected } : {}),
+        };
         syncRoster();
         break;
       }

@@ -12,6 +12,7 @@ export function mapChannelTree(snapshot: TSDirectorySnapshot): ChannelInfo[] {
     order: String(channel.order),
     name: channel.name || "未命名频道",
     description: channel.description || "",
+    ...(typeof channel.passwordProtected === "boolean" ? { passwordProtected: channel.passwordProtected } : {}),
     members: snapshot.clients
       .filter((client) => client.channelID === channel.id)
       .map((client) => ({
