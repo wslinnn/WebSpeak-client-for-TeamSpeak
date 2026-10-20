@@ -87,6 +87,20 @@ export function VoicePerformancePanel({ monitor, voice, t }: VoicePerformancePan
     return () => document.removeEventListener("pointerdown", onDocumentPointerDown);
   }, [open, monitor]);
 
+  // Esc 关闭并把焦点还给触发钮（语言/服务器切换器同一契约）。
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(event: KeyboardEvent): void {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      monitor.setPanelOpen(false);
+      triggerRef.current?.focus();
+    }
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
+  }, [open, monitor]);
+
   const transportLabel = t(TRANSPORT_KEYS[voiceView.voiceTransport]);
   const voiceTransportLabel = t(TRANSPORT_KEYS[stats.transport]);
   const voiceHealthLabel = t(HEALTH_KEYS[stats.health]);
