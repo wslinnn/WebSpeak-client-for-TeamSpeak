@@ -79,6 +79,7 @@ npm --prefix web ci --no-audit --no-fund
 
 - 管道尾接 grep/tail 会吃 `npm run verify` 的退出码——判定一律 `> log 2>&1; st=$?` 显式判 st；**shell cwd 会漂（子命令 cd 后不回），跑 verify 前先回仓库根**（web/ 下没有 verify 脚本）；且**先看 st 再提交**，不得把「grep 日志返回 0」当验证通过（曾三次带病提交，最近一次即提交链里 grep 日志成功掩盖了 EXIT=1）。
 - Git Bash 里 `node -e` 内联脚本带正则转义/中文会碎——批量文本手术一律 Write 临时 .mjs 文件执行，用完删除；长中文内容一律用 Write/Edit 工具写文件，不用 heredoc（控制台 GBK 会把内容写乱）。
+- 验证「测试抓得住旧 bug」的临时行为补丁（钉标志位/短路条件），回退一律用事先备份的文件副本恢复，不得 `git checkout -- <file>`——会把该文件其它未提交改动一并冲掉。
 - 凡验证 TTL/超时的测试一律 mock 时钟（t.mock.timers 钉死 Date.now）；测试替身与被测预算共享时钟时，替身改记录、不推进时钟。
 - CSS 死类清理对动态类前缀（`mobile-view-` / `language-` / `permission-` 等）豁免；名单随新增动态类维护。
 - i18n 键校验勿依赖缩进（en 块尾部空格曾伪报缺键）。
