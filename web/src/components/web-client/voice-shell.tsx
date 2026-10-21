@@ -399,6 +399,7 @@ export function VoiceShell(props: VoiceShellProps) {
           position={railMenu}
           part="voice.server-context-menu"
           inRoom
+          isMobileViewport={props.isMobileViewport}
           t={t}
           onSwitch={props.onSwitchServer}
           onEdit={props.onEditFavorite}

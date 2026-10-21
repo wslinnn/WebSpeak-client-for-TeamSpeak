@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Icon } from "./icon";
 import { ServerContextMenu } from "./server-context-menu";
+import { useIsMobileViewport } from "@/hooks/use-mobile-viewport";
 import { createLongPressContextMenu } from "@/services/long-press-context-menu";
 import { combineTeamSpeakTarget } from "@/services/teamspeak-target";
 import type { FavoriteServer } from "@/services/local-persistence";
@@ -51,6 +52,7 @@ export function JoinForm(props: JoinFormProps) {
   const currentTarget = combineTeamSpeakTarget(props.serverHost, props.serverPort);
 
   const [rowMenu, setRowMenu] = useState<{ server: FavoriteServer; x: number; y: number } | null>(null);
+  const isMobileViewport = useIsMobileViewport();
   // 收藏行直接连接（存着的密码一起带上）；右键/长按共享编辑菜单（触屏没有原生 contextmenu）。
   const rowGestures = useMemo(
     () => createLongPressContextMenu<FavoriteServer>((open) => {
@@ -158,6 +160,7 @@ export function JoinForm(props: JoinFormProps) {
           position={rowMenu}
           part="home.server-context-menu"
           inRoom={false}
+          isMobileViewport={isMobileViewport}
           t={t}
           onSwitch={() => {}}
           onEdit={(server) => props.onEditFavorite(server)}
