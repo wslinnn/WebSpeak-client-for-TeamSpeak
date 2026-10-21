@@ -16,10 +16,10 @@
 - 移动端页签切换依赖 ≤740 固定底部导航（.mobile-nav 的 display:grid+fixed 是覆盖顶层 display:none 的唯一规则，动它必须真机验证页签可达）。
 - 收藏列表桌面=壳层最左列图标 rail（成员侧边栏左侧）、移动=壳层直属顶部 chips（voice-banners 之后的 .app-shell 子元素，channels/more 页签也常驻；≤740 workspace 为 flex 弹性高度，勿改回固定 calc）；列表只显示收藏——连接即收藏、取消收藏即从列表移除，无「最近」概念（2026-10-10 拍板废除，勿回退）；记住服务器密码常开（连接成功即写入收藏记录，无勾选框）。
 - 模态框只经按钮/Esc 关闭、不响应 backdrop 点击。
-- 带 backdrop-filter/transform 的元素会成为 fixed 后代的包含块，fixed 浮层不得挂其子树内；浮层用 React portal 挂到 `.web-client` 根（勿挂 body——语义作用域与主题作用域都在客户端根上）。
+- 带 backdrop-filter/transform 的元素会成为 fixed 后代的包含块，fixed 浮层不得挂其子树内。**浮层挂载点分两代（2026-10-21 radix 迁移起）**：自摆 fixed 浮层 portal 挂 `.web-client` 根；Radix 原语浮层（dropdown/context-menu/popover/tooltip）落 **body**——`#root` 有 `zoom: var(--ui-scale)`，portal 回缩放子树会让 popper 的视觉坐标再乘缩放（旧手摆代码「视觉像素除 scale」的同因），body 层坐标 1:1 正确；radix 时代的令牌（--menu/--tooltip 等与 shadcn 语义令牌）定义在 `:root`，旧「主题作用域在客户端根」的理由已失效。代价：`--ui-scale>1`（≥1920 双向视口）时浮层尺寸偏小，随 zoom 体系重审一并处理。
 - 配置弹窗=全量配置面，两端必须一致（2026-10-13 拍板「PC 对齐移动端，不做删减」）：平台差异只允许用快捷面承载（音频坞悬停面板），禁止用 viewport 门控在弹窗里删项；新配置项两端同加。
-- pointerdown 激活即卸载的浮层（下拉选项），必须吞掉手势尾随 click（一次性捕获守卫）——菜单卸载后合成 click 会落在新暴露的元素上（实案：更多面板切语言误触退出按钮断连）；danger 动作必须与浮层覆盖区空间隔离（更多面板分隔线）。
-- 下拉浮层钳制必须四边含裁剪祖先（LanguageSwitcher 的 services/dropdown-place.ts 模式）：overflow-y 非 visible 时 overflow-x 计算值连带非 visible（CSS 规范）——只钳垂直会从水平方向溢出（实案：登录卡片）；视口钳制管不了 overflow 祖先，实施前先收集 overflow≠visible 的容器，边界取祖先∩视口最紧者。
+- pointerdown 激活即卸载的浮层（下拉选项），必须吞掉手势尾随 click（一次性捕获守卫）——菜单卸载后合成 click 会落在新暴露的元素上（实案：更多面板切语言误触退出按钮断连）；danger 动作必须与浮层覆盖区空间隔离（更多面板分隔线）。**Radix 版武装点必须在 onSelect 内**：radix 菜单项选中由 click 触发，在 pointerup 武装会把选中这次 click 本身吞掉（真浏览器探针实锤：选中失效且菜单不关）。
+- （已退役 2026-10-21）下拉浮层四边含裁剪祖先钳制曾是 services/dropdown-place.ts 的职责（实案：登录卡片水平溢出）；Radix popper 的碰撞检测原生覆盖该 bug 类，服务随语言切换器迁移删除——自摆定位若复活须继承四边钳制语义。
 - 工作区四栏布局（2026-10-13 拍板，报告 16）：≥981 走 `86/304/1fr/聊天列` 四栏。配色一律走 `--wsd-*` 单轨令牌（2026-10-19 单轨化后**只有这一套**；遗留 `--ws-*`/`--surface-*`/`--skin-*` 已删除，勿从历史提交里复活）。ChatPanel 按 ≥981 断点双实例渲染（桌面 shell 子元素/窄屏 workspace 原位）——移动端聊天视图的 CSS 依赖面板在 workspace 内的位置，勿把窄屏实例也搬去 shell；聊天折叠持久化键 `webspeak:chat-collapsed`。布局规则现住 `chrome.css`（壳网格）与 `room.css`（面板内部），文件头注释即分工表。
 
 ## 已评估否决项（勿重新立项）
