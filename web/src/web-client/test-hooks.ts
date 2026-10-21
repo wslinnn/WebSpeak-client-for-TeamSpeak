@@ -34,6 +34,14 @@ export function installTestHooks(voice: VoiceSessionController): void {
         errorCode: "",
         retryNotUntil: 0,
       });
+      // 两频道 + 一名可交互成员：成员菜单/右键/移人子菜单的探针靶子。
+      voice.session.store.setState({
+        channels: [
+          { id: "1", parentID: "0", name: "语音大厅", members: [{ id: 1, nickname: "你", isSelf: true }, { id: 7, nickname: "Probe 成员" }] },
+          { id: "2", parentID: "0", name: "音乐房", members: [] },
+        ],
+        members: [{ id: 1, nickname: "你", isSelf: true }, { id: 7, nickname: "Probe 成员" }],
+      });
     },
     resetState() {
       voice.store.setState({
