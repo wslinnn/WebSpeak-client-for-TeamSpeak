@@ -26,6 +26,23 @@
     --color-sidebar-primary: var(--sidebar-primary);
     --color-sidebar-foreground: var(--sidebar-foreground);
     --color-sidebar: var(--sidebar);
+    /* 浮层语义扩展（ZCode radix-mira 观感移植的令牌面）：菜单/提示专用面板色
+     * 与次级前景，shadcn 标准令牌不够分的部分。值定义在 :root/.dark。 */
+    --color-menu: var(--menu);
+    --color-menu-hover: var(--menu-hover);
+    --color-popover-border: var(--popover-border);
+    --color-tooltip: var(--tooltip);
+    --color-tooltip-foreground: var(--tooltip-foreground);
+    --color-foreground-subtle: var(--foreground-subtle);
+    --color-foreground-subtlest: var(--foreground-subtlest);
+    /* UI 字号子刻度（menus/tooltip 等浮层用）：结构照搬 ZCode 的 text-ui-*，
+     * 值锚在我们自己的六级上，迁移期与产品整体排版保持一体。 */
+    --text-ui-base: var(--text-base);
+    --text-ui-base--line-height: var(--text-base--line-height);
+    --text-ui-sm: var(--text-sm);
+    --text-ui-sm--line-height: var(--text-sm--line-height);
+    --text-ui-xs: var(--text-xs);
+    --text-ui-xs--line-height: var(--text-xs--line-height);
     --color-chart-5: var(--chart-5);
     --color-chart-4: var(--chart-4);
     --color-chart-3: var(--chart-3);
@@ -110,6 +127,15 @@
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
 
+    /* 浮层语义扩展（日间；值对照 ZCode radix-mira 亮面，中性阶同源 shadcn） */
+    --menu: oklch(1 0 0);
+    --menu-hover: oklch(0.97 0 0);
+    --popover-border: var(--border);
+    --tooltip: oklch(0.97 0 0);
+    --tooltip-foreground: oklch(0.145 0 0);
+    --foreground-subtle: color-mix(in oklab, oklch(0.371 0 0) 60%, transparent);
+    --foreground-subtlest: color-mix(in oklab, oklch(0.371 0 0) 40%, transparent);
+
     /* 浮层层级阶梯（值照抄旧版；isolation:isolate 容器内的局部 1/2/3 不在此列） */
     --ws-z-raised: 10;
     --ws-z-header: 100;
@@ -159,6 +185,15 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+
+    /* 浮层语义扩展（夜间） */
+    --menu: oklch(0.145 0 0);
+    --menu-hover: oklch(0.205 0 0);
+    --popover-border: var(--border);
+    --tooltip: oklch(0.205 0 0);
+    --tooltip-foreground: oklch(0.985 0 0);
+    --foreground-subtle: color-mix(in oklab, oklch(0.922 0 0) 60%, transparent);
+    --foreground-subtlest: color-mix(in oklab, oklch(0.922 0 0) 30%, transparent);
 }
 
 /* 浮层层级：TSX 只允许这些语义类（门禁禁 z-[...] 与裸数字 zIndex） */
