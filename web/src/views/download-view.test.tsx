@@ -87,10 +87,10 @@ test("语言切换经切换器持久化 webspeak:language 且界面即时换语"
   renderDownload();
   expect(await screen.findByText("下载客户端")).toBeInTheDocument();
 
-  fireEvent.click(screen.getByRole("button", { name: "语言" }));
-  const option = await screen.findByRole("option", { name: /English/ });
-  // 自绘切换器的选中发生在 pointerdown（旧版语义平价，见组件内注）。
-  fireEvent.pointerDown(option);
+  // Radix DropdownMenu 开在 pointerdown/键盘（jsdom 无 PointerEvent，走键盘）。
+  fireEvent.keyDown(screen.getByRole("button", { name: "语言" }), { key: "Enter" });
+  const option = await screen.findByRole("menuitemradio", { name: /English/ });
+  fireEvent.click(option);
 
   await waitFor(() => expect(localStorage.getItem("webspeak:language")).toBe("en"));
   expect(screen.getByRole("heading", { name: enTitle })).toBeInTheDocument();

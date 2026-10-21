@@ -33,22 +33,6 @@
 }
 }
 
-.language-option:focus-visible,
-.language-option.selected {
-  color: var(--wsd-accent);
-  background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-panel));
-  border-color: color-mix(in srgb, var(--wsd-accent) 28%, var(--wsd-border));
-}
-
-@media (hover: hover) {
-
-.language-option:hover {
-  color: var(--wsd-accent);
-  background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-panel));
-  border-color: color-mix(in srgb, var(--wsd-accent) 28%, var(--wsd-border));
-}
-}
-
 .language-switcher.open .language-trigger {
   color: var(--wsd-accent-contrast);
   background: var(--wsd-accent);
@@ -1458,40 +1442,8 @@
   line-height: 1;
 }
 
-.language-dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: minmax(38px, max-content);
-  align-items: start;
-  align-content: start;
-  gap: 3px;
-  width: min(360px, calc(100vw - 16px));
-  height: auto;
-  max-height: none;
-  overflow: visible;
-  animation: language-menu-in .14s ease-out;
-}
-
-.language-option {
-  display: flex;
-  align-items: center;
-  align-self: start;
-  min-width: 0;
-  gap: 8px;
-  min-height: 38px;
-  padding: 6px 8px;
-  color: var(--wsd-text);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: color .14s, background .14s, border-color .14s;
-}
+/* 语言菜单本体迁 Radix DropdownMenu（web/src/components/ui/dropdown-menu.tsx，
+ * tailwind 类自持样式）；此处只留触发钮与内嵌 flag/copy 片段的样式。 */
 
 .language-option-flag {
   flex: 0 0 auto;
@@ -1505,29 +1457,6 @@
   min-width: 0;
   flex: 1;
   gap: 8px;
-}
-
-.language-option strong,
-.language-option small {
-  overflow: visible;
-  text-overflow: clip;
-  white-space: nowrap;
-}
-
-.language-option strong {
-  flex: 0 0 auto;
-  font-size: 12px;
-}
-
-.language-option small {
-  flex: 0 0 auto;
-  color: var(--wsd-text-dim);
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.language-option > .ui-icon {
-  flex: 0 0 auto;
 }
 
 .language-switcher.tile .language-trigger {
@@ -1751,16 +1680,6 @@
     min-width: 28px;
     min-height: 28px;
     padding: 0;
-  }
-}
-
-@media (max-width: 740px) {
-  .web-client .language-switcher.mobile-language-switcher .language-dropdown {
-    position: fixed;
-    z-index: var(--ws-z-dropdown);
-    max-height: min(60vh, 360px);
-    overflow-y: auto;
-    box-sizing: border-box;
   }
 }
 
