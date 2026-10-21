@@ -175,7 +175,7 @@ export function VoiceShell(props: VoiceShellProps) {
         error={voiceView.error}
         audioNotice={voiceView.audioNotice}
         audioNoticeCode={voiceView.audioNoticeCode}
-        onClearAudioNotice={voice.clearAudioNotice}
+        onClearAudioNotice={voice.dismissAudioNotice}
         microphoneError={voiceView.microphoneError}
         microphoneErrorCode={voiceView.microphoneErrorCode}
         onClearMicrophoneError={voice.clearMicrophoneError}

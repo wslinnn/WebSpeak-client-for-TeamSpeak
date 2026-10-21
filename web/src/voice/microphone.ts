@@ -215,6 +215,9 @@ export function createMicrophone(deps: MicrophoneDeps) {
       });
       watchMicrophoneTrack(nextStream);
       deps.audioOutput.clearMicrophoneError();
+      // 新采集图落定 = 轨道丢失条件解除：MIC_TRACK_LOST 闭锁复位，
+      // 之后再次掉轨仍会提醒（clearAudioNotice(code) 语义）。
+      deps.audioOutput.clearAudioNotice("MIC_TRACK_LOST");
     } catch (error) {
       nextCapture?.dispose();
       if (!factoryOwnsStream) nextStream?.getTracks().forEach(track => track.stop());

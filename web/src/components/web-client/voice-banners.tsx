@@ -11,7 +11,8 @@ interface VoiceBannersProps {
   error: string;
   audioNotice: string;
   audioNoticeCode: string;
-  onClearAudioNotice(): void;
+  /** × 关闭必须带当前代码：闭锁按代码落，无参清除会把闭锁一并清掉（关不掉）。 */
+  onClearAudioNotice(code: string): void;
   microphoneError: string;
   microphoneErrorCode: string;
   onClearMicrophoneError(): void;

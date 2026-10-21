@@ -742,6 +742,55 @@ test("a failed microphone switch leaves an existing WebRTC peer and capture aliv
   assert.equal(V().selectedInputDeviceId, "");
 });
 
+// --- 音频横幅闭锁（× 带代码落锁 / 条件解除复位 / 闭锁不被无参清除短路）---
+
+test("a dismissed audio notice stays dismissed while the condition holds", async () => {
+  devices().enumerateDevices = async () => availableDevices;
+  const stream = microphoneStream();
+  devices().getUserMedia = async () => stream;
+  await voice.ensureMicrophone();
+  (stream.track as EventTarget).dispatchEvent(new Event("ended"));
+  assert.equal(V().audioNoticeCode, "MIC_TRACK_LOST");
+  voice.dismissAudioNotice("MIC_TRACK_LOST");
+  assert.equal(V().audioNotice, "");
+  assert.equal(V().audioNoticeCode, "");
+  // 条件仍成立：同代码重触发（重同步/轨道事件）不得顶回。
+  (stream.track as EventTarget).dispatchEvent(new Event("ended"));
+  assert.equal(V().audioNoticeCode, "", "a same-code refire must stay suppressed after ×");
+});
+
+test("a dismissed audio notice re-alerts once the condition resolves and recurs", async () => {
+  devices().enumerateDevices = async () => availableDevices;
+  const first = microphoneStream();
+  devices().getUserMedia = async () => first;
+  await voice.ensureMicrophone();
+  (first.track as EventTarget).dispatchEvent(new Event("ended"));
+  voice.dismissAudioNotice("MIC_TRACK_LOST");
+  assert.equal(V().audioNoticeCode, "");
+  // 用户照提示重选设备：新采集图落定 = 条件解除，闭锁复位。
+  const second = microphoneStream();
+  devices().getUserMedia = async () => second;
+  await voice.setInputDevice("mic-b");
+  assert.equal(V().audioNoticeCode, "", "recapture resolves the lost-track condition");
+  (second.track as EventTarget).dispatchEvent(new Event("ended"));
+  assert.equal(V().audioNoticeCode, "MIC_TRACK_LOST", "a new occurrence must alert again");
+});
+
+test("a no-argument clear keeps lifecycle resets from being mistaken for dismissal", async () => {
+  devices().enumerateDevices = async () => availableDevices;
+  const stream = microphoneStream();
+  devices().getUserMedia = async () => stream;
+  await voice.ensureMicrophone();
+  (stream.track as EventTarget).dispatchEvent(new Event("ended"));
+  assert.equal(V().audioNoticeCode, "MIC_TRACK_LOST");
+  // 生命周期边界（断开/重连）走无参清除：展示清空且闭锁不落，
+  // 条件若仍成立，下一条同代码提醒照常出现。
+  voice.clearAudioNotice();
+  assert.equal(V().audioNoticeCode, "");
+  (stream.track as EventTarget).dispatchEvent(new Event("ended"));
+  assert.equal(V().audioNoticeCode, "MIC_TRACK_LOST", "lifecycle clear must not lock the code");
+});
+
 test("an old output switch rejection cannot roll back the latest selection", async () => {
   devices().enumerateDevices = async () => availableDevices;
   await voice.ensureMicrophone();

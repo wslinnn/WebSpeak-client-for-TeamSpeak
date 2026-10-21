@@ -3,7 +3,7 @@ import { Icon } from "./icon";
 interface VoiceDegradedBannersProps {
   audioNotice: string;
   audioNoticeCode: string;
-  onClearAudioNotice(): void;
+  onClearAudioNotice(code: string): void;
   microphoneError: string;
   microphoneErrorCode: string;
   onClearMicrophoneError(): void;
@@ -31,7 +31,7 @@ export function VoiceDegradedBanners(props: VoiceDegradedBannersProps) {
               className="text-button"
               data-ws-part="voice.audio-status-dismiss"
               aria-label={t("close")}
-              onClick={props.onClearAudioNotice}
+              onClick={() => props.onClearAudioNotice(props.audioNoticeCode)}
             ><Icon name="close" size={15} /></button>
           </div>
         </div>

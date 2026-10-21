@@ -152,9 +152,25 @@ export function createAudioOutput(deps: AudioOutputDeps) {
     patch({ audioNoticeCode: normalized, audioNotice: message });
   }
 
+  /** × 关闭：只对当前展示的代码生效，落闭锁压制同代码重同步顶回。 */
+  function dismissAudioNotice(code: string): void {
+    const normalized = safeClientErrorCode(code);
+    if (!normalized || V().audioNoticeCode !== normalized) return;
+    dismissedAudioNoticeCode = normalized;
+    patch({ audioNotice: "", audioNoticeCode: "" });
+  }
+
+  /** 条件解除（带 code）：闭锁复位、展示按代码精确清空——不误伤其它代码的
+   *  在展横幅；无参：生命周期边界整体复位（展示与闭锁一并清）。 */
   function clearAudioNotice(code?: string): void {
-    if (code && V().audioNoticeCode !== safeClientErrorCode(code)) return;
-    dismissedAudioNoticeCode = code ? safeClientErrorCode(code) : "";
+    if (code) {
+      const normalized = safeClientErrorCode(code);
+      if (dismissedAudioNoticeCode === normalized) dismissedAudioNoticeCode = "";
+      if (V().audioNoticeCode !== normalized) return;
+      patch({ audioNotice: "", audioNoticeCode: "" });
+      return;
+    }
+    dismissedAudioNoticeCode = "";
     patch({ audioNotice: "", audioNoticeCode: "" });
   }
 
@@ -351,6 +367,7 @@ export function createAudioOutput(deps: AudioOutputDeps) {
     setMicrophoneError,
     clearMicrophoneError,
     setAudioNotice,
+    dismissAudioNotice,
     clearAudioNotice,
     syncAudioContextNotice,
     audioNoticeMessage,

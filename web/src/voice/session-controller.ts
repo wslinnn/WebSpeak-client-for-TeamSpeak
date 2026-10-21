@@ -469,6 +469,7 @@ export function createVoiceSessionController() {
     checkSupport: audioOutput.checkSupport,
     checkBrowserWarning: audioOutput.checkBrowserWarning,
     clearMicrophoneError: audioOutput.clearMicrophoneError,
+    dismissAudioNotice: audioOutput.dismissAudioNotice,
     clearAudioNotice: audioOutput.clearAudioNotice,
     clearError,
     measureVoiceAudioStatus: audioOutput.measureVoiceAudioStatus,
