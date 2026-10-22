@@ -1,8 +1,10 @@
 import type { VoiceSessionController } from "@/voice/session-controller";
+import type { createHomeStore } from "@/web-client/home-store";
 
-/** 冒烟测试桥句柄：把前端置进房态（种子）或复位回首页态。 */
+/** 冒烟测试桥句柄：把前端置进房态（种子）、开受密频道弹窗，或复位回首页态。 */
 export interface WebSpeakTestHooks {
   seedRoomState(): void;
+  seedChannelPasswordDialog(): void;
   resetState(): void;
 }
 
@@ -18,7 +20,7 @@ declare global {
  * 常量折叠使本函数成为死分支，桥代码不进产物；e2e 构建的页面也必须显式开启
  * 运行期开关。种子只写 store 状态让房间壳渲染，不建立任何真实语音连接。
  */
-export function installTestHooks(voice: VoiceSessionController): void {
+export function installTestHooks(voice: VoiceSessionController, homeStore?: ReturnType<typeof createHomeStore>): void {
   if (import.meta.env.VITE_WS_E2E !== "1") return;
   if (window.localStorage.getItem("webspeak:e2e") !== "1") return;
   if (window.__wsTestHooks) return;
@@ -41,6 +43,12 @@ export function installTestHooks(voice: VoiceSessionController): void {
           { id: "2", parentID: "0", name: "音乐房", members: [] },
         ],
         members: [{ id: 1, nickname: "你", isSelf: true }, { id: 7, nickname: "Probe 成员" }],
+      });
+    },
+    // 受密频道弹窗经真实链路需要真 TS 服务器回报受密频道，探针直接开弹窗态。
+    seedChannelPasswordDialog() {
+      homeStore?.setState({
+        channelPasswordDialog: { open: true, channelId: "1", password: "", error: "", submitting: false },
       });
     },
     resetState() {

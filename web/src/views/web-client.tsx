@@ -58,7 +58,7 @@ function WebClientRoot() {
 
   // 冒烟测试桥：函数体在普通构建里是常量折叠后的死分支，生产产物不含生效桥。
   useEffect(() => {
-    installTestHooks(voice);
+    installTestHooks(voice, store);
   }, [voice]);
 
   // —— 主题控制（皮肤系统下架后的唯一外观开关，日/夜二值）——

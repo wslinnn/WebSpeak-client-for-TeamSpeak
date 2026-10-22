@@ -1,5 +1,5 @@
 import { Icon } from "./icon";
-import { useDialogFocus } from "@/web-client/use-dialog-focus";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 interface ChannelPasswordDialogProps {
   password: string;
@@ -18,27 +18,26 @@ interface ChannelPasswordDialogProps {
 }
 
 /** 频道密码弹窗（旧 ChannelPasswordDialog.vue 平价）：进房壳与首页共用（控制器在
- *  home-connection）；错误文案经 voiceStore.errorCode 订阅回到弹窗。 */
+ *  home-connection）；错误文案经 voiceStore.errorCode 订阅回到弹窗。父级按 open
+ *  条件挂载，这里恒 open、onOpenChange(false) 即请求关闭。决策不变量：模态框
+ *  只经按钮/Esc 关闭，不响应 backdrop 点击（onInteractOutside 阻断）。 */
 export function ChannelPasswordDialog(props: ChannelPasswordDialogProps) {
   const { password, busy, error } = props;
-  const { dialogRef, onDialogKeydown } = useDialogFocus<HTMLElement>({ close: props.onClose });
   return (
-    <div className="modal-backdrop channel-password-backdrop">
-      <section
-        ref={dialogRef}
+    <Dialog open onOpenChange={(next) => { if (!next) props.onClose(); }}>
+      <DialogContent
         className="channel-password-modal"
-        tabIndex={-1}
-        onKeyDown={onDialogKeydown}
-        role="dialog"
-        aria-modal="true"
         aria-labelledby="channel-password-title"
-        onClick={(event) => event.stopPropagation()}
+        onOpenAutoFocus={(event) => event.preventDefault()}
+        onInteractOutside={(event) => event.preventDefault()}
       >
-        <button type="button" className="dialog-close" aria-label={props.closeLabel} title={props.closeLabel} onClick={props.onClose}>
-          <Icon name="close" size={19} />
-        </button>
-        <h2 id="channel-password-title">{props.title}</h2>
-        <p>{props.lead}</p>
+        <DialogClose asChild>
+          <button type="button" className="dialog-close" aria-label={props.closeLabel} title={props.closeLabel}>
+            <Icon name="close" size={19} />
+          </button>
+        </DialogClose>
+        <DialogTitle id="channel-password-title">{props.title}</DialogTitle>
+        <DialogDescription>{props.lead}</DialogDescription>
         <form className="channel-password-form" onSubmit={(event) => { event.preventDefault(); props.onSubmit(); }}>
           <label className="field-label" htmlFor="channel-password-input">{props.promptLabel}</label>
           <div className="field-wrap">
@@ -68,7 +67,7 @@ export function ChannelPasswordDialog(props: ChannelPasswordDialogProps) {
             </button>
           </div>
         </form>
-      </section>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

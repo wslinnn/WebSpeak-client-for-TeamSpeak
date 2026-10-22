@@ -441,6 +441,8 @@
 }
 
 .channel-password-modal {
+  /* display:block 中和原语 grid：卡内行距仍由子元素自带 margin 供给。 */
+  display: block;
   position: relative;
   width: min(438px, 100%);
   padding: 20px;
@@ -490,12 +492,15 @@
 }
 
 @media (max-width: 740px) {
-  .channel-password-backdrop {
-    align-items: flex-end;
-    padding: 0;
-  }
+  /* 遮罩与居中摆位归 radix 原语后，底板化改为直改卡片定位（ws-dialogs 层压过原语 utilities）。 */
   .channel-password-modal {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    translate: none;
     width: 100%;
+    max-width: 100%;
     padding: 27px 22px calc(23px + env(safe-area-inset-bottom, 0px));
     border-radius: 20px 20px 0 0;
   }
