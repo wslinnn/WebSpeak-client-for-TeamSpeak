@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { MAX_INPUT_VOLUME, type VoiceSessionController } from "@/voice/session-controller";
 
 interface AudioDockModel {
@@ -66,6 +67,8 @@ function DockHoverControl({ part, label, button, panelClassName, panelPart, chil
   const panelRef = useRef<HTMLDivElement | null>(null);
   const closeTimer = useRef<number | null>(null);
   const [open, setOpen] = useState(false);
+  // 触屏无 hover：点按控件开合面板（按钮自身点击语义不变，点击冒泡到此）。
+  const coarsePointer = useCoarsePointer();
   const cancelClose = (): void => {
     if (closeTimer.current !== null) {
       window.clearTimeout(closeTimer.current);
@@ -92,10 +95,18 @@ function DockHoverControl({ part, label, button, panelClassName, panelPart, chil
           ref={controlRef}
           className="dock-hover-control"
           data-ws-part={part}
-          onMouseEnter={openUp}
-          onMouseLeave={scheduleClose}
+          onMouseEnter={coarsePointer ? undefined : openUp}
+          onMouseLeave={coarsePointer ? undefined : scheduleClose}
           onFocus={(event) => { if (!keepIfInside(event.relatedTarget)) openUp(); }}
           onBlur={(event) => { if (!keepIfInside(event.relatedTarget)) scheduleClose(); }}
+          // 触屏等价：tap 开合。用 pointerdown 而非 click——tap 的兼容鼠标事件
+          // 序列（enter→focus→click）里 click 在焦点事件之后，按 click 切换会
+          // 先被 focus-open 打乱节奏；pointerdown 先于焦点落地，序稳定。
+          onPointerDown={coarsePointer ? (event) => {
+            if (event.pointerType !== "touch") return;
+            cancelClose();
+            setOpen((previous) => !previous);
+          } : undefined}
         >
           {button}
         </div>
@@ -106,6 +117,9 @@ function DockHoverControl({ part, label, button, panelClassName, panelPart, chil
         align="center"
         sideOffset={10}
         onOpenAutoFocus={(event) => event.preventDefault()}
+        // 触屏 tap 打开后按钮随即获得焦点；radix 视锚点焦点为「外部焦点」会
+        // 立刻关面板（hover 模式下锚点焦点是我们自己驱动的，无此问题）。
+        onFocusOutside={coarsePointer ? (event) => event.preventDefault() : undefined}
         onMouseEnter={cancelClose}
         onMouseLeave={scheduleClose}
         data-ws-part={panelPart}
