@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useStore } from "zustand";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 import type { AdminMessages } from "@/i18n/admin-messages";
 import type { ServerSettingsController } from "@/admin/server-settings-controller";
@@ -80,19 +82,19 @@ export function AdminServerSettings({ model, messages, onWebRtcToggle }: {
               <div className="target-fields">
                 <label>
                   <span>{tr("serverAddress")}</span>
-                  <input value={form.address} placeholder={tr("serverPlaceholder")}
+                  <Input value={form.address} placeholder={tr("serverPlaceholder")}
                     onChange={(event) => model.setField("address", event.target.value.trim())} />
                 </label>
                 <label>
                   <span>{tr("serverPort")}</span>
-                  <input value={form.port} inputMode="numeric" type="text" maxLength={5} placeholder={tr("serverPortPlaceholder")}
+                  <Input value={form.port} inputMode="numeric" type="text" maxLength={5} placeholder={tr("serverPortPlaceholder")}
                     onChange={(event) => model.setField("port", event.target.value.trim())} />
                 </label>
               </div>
               <div className="password-row">
                 <label>
                   <span>{tr("serverPassword")}</span>
-                  <input value={form.serverPassword} type="password" autoComplete="off" disabled={form.passwordAction !== "replace"}
+                  <Input value={form.serverPassword} type="password" autoComplete="off" disabled={form.passwordAction !== "replace"}
                     placeholder={form.hasPassword ? tr("passwordConfigured") : tr("optionalPassword")}
                     onChange={(event) => model.setSecretField(event.target.value, form.passwordAction)} />
                 </label>
@@ -166,7 +168,7 @@ export function AdminServerSettings({ model, messages, onWebRtcToggle }: {
               <div className="site-identity-fields">
                 <label>
                   <span>{tr("siteName")}</span>
-                  <input value={form.siteName} maxLength={80} onChange={(event) => model.setField("siteName", event.target.value.trim())} />
+                  <Input value={form.siteName} maxLength={80} onChange={(event) => model.setField("siteName", event.target.value.trim())} />
                 </label>
                 <div className="welcome-editor">
                   <div className="welcome-editor-heading">
@@ -182,7 +184,7 @@ export function AdminServerSettings({ model, messages, onWebRtcToggle }: {
                   </div>
                   <label>
                     <span>{tr("welcomeText")} · {WELCOME_LANGUAGE_OPTIONS.find((option) => option.value === welcomeLanguage)?.label}</span>
-                    <textarea value={form[welcomeField]} maxLength={500} rows={4}
+                    <Textarea value={form[welcomeField]} maxLength={500} rows={4} className="field-sizing-fixed"
                       placeholder={form.welcomeDefaults[welcomeLanguage] || DEFAULT_WELCOME_TEXTS[welcomeLanguage]}
                       onChange={(event) => model.setField(WELCOME_TEXT_FIELD[welcomeLanguage], event.target.value)} />
                   </label>
@@ -229,19 +231,19 @@ export function AdminServerSettings({ model, messages, onWebRtcToggle }: {
                   <div className="port-inputs">
                     <label>
                       <span>{tr("webrtcPortStart")}</span>
-                      <input type="number" inputMode="numeric" min={1024} max={65535} value={form.webRtcUdpStart} disabled={form.webRtcEnabled}
+                      <Input type="number" inputMode="numeric" min={1024} max={65535} value={form.webRtcUdpStart} disabled={form.webRtcEnabled}
                         onChange={(event) => numberField("webRtcUdpStart", event.target.value)} />
                     </label>
                     <label>
                       <span>{tr("webrtcPortEnd")}</span>
-                      <input type="number" inputMode="numeric" min={1024} max={65535} value={form.webRtcUdpEnd} disabled={form.webRtcEnabled}
+                      <Input type="number" inputMode="numeric" min={1024} max={65535} value={form.webRtcUdpEnd} disabled={form.webRtcEnabled}
                         onChange={(event) => numberField("webRtcUdpEnd", event.target.value)} />
                     </label>
                   </div>
                 </div>
                 <label className="webrtc-network-field">
                   <span>{tr("webrtcPublicHost")}</span>
-                  <input value={form.webRtcPublicHost} type="text" maxLength={253} autoComplete="off" spellCheck={false} placeholder="media.example.com"
+                  <Input value={form.webRtcPublicHost} type="text" maxLength={253} autoComplete="off" spellCheck={false} placeholder="media.example.com"
                     onChange={(event) => model.setField("webRtcPublicHost", event.target.value)} />
                   <small className="field-help">{tr("webrtcPublicHostLead")}</small>
                 </label>
@@ -251,7 +253,7 @@ export function AdminServerSettings({ model, messages, onWebRtcToggle }: {
                 </label>
                 <label className="webrtc-network-field">
                   <span>{tr("webrtcStunServer")}</span>
-                  <input value={form.webRtcStunServer} type="text" maxLength={300} autoComplete="off" spellCheck={false} placeholder="stun:turn.teamspeak.com:3478"
+                  <Input value={form.webRtcStunServer} type="text" maxLength={300} autoComplete="off" spellCheck={false} placeholder="stun:turn.teamspeak.com:3478"
                     onChange={(event) => model.setField("webRtcStunServer", event.target.value)} />
                   <small className="field-help">{tr("webrtcStunServerLead")}</small>
                 </label>

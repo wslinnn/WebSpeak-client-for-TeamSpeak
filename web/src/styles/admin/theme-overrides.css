@@ -68,22 +68,12 @@ html[data-ws-route="admin"].dark .admin-root {
   color: var(--wsd-text-muted);
 }
 
-.admin-root input:not([type="checkbox"]):not([type="radio"]),
-.admin-root textarea,
 .admin-root select {
   color: var(--wsd-text);
   background: var(--admin-field);
   border-color: var(--wsd-border);
 }
 
-.admin-root input::placeholder,
-.admin-root textarea::placeholder {
-  color: var(--wsd-text-muted);
-  opacity: 1;
-}
-
-.admin-root input:disabled,
-.admin-root textarea:disabled,
 .admin-root select:disabled {
   color: var(--wsd-text-muted);
   background: var(--wsd-raised);

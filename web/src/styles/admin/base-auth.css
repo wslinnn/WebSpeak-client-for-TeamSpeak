@@ -139,34 +139,8 @@ label small {
   line-height: 1.5;
 }
 
-/* 裸元素选择器必须 data-ws-route 门控：admin 分块 CSS 一经加载全局常驻，
- * 不门控会泄漏到客户端页（曾致首页 join 输入框双层聚焦环）。 */
-html[data-ws-route="admin"] input,
-html[data-ws-route="admin"] textarea {
-  width: 100%;
-  padding: 11px 12px;
-  color: var(--wsd-text);
-  background: var(--wsd-bg);
-  border: 1px solid var(--wsd-border);
-  border-radius: 9px;
-  font: inherit;
-  font-size: 13px;
-  outline: none;
-}
-
-html[data-ws-route="admin"] input {
-  height: 43px;
-}
-
-html[data-ws-route="admin"] input:focus,
-html[data-ws-route="admin"] textarea:focus {
-  border-color: var(--wsd-accent);
-  box-shadow: 0 0 0 3px rgba(43,92,217,.13);
-}
-
-html[data-ws-route="admin"] textarea {
-  resize: vertical;
-}
+/* 输入框元素皮（曾以 data-ws-route 门控防泄漏客户端页）随一致性战役 C2 退役：
+   输入面归 components/ui/input.tsx、textarea.tsx 原语。 */
 
 .strength {
   height: 4px;

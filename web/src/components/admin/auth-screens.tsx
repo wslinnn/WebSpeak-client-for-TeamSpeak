@@ -4,6 +4,7 @@ import { useStore } from "zustand";
 
 import { useI18n } from "@/hooks/use-i18n";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { BrandMark } from "@/components/brand-mark";
 import { LanguageSwitcher } from "@/components/web-client/language-switcher";
 import type { AdminController } from "@/admin/admin-controller";
@@ -29,12 +30,12 @@ export function LoginScreen({ controller, messages }: { controller: AdminControl
           {view.errorMessage && <div className="alert error">{view.errorMessage}</div>}
           <label>
             <span>{tr("adminUsername")}</span>
-            <input value={view.loginUsername} autoComplete="username" autoFocus
+            <Input value={view.loginUsername} autoComplete="username" autoFocus
               onChange={(event) => controller.setLoginUsername(event.target.value.trim())} />
           </label>
           <label>
             <span>{tr("adminPassword")}</span>
-            <input value={view.loginPassword} type="password" autoComplete="current-password"
+            <Input value={view.loginPassword} type="password" autoComplete="current-password"
               onChange={(event) => controller.setLoginPassword(event.target.value)} />
           </label>
           <Button className="wide" disabled={view.submitting} type="submit">
@@ -74,13 +75,13 @@ export function ChangePasswordScreen({ controller, messages }: { controller: Adm
           {view.errorMessage && <div className="alert error">{view.errorMessage}</div>}
           <label>
             <span>{tr("newPassword")}</span>
-            <input value={view.newPassword} type="password" autoComplete="new-password" maxLength={1024} autoFocus
+            <Input value={view.newPassword} type="password" autoComplete="new-password" maxLength={1024} autoFocus
               placeholder={tr("passwordPlaceholder")}
               onChange={(event) => controller.setNewPassword(event.target.value)} />
           </label>
           <label>
             <span>{tr("confirmPassword")}</span>
-            <input value={view.confirmNewPassword} type="password" autoComplete="new-password" maxLength={1024}
+            <Input value={view.confirmNewPassword} type="password" autoComplete="new-password" maxLength={1024}
               onChange={(event) => controller.setConfirmNewPassword(event.target.value)} />
           </label>
           <div className="strength"><i style={{ width: `${strength}%` }} /></div>

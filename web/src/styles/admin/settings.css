@@ -428,10 +428,6 @@ html[data-ws-route="admin"] *::-webkit-scrollbar-thumb:hover {
   box-shadow: 0 0 0 3px rgba(43,92,217,.13);
 }
 
-.welcome-editor textarea {
-  background: var(--wsd-panel);
-}
-
 .webrtc-port-fields {
   display: grid;
   gap: 10px;
@@ -465,14 +461,6 @@ html[data-ws-route="admin"] *::-webkit-scrollbar-thumb:hover {
 
 .port-inputs label>span {
   font-size: 10px;
-}
-
-.port-inputs input:disabled {
-  color: var(--wsd-text-muted);
-  background: var(--wsd-raised);
-  border-color: var(--wsd-border);
-  cursor: not-allowed;
-  opacity: 1;
 }
 
 .modal-backdrop {
@@ -526,19 +514,12 @@ html[data-ws-route="admin"].dark .port-fields-heading small {
   color: var(--wsd-text-muted);
 }
 
-html[data-ws-route="admin"].dark .port-inputs input:disabled {
-  color: var(--wsd-text-muted);
-  background: var(--wsd-raised);
-  border-color: var(--wsd-border);
-}
-
 html[data-ws-route="admin"].dark .welcome-editor {
   background: var(--wsd-raised);
   border-color: var(--wsd-border);
 }
 
-html[data-ws-route="admin"].dark .welcome-editor select,
-html[data-ws-route="admin"].dark .welcome-editor textarea {
+html[data-ws-route="admin"].dark .welcome-editor select {
   color: var(--wsd-text);
   background: var(--wsd-panel);
   border-color: var(--wsd-border);
@@ -582,10 +563,6 @@ html[data-ws-route="admin"].dark .modal-card p {
 .server-page .settings-card {
   padding: 16px;
   gap: 12px;
-}
-
-.server-page .settings-card input {
-  height: 40px;
 }
 
 .server-page .settings-card .choice {

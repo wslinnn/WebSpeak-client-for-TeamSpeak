@@ -725,10 +725,3 @@ html[data-ws-route="admin"] #root {
   color: var(--foreground);
 }
 
-.admin-root .login-card input,
-.admin-root .setup-card input {
-  background: var(--background);
-  border-color: var(--border);
-  color: var(--foreground);
-}
-
