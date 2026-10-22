@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 
 import { Icon } from "./icon";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
@@ -137,13 +138,17 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
         <i className="desktop-audio-dock-dot"></i>
         <strong>{channelName}</strong>
         {children}
-        <button
-          type="button"
-          className="desktop-audio-dock-power"
-          aria-label={t("exit")}
-          title={t("exit")}
-          onClick={onDisconnect}
-        ><Icon name="power" size={20} /></button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="desktop-audio-dock-power"
+              aria-label={t("exit")}
+              onClick={onDisconnect}
+            ><Icon name="power" size={20} /></button>
+          </TooltipTrigger>
+          <TooltipContent>{t("exit")}</TooltipContent>
+        </Tooltip>
       </div>
       <div className="desktop-audio-dock-share-row">
         <div className={share.active ? "desktop-audio-dock-share is-stop" : "desktop-audio-dock-share"}>
@@ -161,22 +166,30 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
               onClick={onStopShare}
             ><Icon name="close" size={14} />{t("stopScreenShare")}</button>
           )}
-          <button
-            type="button"
-            className="desktop-audio-dock-share-gear"
-            aria-label={t("screenShareSettings")}
-            title={t("screenShareSettings")}
-            onClick={onShareSettings}
-          ><Icon name="settings" size={13} /></button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="desktop-audio-dock-share-gear"
+                aria-label={t("screenShareSettings")}
+                onClick={onShareSettings}
+              ><Icon name="settings" size={13} /></button>
+            </TooltipTrigger>
+            <TooltipContent>{t("screenShareSettings")}</TooltipContent>
+          </Tooltip>
         </div>
-        <button
-          type="button"
-          className="desktop-audio-dock-accompaniment"
-          aria-pressed={model.accompanimentActive}
-          title={model.accompanimentActive ? t("stopAccompaniment") : t("startAccompaniment")}
-          aria-label={model.accompanimentActive ? t("stopAccompaniment") : t("startAccompaniment")}
-          onClick={() => void controls.toggleAccompaniment()}
-        ><Icon name="music" size={16} /></button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="desktop-audio-dock-accompaniment"
+              aria-pressed={model.accompanimentActive}
+              aria-label={model.accompanimentActive ? t("stopAccompaniment") : t("startAccompaniment")}
+              onClick={() => void controls.toggleAccompaniment()}
+            ><Icon name="music" size={16} /></button>
+          </TooltipTrigger>
+          <TooltipContent>{model.accompanimentActive ? t("stopAccompaniment") : t("startAccompaniment")}</TooltipContent>
+        </Tooltip>
       </div>
       <div
         className="desktop-audio-dock-controls"
@@ -189,15 +202,19 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
           aria-label={t("audioSettings")}
           onClick={onSettings}
         ><Icon name="settings" size={15} /><span>{t("audioSettings")}</span></button>
-        <button
-          type="button"
-          className="desktop-audio-dock-control desktop-audio-dock-noise"
-          aria-pressed={model.noiseSuppressionEnabled}
-          data-off={model.noiseSuppressionEnabled ? undefined : "true"}
-          title={t("noiseSuppression")}
-          aria-label={t("noiseSuppression")}
-          onClick={() => void controls.onNoiseSuppressionToggle({ target: { checked: !model.noiseSuppressionEnabled } })}
-        ><Icon name="waveform" size={18} /></button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="desktop-audio-dock-control desktop-audio-dock-noise"
+              aria-pressed={model.noiseSuppressionEnabled}
+              data-off={model.noiseSuppressionEnabled ? undefined : "true"}
+              aria-label={t("noiseSuppression")}
+              onClick={() => void controls.onNoiseSuppressionToggle({ target: { checked: !model.noiseSuppressionEnabled } })}
+            ><Icon name="waveform" size={18} /></button>
+          </TooltipTrigger>
+          <TooltipContent>{t("noiseSuppression")}</TooltipContent>
+        </Tooltip>
         <DockHoverControl
           part="voice.audio-dock.microphone"
           label={t("microphone")}

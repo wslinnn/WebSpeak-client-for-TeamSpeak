@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Icon } from "./icon";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Slider } from "@/components/ui/slider";
@@ -144,15 +145,19 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
         <strong>{props.serverLabel}</strong>
         <DropdownMenu open={switcherOpen} onOpenChange={setSwitcherOpen}>
           <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="member-server-menu"
-              data-ws-part="voice.server-switcher.trigger"
-              aria-label={t("favoriteServers")}
-              title={t("favoriteServers")}
-            >
-              <Icon name="menu" size={16} />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="member-server-menu"
+                  data-ws-part="voice.server-switcher.trigger"
+                  aria-label={t("favoriteServers")}
+                >
+                  <Icon name="menu" size={16} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{t("favoriteServers")}</TooltipContent>
+            </Tooltip>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             side="bottom"
@@ -187,16 +192,20 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
           <span className="status-dot" />
           {menu.away ? t("away") : t("available")}
         </button>
-        <button
-          type="button"
-          className="member-search-toggle"
-          aria-expanded={searchOpen}
-          aria-label={t("searchMembers")}
-          title={t("searchMembers")}
-          onClick={toggleSearch}
-        >
-          <Icon name="search" size={15} />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              className="member-search-toggle"
+              aria-expanded={searchOpen}
+              aria-label={t("searchMembers")}
+              onClick={toggleSearch}
+            >
+              <Icon name="search" size={15} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{t("searchMembers")}</TooltipContent>
+        </Tooltip>
       </div>
       <div className="member-panel-heading" data-ws-part="voice.member-panel.heading">
         <div><h2>{t("people")}</h2></div>

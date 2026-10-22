@@ -4,6 +4,7 @@ import { useShallow } from "zustand/react/shallow";
 
 import { Icon } from "./icon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
 import type { ChatController, ChatScrollerAspect } from "@/web-client/chat-controller";
 import { formatTime, resolveMessageAvatar } from "@/web-client/view-utils";
@@ -202,15 +203,19 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
         {chatUi.messageDraft.length > 450 && (
           <span className="composer-count" aria-live="off">{MESSAGE_MAX_LENGTH - chatUi.messageDraft.length}</span>
         )}
-        <button
-          className="send-button"
-          type="submit"
-          disabled={!chat.canSend() || !chatUi.messageDraft.trim()}
-          title={t("send")}
-          aria-label={t("send")}
-        >
-          <Icon name="send" size={18} />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              className="send-button"
+              type="submit"
+              disabled={!chat.canSend() || !chatUi.messageDraft.trim()}
+              aria-label={t("send")}
+            >
+              <Icon name="send" size={18} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{t("send")}</TooltipContent>
+        </Tooltip>
       </form>
     </>
   );
@@ -238,9 +243,14 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
       <div className="chat-conversation-heading" data-ws-part="voice.chat.title-row">
         <strong className="chat-conversation-title">{chat.tabLabel(t)}</strong>
         {collapsible && (
-          <button type="button" className="chat-collapse" data-ws-part="voice.chat.collapse" title={t("closeChat")} aria-label={t("closeChat")} onClick={onCollapse}>
-            <Icon name="close" size={14} />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button type="button" className="chat-collapse" data-ws-part="voice.chat.collapse" aria-label={t("closeChat")} onClick={onCollapse}>
+                <Icon name="close" size={14} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>{t("closeChat")}</TooltipContent>
+          </Tooltip>
         )}
       </div>
       <Tabs value={activeTabValue} onValueChange={onTabChange}>

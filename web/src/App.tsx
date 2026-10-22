@@ -6,6 +6,7 @@ import { ConfirmDialogHost } from "./components/app/confirm-host";
 import { I18nProvider } from "./components/app/i18n-provider";
 import { RouteEffect } from "./components/app/route-effect";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const WebClient = lazy(() => import("./views/web-client"));
 const DownloadView = lazy(() => import("./views/download-view"));
@@ -33,11 +34,14 @@ export default function App() {
   return (
     <ErrorBoundary>
       <I18nProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-        <ConfirmDialogHost />
-        <Toaster />
+        {/* 图标钮提示的全局 Provider（ZCode 提示语义：延迟 0 即时显示）。 */}
+        <TooltipProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+          <ConfirmDialogHost />
+          <Toaster />
+        </TooltipProvider>
       </I18nProvider>
     </ErrorBoundary>
   );

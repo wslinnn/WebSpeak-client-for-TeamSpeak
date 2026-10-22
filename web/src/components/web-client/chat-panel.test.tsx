@@ -6,6 +6,7 @@ import { expect, test, vi } from "vitest";
 import { createStore } from "zustand/vanilla";
 
 import type { ChannelMember, ChatMessage } from "@shared/voice-models";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { createChatController } from "@/web-client/chat-controller";
 import type { WebClientChatTab } from "@/web-client/home-store";
 import { formatTime, resolveMessageAvatar } from "@/web-client/view-utils";
@@ -55,19 +56,22 @@ function harness(messages: ChatMessage[], members: ChannelMember[] = []) {
 }
 
 function renderPanel(chat: ReturnType<typeof createChatController>, members: ChannelMember[] = []) {
+  // 发送/收起钮的提示走 Tooltip 原语，独立渲染必须自带 Provider（应用壳里在 App 根）。
   return render(
-    <ChatPanel
-      chat={chat}
-      tab="channel"
-      language="zh"
-      currentChannelName="Lobby"
-      mobileHidden={false}
-      serverEvents={[]}
-      members={members}
-      onListElement={() => {}}
-      onCollapse={() => {}}
-      t={(key) => key}
-    />,
+    <TooltipProvider>
+      <ChatPanel
+        chat={chat}
+        tab="channel"
+        language="zh"
+        currentChannelName="Lobby"
+        mobileHidden={false}
+        serverEvents={[]}
+        members={members}
+        onListElement={() => {}}
+        onCollapse={() => {}}
+        t={(key) => key}
+      />
+    </TooltipProvider>,
   );
 }
 
