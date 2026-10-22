@@ -4,8 +4,9 @@ import { useStore } from "zustand";
 
 import { Icon } from "./icon";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { MAX_INPUT_VOLUME, type VoiceSessionController } from "@/voice/session-controller";
-import { rangeStyle } from "@/web-client/view-utils";
 
 interface AudioDockModel {
   microphoneMuted: boolean;
@@ -218,16 +219,12 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
             ><span>{t("inputVolume")}</span
             ><strong>{Math.round(inputVolume * 100)}%</strong></div
           >
-          <input
-            className="dock-slider"
-            type="range"
-            min={0}
+          <Slider
+            value={[Math.round(inputVolume * 100)]}
             max={MAX_INPUT_VOLUME * 100}
             step={5}
-            value={inputVolume * 100}
-            style={rangeStyle(inputVolume, MAX_INPUT_VOLUME)}
             aria-label={t("inputVolume")}
-            onChange={(event) => controls.onInputVolume({ target: event.target })}
+            onValueChange={(values) => controls.onInputVolume({ target: { value: String(values[0]) } })}
           />
           <div className="audio-level-row"
             ><span>{t("micLevel")}</span
@@ -236,33 +233,30 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
           <div className="audio-level-track dock-level-track"
             ><i style={{ transform: `scaleX(${Math.max(0, displayMicLevel)})` }}></i></div>
           <div className="dock-panel-divider"></div>
-          <label className="dock-switch-row"
+          <div className="dock-switch-row"
             ><span
               ><strong>{t("noiseSuppression")}</strong></span
-            ><input
-              type="checkbox"
+            ><Switch
               checked={model.noiseSuppressionEnabled}
               aria-label={t("noiseSuppression")}
-              onChange={(event) => controls.onNoiseSuppressionToggle({ target: event.target })}
-          /></label>
-          <label className="dock-switch-row"
+              onCheckedChange={(checked) => controls.onNoiseSuppressionToggle({ target: { checked } })}
+          /></div>
+          <div className="dock-switch-row"
             ><span
               ><strong>{t("echoCancellation")}</strong></span
-            ><input
-              type="checkbox"
+            ><Switch
               checked={model.echoCancellationEnabled}
               aria-label={t("echoCancellation")}
-              onChange={(event) => controls.onEchoCancellationToggle({ target: event.target })}
-          /></label>
-          <label className="dock-switch-row"
+              onCheckedChange={(checked) => controls.onEchoCancellationToggle({ target: { checked } })}
+          /></div>
+          <div className="dock-switch-row"
             ><span
               ><strong>{t("autoGainControl")}</strong></span
-            ><input
-              type="checkbox"
+            ><Switch
               checked={model.autoGainControlEnabled}
               aria-label={t("autoGainControl")}
-              onChange={(event) => controls.onAutoGainControlToggle({ target: event.target })}
-          /></label>
+              onCheckedChange={(checked) => controls.onAutoGainControlToggle({ target: { checked } })}
+          /></div>
         </DockHoverControl>
         <DockHoverControl
           part="voice.audio-dock.output"
@@ -285,16 +279,12 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
             ><span>{t("overallVolume")}</span
             ><strong>{Math.round(outputVolume * 100)}%</strong></div
           >
-          <input
-            className="dock-slider"
-            type="range"
-            min={0}
+          <Slider
+            value={[Math.round(outputVolume * 100)]}
             max={100}
             step={5}
-            value={outputVolume * 100}
-            style={rangeStyle(outputVolume, 1)}
             aria-label={t("overallVolume")}
-            onChange={(event) => controls.onOutputVolume({ target: event.target })}
+            onValueChange={(values) => controls.onOutputVolume({ target: { value: String(values[0]) } })}
           />
         </DockHoverControl>
       </div>
