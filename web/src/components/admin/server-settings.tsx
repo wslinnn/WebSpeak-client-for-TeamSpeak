@@ -2,6 +2,8 @@ import { ActivityIcon, CheckIcon, ChevronDownIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { useStore } from "zustand";
 
+import { Button } from "@/components/ui/button";
+
 import type { AdminMessages } from "@/i18n/admin-messages";
 import type { ServerSettingsController } from "@/admin/server-settings-controller";
 import { DEFAULT_WELCOME_TEXTS, type SiteLanguage } from "@shared/site-copy";
@@ -60,9 +62,9 @@ export function AdminServerSettings({ model, messages, onWebRtcToggle }: {
           <h2>{tr("serverSettings")}</h2>
           <p>{tr("serverSettingsLead")}</p>
         </div>
-        <button className="primary-button" disabled={saving} onClick={() => void model.saveServerSettings()}>
+        <Button type="button" disabled={saving} onClick={() => void model.saveServerSettings()}>
           {saving ? tr("saving") : tr("saveChanges")}
-        </button>
+        </Button>
       </div>
       <div className="settings-grid">
         <details className="settings-card settings-accordion target-accordion" open>
@@ -103,11 +105,11 @@ export function AdminServerSettings({ model, messages, onWebRtcToggle }: {
                   )}
                 </div>
               </div>
-              <button className="secondary-button target-test-button" type="button" disabled={testing}
+              <Button type="button" variant="outline" className="target-test-button" disabled={testing}
                 onClick={() => void model.testServerConnection()}>
                 {testing ? <span className="spinner small" aria-hidden="true" /> : <ActivityIcon size={17} aria-hidden="true" />}
                 {testing ? tr("testing") : tr("testConnection")}
-              </button>
+              </Button>
               {testResult && (
                 <div className={["test-result", "target-test-result", testResult.ok ? "success" : "error"].join(" ")}>
                   {testResult.ok ? <CheckIcon size={18} aria-hidden="true" /> : <XIcon size={18} aria-hidden="true" />}

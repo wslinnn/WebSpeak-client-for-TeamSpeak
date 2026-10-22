@@ -651,11 +651,6 @@ html[data-ws-route="admin"] #root {
     grid-column: 1/3;
     grid-row: 2;
   }
-  .operations-page .invite-form>.primary-button {
-    grid-column: 3;
-    grid-row: 1;
-    white-space: nowrap;
-  }
   .operations-page .diagnostics-card {
     display: grid;
     grid-template-columns: minmax(0,1fr);
@@ -692,8 +687,7 @@ html[data-ws-route="admin"] #root {
   }
   .operations-page .invite-form>label,
   .operations-page .invite-form-grid,
-  .operations-page .invite-form>.field-help,
-  .operations-page .invite-form>.primary-button {
+  .operations-page .invite-form>.field-help {
     grid-column: 1;
     grid-row: auto;
   }

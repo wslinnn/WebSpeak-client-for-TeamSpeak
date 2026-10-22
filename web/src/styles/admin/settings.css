@@ -101,29 +101,15 @@
   background: color-mix(in srgb, var(--wsd-danger) 8%, transparent);
 }
 
-.danger-button,
 .text-danger {
   color: var(--wsd-danger);
   background: color-mix(in srgb, var(--wsd-danger) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--wsd-danger) 30%, transparent);
+  border: 0;
   border-radius: 7px;
   font-size: 10px;
   font-weight: 700;
   cursor: pointer;
-}
-
-.danger-button {
-  padding: 7px 9px;
-}
-
-.text-danger {
   padding: 4px 7px;
-  border: 0;
-}
-
-.danger-button:disabled {
-  opacity: .55;
-  cursor: wait;
 }
 
 .operation-empty {
@@ -143,13 +129,6 @@
 .field-help {
   margin-top: -8px;
   color: var(--wsd-text-dim);
-  font-size: 10px;
-}
-
-.generated-link .secondary-button {
-  min-height: 36px;
-  padding-inline: 9px;
-  white-space: nowrap;
   font-size: 10px;
 }
 

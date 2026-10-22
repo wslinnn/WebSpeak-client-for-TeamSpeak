@@ -165,7 +165,6 @@ html[data-ws-route="admin"].dark .admin-root {
 }
 
 .admin-root .password-actions button.danger,
-.admin-root .danger-button,
 .admin-root .text-danger {
   color: var(--wsd-danger);
   background: color-mix(in srgb,var(--wsd-danger) 12%,var(--wsd-panel));
@@ -174,7 +173,6 @@ html[data-ws-route="admin"].dark .admin-root {
 
 /* Secondary actions are neutral raised surfaces; accent stays on primary
  * buttons, active/selected states and focus only. */
-.admin-root .secondary-button,
 .admin-root .admin-topbar button,
 .admin-root .admin-topbar .language-select,
 .admin-root .home-link {

@@ -1,6 +1,8 @@
 import { ActivityIcon, CheckIcon, InfoIcon, RefreshCwIcon, UsersIcon } from "lucide-react";
 import { useStore } from "zustand";
 
+import { Button } from "@/components/ui/button";
+
 import type { AdminMessages } from "@/i18n/admin-messages";
 import type { OperationsController } from "@/admin/operations-controller";
 import type { AdminConnectionRecord } from "@shared/admin-responses";
@@ -26,10 +28,10 @@ export function AdminOperations({ model, messages }: {
           <h2>{tr("operations")}</h2>
           <p>{tr("operationsLead")}</p>
         </div>
-        <button className="secondary-button" disabled={loading} onClick={() => void model.loadOperations()}>
+        <Button type="button" variant="outline" disabled={loading} onClick={() => void model.loadOperations()}>
           {loading ? <span className="spinner small" aria-hidden="true" /> : <RefreshCwIcon size={17} aria-hidden="true" />}
           {tr("refresh")}
-        </button>
+        </Button>
       </div>
       <div className="alert info system-notice">
         <InfoIcon size={16} aria-hidden="true" />
@@ -67,10 +69,10 @@ export function AdminOperations({ model, messages }: {
                       <td>{formatAge(session.ageSeconds)}</td>
                       <td>{session.memberCount}</td>
                       <td>
-                        <button className="danger-button" type="button" disabled={Boolean(terminating)}
+                        <Button type="button" variant="destructive" size="sm" disabled={Boolean(terminating)}
                           onClick={() => void model.terminateSession(session)}>
                           {terminating === session.id ? tr("terminating") : tr("endSession")}
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -126,9 +128,9 @@ export function AdminOperations({ model, messages }: {
                 : "—"}</dd>
             </div>
           </dl>
-          <button className="secondary-button" type="button" onClick={() => void model.downloadBackup()}>
+          <Button type="button" variant="outline" onClick={() => void model.downloadBackup()}>
             {tr("exportBackup")}
-          </button>
+          </Button>
         </article>
         <article className="operation-card logs-card">
           <header>

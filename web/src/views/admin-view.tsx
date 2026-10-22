@@ -4,6 +4,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useStore } from "zustand";
 
 import { createAdminController } from "@/admin/admin-controller";
+import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/brand-mark";
 import { AdminServerSettings } from "@/components/admin/server-settings";
 import { AdminOperations } from "@/components/admin/operations";
@@ -153,9 +154,9 @@ export default function AdminView() {
                 <div className="modal-icon"><InfoIcon size={21} aria-hidden="true" /></div>
                 <h2>{tr("webrtcPortNoticeTitle")}</h2>
                 <p>{tr("webrtcPortNotice", { range: webrtcPortRange })}</p>
-                <button className="primary-button wide" type="button" onClick={() => controller.closeWebrtcPortNotice()}>
+                <Button type="button" className="wide" onClick={() => controller.closeWebrtcPortNotice()}>
                   {tr("gotIt")}
-                </button>
+                </Button>
               </section>
             </div>
           )}

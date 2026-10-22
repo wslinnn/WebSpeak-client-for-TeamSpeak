@@ -228,48 +228,8 @@ fieldset {
   line-height: 1.45;
 }
 
-.primary-button,
-.secondary-button,
-.text-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 42px;
-  padding: 0 18px;
-  border: 0;
-  border-radius: 9px;
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.primary-button {
-  color: var(--wsd-accent-contrast);
-  background: var(--wsd-accent);
-}
-
-.primary-button:hover {
-  background: var(--wsd-accent-fill-hover);
-}
-
-.primary-button:disabled,
-.secondary-button:disabled {
-  opacity: .55;
-  cursor: not-allowed;
-}
-
-.secondary-button {
-  color: var(--wsd-text);
-  background: var(--wsd-raised);
-  border: 1px solid var(--wsd-border);
-}
-
-.text-button {
-  color: var(--wsd-text-muted);
-  background: transparent;
-}
-
+/* 按钮支柱（primary/secondary/text-button）随一致性战役 C1 退役：
+   皮肤归 components/ui/button.tsx（与 web-client 共用原语）。 */
 .wide {
   width: 100%;
 }

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useStore } from "zustand";
 
 import { useI18n } from "@/hooks/use-i18n";
+import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/brand-mark";
 import { LanguageSwitcher } from "@/components/web-client/language-switcher";
 import type { AdminController } from "@/admin/admin-controller";
@@ -36,10 +37,10 @@ export function LoginScreen({ controller, messages }: { controller: AdminControl
             <input value={view.loginPassword} type="password" autoComplete="current-password"
               onChange={(event) => controller.setLoginPassword(event.target.value)} />
           </label>
-          <button className="primary-button wide" disabled={view.submitting} type="submit">
+          <Button className="wide" disabled={view.submitting} type="submit">
             {view.submitting && <span className="spinner small" aria-hidden="true" />}
             {tr("login")}
-          </button>
+          </Button>
         </form>
         <div className="login-actions">
           <Link to="/" className="home-link">
@@ -83,10 +84,10 @@ export function ChangePasswordScreen({ controller, messages }: { controller: Adm
               onChange={(event) => controller.setConfirmNewPassword(event.target.value)} />
           </label>
           <div className="strength"><i style={{ width: `${strength}%` }} /></div>
-          <button className="primary-button wide" disabled={view.submitting} type="submit">
+          <Button className="wide" disabled={view.submitting} type="submit">
             {view.submitting && <span className="spinner small" aria-hidden="true" />}
             {tr("savePassword")}
-          </button>
+          </Button>
         </form>
         <p className="security-note">{tr("defaultCredentialNotice")}</p>
         <LanguageSwitcher language={language} onChange={setLanguage} menuLabel={tr("languageMenu")} />

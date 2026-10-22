@@ -479,9 +479,6 @@
   .page-heading {
     gap: 15px;
   }
-  .page-heading .primary-button {
-    padding-inline: 12px;
-  }
   .settings-card,
   .readonly-card,
   .overview-card {
