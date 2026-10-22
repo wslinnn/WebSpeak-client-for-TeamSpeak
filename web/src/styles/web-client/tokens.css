@@ -13,10 +13,14 @@
 /* Token scope: the workspace (.web-client), the download route
  * (.download-page reuses header-note/tiny-dot/language-switcher) and the
  * admin console (.admin-root) share the language; day values are the
- * default, night flips under html.dark. */
+ * default, night flips under html.dark. body 必须在作用域内：radix 浮层
+ * portal 挂在 body 下、游离于一切路由根之外（ui-scale/包含块约束，见
+ * decisions.md 浮层挂载点），令牌随继承到达 portal 子树；路由根子树仍按
+ * 继承距离取最近的根定义，与 body 值互不干扰。 */
 .web-client,
 .download-page,
-.admin-root {
+.admin-root,
+body {
   color-scheme: light;
   --wsd-bg: #eef1f2;
   --wsd-rail: #e3e8ea;
@@ -66,7 +70,8 @@
 
 .dark .web-client,
 .dark .download-page,
-.dark .admin-root {
+.dark .admin-root,
+.dark body {
   color-scheme: dark;
   --wsd-bg: #17181b;
   --wsd-rail: #141518;
