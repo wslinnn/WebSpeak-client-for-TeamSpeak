@@ -22,7 +22,33 @@ export default {
     "declaration-property-value-disallowed-list": {
       transition: [/(^|[\s,])all\b/, /(^|[\s,])(width|height|top|left|right|bottom|margin|padding|gap)\b/],
       "transition-property": [/(^|[\s,])all\b/, /(^|[\s,])(width|height|top|left|right|bottom|margin|padding|gap)\b/],
+      // 颜色使用点禁裸色值（hex/rgba/rgb/named 扩展色）：一律走 --wsd-* 或组件
+      // 根语义局部变量（定义行属性名带 -- 前缀，天然不在本名单）。transparent/
+      // currentColor/inherit 保留。与 declaration-discipline.test.ts 同判据双轨。
+      color: [/#[0-9a-f]{3,8}\b/i, /\brgba?\(/i],
+      background: [/#[0-9a-f]{3,8}\b/i, /\brgba?\(/i],
+      "background-color": [/#[0-9a-f]{3,8}\b/i, /\brgba?\(/i],
+      "background-image": [/#[0-9a-f]{3,8}\b/i, /\brgba?\(/i],
+      border: [/#[0-9a-f]{3,8}\b/i, /\brgba?\(/i],
+      "border-color": [/#[0-9a-f]{3,8}\b/i, /\brgba?\(/i],
+      outline: [/#[0-9a-f]{3,8}\b/i, /\brgba?\(/i],
+      "outline-color": [/#[0-9a-f]{3,8}\b/i, /\brgba?\(/i],
+      fill: [/#[0-9a-f]{3,8}\b/i, /\brgba?\(/i],
+      stroke: [/#[0-9a-f]{3,8}\b/i, /\brgba?\(/i],
     },
     "no-empty-source": true,
   },
+  overrides: [
+    {
+      // admin chunk 的色值单轨翻新另有批次（7 处 rgba 使用点待归槽），暂不套
+      // 颜色新规；z 阶梯与 transition 纪律维持全仓一致。
+      files: ["src/styles/admin/**/*.css"],
+      rules: {
+        "declaration-property-value-disallowed-list": {
+          transition: [/(^|[\s,])all\b/, /(^|[\s,])(width|height|top|left|right|bottom|margin|padding|gap)\b/],
+          "transition-property": [/(^|[\s,])all\b/, /(^|[\s,])(width|height|top|left|right|bottom|margin|padding|gap)\b/],
+        },
+      },
+    },
+  ],
 };

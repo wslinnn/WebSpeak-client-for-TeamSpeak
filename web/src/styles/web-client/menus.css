@@ -639,7 +639,7 @@
     z-index: var(--ws-z-menu-mask);
     inset: 0;
     display: block;
-    background: rgba(12, 14, 16, .38);
+    background: var(--wsd-backdrop-sheet);
     backdrop-filter: blur(2px);
   }
   .member-context-menu {
@@ -1390,7 +1390,7 @@
   position: fixed;
   inset: 0;
   z-index: var(--ws-z-menu-mask, 300);
-  background: rgba(12, 14, 16, .38);
+  background: var(--wsd-backdrop-sheet);
   backdrop-filter: blur(2px);
 }
 

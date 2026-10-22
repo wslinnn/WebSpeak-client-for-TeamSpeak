@@ -51,6 +51,8 @@ body {
   --wsd-danger-contrast: #ffffff;
   /* Shared modal veil; night keeps the same neutral dark. */
   --wsd-backdrop: rgba(12, 14, 16, .52);
+  /* 底部面板（移动 sheet）的轻遮罩：比模态 veil 透一档，保留页面可见度。 */
+  --wsd-backdrop-sheet: rgba(12, 14, 16, .38);
   /* Fullscreen media backdrop: a viewport-filling video keeps a neutral
    * near-black surround in both themes — themed light letterbox bars read as
    * a layout bug. Constant value, like --wsd-on-fill. */
@@ -94,6 +96,8 @@ body {
   --wsd-danger-contrast: #131316;
   --wsd-on-fill: #ffffff;
   --wsd-backdrop: rgba(12, 14, 16, .52);
+  /* 底部面板（移动 sheet）的轻遮罩：比模态 veil 透一档，保留页面可见度。 */
+  --wsd-backdrop-sheet: rgba(12, 14, 16, .38);
   --wsd-media-void: #0b0c0e;
   /* Dark surfaces swallow weak shadows: night keeps the geometry and raises
    * the alpha so elevation still reads. */
