@@ -1009,13 +1009,44 @@
   display: none;
 }
 
-/* 页签皮随一致性战役 D1 退役：触发器归 radix Tabs 原语（components/ui/tabs.tsx），
-   本类只留滚动/外距布局钩。 */
+/* 页签复刻旧 accent 药片（2026-10-22 拍板）：radix 结构 + 产品皮——原语药丸
+ * 的容器底/内边距/定高归零（bg-muted 与面板同明度会隐形），触发器 = raised
+ * 药片、active 钴蓝高亮（accent 20% 底 + 32% 描边 + 700 字重，旧皮平价）。 */
 .chat-tabs {
   max-width: 100%;
   margin-top: 18px;
+  gap: 6px;
+  height: auto;
   overflow-x: auto;
-  padding-bottom: 3px;
+  padding: 0 0 3px;
+  background: transparent;
+  border-radius: 0;
+}
+
+.chat-tabs [data-slot="tabs-trigger"][data-state] {
+  flex: 0 0 auto;
+  height: auto;
+  padding: 7px 10px;
+  color: var(--wsd-text-muted);
+  background: var(--wsd-raised);
+  border: 1px solid transparent;
+  border-radius: 7px;
+  font-size: 11px;
+}
+
+@media (hover: hover) {
+
+.chat-tabs [data-slot="tabs-trigger"]:hover {
+  color: var(--wsd-accent);
+  background: var(--wsd-accent-soft);
+}
+}
+
+.chat-tabs [data-slot="tabs-trigger"][data-state="active"] {
+  color: var(--wsd-accent);
+  background: color-mix(in srgb, var(--wsd-accent) 20%, transparent);
+  border-color: color-mix(in srgb, var(--wsd-accent) 32%, transparent);
+  font-weight: 700;
 }
 
 /* Tabs 迁移后消息列表/作曲器住进 TabsContent：列布局的 flex 链（列表撑满、
