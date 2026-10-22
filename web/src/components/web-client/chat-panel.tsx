@@ -3,6 +3,7 @@ import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 
 import { Icon } from "./icon";
+import { InputGroup, InputGroupAddon, InputGroupTextarea } from "@/components/ui/input-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
@@ -186,25 +187,26 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
         data-ws-part="voice.chat.composer"
         onSubmit={(event) => { event.preventDefault(); if (!composing) void chat.submitMessage(); }}
       >
-        <textarea
-          ref={composerRef}
-          value={chatUi.messageDraft}
-          onChange={(event) => chat.setDraft(event.target.value)}
-          rows={1}
-          maxLength={MESSAGE_MAX_LENGTH}
-          enterKeyHint="send"
-          autoComplete="off"
-          onCompositionStart={() => setComposing(true)}
-          onCompositionEnd={() => setComposing(false)}
-          onKeyDown={onComposerKeydown}
-          placeholder={chat.placeholder(t)}
-          aria-label={t("messageInput")}
-        />
-        {chatUi.messageDraft.length > 450 && (
-          <span className="composer-count" aria-live="off">{MESSAGE_MAX_LENGTH - chatUi.messageDraft.length}</span>
-        )}
-        <Tooltip>
-          <TooltipTrigger asChild>
+        <InputGroup>
+          <InputGroupTextarea
+            ref={composerRef}
+            value={chatUi.messageDraft}
+            onChange={(event) => chat.setDraft(event.target.value)}
+            rows={1}
+            maxLength={MESSAGE_MAX_LENGTH}
+            enterKeyHint="send"
+            autoComplete="off"
+            className="min-h-0 field-sizing-fixed"
+            onCompositionStart={() => setComposing(true)}
+            onCompositionEnd={() => setComposing(false)}
+            onKeyDown={onComposerKeydown}
+            placeholder={chat.placeholder(t)}
+            aria-label={t("messageInput")}
+          />
+          {chatUi.messageDraft.length > 450 && (
+            <span className="composer-count" aria-live="off">{MESSAGE_MAX_LENGTH - chatUi.messageDraft.length}</span>
+          )}
+          <InputGroupAddon align="inline-end">
             <button
               className="send-button"
               type="submit"
@@ -213,9 +215,8 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
             >
               <Icon name="send" size={18} />
             </button>
-          </TooltipTrigger>
-          <TooltipContent>{t("send")}</TooltipContent>
-        </Tooltip>
+          </InputGroupAddon>
+        </InputGroup>
       </form>
     </>
   );

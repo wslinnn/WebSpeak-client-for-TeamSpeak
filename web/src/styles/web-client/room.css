@@ -400,31 +400,10 @@
   line-height: 1.55;
 }
 
-.message-composer {
-  display: flex;
-  align-items: center;
-  gap: 7px;
+/* 作曲器皮随一致性战役 F2 退役：容器归 InputGroup 原语（边框/底色/焦点环/
+ * 内边距），本类只留触控高度钩；form 本身是纯布局壳。 */
+.message-composer [data-slot="input-group"] {
   min-height: 44px;
-  padding: 6px 8px 6px 12px;
-  background: var(--wsd-raised);
-  border-radius: 9px;
-}
-
-.message-composer :is(input, textarea) {
-  width: 100%;
-  min-width: 0;
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: var(--wsd-text);
-  font-size: 12px;
-}
-
-.message-composer textarea {
-  resize: none;
-  overflow-y: auto;
-  font: inherit;
-  line-height: 1.45;
 }
 
 .composer-count {
@@ -432,14 +411,6 @@
   color: var(--wsd-text-dim);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
-}
-
-.message-composer :is(input, textarea)::placeholder {
-  color: var(--wsd-text-dim);
-}
-
-.message-composer:focus-within {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--wsd-accent) 35%, transparent);
 }
 
 .send-button {
@@ -938,10 +909,6 @@
   font-size: 10px;
 }
 
-.app-shell .message-composer :is(input, textarea) {
-  font-size: 15px;
-}
-
 .app-shell .dock-user span,
 .app-shell .mic-mode-switch button,
 .app-shell .ptt-indicator {
@@ -999,8 +966,7 @@
   .app-shell .section-heading h2 {
     font-size: 21.25px;
   }
-  .app-shell .message-bubble,
-  .app-shell .message-composer :is(input, textarea) {
+  .app-shell .message-bubble {
     font-size: 13.75px;
   }
   .app-shell .mic-mode-switch button {
@@ -1076,12 +1042,6 @@
   margin: -4px -6px;
   border-radius: 9px;
   transition: background .16s ease, box-shadow .16s ease;
-}
-
-.message-composer {
-  position: sticky;
-  bottom: env(safe-area-inset-bottom, 0px);
-  z-index: 3;
 }
 
 @media (max-width: 740px) {
@@ -1420,15 +1380,11 @@
     font-size: 14px;
   }
   .app-shell.mobile-view-chat .message-composer {
-    position: relative;
     flex: 0 0 auto;
-    min-height: 54px;
     margin: 0 0 4px;
-    padding: 7px 8px 7px 13px;
-    border: 1px solid var(--wsd-border);
   }
-  .app-shell.mobile-view-chat .message-composer :is(input, textarea) {
-    font-size: 14px;
+  .app-shell.mobile-view-chat .message-composer [data-slot="input-group"] {
+    min-height: 54px;
   }
   .microphone-control {
     align-items: stretch;
@@ -2949,6 +2905,3 @@ button.screen-share-live-indicator:focus-visible {
   }
 }
 
-.web-client .message-composer :is(input, textarea):focus-visible {
-  outline: none;
-}
