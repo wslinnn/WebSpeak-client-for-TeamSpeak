@@ -9,6 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { useCoarsePointer } from "@/hooks/use-coarse-pointer";
 import { MAX_INPUT_VOLUME, type VoiceSessionController } from "@/voice/session-controller";
+import { Button } from "@/components/ui/button";
 
 interface AudioDockModel {
   microphoneMuted: boolean;
@@ -154,12 +155,12 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
         {children}
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
+            <Button variant="ghost"
               type="button"
               className="desktop-audio-dock-power"
               aria-label={t("exit")}
               onClick={onDisconnect}
-            ><Icon name="power" size={20} /></button>
+            ><Icon name="power" size={20} /></Button>
           </TooltipTrigger>
           <TooltipContent>{t("exit")}</TooltipContent>
         </Tooltip>
@@ -167,40 +168,40 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
       <div className="desktop-audio-dock-share-row">
         <div className={share.active ? "desktop-audio-dock-share is-stop" : "desktop-audio-dock-share"}>
           {!share.active ? (
-            <button
+            <Button variant="ghost"
               type="button"
               className="desktop-audio-dock-share-main"
               disabled={share.starting}
               onClick={onStartShare}
-            ><Icon name="monitor" size={17} />{t("startScreenShare")}</button>
+            ><Icon name="monitor" size={17} />{t("startScreenShare")}</Button>
           ) : (
-            <button
+            <Button variant="ghost"
               type="button"
               className="desktop-audio-dock-share-main"
               onClick={onStopShare}
-            ><Icon name="close" size={14} />{t("stopScreenShare")}</button>
+            ><Icon name="close" size={14} />{t("stopScreenShare")}</Button>
           )}
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
+              <Button variant="ghost"
                 type="button"
                 className="desktop-audio-dock-share-gear"
                 aria-label={t("screenShareSettings")}
                 onClick={onShareSettings}
-              ><Icon name="settings" size={13} /></button>
+              ><Icon name="settings" size={13} /></Button>
             </TooltipTrigger>
             <TooltipContent>{t("screenShareSettings")}</TooltipContent>
           </Tooltip>
         </div>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
+            <Button variant="ghost"
               type="button"
               className="desktop-audio-dock-accompaniment"
               aria-pressed={model.accompanimentActive}
               aria-label={model.accompanimentActive ? t("stopAccompaniment") : t("startAccompaniment")}
               onClick={() => void controls.toggleAccompaniment()}
-            ><Icon name="music" size={16} /></button>
+            ><Icon name="music" size={16} /></Button>
           </TooltipTrigger>
           <TooltipContent>{model.accompanimentActive ? t("stopAccompaniment") : t("startAccompaniment")}</TooltipContent>
         </Tooltip>
@@ -209,23 +210,23 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
         className="desktop-audio-dock-controls"
         data-ws-part="voice.audio-dock.controls"
       >
-        <button
+        <Button variant="ghost"
           type="button"
           className="desktop-audio-dock-control desktop-audio-dock-settings"
           title={t("audioSettings")}
           aria-label={t("audioSettings")}
           onClick={onSettings}
-        ><Icon name="settings" size={15} /><span>{t("audioSettings")}</span></button>
+        ><Icon name="settings" size={15} /><span>{t("audioSettings")}</span></Button>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
+            <Button variant="ghost"
               type="button"
               className="desktop-audio-dock-control desktop-audio-dock-noise"
               aria-pressed={model.noiseSuppressionEnabled}
               data-off={model.noiseSuppressionEnabled ? undefined : "true"}
               aria-label={t("noiseSuppression")}
               onClick={() => void controls.onNoiseSuppressionToggle({ target: { checked: !model.noiseSuppressionEnabled } })}
-            ><Icon name="waveform" size={18} /></button>
+            ><Icon name="waveform" size={18} /></Button>
           </TooltipTrigger>
           <TooltipContent>{t("noiseSuppression")}</TooltipContent>
         </Tooltip>
@@ -235,7 +236,7 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
           panelClassName="dock-microphone-panel gap-2.5"
           panelPart="voice.audio-dock.microphone-panel"
           button={
-            <button
+            <Button variant="ghost"
               type="button"
               className="desktop-audio-dock-control"
               data-muted={model.microphoneMuted ? "true" : undefined}
@@ -243,7 +244,7 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
               aria-label={model.microphoneMuted ? t("microphoneMuted") : t("microphoneActive")}
               aria-pressed={!model.microphoneMuted}
               onClick={controls.toggleMicrophone}
-            ><Icon name="mic" size={18} /></button>
+            ><Icon name="mic" size={18} /></Button>
           }
         >
           <div className="dock-slider-heading"
@@ -295,7 +296,7 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
           panelClassName="dock-output-panel gap-2.5"
           panelPart="voice.audio-dock.output-panel"
           button={
-            <button
+            <Button variant="ghost"
               type="button"
               className="desktop-audio-dock-control"
               data-muted={model.outputMuted ? "true" : undefined}
@@ -303,7 +304,7 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
               aria-label={model.outputMuted ? t("unmuteOutput") : t("muteOutput")}
               aria-pressed={!model.outputMuted}
               onClick={onOutputMute}
-            ><Icon name="volume" size={18} /></button>
+            ><Icon name="volume" size={18} /></Button>
           }
         >
           <div className="dock-slider-heading"
