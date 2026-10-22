@@ -200,7 +200,7 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
         <DockHoverControl
           part="voice.audio-dock.microphone"
           label={t("microphone")}
-          panelClassName="dock-microphone-panel"
+          panelClassName="dock-microphone-panel gap-2.5"
           panelPart="voice.audio-dock.microphone-panel"
           button={
             <button
@@ -267,7 +267,7 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
         <DockHoverControl
           part="voice.audio-dock.output"
           label={t("overallVolume")}
-          panelClassName="dock-output-panel"
+          panelClassName="dock-output-panel gap-2.5"
           panelPart="voice.audio-dock.output-panel"
           button={
             <button
