@@ -200,7 +200,6 @@
 .dark :is(.web-client, .download-page) .join-page .header-note,
 .dark :is(.web-client, .download-page) .join-page .join-description,
 .dark :is(.web-client, .download-page) .join-page .card-lead,
-.dark :is(.web-client, .download-page) .join-page .field-hint,
 .dark :is(.web-client, .download-page) .join-page .join-meta,
 .dark :is(.web-client, .download-page) .join-page .join-footer { color: var(--wsd-text-muted); }
 .dark :is(.web-client, .download-page) .join-page .join-copy h1,
