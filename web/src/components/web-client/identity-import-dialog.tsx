@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 
 import { Icon } from "./icon";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
@@ -66,15 +67,17 @@ export function IdentityImportDialog(props: IdentityImportDialogProps) {
             <p>{props.description}</p>
           </div>
           <DialogClose asChild>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon-sm"
               className="dialog-close identity-import-close"
               data-ws-part="home.identity-import.close"
               aria-label={props.closeLabel}
               disabled={busy}
             >
               <Icon name="close" size={18} />
-            </button>
+            </Button>
           </DialogClose>
         </header>
         <textarea
@@ -105,9 +108,9 @@ export function IdentityImportDialog(props: IdentityImportDialogProps) {
         >
           <Icon name="paperclip" size={18} />
           <span>{props.dropZoneLabel}</span>
-          <button type="button" className="secondary-button size-sm identity-file-button" data-ws-part="home.identity-import.file-button" disabled={busy} onClick={(event) => { event.stopPropagation(); chooseFile(); }}>
+          <Button type="button" variant="outline" size="sm" className="identity-file-button" data-ws-part="home.identity-import.file-button" disabled={busy} onClick={(event) => { event.stopPropagation(); chooseFile(); }}>
             {props.chooseFileLabel}
-          </button>
+          </Button>
         </div>
         <input ref={fileInputRef} className="identity-file-input" type="file" accept={IDENTITY_ACCEPT} disabled={busy} onChange={onFileChange} />
         {error && <p className="identity-import-error" data-ws-part="home.identity-import.error" role="alert">{error}</p>}
@@ -117,18 +120,18 @@ export function IdentityImportDialog(props: IdentityImportDialogProps) {
           {props.securityNote}
         </p>
         <footer className="identity-import-footer" data-ws-part="home.identity-import.footer">
-          <button type="button" className="text-button identity-import-cancel" data-ws-part="home.identity-import.cancel" disabled={busy} onClick={props.onClose}>
+          <Button type="button" variant="ghost" className="identity-import-cancel" data-ws-part="home.identity-import.cancel" disabled={busy} onClick={props.onClose}>
             {props.cancelLabel}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="primary-button identity-import-submit"
+            className="identity-import-submit"
             data-ws-part="home.identity-import.submit"
             disabled={busy || reading || !text.trim()}
             onClick={props.onSubmit}
           >
             {busy ? props.connectingLabel : props.submitLabel}
-          </button>
+          </Button>
         </footer>
       </DialogContent>
     </Dialog>

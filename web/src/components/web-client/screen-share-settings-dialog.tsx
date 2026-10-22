@@ -1,4 +1,5 @@
 import { Icon } from "./icon";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   SCREEN_SHARE_BITRATE_OPTIONS,
@@ -31,12 +32,14 @@ export function ScreenShareSettingsDialog({ presets, onPresetsChange, onSubmit, 
         onInteractOutside={(event) => event.preventDefault()}
       >
         <DialogClose asChild>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-sm"
             className="screen-share-settings-close"
             aria-label={t("close")}
             title={t("close")}
-          ><Icon name="close" size={17} /></button>
+          ><Icon name="close" size={17} /></Button>
         </DialogClose>
         <div className="screen-share-settings-heading" data-ws-part="voice.screen-share-settings.heading">
           <span className="card-kicker">{t("screenShare")}</span>
@@ -83,12 +86,12 @@ export function ScreenShareSettingsDialog({ presets, onPresetsChange, onSubmit, 
         </div>
         <p className="screen-share-settings-note" data-ws-part="voice.screen-share-settings.note">{t("screenShareSettingsNote")}</p>
         <footer className="screen-share-settings-footer" data-ws-part="voice.screen-share-settings.actions">
-          <button type="button" className="text-button" onClick={onClose}>{t("cancel")}</button>
-          <button type="button" className="primary-button screen-share-settings-start" onClick={() => onSubmit(presets)}>
+          <Button type="button" variant="ghost" onClick={onClose}>{t("cancel")}</Button>
+          <Button type="button" onClick={() => onSubmit(presets)}>
             <Icon name="monitor" size={14} />
             {" "}
             {t("startScreenShare")}
-          </button>
+          </Button>
         </footer>
       </DialogContent>
     </Dialog>

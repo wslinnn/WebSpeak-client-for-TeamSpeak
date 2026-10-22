@@ -1,4 +1,5 @@
 import { Icon } from "./icon";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 interface ChannelPasswordDialogProps {
@@ -32,9 +33,9 @@ export function ChannelPasswordDialog(props: ChannelPasswordDialogProps) {
         onInteractOutside={(event) => event.preventDefault()}
       >
         <DialogClose asChild>
-          <button type="button" className="dialog-close" aria-label={props.closeLabel} title={props.closeLabel}>
+          <Button type="button" variant="ghost" size="icon-sm" className="absolute top-[13px] right-[13px]" aria-label={props.closeLabel} title={props.closeLabel}>
             <Icon name="close" size={19} />
-          </button>
+          </Button>
         </DialogClose>
         <DialogTitle id="channel-password-title">{props.title}</DialogTitle>
         <DialogDescription>{props.lead}</DialogDescription>
@@ -60,11 +61,11 @@ export function ChannelPasswordDialog(props: ChannelPasswordDialogProps) {
             </div>
           )}
           <div className="channel-password-actions">
-            <button type="button" className="text-button" disabled={busy} onClick={props.onClose}>{props.cancelLabel}</button>
-            <button type="submit" className="primary-button channel-password-submit" disabled={busy || !password}>
+            <Button type="button" variant="ghost" disabled={busy} onClick={props.onClose}>{props.cancelLabel}</Button>
+            <Button type="submit" disabled={busy || !password}>
               {busy && <span className="button-spinner" />}
               <span>{props.submitLabel}</span>
-            </button>
+            </Button>
           </div>
         </form>
       </DialogContent>

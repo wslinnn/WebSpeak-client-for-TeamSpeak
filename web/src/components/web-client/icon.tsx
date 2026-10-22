@@ -11,6 +11,7 @@ import {
   DoorOpen,
   Download,
   Ellipsis,
+  Globe as GlobeGlyph,
   Hash,
   Headphones,
   Info,
@@ -65,7 +66,7 @@ const NAME_MAP = {
   info: Info,
   check: Check,
   star: Star,
-  globe: Globe,
+  globe: GlobeGlyph,
   door: DoorOpen,
   more: Ellipsis,
   volume: Volume2,
@@ -95,13 +96,4 @@ export type IconName = keyof typeof NAME_MAP;
 export function Icon({ name, size = 16, className, ...rest }: { name: IconName; size?: number } & LucideProps) {
   const Glyph = NAME_MAP[name];
   return <Glyph className={cn("ui-icon", className)} width={size} height={size} aria-hidden="true" {...rest} />;
-}
-
-function Globe(props: LucideProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" />
-    </svg>
-  );
 }

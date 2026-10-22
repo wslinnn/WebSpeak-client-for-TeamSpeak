@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 
 import { Icon } from "./icon";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
@@ -92,12 +93,13 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
           ><header className="settings-header"
             ><DialogTitle id="settings-title">{t("audioConfiguration")}</DialogTitle
             ><DialogClose asChild
-              ><button
-                className="round-icon"
+              ><Button
+                variant="ghost"
+                size="icon-sm"
                 title={t("close")}
               ><Icon
                   name="close"
-                  size={19} /></button></DialogClose></header
+                  size={19} /></Button></DialogClose></header
           ><div className="settings-content">
             <section className="settings-section"
               ><h3
@@ -322,10 +324,10 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
               ></section
             > </div
           ><footer className="settings-footer"
-            ><button
-              className="primary-button size-lg"
+            ><Button
+              size="lg"
               onClick={onClose}
-            >{t("done")}</button
+            >{t("done")}</Button
             ></footer
           ></div
         >

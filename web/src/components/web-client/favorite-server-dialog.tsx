@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { Icon } from "./icon";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { combineTeamSpeakTarget, splitTeamSpeakTarget } from "@/services/teamspeak-target";
 
@@ -66,9 +67,9 @@ export function FavoriteServerDialog({ initial, knownFavoriteAddresses, onClose,
         <header className="favorite-server-header" data-ws-part="favorite-server.header">
           <DialogTitle id="favorite-server-title">{t("addFavoriteServer")}</DialogTitle>
           <DialogClose asChild>
-            <button type="button" className="dialog-close" data-ws-part="favorite-server.close" aria-label={t("close")}>
+            <Button type="button" variant="ghost" size="icon-sm" className="dialog-close" data-ws-part="favorite-server.close" aria-label={t("close")}>
               <Icon name="close" size={18} />
-            </button>
+            </Button>
           </DialogClose>
         </header>
         <form className="favorite-server-form" onSubmit={(event) => { event.preventDefault(); submit(); }}>
@@ -119,10 +120,10 @@ export function FavoriteServerDialog({ initial, knownFavoriteAddresses, onClose,
           <p className="favorite-server-hint">{t("favoritePasswordHint")}</p>
           {duplicateFavorite && <p className="favorite-server-hint warning" role="status">{t("favoriteUpdateExisting")}</p>}
           <footer className="favorite-server-actions" data-ws-part="favorite-server.actions">
-            <button type="button" className="secondary-button" data-ws-part="favorite-server.cancel" onClick={onClose}>{t("cancel")}</button>
-            <button type="submit" className="primary-button" data-ws-part="favorite-server.submit" disabled={!address.trim() || !port.trim() || !nickname.trim()}>
+            <Button type="button" variant="outline" data-ws-part="favorite-server.cancel" onClick={onClose}>{t("cancel")}</Button>
+            <Button type="submit" data-ws-part="favorite-server.submit" disabled={!address.trim() || !port.trim() || !nickname.trim()}>
               {t("saveFavorite")}
-            </button>
+            </Button>
           </footer>
         </form>
       </DialogContent>

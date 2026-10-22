@@ -1,4 +1,5 @@
 import { Icon } from "./icon";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 interface ServerPasswordDialogProps {
@@ -31,9 +32,9 @@ export function ServerPasswordDialog(props: ServerPasswordDialogProps) {
         onInteractOutside={(event) => event.preventDefault()}
       >
         <DialogClose asChild>
-          <button type="button" className="dialog-close" aria-label={props.closeLabel} title={props.closeLabel}>
+          <Button type="button" variant="ghost" size="icon-sm" className="absolute top-[13px] right-[13px]" aria-label={props.closeLabel} title={props.closeLabel}>
             <Icon name="close" size={19} />
-          </button>
+          </Button>
         </DialogClose>
         <DialogTitle id="server-password-title">{props.title}</DialogTitle>
         <DialogDescription>{invalid ? props.invalidLead : props.requiredLead}</DialogDescription>
@@ -52,10 +53,10 @@ export function ServerPasswordDialog(props: ServerPasswordDialogProps) {
             />
           </div>
           <div className="channel-password-actions">
-            <button type="button" className="text-button" onClick={props.onClose}>{props.cancelLabel}</button>
-            <button type="submit" className="primary-button channel-password-submit" disabled={!props.password}>
+            <Button type="button" variant="ghost" onClick={props.onClose}>{props.cancelLabel}</Button>
+            <Button type="submit" disabled={!props.password}>
               <span>{props.retryLabel}</span>
-            </button>
+            </Button>
           </div>
         </form>
       </DialogContent>

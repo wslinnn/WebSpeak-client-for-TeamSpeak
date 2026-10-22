@@ -21,13 +21,12 @@
   font-weight: 600;
 }
 
-.primary-button,
-.identity-import-submit {
+.primary-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 0 18px;
+  gap: 8px;
+  padding: 0 16px;
   color: var(--wsd-accent-contrast);
   background: var(--wsd-accent-fill);
   border-radius: 9px;
@@ -39,15 +38,13 @@
 
 @media (hover: hover) {
 
-.primary-button:hover:not(:disabled),
-.identity-import-submit:hover:not(:disabled) {
+.primary-button:hover:not(:disabled) {
   background: var(--wsd-accent-fill-hover);
   transform: translateY(-1px);
 }
 }
 
-.primary-button:active:not(:disabled),
-.identity-import-submit:active:not(:disabled) {
+.primary-button:active:not(:disabled) {
   transform: translateY(0);
 }
 
