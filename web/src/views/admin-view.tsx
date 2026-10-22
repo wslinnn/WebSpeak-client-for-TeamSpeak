@@ -107,10 +107,10 @@ export default function AdminView() {
               <ShareIcon size={16} aria-hidden="true" />
               {tr("openGuest")}
             </a>
-            <button type="button" disabled={view.loggingOut} onClick={() => void controller.logout()}>
+            <Button variant="ghost" type="button" disabled={view.loggingOut} onClick={() => void controller.logout()}>
               <DoorOpenIcon size={16} aria-hidden="true" />
               {tr("logout")}
-            </button>
+            </Button>
           </div>
         </aside>
 
@@ -125,12 +125,12 @@ export default function AdminView() {
                 <span className="running-dot" aria-hidden="true" />
                 <span className="gateway-status-label">{tr("gatewayRunning")}</span>
               </span>
-              <button type="button" className="theme-toggle" title={themeDark ? tr("switchToLightTheme") : tr("switchToDarkTheme")}
+              <Button variant="ghost" type="button" className="theme-toggle" title={themeDark ? tr("switchToLightTheme") : tr("switchToDarkTheme")}
                 aria-label={themeDark ? tr("switchToLightTheme") : tr("switchToDarkTheme")}
                 onClick={() => saveTheme(nextTheme(themeMode))}>
                 {themeDark ? <SunIcon size={17} aria-hidden="true" /> : <MoonIcon size={17} aria-hidden="true" />}
                 <span>{themeDark ? tr("switchToLightTheme") : tr("switchToDarkTheme")}</span>
-              </button>
+              </Button>
               <LanguageSwitcher language={language} onChange={setLanguage} menuLabel={tr("languageMenu")} />
             </div>
           </header>

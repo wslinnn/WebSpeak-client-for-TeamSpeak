@@ -101,11 +101,11 @@ export function AdminServerSettings({ model, messages, onWebRtcToggle }: {
                     onChange={(event) => model.setSecretField(event.target.value, form.passwordAction)} />
                 </label>
                 <div className="password-actions">
-                  <button type="button" className={form.passwordAction === "replace" ? "active" : undefined}
-                    onClick={() => model.setSecretField(form.serverPassword, "replace")}>{tr("change")}</button>
+                  <Button variant="ghost" type="button" className={form.passwordAction === "replace" ? "active" : undefined}
+                    onClick={() => model.setSecretField(form.serverPassword, "replace")}>{tr("change")}</Button>
                   {form.hasPassword && (
-                    <button type="button" className={form.passwordAction === "remove" ? "danger" : undefined}
-                      onClick={() => model.setSecretField(form.serverPassword, "remove")}>{tr("remove")}</button>
+                    <Button variant="ghost" type="button" className={form.passwordAction === "remove" ? "danger" : undefined}
+                      onClick={() => model.setSecretField(form.serverPassword, "remove")}>{tr("remove")}</Button>
                   )}
                 </div>
               </div>

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import type { AdminMessages } from "@/i18n/admin-messages";
 import type { AdminOverview } from "@/admin/admin-controller";
+import { Button } from "@/components/ui/button";
 
 // 旧 AdminView.vue 总览区平价（类名保留，样式在 admin.css）。
 export function AdminOverview({ overview, messages, onDismissLegacyNotice }: {
@@ -20,7 +21,7 @@ export function AdminOverview({ overview, messages, onDismissLegacyNotice }: {
       {overview.legacyConfigImported && (
         <div className="alert info import-notice">
           <span>{tr("legacyImported")}</span>
-          <button type="button" onClick={onDismissLegacyNotice}>{tr("gotIt")}</button>
+          <Button variant="ghost" type="button" onClick={onDismissLegacyNotice}>{tr("gotIt")}</Button>
         </div>
       )}
       <div className="hero-status">
