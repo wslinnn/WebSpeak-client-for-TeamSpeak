@@ -2,6 +2,7 @@ import { Icon } from "./icon";
 import { ThemeToggle } from "./theme-toggle";
 import { LanguageSwitcher } from "./language-switcher";
 import type { Language } from "@/i18n/web-client-language";
+import { Button } from "@/components/ui/button";
 
 interface VoiceMobileMoreProps {
   onLeave(): void;
@@ -22,11 +23,11 @@ export function VoiceMobileMore(props: VoiceMobileMoreProps) {
       <span className="section-kicker">{t("voiceActivity")}</span>
       <h2>{t("mobileMore")}</h2>
       <p className="more-group-label">{t("audioGroup")}</p>
-      <button type="button" onClick={props.onOpenAudioSettings}>
+      <Button variant="ghost" type="button" onClick={props.onOpenAudioSettings}>
         <Icon name="settings" size={18} />
         {" "}
         {t("audioSettings")}
-      </button>
+      </Button>
       <p className="more-group-label">{t("appearanceGroup")}</p>
       <ThemeToggle
         dark={props.theme.dark}
@@ -44,11 +45,11 @@ export function VoiceMobileMore(props: VoiceMobileMoreProps) {
         fixedBelow
       />
       <div className="more-panel-separator" aria-hidden="true" />
-      <button type="button" className="danger" onClick={props.onLeave}>
+      <Button variant="ghost" type="button" className="danger" onClick={props.onLeave}>
         <Icon name="door" size={18} />
         {" "}
         {t("exit")}
-      </button>
+      </Button>
     </section>
   );
 }

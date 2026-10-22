@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useVoiceView } from "@/hooks/useVoiceSession";
 import type { VoiceSessionController } from "@/voice/session-controller";
 import { computeVoiceStats, type PerformanceMonitor, type VoiceAudioStats } from "@/web-client/performance-monitor";
+import { Button } from "@/components/ui/button";
 
 const TRANSPORT_KEYS = {
   webrtc: "voiceTransportWebRTC",
@@ -65,7 +66,7 @@ export function VoicePerformancePanel({ monitor, voice, t }: VoicePerformancePan
     <Popover open={open} onOpenChange={(next) => monitor.setPanelOpen(next)}>
       <div className="network-performance" data-ws-part="voice.performance">
         <PopoverTrigger asChild>
-          <button
+          <Button variant="ghost"
             type="button"
             className="performance-trigger"
             title={voiceView.voiceTransport !== "disconnected" ? `${t("voiceStatus")} · ${transportLabel}` : t("voiceStatus")}
@@ -73,7 +74,7 @@ export function VoicePerformancePanel({ monitor, voice, t }: VoicePerformancePan
             onClick={(event) => event.stopPropagation()}
           ><Icon name="activity" size={16} /><span className="performance-trigger-label">{t("voiceStatus")}</span
       ><small>{voiceView.voiceTransport !== "disconnected" ? transportLabel : null}</small
-      ><Icon name="chevron-down" size={13} /></button>
+      ><Icon name="chevron-down" size={13} /></Button>
         </PopoverTrigger>
       </div>
       <PopoverContent
@@ -90,13 +91,13 @@ export function VoicePerformancePanel({ monitor, voice, t }: VoicePerformancePan
             ><div
               ><strong>{t("voiceStatus")}</strong
               ><small>{t("voiceStatusHint")}</small></div
-            ><button
+            ><Button variant="ghost"
               type="button"
               className="performance-refresh"
               title={t("measureNow")}
               disabled={monitorState.running}
               onClick={() => monitor.refresh()}
-            ><Icon name="refresh" size={15} /></button
+            ><Icon name="refresh" size={15} /></Button
           ></header>
           <div
             className="voice-status-summary"

@@ -34,6 +34,7 @@ import type { MobileSection } from "@/web-client/mobile-section";
 import type { FavoriteServer } from "@/services/local-persistence";
 import type { Language } from "@/i18n/web-client";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface VoiceShellProps {
   voice: VoiceSessionController;
@@ -194,7 +195,7 @@ export function VoiceShell(props: VoiceShellProps) {
       {homeState.favoriteServers.length > 0 && (
         <div className="favorite-server-strip" data-ws-part="voice.favorite-server-strip" role="toolbar" aria-label={t("favoriteServers")}>
           {railServers.map((server) => (
-            <button
+            <Button variant="ghost"
               key={server.id}
               type="button"
               className={server.address === currentAddress ? "favorite-server-chip active" : "favorite-server-chip"}
@@ -213,18 +214,18 @@ export function VoiceShell(props: VoiceShellProps) {
             >
               <span className="favorite-server-chip-initial" aria-hidden="true">{avatarInitial(server.label)}</span>
               <span className="favorite-server-chip-label">{server.label}</span>
-            </button>
+            </Button>
           ))}
-          <button type="button" className="favorite-server-add" data-ws-part="voice.favorite-server-add" aria-label={t("addFavoriteServer")} title={t("addFavoriteServer")} onClick={props.onOpenFavoriteDialog}>
+          <Button variant="ghost" type="button" className="favorite-server-add" data-ws-part="voice.favorite-server-add" aria-label={t("addFavoriteServer")} title={t("addFavoriteServer")} onClick={props.onOpenFavoriteDialog}>
             <Icon name="plus" size={14} />
-          </button>
+          </Button>
         </div>
       )}
 
       {/* 桌面 rail：open 模式的收藏 + 皮肤/语言/身份位（皮肤/身份随 P4-7/P4-5） */}
       <aside className="favorite-server-rail" data-ws-part="voice.favorite-server-rail" role="toolbar" aria-label={t("favoriteServers")}>
         {railServers.map((server) => (
-          <button
+          <Button variant="ghost"
             key={server.id}
             type="button"
             className={server.address === currentAddress ? "favorite-server-button active" : "favorite-server-button"}
@@ -243,11 +244,11 @@ export function VoiceShell(props: VoiceShellProps) {
           >
             <span className="favorite-server-avatar">{avatarInitial(server.label)}</span>
             {server.password && <span className="favorite-server-rail-lock"><Icon name="lock" size={9} /></span>}
-          </button>
+          </Button>
         ))}
-        <button type="button" className="favorite-server-add" data-ws-part="voice.favorite-server-rail.add" aria-label={t("addFavoriteServer")} title={t("addFavoriteServer")} onClick={props.onOpenFavoriteDialog}>
+        <Button variant="ghost" type="button" className="favorite-server-add" data-ws-part="voice.favorite-server-rail.add" aria-label={t("addFavoriteServer")} title={t("addFavoriteServer")} onClick={props.onOpenFavoriteDialog}>
           <Icon name="plus" size={21} />
-        </button>
+        </Button>
         <ThemeToggle dark={props.theme.dark} onToggle={props.theme.onToggle} label={props.theme.label} className="rail-switcher-tile theme-toggle-tile" />
         <LanguageSwitcher language={i18n.language} onChange={i18n.setLanguage} menuLabel={props.t("languageMenu")} className="rail-switcher-tile" tile />
         <div className="rail-identity" data-ws-part="voice.rail-identity" title={homeState.nickname}>
@@ -362,22 +363,22 @@ export function VoiceShell(props: VoiceShellProps) {
       )}
 
       <nav className="mobile-nav" data-ws-part="voice.mobile-nav" aria-label={t("mobileNavigation")}>
-        <button type="button" className={props.mobileSection === "channels" ? "active" : ""} aria-current={props.mobileSection === "channels" ? "page" : undefined} onClick={() => selectMobileSection("channels")}>
+        <Button variant="ghost" type="button" className={props.mobileSection === "channels" ? "active" : ""} aria-current={props.mobileSection === "channels" ? "page" : undefined} onClick={() => selectMobileSection("channels")}>
           <Icon name="volume" size={18} />
           <span>{t("mobileChannels")}</span>
-        </button>
-        <button type="button" className={props.mobileSection === "chat" ? "active" : ""} aria-current={props.mobileSection === "chat" ? "page" : undefined} onClick={() => selectMobileSection("chat")}>
+        </Button>
+        <Button variant="ghost" type="button" className={props.mobileSection === "chat" ? "active" : ""} aria-current={props.mobileSection === "chat" ? "page" : undefined} onClick={() => selectMobileSection("chat")}>
           <Icon name="message" size={18} />
           <span>{t("mobileChat")}</span>
-        </button>
-        <button type="button" className={props.mobileSection === "voice" ? "active" : ""} aria-current={props.mobileSection === "voice" ? "page" : undefined} onClick={() => selectMobileSection("voice")}>
+        </Button>
+        <Button variant="ghost" type="button" className={props.mobileSection === "voice" ? "active" : ""} aria-current={props.mobileSection === "voice" ? "page" : undefined} onClick={() => selectMobileSection("voice")}>
           <Icon name="mic" size={18} />
           <span>{t("mobileVoice")}</span>
-        </button>
-        <button type="button" className={props.mobileSection === "more" ? "active" : ""} aria-current={props.mobileSection === "more" ? "page" : undefined} onClick={() => selectMobileSection("more")}>
+        </Button>
+        <Button variant="ghost" type="button" className={props.mobileSection === "more" ? "active" : ""} aria-current={props.mobileSection === "more" ? "page" : undefined} onClick={() => selectMobileSection("more")}>
           <Icon name="more" size={18} />
           <span>{t("mobileMore")}</span>
-        </button>
+        </Button>
       </nav>
 
       <MemberActionsMenu

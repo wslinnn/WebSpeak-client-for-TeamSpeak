@@ -5,6 +5,7 @@ import { resolveScreenShareViewerAvatar, screenShareErrorTextOf, screenShareView
 import type { ScreenShareUi } from "@/web-client/use-screen-share";
 import type { ChannelMember } from "@shared/voice-models";
 import type { ScreenShareViewerDescription } from "@shared/screen-share";
+import { Button } from "@/components/ui/button";
 
 interface ScreenSharePlayerProps {
   ui: ScreenShareUi;
@@ -56,14 +57,14 @@ export function ScreenSharePlayer({ ui, onPlayerElement, onVideoElement, nicknam
             <span>{state.error ? errorText : t("directP2POnly")}</span>
           </div>
         )}
-        <button
+        <Button variant="ghost"
           type="button"
           className="screen-share-player-exit"
           data-ws-part="voice.screen-player.exit"
           aria-label={t("screenShareExit")}
           title={t("screenShareExit")}
           onClick={ui.leaveViewing}
-        ><Icon name="close" size={22} /></button>
+        ><Icon name="close" size={22} /></Button>
         <div className="screen-share-player-viewers" data-ws-part="voice.screen-player.viewers" aria-label={t("screenShareViewers")}>
           <span className="screen-share-player-viewer-label">
             <Icon name="users" size={14} />
@@ -96,13 +97,13 @@ export function ScreenSharePlayer({ ui, onPlayerElement, onVideoElement, nicknam
               onValueChange={(values) => ui.onVolumeInput({ target: { value: String(values[0]) } })}
             />
           </div>
-          <button
+          <Button variant="ghost"
             type="button"
             data-ws-part="voice.screen-player.fullscreen"
             aria-label={ui.fullscreen ? t("screenShareExitFullscreen") : t("screenShareFullscreen")}
             title={ui.fullscreen ? t("screenShareExitFullscreen") : t("screenShareFullscreen")}
             onClick={ui.toggleFullscreen}
-          ><Icon name={ui.fullscreen ? "fullscreen-exit" : "fullscreen"} size={19} /></button>
+          ><Icon name={ui.fullscreen ? "fullscreen-exit" : "fullscreen"} size={19} /></Button>
         </div>
       </div>
     </section>

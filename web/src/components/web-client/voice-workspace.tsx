@@ -14,6 +14,7 @@ import type { WebClientChatTab } from "@/web-client/home-store";
 import type { ChannelMember, ServerEvent } from "@shared/voice-models";
 import type { Language } from "@/i18n/web-client";
 import type { MobileSection } from "@/web-client/mobile-section";
+import { Button } from "@/components/ui/button";
 
 interface VoiceWorkspaceProps {
   voice: VoiceSessionController;
@@ -77,14 +78,14 @@ export function VoiceWorkspace(props: VoiceWorkspaceProps) {
         )}
         <div className="workspace-actions" data-ws-part="voice.header-actions">
           {chatColumnActive && props.chatCollapsed && (
-            <button
+            <Button variant="ghost"
               type="button"
               className="header-action chat-reopen"
               data-ws-part="voice.chat.reopen"
               title={t("openChat")}
               aria-label={t("openChat")}
               onClick={props.onReopenChat}
-            ><Icon name="message" size={17} /></button>
+            ><Icon name="message" size={17} /></Button>
           )}
         </div>
       </header>
@@ -154,7 +155,7 @@ export function VoiceWorkspace(props: VoiceWorkspaceProps) {
             )}
             {props.isMobileViewport && (
               <div className="mobile-voice-controls">
-                <button
+                <Button variant="ghost"
                   type="button"
                   className="mobile-voice-toggle"
                   data-muted={microphoneMuted ? "true" : undefined}
@@ -162,8 +163,8 @@ export function VoiceWorkspace(props: VoiceWorkspaceProps) {
                   title={microphoneMuted ? t("microphoneMuted") : t("microphoneActive")}
                   aria-pressed={!microphoneMuted}
                   onClick={props.audioControls.toggleMicrophone}
-                ><Icon name={microphoneMuted ? "mic-off" : "mic"} size={18} /></button>
-                <button
+                ><Icon name={microphoneMuted ? "mic-off" : "mic"} size={18} /></Button>
+                <Button variant="ghost"
                   type="button"
                   className="mobile-voice-toggle"
                   data-muted={outputMuted ? "true" : undefined}
@@ -171,29 +172,29 @@ export function VoiceWorkspace(props: VoiceWorkspaceProps) {
                   title={outputMuted ? t("outputMuted") : t("speaker")}
                   aria-pressed={!outputMuted}
                   onClick={() => props.voice.toggleOutputMute()}
-                ><Icon name={outputMuted ? "volume-off" : "volume"} size={20} /></button>
-                <button
+                ><Icon name={outputMuted ? "volume-off" : "volume"} size={20} /></Button>
+                <Button variant="ghost"
                   type="button"
                   className="mobile-voice-toggle"
                   aria-label={t("audioSettings")}
                   title={t("audioSettings")}
                   onClick={props.onOpenAudioSettings}
-                ><Icon name="settings" size={18} /></button>
-                <button
+                ><Icon name="settings" size={18} /></Button>
+                <Button variant="ghost"
                   type="button"
                   className="mobile-voice-toggle"
                   aria-label={t("screenShare")}
                   title={t("screenShare")}
                   disabled={screenShare.state.starting}
                   onClick={() => (screenShare.state.active ? screenShare.stopSharing() : screenShare.startSharing())}
-                ><Icon name={screenShare.state.active ? "close" : "monitor"} size={18} /></button>
-                <button
+                ><Icon name={screenShare.state.active ? "close" : "monitor"} size={18} /></Button>
+                <Button variant="ghost"
                   type="button"
                   className="mobile-voice-leave"
                   aria-label={t("exit")}
                   title={t("exit")}
                   onClick={props.onLeave}
-                ><Icon name="door" size={17} /></button>
+                ><Icon name="door" size={17} /></Button>
               </div>
             )}
           </section>

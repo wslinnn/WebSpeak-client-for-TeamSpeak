@@ -148,7 +148,7 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
                   ><label className="settings-label">{t("microphoneState")}</label
                   ><p className="settings-hint"
                     >{model.microphoneMuted ? t("microphoneMutedHint") : t("microphoneActiveHint")}</p></div
-                ><button
+                ><Button variant="ghost"
                   type="button"
                   className={model.microphoneMuted ? "microphone-toggle muted" : "microphone-toggle"}
                   aria-pressed={!model.microphoneMuted}
@@ -157,7 +157,7 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
                     name={model.microphoneMuted ? "mic-off" : "mic"}
                     size={16}
                   />
-                  {model.microphoneMuted ? t("unmuteMic") : t("muteMic")}</button
+                  {model.microphoneMuted ? t("unmuteMic") : t("muteMic")}</Button
                 ></div
               ><div
                 className="mobile-noise-toggle"
@@ -219,10 +219,10 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
               ><div className="mic-test"
                 ><div className="mic-test-header"
                   ><strong>{t("microphoneTest")}</strong
-                  ><button
+                  ><Button variant="ghost"
                     type="button"
                     onClick={() => void controls.toggleMicTest()}
-                  >{model.microphoneTestActive ? t("stopTest") : t("startTest")}</button
+                  >{model.microphoneTestActive ? t("stopTest") : t("startTest")}</Button
                   ></div
                 ><div className="meter"
                   >{Array.from({ length: controls.meterBars }, (_, index) => (

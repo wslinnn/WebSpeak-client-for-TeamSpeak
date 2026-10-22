@@ -3,6 +3,7 @@ import { avatarInitial, avatarStyle } from "@/web-client/avatar";
 import { findScreenShareStreamForMember } from "@/web-client/screen-share-view";
 import type { ScreenShareStreamDescription as ScreenShareStream } from "@shared/screen-share";
 import type { ChannelMember } from "@shared/voice-models";
+import { Button } from "@/components/ui/button";
 
 interface VoiceMembersProps {
   currentMembers: ChannelMember[];
@@ -46,14 +47,14 @@ export function VoiceMembers({ currentMembers, isMobileViewport, isSpeaking, scr
             data-ws-self={member.isSelf ? "true" : "false"}
           >
             {isMobileViewport && !member.isSelf && (
-              <button
+              <Button variant="ghost"
                 type="button"
                 className="voice-member-action"
                 aria-label={t("moreMemberOptions")}
                 onClick={(event) => { event.stopPropagation(); onMemberActions(member); }}
               >
                 <Icon name="more" size={17} />
-              </button>
+              </Button>
             )}
             <span
               className="voice-mic-status"
@@ -75,7 +76,7 @@ export function VoiceMembers({ currentMembers, isMobileViewport, isSpeaking, scr
                 {member.avatar ? "" : avatarInitial(member.nickname)}
               </div>
               {shareStream && !member.isSelf && (
-                <button
+                <Button variant="ghost"
                   type="button"
                   className={viewingThis ? "screen-share-live-indicator viewing" : "screen-share-live-indicator"}
                   data-ws-part="voice.member.live-indicator"
@@ -90,7 +91,7 @@ export function VoiceMembers({ currentMembers, isMobileViewport, isSpeaking, scr
                     ))}
                   </span>
                   <span>{viewingThis ? t("watching") : t("live")}</span>
-                </button>
+                </Button>
               )}
               {shareStream && member.isSelf && (
                 <span className="screen-share-live-indicator" data-ws-part="voice.member.live-indicator" data-ws-state="live">
