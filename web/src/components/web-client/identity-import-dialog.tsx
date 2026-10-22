@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 
 import { Icon } from "./icon";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
@@ -80,7 +81,7 @@ export function IdentityImportDialog(props: IdentityImportDialogProps) {
             </Button>
           </DialogClose>
         </header>
-        <textarea
+        <Textarea
           value={text}
           onChange={(event) => onTextChange(event.target.value)}
           className="identity-import-textarea"

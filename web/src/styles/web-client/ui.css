@@ -106,38 +106,8 @@
   font-weight: 400;
 }
 
-.field-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 42px;
-  padding: 0 14px;
-  color: var(--wsd-text-muted);
-  border-radius: 10px;
-  background: var(--wsd-raised);
-  transition: .2s ease;
-}
-
-.field-wrap:focus-within {
-  color: var(--wsd-accent);
-  background: var(--wsd-panel);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--wsd-accent) 35%, transparent);
-}
-
-.field-wrap input {
-  width: 100%;
-  min-width: 0;
-  padding: 0;
-  color: var(--wsd-text);
-  outline: none;
-  border: 0;
-  background: transparent;
-  font-size: 13px;
-}
-
-.field-wrap input::placeholder {
-  color: var(--wsd-text-dim);
-}
+/* 输入框支柱（field-wrap 皮）随一致性战役 B3 退役：输入面归 InputGroup 原语
+   （components/ui/input-group.tsx），此处不再持边框/底色/聚焦辉光。 */
 
 .button-spinner {
   width: 14px;
@@ -181,7 +151,7 @@
   margin-bottom: 8px;
 }
 
-.channel-password-form .field-wrap {
+.channel-password-form [data-slot="input-group"] {
   margin-bottom: 12px;
 }
 
@@ -204,19 +174,9 @@
   font-size: 13.75px;
 }
 
-.join-page .field-wrap input {
-  font-size: 16.25px;
-}
-
 .header-action,
 .round-icon {
   line-height: 0;
-}
-
-.web-client .field-wrap input:focus-visible,
-.web-client .field-wrap select:focus-visible,
-.web-client .field-wrap textarea:focus-visible {
-  outline: none;
 }
 
 @media (max-width: 740px) {
@@ -242,11 +202,6 @@
 .web-client.language-en .join-page .field-label,
 .web-client.language-de .join-page .field-label {
   font-size: 12px;
-}
-
-.web-client.language-en .join-page .field-wrap input,
-.web-client.language-de .join-page .field-wrap input {
-  font-size: 14.3px;
 }
 
 @media (max-width: 420px) {

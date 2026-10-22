@@ -1,5 +1,7 @@
 import { Icon } from "./icon";
 import { Button } from "@/components/ui/button";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 interface ChannelPasswordDialogProps {
@@ -40,10 +42,10 @@ export function ChannelPasswordDialog(props: ChannelPasswordDialogProps) {
         <DialogTitle id="channel-password-title">{props.title}</DialogTitle>
         <DialogDescription>{props.lead}</DialogDescription>
         <form className="channel-password-form" onSubmit={(event) => { event.preventDefault(); props.onSubmit(); }}>
-          <label className="field-label" htmlFor="channel-password-input">{props.promptLabel}</label>
-          <div className="field-wrap">
-            <Icon name="lock" size={17} />
-            <input
+          <Label className="field-label" htmlFor="channel-password-input">{props.promptLabel}</Label>
+          <InputGroup>
+            <InputGroupAddon><Icon name="lock" size={17} /></InputGroupAddon>
+            <InputGroupInput
               id="channel-password-input"
               value={password}
               onChange={(event) => props.onPasswordChange(event.target.value)}
@@ -53,7 +55,7 @@ export function ChannelPasswordDialog(props: ChannelPasswordDialogProps) {
               disabled={busy}
               autoFocus
             />
-          </div>
+          </InputGroup>
           {error && (
             <div className="notice error-notice channel-password-error">
               <span className="notice-symbol">!</span>

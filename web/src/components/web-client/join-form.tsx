@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Label } from "@/components/ui/label";
 import { Icon } from "./icon";
 import { ServerContextMenu } from "./server-context-menu";
 import { useIsMobileViewport } from "@/hooks/use-mobile-viewport";
@@ -88,11 +90,11 @@ export function JoinForm(props: JoinFormProps) {
     <form className="join-form" data-ws-part="home.form" onSubmit={(event) => { event.preventDefault(); props.onConnect(); }}>
       {accessMode === "open" && (
         <div className="field-grid target-fields" data-ws-part="home.server-target">
-          <label className="field-label" data-ws-part="home.field-label" htmlFor="server-address">
+          <Label className="field-label" data-ws-part="home.field-label" htmlFor="server-address">
             <span>{t("serverAddress")}</span>
-            <div className="field-wrap" data-ws-part="home.field">
-              <Icon name="server" size={17} />
-              <input
+            <InputGroup data-ws-part="home.field">
+              <InputGroupAddon><Icon name="server" size={17} /></InputGroupAddon>
+              <InputGroupInput
                 id="server-address"
                 value={props.serverHost}
                 onChange={(event) => props.onServerHostChange(event.target.value)}
@@ -104,13 +106,13 @@ export function JoinForm(props: JoinFormProps) {
                 enterKeyHint="next"
                 placeholder={t("serverAddressPlaceholder")}
               />
-            </div>
-          </label>
-          <label className="field-label" data-ws-part="home.field-label" htmlFor="server-port">
+            </InputGroup>
+          </Label>
+          <Label className="field-label" data-ws-part="home.field-label" htmlFor="server-port">
             <span>{t("serverPort")}</span>
-            <div className="field-wrap" data-ws-part="home.field">
-              <Icon name="hash" size={17} />
-              <input
+            <InputGroup data-ws-part="home.field">
+              <InputGroupAddon><Icon name="hash" size={17} /></InputGroupAddon>
+              <InputGroupInput
                 id="server-port"
                 value={props.serverPort}
                 onChange={(event) => props.onServerPortChange(event.target.value)}
@@ -120,8 +122,8 @@ export function JoinForm(props: JoinFormProps) {
                 maxLength={5}
                 placeholder={t("serverPortPlaceholder")}
               />
-            </div>
-          </label>
+            </InputGroup>
+          </Label>
         </div>
       )}
       {accessMode === "open" && favoriteServers.length > 0 && (
@@ -170,12 +172,12 @@ export function JoinForm(props: JoinFormProps) {
         />
       )}
 
-      <label className="field-label" data-ws-part="home.field-label" htmlFor="server-password">
+      <Label className="field-label" data-ws-part="home.field-label" htmlFor="server-password">
         {t("serverPassword")} <span>{t("optional")}</span>
-      </label>
-      <div className="field-wrap" data-ws-part="home.field">
-        <Icon name="lock" size={17} />
-        <input
+      </Label>
+      <InputGroup data-ws-part="home.field">
+        <InputGroupAddon><Icon name="lock" size={17} /></InputGroupAddon>
+        <InputGroupInput
           id="server-password"
           value={props.serverPassword}
           onChange={(event) => props.onServerPasswordChange(event.target.value)}
@@ -183,7 +185,7 @@ export function JoinForm(props: JoinFormProps) {
           autoComplete="new-password"
           placeholder={t("optionalPassword")}
         />
-      </div>
+      </InputGroup>
 
       <div className="device-setup" data-ws-part="home.device-setup">
         <Button type="button" variant="outline" size="sm" className="identity-action-button" data-ws-part="home.device-setup.open" onClick={props.onOpenDeviceSettings}>
@@ -195,10 +197,10 @@ export function JoinForm(props: JoinFormProps) {
         {!outputPickerSupported && <p className="device-setup-hint">{t("outputUnsupportedHint")}</p>}
       </div>
 
-      <label className="field-label" data-ws-part="home.field-label" htmlFor="nickname">{t("nickname")}</label>
-      <div className="field-wrap" data-ws-part="home.field">
-        <Icon name="users" size={17} />
-        <input
+      <Label className="field-label" data-ws-part="home.field-label" htmlFor="nickname">{t("nickname")}</Label>
+      <InputGroup data-ws-part="home.field">
+        <InputGroupAddon><Icon name="users" size={17} /></InputGroupAddon>
+        <InputGroupInput
           id="nickname"
           value={props.nickname}
           onChange={(event) => props.onNicknameChange(event.target.value)}
@@ -207,16 +209,16 @@ export function JoinForm(props: JoinFormProps) {
           placeholder={t("nicknamePlaceholder")}
           autoFocus={props.autofocusNickname || undefined}
         />
-      </div>
+      </InputGroup>
 
       <div className="identity-options" data-ws-part="home.identity">
-        <label className="field-label" data-ws-part="home.field-label" htmlFor="channel">
+        <Label className="field-label" data-ws-part="home.field-label" htmlFor="channel">
           {t("targetChannel")} <span>{t("optional")}</span>
-        </label>
-        <div className="field-wrap" data-ws-part="home.field">
-          <Icon name="hash" size={17} />
-          <input id="channel" value={props.channel} onChange={(event) => props.onChannelChange(event.target.value)} placeholder={t("emptyDefault")} />
-        </div>
+        </Label>
+        <InputGroup data-ws-part="home.field">
+          <InputGroupAddon><Icon name="hash" size={17} /></InputGroupAddon>
+          <InputGroupInput id="channel" value={props.channel} onChange={(event) => props.onChannelChange(event.target.value)} placeholder={t("emptyDefault")} />
+        </InputGroup>
         <div className="identity-controls">
           <label className="remember-identity">
             <input

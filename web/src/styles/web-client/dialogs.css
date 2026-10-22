@@ -14,7 +14,11 @@
 }/* 浮层对话框：设置模态、频道密码、身份导入、收藏服务器管理、
  * 移动门。层序高于页面区域，低于菜单。 */
 
-.field-label,
+/* field-label 字号字重归 Label 原语（text-ui-base 13px/500），这里只留颜色 */
+.field-label {
+  color: var(--wsd-text);
+}
+
 .settings-label {
   color: var(--wsd-text);
   font-size: 11px;
@@ -573,24 +577,14 @@
   line-height: 1.5;
 }
 
+/* 身份私钥文本域：皮肤（底/边/圆角/聚焦辉光）归 Textarea 原语，只留
+   等宽排版与体量钩（ws-dialogs 层压过原语 utilities）。 */
 .identity-import-textarea {
   display: block;
-  width: 100%;
   min-height: 190px;
   resize: vertical;
-  padding: 12px;
-  color: var(--wsd-text);
-  background: var(--wsd-raised);
-  border: 1px solid var(--wsd-border);
-  border-radius: 10px;
-  outline: none;
   font: 11px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace;
   overflow-wrap: anywhere;
-}
-
-.identity-import-textarea:focus {
-  border-color: var(--wsd-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--wsd-accent) 17%, transparent);
 }
 
 .identity-drop-zone {

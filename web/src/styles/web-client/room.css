@@ -61,31 +61,9 @@
   letter-spacing: .16em;
 }
 
-.channel-search,
-.member-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--wsd-text-muted);
-  background: var(--wsd-raised);
-  border-radius: 8px;
-}
-
-.channel-search input,
-.member-search input {
-  width: 100%;
-  min-width: 0;
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: var(--wsd-text);
-  font-size: 11px;
-}
-
-.channel-search input::placeholder,
-.member-search input::placeholder {
-  color: var(--wsd-text-dim);
-}
+/* member-search 皮随一致性战役 B3 退役：搜索框归 InputGroup 原语，
+   本类只留布局钩（外距/移动端触控体量/显隐状态）。channel-search 死类
+   （零消费方）一并退役。 */
 
 .workspace-actions,
 .dock-actions {
@@ -581,8 +559,6 @@
 
 .member-search {
   margin-top: 18px;
-  padding: 0 10px;
-  min-height: 33px;
 }
 
 .member-list {
@@ -976,10 +952,6 @@
   font-size: 23.75px;
 }
 
-.app-shell .member-search input {
-  font-size: 13.75px;
-}
-
 .app-shell .member-channel-heading span {
   font-size: 15px;
 }
@@ -1358,10 +1330,6 @@
     min-height: 44px;
     margin-top: 14px;
     padding: 0 12px;
-    border-radius: 11px;
-  }
-  .member-search input {
-    font-size: 15px;
   }
   .app-shell .member-panel .member-tree {
     flex: 1 1 auto;
@@ -2545,18 +2513,6 @@ button.screen-share-live-indicator:focus-visible {
   .member-search {
     flex: 0 0 auto;
     margin: 10px 16px 0;
-    color: var(--wsd-text);
-    background: var(--wsd-raised);
-    border: 1px solid var(--wsd-border);
-  }
-
-  .member-search input {
-    color: var(--wsd-text);
-    background: transparent;
-  }
-
-  .member-search input::placeholder {
-    color: var(--wsd-text-dim);
   }
 
   .member-tree {

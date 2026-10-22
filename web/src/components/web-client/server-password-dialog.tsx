@@ -1,5 +1,7 @@
 import { Icon } from "./icon";
 import { Button } from "@/components/ui/button";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 interface ServerPasswordDialogProps {
@@ -39,10 +41,10 @@ export function ServerPasswordDialog(props: ServerPasswordDialogProps) {
         <DialogTitle id="server-password-title">{props.title}</DialogTitle>
         <DialogDescription>{invalid ? props.invalidLead : props.requiredLead}</DialogDescription>
         <form className="channel-password-form" onSubmit={(event) => { event.preventDefault(); props.onSubmit(); }}>
-          <label className="field-label" htmlFor="retry-server-password-input">{props.promptLabel}</label>
-          <div className="field-wrap">
-            <Icon name="lock" size={17} />
-            <input
+          <Label className="field-label" htmlFor="retry-server-password-input">{props.promptLabel}</Label>
+          <InputGroup>
+            <InputGroupAddon><Icon name="lock" size={17} /></InputGroupAddon>
+            <InputGroupInput
               id="retry-server-password-input"
               value={props.password}
               onChange={(event) => props.onPasswordChange(event.target.value)}
@@ -51,7 +53,7 @@ export function ServerPasswordDialog(props: ServerPasswordDialogProps) {
               placeholder={props.placeholder}
               autoFocus
             />
-          </div>
+          </InputGroup>
           <div className="channel-password-actions">
             <Button type="button" variant="ghost" onClick={props.onClose}>{props.cancelLabel}</Button>
             <Button type="submit" disabled={!props.password}>

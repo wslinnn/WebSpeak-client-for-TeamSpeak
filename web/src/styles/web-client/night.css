@@ -52,14 +52,6 @@
   color: var(--wsd-text-dim);
 }
 
-.dark .web-client .member-search {
-  color: var(--wsd-text);
-}
-
-.dark .web-client .member-search input {
-  color: var(--wsd-text);
-}
-
 /* Status banners: day keeps the pale paper cards; night re-themes them to
  * dimmed semantic tints over the panel color (warn amber / danger red). */
 .dark .web-client .reconnect-banner {
@@ -132,12 +124,10 @@
   background: color-mix(in srgb, var(--wsd-panel) 92%, transparent);
   border-color: var(--wsd-border);
 }
-:is(.web-client, .download-page) .field-wrap,
 :is(.web-client, .download-page) .mic-mode-switch,
 :is(.web-client, .download-page) .mode-note {
   background: var(--wsd-raised);
 }
-:is(.web-client, .download-page) .field-wrap input,
 :is(.web-client, .download-page) .settings-select {
   color: var(--wsd-text);
 }
@@ -200,12 +190,10 @@
   background: color-mix(in srgb, var(--wsd-panel) 94%, transparent);
   border-color: var(--wsd-border);
 }
-.dark :is(.web-client, .download-page) .field-wrap,
 .dark :is(.web-client, .download-page) .mic-mode-switch,
 .dark :is(.web-client, .download-page) .mode-note {
   background: var(--wsd-raised);
 }
-.dark :is(.web-client, .download-page) .field-wrap input,
 .dark :is(.web-client, .download-page) .settings-select {
   color: var(--wsd-text);
 }
@@ -288,9 +276,6 @@
   background: color-mix(in srgb, var(--wsd-panel) 94%, transparent);
   border-color: var(--wsd-border);
 }
-.dark :is(.web-client, .download-page) .join-page .field-wrap { color: var(--wsd-text-muted); background: var(--wsd-raised); }
-.dark :is(.web-client, .download-page) .join-page .field-wrap input { color: var(--wsd-text); }
-.dark :is(.web-client, .download-page) .join-page .field-wrap input::placeholder { color: var(--wsd-text-muted); }
 .dark :is(.web-client, .download-page) .join-page .join-footer { border-top-color: var(--wsd-border); }
 .dark :is(.web-client, .download-page) .join-page .join-copy h1 {
   color: var(--wsd-text);

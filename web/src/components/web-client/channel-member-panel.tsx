@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Icon } from "./icon";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Slider } from "@/components/ui/slider";
@@ -200,16 +201,16 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
       <div className="member-panel-heading" data-ws-part="voice.member-panel.heading">
         <div><h2>{t("people")}</h2></div>
       </div>
-      <div className={cn("member-search", { "search-open": searchOpen || props.query.trim().length > 0 })} data-ws-part="voice.member-panel.search">
-        <Icon name="search" size={15} />
-        <input
+      <InputGroup className={cn("member-search", { "search-open": searchOpen || props.query.trim().length > 0 })} data-ws-part="voice.member-panel.search">
+        <InputGroupAddon><Icon name="search" size={15} /></InputGroupAddon>
+        <InputGroupInput
           ref={searchInputRef}
           value={props.query}
           onChange={(event) => props.onQueryChange(event.target.value)}
           placeholder={t("searchMembers")}
           aria-label={t("searchMembers")}
         />
-      </div>
+      </InputGroup>
       <div ref={treeRef} className="member-tree" data-ws-part="voice.member-panel.channels">
         <div className="member-group-label" data-ws-part="voice.group-label">{t("voiceGroup")}</div>
         {props.filteredMemberChannels.map((channelItem) => {

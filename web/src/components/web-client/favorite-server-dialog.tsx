@@ -2,6 +2,8 @@ import { useState } from "react";
 
 import { Icon } from "./icon";
 import { Button } from "@/components/ui/button";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { combineTeamSpeakTarget, splitTeamSpeakTarget } from "@/services/teamspeak-target";
 
@@ -73,50 +75,50 @@ export function FavoriteServerDialog({ initial, knownFavoriteAddresses, onClose,
           </DialogClose>
         </header>
         <form className="favorite-server-form" onSubmit={(event) => { event.preventDefault(); submit(); }}>
-          <label className="field-label" data-ws-part="favorite-server.field-label" htmlFor="favorite-label">
+          <Label className="field-label" data-ws-part="favorite-server.field-label" htmlFor="favorite-label">
             <span>{t("favoriteDisplayName")}</span>
-            <div className="field-wrap" data-ws-part="favorite-server.field">
-              <input id="favorite-label" value={label} onChange={(event) => setLabel(event.target.value)} maxLength={60} placeholder={t("favoriteDisplayNamePlaceholder")}
+            <InputGroup data-ws-part="favorite-server.field">
+              <InputGroupInput id="favorite-label" value={label} onChange={(event) => setLabel(event.target.value)} maxLength={60} placeholder={t("favoriteDisplayNamePlaceholder")}
               />
-            </div>
-          </label>
+            </InputGroup>
+          </Label>
           <div className="favorite-server-columns">
-            <label className="field-label" data-ws-part="favorite-server.field-label" htmlFor="favorite-address">
+            <Label className="field-label" data-ws-part="favorite-server.field-label" htmlFor="favorite-address">
               <span>{t("serverAddress")}</span>
-              <div className="field-wrap" data-ws-part="favorite-server.field">
-                <Icon name="server" size={16} />
-                <input id="favorite-address" value={address} onChange={(event) => setAddress(event.target.value)} autoComplete="url" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} required />
-              </div>
-            </label>
-            <label className="field-label" data-ws-part="favorite-server.field-label" htmlFor="favorite-port">
+              <InputGroup data-ws-part="favorite-server.field">
+                <InputGroupAddon><Icon name="server" size={16} /></InputGroupAddon>
+                <InputGroupInput id="favorite-address" value={address} onChange={(event) => setAddress(event.target.value)} autoComplete="url" inputMode="url" autoCapitalize="none" autoCorrect="off" spellCheck={false} required />
+              </InputGroup>
+            </Label>
+            <Label className="field-label" data-ws-part="favorite-server.field-label" htmlFor="favorite-port">
               <span>{t("serverPort")}</span>
-              <div className="field-wrap" data-ws-part="favorite-server.field">
-                <Icon name="hash" size={16} />
-                <input id="favorite-port" value={port} onChange={(event) => setPort(event.target.value)} inputMode="numeric" type="text" maxLength={5} required />
-              </div>
-            </label>
+              <InputGroup data-ws-part="favorite-server.field">
+                <InputGroupAddon><Icon name="hash" size={16} /></InputGroupAddon>
+                <InputGroupInput id="favorite-port" value={port} onChange={(event) => setPort(event.target.value)} inputMode="numeric" type="text" maxLength={5} required />
+              </InputGroup>
+            </Label>
           </div>
-          <label className="field-label" data-ws-part="favorite-server.field-label" htmlFor="favorite-password">
+          <Label className="field-label" data-ws-part="favorite-server.field-label" htmlFor="favorite-password">
             <span>{t("serverPassword")} <span>{t("optional")}</span></span>
-            <div className="field-wrap" data-ws-part="favorite-server.field">
-              <Icon name="lock" size={16} />
-              <input id="favorite-password" value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="new-password" placeholder={t("optionalPassword")} />
-            </div>
-          </label>
-          <label className="field-label" data-ws-part="favorite-server.field-label" htmlFor="favorite-nickname">
+            <InputGroup data-ws-part="favorite-server.field">
+              <InputGroupAddon><Icon name="lock" size={16} /></InputGroupAddon>
+              <InputGroupInput id="favorite-password" value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="new-password" placeholder={t("optionalPassword")} />
+            </InputGroup>
+          </Label>
+          <Label className="field-label" data-ws-part="favorite-server.field-label" htmlFor="favorite-nickname">
             <span>{t("nickname")}</span>
-            <div className="field-wrap" data-ws-part="favorite-server.field">
-              <Icon name="users" size={16} />
-              <input id="favorite-nickname" value={nickname} onChange={(event) => setNickname(event.target.value)} maxLength={30} autoComplete="nickname" required />
-            </div>
-          </label>
-          <label className="field-label" data-ws-part="favorite-server.field-label" htmlFor="favorite-channel">
+            <InputGroup data-ws-part="favorite-server.field">
+              <InputGroupAddon><Icon name="users" size={16} /></InputGroupAddon>
+              <InputGroupInput id="favorite-nickname" value={nickname} onChange={(event) => setNickname(event.target.value)} maxLength={30} autoComplete="nickname" required />
+            </InputGroup>
+          </Label>
+          <Label className="field-label" data-ws-part="favorite-server.field-label" htmlFor="favorite-channel">
             <span>{t("targetChannel")} <span>{t("optional")}</span></span>
-            <div className="field-wrap" data-ws-part="favorite-server.field">
-              <Icon name="hash" size={16} />
-              <input id="favorite-channel" value={channel} onChange={(event) => setChannel(event.target.value)} placeholder={t("emptyDefault")} />
-            </div>
-          </label>
+            <InputGroup data-ws-part="favorite-server.field">
+              <InputGroupAddon><Icon name="hash" size={16} /></InputGroupAddon>
+              <InputGroupInput id="favorite-channel" value={channel} onChange={(event) => setChannel(event.target.value)} placeholder={t("emptyDefault")} />
+            </InputGroup>
+          </Label>
           <p className="favorite-server-hint">{t("favoritePasswordHint")}</p>
           {duplicateFavorite && <p className="favorite-server-hint warning" role="status">{t("favoriteUpdateExisting")}</p>}
           <footer className="favorite-server-actions" data-ws-part="favorite-server.actions">
