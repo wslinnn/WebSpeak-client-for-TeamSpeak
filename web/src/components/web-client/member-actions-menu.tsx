@@ -12,6 +12,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Slider } from "@/components/ui/slider";
 import type { ChannelMember } from "@shared/voice-models";
 import type { MembersController } from "@/web-client/members-controller";
 
@@ -20,10 +21,9 @@ interface MemberActionsMenuProps {
   isMobileViewport: boolean;
   volumes: Record<number, number>;
   whisperTargetIds: ReadonlySet<number>;
-  rangeStyle(value: number, max: number): Record<string, string>;
   t(key: string, variables?: Record<string, string | number>): string;
   onPrivateChat(clientId: number): void;
-  onVolumeInput(clientId: number, event: React.ChangeEvent<HTMLInputElement>): void;
+  onVolumeInput(clientId: number, event: { target: { value: string } }): void;
 }
 
 /** 成员右键/长按菜单：桌面迁 Radix DropdownMenu（UI 迁移批 1）——坐标锚零尺寸
@@ -32,7 +32,7 @@ interface MemberActionsMenuProps {
  *  底部面板标记（CSS 定位 + backdrop，cascade-locks 钉着的形态不动）。菜单外
  *  滚动即关闭保留（坐标锚不跟行，滚完会盖错行）。音量滑条 onKeyDown 截停：
  *  否则 radix 内容级键盘导航会抢走滑条的箭头键。 */
-export function MemberActionsMenu({ members, isMobileViewport, volumes, whisperTargetIds, rangeStyle, t, onPrivateChat, onVolumeInput }: MemberActionsMenuProps) {
+export function MemberActionsMenu({ members, isMobileViewport, volumes, whisperTargetIds, t, onPrivateChat, onVolumeInput }: MemberActionsMenuProps) {
   const menu = useStore(members.store);
   const guardArmed = useRef(false);
   const memberMenu = menu.memberMenu;
@@ -77,15 +77,12 @@ export function MemberActionsMenu({ members, isMobileViewport, volumes, whisperT
       onContextMenu={(event) => event.stopPropagation()}
     >
       <span>{t("memberVolume")}</span>
-      <input
-        type="range"
-        min={0}
+      <Slider
+        value={[Math.round(volume * 100)]}
         max={400}
         step={5}
-        value={volume * 100}
-        style={rangeStyle(volume / 4, 1)}
         aria-label={`${t("memberVolume")} ${Math.round(volume * 100)}%`}
-        onChange={(event) => onVolumeInput(member.id, event)}
+        onValueChange={(values) => onVolumeInput(member.id, { target: { value: String(values[0]) } })}
       />
       <strong className="menu-volume-value">{Math.round(volume * 100)}%</strong>
     </div>

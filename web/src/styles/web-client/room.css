@@ -667,15 +667,6 @@
   opacity: .8;
 }
 
-.member-volume input {
-  width: 45px;
-  height: 4px;
-  appearance: none;
-  border-radius: 999px;
-  outline: none;
-  cursor: pointer;
-}
-
 .member-empty {
   margin-top: 22px;
   color: var(--wsd-text-dim);
@@ -2036,7 +2027,7 @@ button.screen-share-live-indicator:focus-visible {
   gap: 9px;
 }
 
-.screen-share-player-controls label {
+.screen-share-player-controls [data-ws-part="voice.screen-player.volume"] {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -2048,13 +2039,6 @@ button.screen-share-live-indicator:focus-visible {
   background: color-mix(in srgb, var(--wsd-panel) 88%, transparent);
   box-shadow: var(--wsd-shadow-pop);
   backdrop-filter: blur(8px);
-}
-
-.screen-share-player-controls input {
-  width: 102px;
-  height: 4px;
-  accent-color: var(--wsd-accent);
-  cursor: pointer;
 }
 
 /* Fullscreen surface is fully restated: the base card keeps a 17px top margin
@@ -2132,10 +2116,10 @@ button.screen-share-live-indicator:focus-visible {
     bottom: 10px;
     gap: 6px;
   }
-  .screen-share-player-controls label {
+  .screen-share-player-controls [data-ws-part="voice.screen-player.volume"] {
     padding-inline: 9px;
   }
-  .screen-share-player-controls input {
+  .screen-share-player-controls [data-slot='slider'] {
     width: 70px;
   }
   .screen-share-player-exit {

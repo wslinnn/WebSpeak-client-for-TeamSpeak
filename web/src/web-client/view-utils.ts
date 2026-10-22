@@ -3,14 +3,6 @@ import type { Language } from "@/i18n/web-client";
 
 /** 进房视图层的共享小工具（旧 WebClient.vue 平价）。 */
 
-/** 滑杆填充背景（KAAK 风格双色轨道）。 */
-export function rangeStyle(value: number, max: number): Record<string, string> {
-  const percent = Math.max(0, Math.min(100, (value / max) * 100));
-  return {
-    background: `linear-gradient(to right, var(--wsd-accent-fill) 0%, var(--wsd-accent-fill) ${percent}%, var(--wsd-border) ${percent}%, var(--wsd-border) 100%)`,
-  };
-}
-
 function localeOf(language: Language): string {
   return language === "zh" ? "zh-CN" : "en-US";
 }

@@ -3,6 +3,7 @@ import { useStore } from "zustand";
 
 import { Icon } from "./icon";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Slider } from "@/components/ui/slider";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
 import type { MembersController } from "@/web-client/members-controller";
 import type { TreeChannel } from "@/web-client/channel-tree";
@@ -28,7 +29,6 @@ interface ChannelMemberPanelProps {
   onSelectChannel(channel: TreeChannel): void;
   isSpeaking(member: ChannelMember): boolean;
   onVolumeInput(clientId: number, value: number): void;
-  rangeStyle(value: number, max: number): Record<string, string>;
   children?: React.ReactNode;
   t(key: string, variables?: Record<string, string | number>): string;
 }
@@ -302,15 +302,13 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
                             {!member.isSelf && (
                               <div className="member-volume" data-ws-part="voice.member-row.volume" onPointerDown={(event) => event.stopPropagation()}>
                                 <Icon name={volume === 0 ? "volume-off" : "volume"} size={14} />
-                                <input
-                                  type="range"
-                                  min={0}
+                                <Slider
+                                  className="w-11"
+                                  value={[Math.round(volume * 100)]}
                                   max={400}
                                   step={5}
-                                  value={volume * 100}
-                                  style={props.rangeStyle(volume / 4, 1)}
                                   aria-label={`${t("memberVolume")} ${Math.round(volume * 100)}%`}
-                                  onChange={(event) => props.onVolumeInput(member.id, Number(event.target.value) / 100)}
+                                  onValueChange={(values) => props.onVolumeInput(member.id, (values[0] ?? 0) / 100)}
                                 />
                                 <span className="member-volume-value">{Math.round(volume * 100)}%</span>
                               </div>

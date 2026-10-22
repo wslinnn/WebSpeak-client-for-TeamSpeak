@@ -57,29 +57,6 @@
   opacity: .45;
 }
 
-.member-volume input::-webkit-slider-thumb,
-.settings-range::-webkit-slider-thumb {
-  width: 16px;
-  height: 16px;
-  appearance: none;
-  border: 2px solid var(--wsd-accent-fill);
-  border-radius: 50%;
-  background: var(--wsd-on-fill);
-  box-shadow: var(--wsd-shadow-raised);
-  cursor: pointer;
-}
-
-.member-volume input::-moz-range-thumb,
-.settings-range::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--wsd-accent-fill);
-  border-radius: 50%;
-  background: var(--wsd-on-fill);
-  box-shadow: var(--wsd-shadow-raised);
-  cursor: pointer;
-}
-
 /* 弹窗壳与遮罩自批 2 起归 Radix Dialog 原语（components/ui/dialog.tsx）：
    .modal-backdrop 配方随六个弹窗迁移删除；admin 面自带同名类不受影响。 */
 
@@ -269,26 +246,6 @@
 .settings-range-row strong {
   color: var(--wsd-accent);
   font-size: 10px;
-}
-
-.settings-range {
-  width: 100%;
-  height: 4px;
-  margin: 11px 0 20px;
-  appearance: none;
-  border-radius: 999px;
-  outline: none;
-  cursor: pointer;
-}
-
-.settings-range::-webkit-slider-thumb {
-  width: 19px;
-  height: 19px;
-}
-
-.settings-range::-moz-range-thumb {
-  width: 19px;
-  height: 19px;
 }
 
 .mic-test {

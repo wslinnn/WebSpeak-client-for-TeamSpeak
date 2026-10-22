@@ -1,4 +1,5 @@
 import { Icon } from "./icon";
+import { Slider } from "@/components/ui/slider";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
 import { resolveScreenShareViewerAvatar, screenShareErrorTextOf, screenShareViewersOf, screenShareViewerCountOf } from "@/web-client/screen-share-view";
 import type { ScreenShareUi } from "@/web-client/use-screen-share";
@@ -84,18 +85,17 @@ export function ScreenSharePlayer({ ui, onPlayerElement, onVideoElement, nicknam
         <span className="screen-share-player-live" data-ws-part="voice.screen-player.live"><i></i>{t("watchingScreenShare")}</span>
         <span className="screen-share-player-source" data-ws-part="voice.screen-player.source">{ownerName}</span>
         <div className="screen-share-player-controls" data-ws-part="voice.screen-player.controls">
-          <label data-ws-part="voice.screen-player.volume" title={t("screenShareVolume")}>
+          <div data-ws-part="voice.screen-player.volume" title={t("screenShareVolume")}>
             <Icon name={state.remoteVolume === 0 ? "volume-off" : "volume"} size={18} />
-            <input
-              type="range"
-              min={0}
+            <Slider
+              className="w-[102px]"
+              value={[Math.round(state.remoteVolume * 100)]}
               max={100}
               step={5}
-              value={state.remoteVolume * 100}
               aria-label={t("screenShareVolume")}
-              onChange={ui.onVolumeInput}
+              onValueChange={(values) => ui.onVolumeInput({ target: { value: String(values[0]) } })}
             />
-          </label>
+          </div>
           <button
             type="button"
             data-ws-part="voice.screen-player.fullscreen"

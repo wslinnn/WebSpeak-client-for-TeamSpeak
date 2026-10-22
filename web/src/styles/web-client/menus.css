@@ -479,45 +479,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.menu-volume input {
-  width: 100%;
-  height: 4px;
-  appearance: none;
-  border-radius: 999px;
-  outline: none;
-  cursor: pointer;
-}
-
-.menu-volume input::-webkit-slider-thumb {
-  width: 16px;
-  height: 16px;
-  appearance: none;
-  border: 2px solid var(--wsd-accent-fill);
-  border-radius: 50%;
-  background: var(--wsd-on-fill);
-  cursor: pointer;
-}
-
-.menu-volume input::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--wsd-accent-fill);
-  border-radius: 50%;
-  background: var(--wsd-on-fill);
-  cursor: pointer;
-}
-
-@media (max-width: 740px) {
-  .menu-volume input {
-    height: 8px;
-  }
-  .menu-volume input::-webkit-slider-thumb,
-  .menu-volume input::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-  }
-}
-
 .audio-diagnostic,
 .audio-level-row {
   display: flex;
@@ -720,9 +681,6 @@
   .menu-volume {
     padding: 5px 8px 11px;
     font-size: 12px;
-  }
-  .menu-volume input {
-    height: 7px;
   }
 }
 
@@ -1167,54 +1125,6 @@
   color: var(--wsd-text-muted);
   font-size: 10px;
   line-height: 1.4;
-}
-
-.mobile-noise-toggle input,
-.desktop-notification-toggle input {
-  position: relative;
-  width: 34px;
-  height: 20px;
-  flex: 0 0 34px;
-  margin: 0;
-  padding: 0;
-  appearance: none;
-  border: 2px solid var(--wsd-border);
-  border-radius: 999px;
-  outline: none;
-  background: var(--wsd-raised);
-  cursor: pointer;
-  transition: background .16s ease, border-color .16s ease;
-}
-
-.mobile-noise-toggle input::before,
-.desktop-notification-toggle input::before {
-  content: "";
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--wsd-text-muted);
-  transition: transform .16s ease, background .16s ease;
-}
-
-.mobile-noise-toggle input:checked,
-.desktop-notification-toggle input:checked {
-  border-color: var(--wsd-accent-fill);
-  background: var(--wsd-accent-fill);
-}
-
-.mobile-noise-toggle input:checked::before,
-.desktop-notification-toggle input:checked::before {
-  background: var(--wsd-panel);
-  transform: translateX(14px);
-}
-
-.mobile-noise-toggle input:focus-visible,
-.desktop-notification-toggle input:focus-visible {
-  outline: 2px solid var(--wsd-accent);
-  outline-offset: 2px;
 }
 
 @media (min-width: 741px) and (max-width: 1200px) {

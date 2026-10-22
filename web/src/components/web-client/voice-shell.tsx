@@ -22,7 +22,6 @@ import { useStoreOfSpeaking } from "@/hooks/useVoiceSession";
 import type { VoiceSessionController } from "@/voice/session-controller";
 import { buildChannelTree, deriveMemberChannels, ensureSelectedChannelId, filterMemberChannels, findCurrentChannel, type TreeChannel } from "@/web-client/channel-tree";
 import { createLongPressContextMenu } from "@/services/long-press-context-menu";
-import { rangeStyle } from "@/web-client/view-utils";
 import { useScreenShareUi } from "@/web-client/use-screen-share";
 import type { ChatController, ChatScrollerAspect } from "@/web-client/chat-controller";
 import type { AudioControls } from "@/web-client/audio-controls";
@@ -321,7 +320,6 @@ export function VoiceShell(props: VoiceShellProps) {
         onSelectChannel={props.onSelectChannel}
         isSpeaking={(member) => speakingIds.has(member.id)}
         onVolumeInput={props.onVolumeInput}
-        rangeStyle={rangeStyle}
         t={t}
       >
         {!props.isMobileViewport && (
@@ -386,7 +384,6 @@ export function VoiceShell(props: VoiceShellProps) {
         isMobileViewport={props.isMobileViewport}
         volumes={voiceView.volumes}
         whisperTargetIds={voiceView.whisperTargetIds}
-        rangeStyle={rangeStyle}
         t={t}
         onPrivateChat={(targetClientId) => chat.openPrivateChat(targetClientId)}
         onVolumeInput={(clientId, event) => props.onVolumeInput(clientId, Number(event.target.value) / 100)}

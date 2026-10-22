@@ -3,9 +3,10 @@ import { useStore } from "zustand";
 
 import { Icon } from "./icon";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import type { AudioControls } from "@/web-client/audio-controls";
 import { MAX_INPUT_VOLUME, type VoiceSessionController } from "@/voice/session-controller";
-import { rangeStyle } from "@/web-client/view-utils";
 
 export interface AudioSettingsModel {
   inputDevices: Array<{ deviceId: string; label: string }>;
@@ -146,68 +147,58 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
                   />
                   {model.microphoneMuted ? t("unmuteMic") : t("muteMic")}</button
                 ></div
-              ><label
+              ><div
                 className="mobile-noise-toggle"
                 ><span
                   ><strong>{t("noiseSuppression")}</strong
                   ><small>{t("noiseSuppressionHint")}</small></span
-                ><input
-                  type="checkbox"
+                ><Switch
                   checked={model.noiseSuppressionEnabled}
                   aria-label={t("noiseSuppression")}
-                  onChange={(event) => controls.onNoiseSuppressionToggle({ target: event.target })}
-                /></label
-              ><label
+                  onCheckedChange={(checked) => controls.onNoiseSuppressionToggle({ target: { checked } })}
+                /></div
+              ><div
                 className="mobile-noise-toggle"
                 ><span
                   ><strong>{t("echoCancellation")}</strong
                   ><small>{t("echoCancellationHint")}</small></span
-                ><input
-                  type="checkbox"
+                ><Switch
                   checked={model.echoCancellationEnabled}
                   aria-label={t("echoCancellation")}
-                  onChange={(event) => controls.onEchoCancellationToggle({ target: event.target })}
-                /></label
+                  onCheckedChange={(checked) => controls.onEchoCancellationToggle({ target: { checked } })}
+                /></div
               >{model.microphoneProcessing.echoCancellation !== null && (
                 <p className="settings-hint">
                   {model.microphoneProcessing.echoCancellation ? t("aecActiveHint") : t("aecInactiveHint")}
                 </p>
-              )}<label
+              )}<div
                 className="mobile-noise-toggle"
                 ><span
                   ><strong>{t("autoGainControl")}</strong
                   ><small>{t("autoGainControlHint")}</small></span
-                ><input
-                  type="checkbox"
+                ><Switch
                   checked={model.autoGainControlEnabled}
                   aria-label={t("autoGainControl")}
-                  onChange={(event) => controls.onAutoGainControlToggle({ target: event.target })}
-                /></label
+                  onCheckedChange={(checked) => controls.onAutoGainControlToggle({ target: { checked } })}
+                /></div
               ><div className="settings-range-row"
                 ><label className="settings-label">{t("inputVolume")}</label
                 ><strong>{Math.round(inputVolume * 100)}%</strong></div
-              ><input
-                className="settings-range"
-                type="range"
-                min={0}
+              ><Slider
+                value={[Math.round(inputVolume * 100)]}
                 max={MAX_INPUT_VOLUME * 100}
                 step={5}
-                value={inputVolume * 100}
-                style={rangeStyle(inputVolume, MAX_INPUT_VOLUME)}
                 aria-label={t("inputVolume")}
-                onChange={(event) => controls.onInputVolume({ target: event.target as HTMLInputElement })}
+                onValueChange={(values) => controls.onInputVolume({ target: { value: String(values[0]) } })}
               /><div className="settings-range-row"
                 ><label className="settings-label">{t("voxThreshold")}</label
                 ><strong>{(model.voxThreshold * 100).toFixed(1)}%</strong></div
-              ><input
-                className="settings-range"
-                type="range"
+              ><Slider
+                value={[Math.round(model.voxThreshold * 1000)]}
                 min={1}
                 max={80}
-                value={model.voxThreshold * 1000}
-                style={rangeStyle(model.voxThreshold, 0.08)}
                 aria-label={t("voxThreshold")}
-                onChange={(event) => controls.onVoxThreshold({ target: event.target as HTMLInputElement })}
+                onValueChange={(values) => controls.onVoxThreshold({ target: { value: String(values[0]) } })}
               /><div className="audio-level-row"
                 ><span>{t("micLevel")}</span
                 ><strong>{Math.round(micLevel * 100)}%</strong></div
@@ -284,40 +275,31 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
               <div className="settings-range-row"
                 ><label className="settings-label">{t("speakers")}</label
                 ><strong>{Math.round(outputVolume * 100)}%</strong></div
-              ><input
-                className="settings-range"
-                type="range"
-                min={0}
+              ><Slider
+                value={[Math.round(outputVolume * 100)]}
                 max={100}
                 step={5}
-                value={outputVolume * 100}
-                style={rangeStyle(outputVolume, 1)}
                 aria-label={t("outputVolume")}
-                onChange={(event) => controls.onOutputVolume({ target: event.target as HTMLInputElement })}
+                onValueChange={(values) => controls.onOutputVolume({ target: { value: String(values[0]) } })}
               /><div className="settings-range-row"
                 ><label className="settings-label">{t("notificationVolume")}</label
                 ><strong>{Math.round(model.notificationVolume * 100)}%</strong></div
-              ><input
-                className="settings-range"
-                type="range"
-                min={0}
+              ><Slider
+                value={[Math.round(model.notificationVolume * 100)]}
                 max={100}
                 step={5}
-                value={model.notificationVolume * 100}
-                style={rangeStyle(model.notificationVolume, 1)}
                 aria-label={t("notificationVolume")}
-                onChange={(event) => controls.onNotificationVolume({ target: event.target as HTMLInputElement })}
-              /><label
+                onValueChange={(values) => controls.onNotificationVolume({ target: { value: String(values[0]) } })}
+              /><div
                 className="desktop-notification-toggle"
                 ><span
                   ><strong>{t("desktopNotifications")}</strong
                   ><small>{t("desktopNotificationsHint")}</small></span
-                ><input
-                  type="checkbox"
+                ><Switch
                   checked={desktopNotificationsEnabled}
                   aria-label={t("desktopNotifications")}
-                  onChange={(event) => onDesktopNotificationsToggle({ target: event.target })}
-                /></label
+                  onCheckedChange={(checked) => onDesktopNotificationsToggle({ target: { checked } })}
+                /></div
               ><div className="audio-diagnostic"
                 ><span>{t("audioStatus")}</span
                 ><strong
