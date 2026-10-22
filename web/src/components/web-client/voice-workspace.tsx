@@ -42,6 +42,7 @@ interface VoiceWorkspaceProps {
   chatCollapsed: boolean;
   onReopenChat(): void;
   onLeave(): void;
+  onOpenAudioSettings(): void;
   onMemberActions(member: ChannelMember): void;
   t(key: string, variables?: Record<string, string | number>): string;
 }
@@ -171,6 +172,21 @@ export function VoiceWorkspace(props: VoiceWorkspaceProps) {
                   aria-pressed={!outputMuted}
                   onClick={() => props.voice.toggleOutputMute()}
                 ><Icon name={outputMuted ? "volume-off" : "volume"} size={20} /></button>
+                <button
+                  type="button"
+                  className="mobile-voice-toggle"
+                  aria-label={t("audioSettings")}
+                  title={t("audioSettings")}
+                  onClick={props.onOpenAudioSettings}
+                ><Icon name="settings" size={18} /></button>
+                <button
+                  type="button"
+                  className="mobile-voice-toggle"
+                  aria-label={t("screenShare")}
+                  title={t("screenShare")}
+                  disabled={screenShare.state.starting}
+                  onClick={() => (screenShare.state.active ? screenShare.stopSharing() : screenShare.startSharing())}
+                ><Icon name={screenShare.state.active ? "close" : "monitor"} size={18} /></button>
                 <button
                   type="button"
                   className="mobile-voice-leave"

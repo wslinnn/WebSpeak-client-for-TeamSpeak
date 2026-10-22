@@ -279,6 +279,7 @@ export function VoiceShell(props: VoiceShellProps) {
         chatCollapsed={chatCollapsed}
         onReopenChat={() => setChatCollapsed(false)}
         onLeave={props.onLeave}
+        onOpenAudioSettings={props.onOpenAudioSettings}
         onMemberActions={(member) => membersController.openMemberActions(member)}
         whisperTargets={currentMembers.filter((member) => voiceView.whisperTargetIds.has(member.id))}
         whisperActive={voiceView.whisperActive}

@@ -564,7 +564,9 @@
   }
 }
 
-.mobile-voice-controls,
+/* .mobile-voice-controls 不在此收：组件受 isMobileViewport 门控、桌面不渲染，
+   而本层（ws-menus）晚于 ws-room，无条件 none 会永久吃掉 room.css ≤740 的
+   display:flex——移动语音页控制条因此从未显示过（≡ 头部案的同款层序倒置）。 */
 .voice-member-action,
 .member-action-button,
 .member-menu-backdrop {
