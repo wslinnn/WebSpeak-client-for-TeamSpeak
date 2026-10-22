@@ -12,6 +12,7 @@ import { formatTime, resolveMessageAvatar } from "@/web-client/view-utils";
 import type { ChannelMember, ChatMessage, ServerEvent } from "@shared/voice-models";
 import type { Language } from "@/i18n/web-client";
 import type { WebClientChatTab } from "@/web-client/home-store";
+import { Button } from "@/components/ui/button";
 
 interface ChatPanelProps {
   chat: ChatController;
@@ -207,14 +208,14 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
             <span className="composer-count" aria-live="off">{MESSAGE_MAX_LENGTH - chatUi.messageDraft.length}</span>
           )}
           <InputGroupAddon align="inline-end">
-            <button
+            <Button variant="ghost"
               className="send-button"
               type="submit"
               disabled={!chat.canSend() || !chatUi.messageDraft.trim()}
               aria-label={t("send")}
             >
               <Icon name="send" size={18} />
-            </button>
+            </Button>
           </InputGroupAddon>
         </InputGroup>
       </form>
@@ -246,9 +247,9 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
         {collapsible && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <button type="button" className="chat-collapse" data-ws-part="voice.chat.collapse" aria-label={t("closeChat")} onClick={onCollapse}>
+              <Button variant="ghost" type="button" className="chat-collapse" data-ws-part="voice.chat.collapse" aria-label={t("closeChat")} onClick={onCollapse}>
                 <Icon name="close" size={14} />
-              </button>
+              </Button>
             </TooltipTrigger>
             <TooltipContent>{t("closeChat")}</TooltipContent>
           </Tooltip>

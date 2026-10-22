@@ -12,6 +12,7 @@ import type { TreeChannel } from "@/web-client/channel-tree";
 import type { ChannelMember } from "@shared/voice-models";
 import type { FavoriteServer } from "@/services/local-persistence";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface ChannelMemberPanelProps {
   members: MembersController;
@@ -147,14 +148,14 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
           <DropdownMenuTrigger asChild>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
+                <Button variant="ghost"
                   type="button"
                   className="member-server-menu"
                   data-ws-part="voice.server-switcher.trigger"
                   aria-label={t("favoriteServers")}
                 >
                   <Icon name="menu" size={16} />
-                </button>
+                </Button>
               </TooltipTrigger>
               <TooltipContent>{t("favoriteServers")}</TooltipContent>
             </Tooltip>
@@ -183,7 +184,7 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
       </div>
       <div className="member-server-meta" data-ws-part="voice.server-meta">
         <span className="member-server-kind">TeamSpeak</span>
-        <button
+        <Button variant="ghost"
           type="button"
           className={menu.away ? "status-button active" : "status-button"}
           aria-pressed={!menu.away}
@@ -191,10 +192,10 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
         >
           <span className="status-dot" />
           {menu.away ? t("away") : t("available")}
-        </button>
+        </Button>
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
+            <Button variant="ghost"
               type="button"
               className="member-search-toggle"
               aria-expanded={searchOpen}
@@ -202,7 +203,7 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
               onClick={toggleSearch}
             >
               <Icon name="search" size={15} />
-            </button>
+            </Button>
           </TooltipTrigger>
           <TooltipContent>{t("searchMembers")}</TooltipContent>
         </Tooltip>
@@ -240,7 +241,7 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
               onPointerCancel={onTreePointerCancel}
             >
               <div className="member-channel-heading-row" data-ws-part="voice.channel-group.heading-row">
-                <button
+                <Button variant="ghost"
                   className="member-channel-heading"
                   data-ws-part="voice.channel-group.heading"
                   data-ws-state={current ? "current" : "idle"}
@@ -255,8 +256,8 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
                   <span>{channelItem.name}</span>
                   <small>{channelItem.members.length}</small>
                   {selected && !current && <em className="member-channel-join-hint">{t("doubleClickToJoin")}</em>}
-                </button>
-                <button
+                </Button>
+                <Button variant="ghost"
                   type="button"
                   className="member-channel-fold"
                   data-ws-part="voice.channel-group.fold"
@@ -265,7 +266,7 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
                   onClick={() => props.onToggleFold(channelItem.id)}
                 >
                   <Icon name="chevron-down" size={14} />
-                </button>
+                </Button>
               </div>
               {/* 折叠分支保挂载：单行网格在 1fr/0fr 间插值（.member-channel-branch） */}
               <div className="member-channel-branch" data-expanded={folded ? "false" : "true"}>
@@ -324,9 +325,9 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
                               </div>
                             )}
                             {props.isMobileViewport && !member.isSelf && (
-                              <button type="button" className="member-action-button" aria-label={t("moreMemberOptions")} onClick={(event) => { event.stopPropagation(); members.openMemberActions(member); }}>
+                              <Button variant="ghost" type="button" className="member-action-button" aria-label={t("moreMemberOptions")} onClick={(event) => { event.stopPropagation(); members.openMemberActions(member); }}>
                                 <Icon name="more" size={18} />
-                              </button>
+                              </Button>
                             )}
                           </div>
                         );
