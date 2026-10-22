@@ -186,7 +186,7 @@
   .chat-tabs button { min-height: 44px; min-width: 44px; }
   .chat-tabs button { max-width: 70vw; overflow: hidden; text-overflow: ellipsis; }
 
-  .modal-backdrop, .member-menu-backdrop {
+  .member-menu-backdrop {
     top: var(--ws-viewport-top, 0px);
     bottom: auto;
     height: var(--ws-viewport-height, 100dvh);

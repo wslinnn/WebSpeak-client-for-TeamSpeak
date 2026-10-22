@@ -1,10 +1,12 @@
 import type { VoiceSessionController } from "@/voice/session-controller";
 import type { createHomeStore } from "@/web-client/home-store";
 
-/** 冒烟测试桥句柄：把前端置进房态（种子）、开受密频道弹窗，或复位回首页态。 */
+/** 冒烟测试桥句柄：把前端置进房态（种子）、开受密频道/服务器密码/身份导入弹窗，或复位回首页态。 */
 export interface WebSpeakTestHooks {
   seedRoomState(): void;
   seedChannelPasswordDialog(): void;
+  seedServerPasswordDialog(): void;
+  seedIdentityImportDialog(): void;
   resetState(): void;
 }
 
@@ -49,6 +51,16 @@ export function installTestHooks(voice: VoiceSessionController, homeStore?: Retu
     seedChannelPasswordDialog() {
       homeStore?.setState({
         channelPasswordDialog: { open: true, channelId: "1", password: "", error: "", submitting: false },
+      });
+    },
+    seedServerPasswordDialog() {
+      homeStore?.setState({
+        serverPasswordDialog: { open: true, password: "", errorCode: "SERVER_PASSWORD_REQUIRED" },
+      });
+    },
+    seedIdentityImportDialog() {
+      homeStore?.setState({
+        identityDialog: { open: true, text: "", error: "", busy: false, reading: false, exporting: false },
       });
     },
     resetState() {

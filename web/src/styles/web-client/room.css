@@ -1710,14 +1710,11 @@ button.screen-share-live-indicator:focus-visible {
   cursor: pointer;
 }
 
-.screen-share-settings-backdrop {
-  z-index: var(--ws-z-modal-mask);
-  align-items: center;
-  padding: 16px;
-}
-
+/* 弹窗壳与遮罩归 Radix Dialog 原语（批 2）：摆位/焦点/Esc/外点随原语，
+   这里只留卡片表面。display:block 中和原语 grid（行距由子元素 margin 供给）。 */
 .screen-share-settings-modal {
-  position: relative;
+  /* display:block 中和原语 grid；不设 position——原语 content 的 fixed 是 × 的锚。 */
+  display: block;
   width: min(360px, 100%);
   padding: 22px;
   color: var(--wsd-text);

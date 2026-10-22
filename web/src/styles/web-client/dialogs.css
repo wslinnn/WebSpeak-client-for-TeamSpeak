@@ -80,18 +80,13 @@
   cursor: pointer;
 }
 
-.modal-backdrop {
-  position: fixed;
-  z-index: var(--ws-z-modal-mask);
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 28px;
-  background: var(--wsd-backdrop);
-  backdrop-filter: blur(5px);
-}
+/* 弹窗壳与遮罩自批 2 起归 Radix Dialog 原语（components/ui/dialog.tsx）：
+   .modal-backdrop 配方随六个弹窗迁移删除；admin 面自带同名类不受影响。 */
 
 .favorite-server-dialog {
+  /* display:block 中和原语 grid；壳与遮罩归 Radix Dialog（批 2），这里只留
+     卡片表面。× 从视口角锚点归位卡片角（原语 content 自带 fixed 定位）。 */
+  display: block;
   width: min(430px, 100%);
   max-height: min(640px, calc(100dvh - 48px));
   overflow-y: auto;
@@ -144,13 +139,15 @@
 }
 
 @media (max-width: 740px) {
-  .favorite-server-backdrop {
-    align-items: end;
-    padding: 0;
-  }
-
+  /* 底板化：radix 后直改卡片定位（ws-dialogs 层压过原语 utilities）。 */
   .favorite-server-dialog {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    translate: none;
     width: 100%;
+    max-width: 100%;
     max-height: calc(var(--ws-viewport-height, 100dvh) - env(safe-area-inset-top, 0px) - 24px);
     border-radius: 22px 22px 0 0;
     padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
@@ -441,9 +438,10 @@
 }
 
 .channel-password-modal {
-  /* display:block 中和原语 grid：卡内行距仍由子元素自带 margin 供给。 */
+  /* display:block 中和原语 grid：卡内行距仍由子元素自带 margin 供给。不设
+     position——原语 content 的 fixed 就是 × 的锚（卡面自摆 relative 会压掉
+     原语 fixed，桌面居中退化为流位置巧合、移动底板直接失效）。 */
   display: block;
-  position: relative;
   width: min(438px, 100%);
   padding: 20px;
   color: var(--wsd-text);
@@ -611,12 +609,10 @@
   opacity: .48;
 }
 
-.identity-import-backdrop {
-  z-index: var(--ws-z-modal-mask);
-}
-
+/* 弹窗壳与遮罩归 Radix Dialog 原语（批 2）；这里只留卡片表面。display:flex
+   覆写原语 grid：本卡行距由 gap 供给（唯一不用子元素 margin 的卡）；不设
+   position——原语 content 的 fixed 是 × 的锚。 */
 .identity-import-modal {
-  position: relative;
   display: flex;
   width: min(620px, 100%);
   max-height: min(720px, calc(100dvh - 56px));
@@ -809,12 +805,15 @@
 }
 
 @media (max-width: 740px) {
-  .modal-backdrop {
-    align-items: flex-end;
-    padding: 0;
-  }
+  /* 底板化：radix 后直改卡片定位（ws-dialogs 层压过原语 utilities）。 */
   .settings-modal {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    translate: none;
     width: 100%;
+    max-width: 100%;
     max-height: calc(100svh - env(safe-area-inset-top, 0px));
     border-radius: 22px 22px 0 0;
   }
@@ -841,12 +840,15 @@
 }
 
 @media (max-width: 740px) {
-  .identity-import-backdrop {
-    align-items: flex-end;
-    padding: 0;
-  }
+  /* 底板化：radix 后直改卡片定位（ws-dialogs 层压过原语 utilities）。 */
   .identity-import-modal {
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    translate: none;
     width: 100%;
+    max-width: 100%;
     max-height: calc(100svh - env(safe-area-inset-top, 0px));
     padding: 24px 19px calc(18px + env(safe-area-inset-bottom, 0px));
     border-radius: 22px 22px 0 0;

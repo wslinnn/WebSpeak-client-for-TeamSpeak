@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 
 import { Icon } from "./icon";
-import { useDialogFocus } from "@/web-client/use-dialog-focus";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 interface IdentityImportDialogProps {
@@ -34,7 +34,6 @@ export function IdentityImportDialog(props: IdentityImportDialogProps) {
   const { text, onTextChange, busy, reading, error } = props;
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [dropActive, setDropActive] = useState(false);
-  const { dialogRef, onDialogKeydown } = useDialogFocus<HTMLElement>({ close: props.onClose });
 
   function chooseFile(): void {
     if (!busy) fileInputRef.current?.click();
@@ -54,32 +53,29 @@ export function IdentityImportDialog(props: IdentityImportDialogProps) {
   }
 
   return (
-    <div className="modal-backdrop identity-import-backdrop" tabIndex={-1}>
-      <section
-        ref={dialogRef}
+    <Dialog open onOpenChange={(next) => { if (!next) props.onClose(); }}>
+      <DialogContent
         className="identity-import-modal"
         data-ws-part="home.identity-import-dialog"
-        role="dialog"
-        aria-modal="true"
         aria-labelledby="identity-import-title"
-        tabIndex={-1}
-        onKeyDown={onDialogKeydown}
+        onInteractOutside={(event) => event.preventDefault()}
       >
         <header className="identity-import-header" data-ws-part="home.identity-import.header">
           <div>
-            <h2 id="identity-import-title">{props.title}</h2>
+            <DialogTitle id="identity-import-title">{props.title}</DialogTitle>
             <p>{props.description}</p>
           </div>
-          <button
-            type="button"
-            className="dialog-close identity-import-close"
-            data-ws-part="home.identity-import.close"
-            aria-label={props.closeLabel}
-            disabled={busy}
-            onClick={props.onClose}
-          >
-            <Icon name="close" size={18} />
-          </button>
+          <DialogClose asChild>
+            <button
+              type="button"
+              className="dialog-close identity-import-close"
+              data-ws-part="home.identity-import.close"
+              aria-label={props.closeLabel}
+              disabled={busy}
+            >
+              <Icon name="close" size={18} />
+            </button>
+          </DialogClose>
         </header>
         <textarea
           value={text}
@@ -134,7 +130,7 @@ export function IdentityImportDialog(props: IdentityImportDialogProps) {
             {busy ? props.connectingLabel : props.submitLabel}
           </button>
         </footer>
-      </section>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

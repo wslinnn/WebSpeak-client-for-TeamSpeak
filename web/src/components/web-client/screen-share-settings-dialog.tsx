@@ -1,5 +1,5 @@
 import { Icon } from "./icon";
-import { useDialogFocus } from "@/web-client/use-dialog-focus";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   SCREEN_SHARE_BITRATE_OPTIONS,
   SCREEN_SHARE_FRAME_RATE_OPTIONS,
@@ -19,32 +19,28 @@ interface ScreenShareSettingsDialogProps {
 }
 
 /** 共享输出设置弹窗（旧 ScreenShareSettingsDialog.vue 平价）：分辨率/帧率/码率
- *  三下拉；提交才持久化，取消保持当前会话内选择。 */
+ *  三下拉；提交才持久化，取消保持当前会话内选择。父级按 open 条件挂载；
+ *  backdrop 点击不关闭（决策不变量）。 */
 export function ScreenShareSettingsDialog({ presets, onPresetsChange, onSubmit, onClose, t }: ScreenShareSettingsDialogProps) {
-  const { dialogRef, onDialogKeydown } = useDialogFocus<HTMLElement>({ close: onClose });
   return (
-    <div className="modal-backdrop screen-share-settings-backdrop">
-      <section
-        ref={dialogRef}
-        tabIndex={-1}
-        onKeyDown={onDialogKeydown}
+    <Dialog open onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent
         className="screen-share-settings-modal"
         data-ws-part="voice.screen-share-settings"
-        role="dialog"
-        aria-modal="true"
         aria-labelledby="screen-share-settings-title"
-        onClick={(event) => event.stopPropagation()}
+        onInteractOutside={(event) => event.preventDefault()}
       >
-        <button
-          type="button"
-          className="screen-share-settings-close"
-          aria-label={t("close")}
-          title={t("close")}
-          onClick={onClose}
-        ><Icon name="close" size={17} /></button>
+        <DialogClose asChild>
+          <button
+            type="button"
+            className="screen-share-settings-close"
+            aria-label={t("close")}
+            title={t("close")}
+          ><Icon name="close" size={17} /></button>
+        </DialogClose>
         <div className="screen-share-settings-heading" data-ws-part="voice.screen-share-settings.heading">
           <span className="card-kicker">{t("screenShare")}</span>
-          <h2 id="screen-share-settings-title">{t("screenShareSettings")}</h2>
+          <DialogTitle id="screen-share-settings-title">{t("screenShareSettings")}</DialogTitle>
           <p>{t("screenShareSettingsHint")}</p>
         </div>
         <div className="screen-share-settings-fields" data-ws-part="voice.screen-share-settings.fields">
@@ -94,7 +90,7 @@ export function ScreenShareSettingsDialog({ presets, onPresetsChange, onSubmit, 
             {t("startScreenShare")}
           </button>
         </footer>
-      </section>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

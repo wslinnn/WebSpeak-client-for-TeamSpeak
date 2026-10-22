@@ -1,5 +1,5 @@
 import { Icon } from "./icon";
-import { useDialogFocus } from "@/web-client/use-dialog-focus";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 interface ServerPasswordDialogProps {
   password: string;
@@ -18,30 +18,25 @@ interface ServerPasswordDialogProps {
 }
 
 /** 服务器密码重试弹窗（旧 ServerPasswordDialog.vue 平价）：INVALID_SERVER_PASSWORD
- *  与 SERVER_PASSWORD_REQUIRED 两种引导语。关闭回落焦点 = join 提交按钮。 */
+ *  与 SERVER_PASSWORD_REQUIRED 两种引导语。父级按 open 条件挂载；backdrop 点击
+ *  不关闭（决策不变量）。 */
 export function ServerPasswordDialog(props: ServerPasswordDialogProps) {
-  const { dialogRef, onDialogKeydown } = useDialogFocus<HTMLElement>({
-    close: props.onClose,
-    fallbackFocus: () => document.querySelector<HTMLElement>('[data-ws-part="home.connect"]'),
-  });
   const invalid = props.errorCode === "INVALID_SERVER_PASSWORD";
   return (
-    <div className="modal-backdrop channel-password-backdrop">
-      <section
-        ref={dialogRef}
+    <Dialog open onOpenChange={(next) => { if (!next) props.onClose(); }}>
+      <DialogContent
         className="channel-password-modal server-password-modal"
-        tabIndex={-1}
-        onKeyDown={onDialogKeydown}
-        role="dialog"
-        aria-modal="true"
         aria-labelledby="server-password-title"
-        onClick={(event) => event.stopPropagation()}
+        onOpenAutoFocus={(event) => event.preventDefault()}
+        onInteractOutside={(event) => event.preventDefault()}
       >
-        <button type="button" className="dialog-close" aria-label={props.closeLabel} title={props.closeLabel} onClick={props.onClose}>
-          <Icon name="close" size={19} />
-        </button>
-        <h2 id="server-password-title">{props.title}</h2>
-        <p>{invalid ? props.invalidLead : props.requiredLead}</p>
+        <DialogClose asChild>
+          <button type="button" className="dialog-close" aria-label={props.closeLabel} title={props.closeLabel}>
+            <Icon name="close" size={19} />
+          </button>
+        </DialogClose>
+        <DialogTitle id="server-password-title">{props.title}</DialogTitle>
+        <DialogDescription>{invalid ? props.invalidLead : props.requiredLead}</DialogDescription>
         <form className="channel-password-form" onSubmit={(event) => { event.preventDefault(); props.onSubmit(); }}>
           <label className="field-label" htmlFor="retry-server-password-input">{props.promptLabel}</label>
           <div className="field-wrap">
@@ -63,7 +58,7 @@ export function ServerPasswordDialog(props: ServerPasswordDialogProps) {
             </button>
           </div>
         </form>
-      </section>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

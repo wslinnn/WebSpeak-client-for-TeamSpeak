@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 
 import { Icon } from "./icon";
-import { useDialogFocus } from "@/web-client/use-dialog-focus";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { AudioControls } from "@/web-client/audio-controls";
 import { MAX_INPUT_VOLUME, type VoiceSessionController } from "@/voice/session-controller";
 import { rangeStyle } from "@/web-client/view-utils";
@@ -50,7 +50,6 @@ interface AudioSettingsDialogProps {
  *  输入/Vox/输出/通知四滑杆、麦克风测试电平条、桌面通知开关与音频诊断。页持有
  *  稳定的 voice 视图与控制器，本弹窗只呈现。 */
 export function AudioSettingsDialog({ model, controls, voice, settingsError, desktopNotificationsEnabled, onDesktopNotificationsToggle, onClose, t, localizedMessage, localizedMicrophoneError }: AudioSettingsDialogProps) {
-  const { dialogRef, onDialogKeydown } = useDialogFocus<HTMLElement>({ close: onClose });
   const micLevel = useStore(voice.store, (view) => view.micLevel);
   // 两只音量窄订阅：拖动 tick 不再整树重渲（模型在根视图，此前移动端滑条
   // 会被主线程饿到划不动）。
@@ -81,27 +80,23 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
   const dialogError = testAudioError || settingsError;
 
   return (
-    <div className="modal-backdrop">
-      <section
+    <Dialog open onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent
         className="settings-modal"
         data-ws-part="voice.audio-settings"
-        ref={dialogRef}
-        tabIndex={-1}
-        onKeyDown={onDialogKeydown}
-        role="dialog"
-        aria-modal="true"
         aria-labelledby="settings-title"
+        onInteractOutside={(event) => event.preventDefault()}
       >
         <div className="settings-main"
           ><header className="settings-header"
-            ><h2 id="settings-title">{t("audioConfiguration")}</h2
-            ><button
-              className="round-icon"
-              title={t("close")}
-              onClick={onClose}
-            ><Icon
-                name="close"
-                size={19} /></button></header
+            ><DialogTitle id="settings-title">{t("audioConfiguration")}</DialogTitle
+            ><DialogClose asChild
+              ><button
+                className="round-icon"
+                title={t("close")}
+              ><Icon
+                  name="close"
+                  size={19} /></button></DialogClose></header
           ><div className="settings-content">
             <section className="settings-section"
               ><h3
@@ -352,7 +347,7 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
             ></footer
           ></div
         >
-      </section>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

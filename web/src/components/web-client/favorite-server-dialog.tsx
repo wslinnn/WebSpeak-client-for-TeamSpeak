@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { Icon } from "./icon";
-import { useDialogFocus } from "@/web-client/use-dialog-focus";
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { combineTeamSpeakTarget, splitTeamSpeakTarget } from "@/services/teamspeak-target";
 
 export interface FavoriteServerDraft {
@@ -33,11 +33,6 @@ export function FavoriteServerDialog({ initial, knownFavoriteAddresses, onClose,
   const [nickname, setNickname] = useState(initial.nickname ?? "");
   const [channel, setChannel] = useState(initial.channel ?? "");
   const [password, setPassword] = useState(initial.password ?? "");
-  const { dialogRef, onDialogKeydown } = useDialogFocus<HTMLElement>({
-    close: onClose,
-    fallbackFocus: () => document.querySelector<HTMLElement>('[data-ws-part="voice.favorite-server-add"]')
-      ?? document.querySelector<HTMLElement>('[data-ws-part="home.server-history.add"]'),
-  });
 
   // 镜像 upsertFavoriteServer 的规范化：提示保存将更新而不是新建。
   const duplicateFavorite = (() => {
@@ -61,22 +56,20 @@ export function FavoriteServerDialog({ initial, knownFavoriteAddresses, onClose,
   }
 
   return (
-    <div className="modal-backdrop favorite-server-backdrop" tabIndex={-1}>
-      <section
-        ref={dialogRef}
+    <Dialog open onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent
         className="favorite-server-dialog"
         data-ws-part="favorite-server.dialog"
-        role="dialog"
-        aria-modal="true"
         aria-labelledby="favorite-server-title"
-        tabIndex={-1}
-        onKeyDown={onDialogKeydown}
+        onInteractOutside={(event) => event.preventDefault()}
       >
         <header className="favorite-server-header" data-ws-part="favorite-server.header">
-          <h2 id="favorite-server-title">{t("addFavoriteServer")}</h2>
-          <button type="button" className="dialog-close" data-ws-part="favorite-server.close" aria-label={t("close")} onClick={onClose}>
-            <Icon name="close" size={18} />
-          </button>
+          <DialogTitle id="favorite-server-title">{t("addFavoriteServer")}</DialogTitle>
+          <DialogClose asChild>
+            <button type="button" className="dialog-close" data-ws-part="favorite-server.close" aria-label={t("close")}>
+              <Icon name="close" size={18} />
+            </button>
+          </DialogClose>
         </header>
         <form className="favorite-server-form" onSubmit={(event) => { event.preventDefault(); submit(); }}>
           <label className="field-label" data-ws-part="favorite-server.field-label" htmlFor="favorite-label">
@@ -132,7 +125,7 @@ export function FavoriteServerDialog({ initial, knownFavoriteAddresses, onClose,
             </button>
           </footer>
         </form>
-      </section>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
