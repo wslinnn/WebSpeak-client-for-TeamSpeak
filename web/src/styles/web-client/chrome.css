@@ -265,12 +265,6 @@
   gap: 12px;
   margin: 14px auto 0;
   width: min(950px, calc(100% - 64px));
-  padding: 12px 16px;
-  color: var(--wsd-text);
-  border: 1px solid color-mix(in srgb, var(--wsd-accent) 26%, transparent);
-  border-radius: 10px;
-  background: var(--wsd-accent-soft);
-  font-size: 12px;
 }
 
 .workspace-header {
@@ -533,53 +527,22 @@
   min-width: 0;
 }
 
-/* Day banner palette lives in component-scoped vars (night.css re-themes
- * color/border/background under .dark); use sites only read the vars. */
+/* 横幅皮随一致性战役 D2 退役：表面/语义色归 Alert 原语（warning/destructive
+ * 淡底变体），日夜随 shadcn 令牌自动翻转；本类只留行布局与宽度。 */
 .reconnect-banner {
-  --reconnect-fg: #6c5a2c;
-  --reconnect-border: #f0dfae;
-  --reconnect-bg: #fff9e8;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 18px;
   margin: 0;
   width: min(950px, calc(100% - 64px));
-  padding: 12px 16px;
-  color: var(--reconnect-fg);
-  border: 1px solid var(--reconnect-border);
-  border-radius: 10px;
-  background: var(--reconnect-bg);
-}
-
-.reconnect-banner.failed {
-  --reconnect-fg: #8f4540;
-  --reconnect-border: #f2d1cd;
-  --reconnect-bg: #fff2f1;
-}
-
-.reconnect-banner.degraded {
-  --reconnect-fg: #7a4d1d;
-  --reconnect-border: #f3d9a9;
-  --reconnect-bg: #fff7ec;
 }
 
 .reconnect-copy {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
-}
-
-.reconnect-copy strong {
-  font-size: 13px;
-}
-
-.reconnect-copy span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 11px;
 }
 
 .reconnect-actions {
@@ -733,32 +696,14 @@
   margin: 0;
 }
 
+/* poke 条表面归 Alert warning 变体；本类只留宽度与行布局。 */
 .poke-banner {
-  --poke-fg: #52645c;
-  --poke-bg: #fffdf6;
-  --poke-border: #f0dfbd;
-  --poke-icon: #d2973d;
-  --poke-strong: #8f6532;
-  --poke-btn: #9b8a6e;
-  --poke-btn-hover-fg: #735020;
-  --poke-btn-hover-bg: #f9eed9;
   position: static;
   display: flex;
   align-items: center;
   gap: 9px;
   width: min(380px, calc(100% - 48px));
   margin: 0;
-  padding: 10px 11px;
-  color: var(--poke-fg);
-  background: var(--poke-bg);
-  border: 1px solid var(--poke-border);
-  border-radius: 9px;
-  box-shadow: var(--wsd-shadow-raised);
-  font-size: 12px;
-}
-
-.poke-banner > .ui-icon {
-  color: var(--poke-icon);
 }
 
 .poke-banner span {
@@ -769,30 +714,8 @@
   white-space: nowrap;
 }
 
-.poke-banner strong {
-  color: var(--poke-strong);
-}
-
 .poke-banner small {
   font-size: inherit;
-}
-
-.poke-banner button {
-  display: grid;
-  place-items: center;
-  padding: 3px;
-  color: var(--poke-btn);
-  background: transparent;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-@media (hover: hover) {
-
-.poke-banner button:hover {
-  color: var(--poke-btn-hover-fg);
-  background: var(--poke-btn-hover-bg);
-}
 }
 
 .web-client button:focus-visible,
@@ -1420,9 +1343,3 @@
   font-size: 13px;
 }
 
-.favorite-switch-banner .reconnect-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}

@@ -52,6 +52,8 @@
     --color-input: var(--input);
     --color-border: var(--border);
     --color-destructive: var(--destructive);
+    /* 警示色沿用产品 --wsd-warning（tokens.css 昼夜双值），供 Alert warning 变体消费 */
+    --color-warning: var(--wsd-warning);
     --color-accent-foreground: var(--accent-foreground);
     --color-accent: var(--accent);
     --color-muted-foreground: var(--muted-foreground);

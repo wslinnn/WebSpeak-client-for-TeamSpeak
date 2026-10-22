@@ -1,3 +1,4 @@
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Icon } from "./icon";
 
@@ -21,10 +22,10 @@ export function VoiceDegradedBanners(props: VoiceDegradedBannersProps) {
   return (
     <>
       {props.audioNotice && (
-        <div className="reconnect-banner degraded" data-ws-part="voice.audio-status" role="status">
+        <Alert variant="warning" className="reconnect-banner" data-ws-part="voice.audio-status" role="status">
           <div className="reconnect-copy">
-            <strong>{t("audioStatus")}</strong>
-            <span>{props.localizedAudioNotice(props.audioNoticeCode, props.audioNotice)}</span>
+            <AlertTitle>{t("audioStatus")}</AlertTitle>
+            <AlertDescription>{props.localizedAudioNotice(props.audioNoticeCode, props.audioNotice)}</AlertDescription>
           </div>
           <div className="reconnect-actions">
             <Button
@@ -36,18 +37,18 @@ export function VoiceDegradedBanners(props: VoiceDegradedBannersProps) {
               onClick={() => props.onClearAudioNotice(props.audioNoticeCode)}
             ><Icon name="close" size={15} /></Button>
           </div>
-        </div>
+        </Alert>
       )}
       {props.microphoneError && (
-        <div className="reconnect-banner degraded" data-ws-part="voice.microphone-status" role="status">
+        <Alert variant="destructive" className="reconnect-banner" data-ws-part="voice.microphone-status" role="status">
           <div className="reconnect-copy">
-            <strong>{t("microphone")}</strong>
-            <span>{props.localizedMicrophoneError(props.microphoneErrorCode, props.microphoneError)}</span>
+            <AlertTitle>{t("microphone")}</AlertTitle>
+            <AlertDescription>{props.localizedMicrophoneError(props.microphoneErrorCode, props.microphoneError)}</AlertDescription>
           </div>
           <div className="reconnect-actions">
             <Button type="button" variant="ghost" onClick={props.onClearMicrophoneError}>{t("close")}</Button>
           </div>
-        </div>
+        </Alert>
       )}
     </>
   );

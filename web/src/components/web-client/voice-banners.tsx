@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Icon } from "./icon";
 import { VoiceDegradedBanners } from "./voice-degraded-banners";
@@ -66,16 +67,17 @@ export function VoiceBanners(props: VoiceBannersProps) {
   return (
     <div className="voice-banners" data-ws-part="voice.banners">
       {(reconnecting || reconnectFailed) && (
-        <div
-          className={reconnectFailed ? "reconnect-banner failed" : "reconnect-banner"}
+        <Alert
+          variant={reconnectFailed ? "destructive" : "warning"}
+          className="reconnect-banner"
           data-ws-part="voice.connection-status"
           role={reconnectFailed ? "alert" : "status"}
         >
           <div className="reconnect-copy">
-            <strong>{reconnectFailed ? t("reconnectFailed") : t("connectionInterrupted")}</strong>
+            <AlertTitle>{reconnectFailed ? t("reconnectFailed") : t("connectionInterrupted")}</AlertTitle>
             {reconnecting
-              ? <span>{t("reconnectingAttempt", { attempt: props.reconnectAttempt })}</span>
-              : <span>{props.error}</span>}
+              ? <AlertDescription>{t("reconnectingAttempt", { attempt: props.reconnectAttempt })}</AlertDescription>
+              : <AlertDescription>{props.error}</AlertDescription>}
           </div>
           <div className="reconnect-actions">
             {reconnectFailed && (
@@ -83,7 +85,7 @@ export function VoiceBanners(props: VoiceBannersProps) {
             )}
             <Button type="button" variant="ghost" onClick={props.onLeave}>{t("back")}</Button>
           </div>
-        </div>
+        </Alert>
       )}
       <VoiceDegradedBanners
         audioNotice={props.audioNotice}
@@ -97,23 +99,23 @@ export function VoiceBanners(props: VoiceBannersProps) {
         localizedMicrophoneError={props.localizedMicrophoneError}
       />
       {switchPending && (
-        <div className="favorite-switch-banner" data-ws-part="voice.favorite-switch-banner" role="status" aria-live="polite">
-          <div className="reconnect-copy"><strong>{t("switchingToServer", { name: switchPending })}</strong></div>
-        </div>
+        <Alert className="favorite-switch-banner" data-ws-part="voice.favorite-switch-banner" role="status" aria-live="polite">
+          <div className="reconnect-copy"><AlertTitle>{t("switchingToServer", { name: switchPending })}</AlertTitle></div>
+        </Alert>
       )}
       {switchFailed && (
-        <div className="favorite-switch-banner" data-ws-part="voice.favorite-switch-banner" role="status" aria-live="polite">
+        <Alert className="favorite-switch-banner" data-ws-part="voice.favorite-switch-banner" role="status" aria-live="polite">
           <div className="reconnect-copy">
-            <strong>{t("switchToServerFailed", { name: switchFailed })}</strong>
-            {props.error && <span>{props.localizedMessage(props.error)}</span>}
+            <AlertTitle>{t("switchToServerFailed", { name: switchFailed })}</AlertTitle>
+            {props.error && <AlertDescription>{props.localizedMessage(props.error)}</AlertDescription>}
           </div>
           <div className="reconnect-actions">
             <Button type="button" variant="outline" onClick={props.onLeave}>{t("back")}</Button>
           </div>
-        </div>
+        </Alert>
       )}
       {visiblePokes.map((poke) => (
-        <div key={poke.id} className="poke-banner" data-ws-part="voice.poke" role="status">
+        <Alert key={poke.id} variant="warning" className="poke-banner" data-ws-part="voice.poke" role="status">
           <Icon name="bell" size={17} />
           <span>
             <strong>{poke.invokerName}</strong>
@@ -121,8 +123,11 @@ export function VoiceBanners(props: VoiceBannersProps) {
             {t("pokedYou")}
             {poke.message && <small>{t("pokeMessageSuffix", { message: poke.message })}</small>}
           </span>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label={t("close")}
             onClick={() => {
               const timer = pokeTimers.current.get(poke.id);
               if (timer !== undefined) window.clearTimeout(timer);
@@ -131,8 +136,8 @@ export function VoiceBanners(props: VoiceBannersProps) {
             }}
           >
             <Icon name="close" size={15} />
-          </button>
-        </div>
+          </Button>
+        </Alert>
       ))}
     </div>
   );

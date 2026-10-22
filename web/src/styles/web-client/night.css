@@ -52,51 +52,7 @@
   color: var(--wsd-text-dim);
 }
 
-/* Status banners: day keeps the pale paper cards; night re-themes them to
- * dimmed semantic tints over the panel color (warn amber / danger red). */
-.dark .web-client .reconnect-banner {
-  color: var(--wsd-warning);
-  border-color: color-mix(in srgb, var(--wsd-warning) 35%, transparent);
-  background: color-mix(in srgb, var(--wsd-warning) 10%, var(--wsd-panel));
-}
-
-.dark .web-client .reconnect-banner.failed {
-  color: var(--wsd-danger);
-  border-color: color-mix(in srgb, var(--wsd-danger) 35%, transparent);
-  background: color-mix(in srgb, var(--wsd-danger) 10%, var(--wsd-panel));
-}
-
-.dark .web-client .reconnect-banner.degraded {
-  color: var(--wsd-warning);
-  border-color: color-mix(in srgb, var(--wsd-warning) 30%, transparent);
-  background: color-mix(in srgb, var(--wsd-warning) 8%, var(--wsd-panel));
-}
-
-.dark .web-client .poke-banner {
-  color: var(--wsd-text-muted);
-  border-color: color-mix(in srgb, var(--wsd-warning) 32%, transparent);
-  background: color-mix(in srgb, var(--wsd-warning) 9%, var(--wsd-panel));
-}
-
-.dark .web-client .poke-banner > .ui-icon {
-  color: var(--wsd-warning);
-}
-
-.dark .web-client .poke-banner strong {
-  color: color-mix(in srgb, var(--wsd-warning) 80%, white);
-}
-
-.dark .web-client .poke-banner button {
-  color: color-mix(in srgb, var(--wsd-warning) 55%, var(--wsd-text-muted));
-}
-
-@media (hover: hover) {
-
-.dark .web-client .poke-banner button:hover {
-  color: var(--wsd-warning);
-  background: color-mix(in srgb, var(--wsd-warning) 14%, transparent);
-}
-}
+/* 状态横幅夜间组随 D2 退役：Alert warning/destructive 变体走 shadcn 令牌，.dark 自动翻转。 */
 
 .dark :is(.web-client, .download-page) {
   background: var(--wsd-bg);
