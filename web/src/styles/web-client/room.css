@@ -1043,43 +1043,13 @@
   display: none;
 }
 
+/* 页签皮随一致性战役 D1 退役：触发器归 radix Tabs 原语（components/ui/tabs.tsx），
+   本类只留滚动/外距布局钩。 */
 .chat-tabs {
-  display: flex;
-  align-items: center;
-  gap: 6px;
   max-width: 100%;
   margin-top: 18px;
   overflow-x: auto;
   padding-bottom: 3px;
-}
-
-.chat-tabs button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  flex: 0 0 auto;
-  padding: 7px 10px;
-  color: var(--wsd-text-muted);
-  background: var(--wsd-raised);
-  border: 1px solid transparent;
-  border-radius: 7px;
-  font-size: 11px;
-  cursor: pointer;
-}
-
-@media (hover: hover) {
-
-.chat-tabs button:hover {
-  color: var(--wsd-accent);
-  background: var(--wsd-accent-soft);
-}
-}
-
-.chat-tabs button.active {
-  color: var(--wsd-accent);
-  background: color-mix(in srgb, var(--wsd-accent) 20%, transparent);
-  border-color: color-mix(in srgb, var(--wsd-accent) 32%, transparent);
-  font-weight: 700;
 }
 
 .member-panel-heading {
@@ -2843,26 +2813,6 @@ button.screen-share-live-indicator:focus-visible {
     margin: 0 14px 5px;
     padding: 0 0 8px;
     border-bottom: 1px solid var(--wsd-border);
-  }
-
-  .app-shell > .chat-panel .chat-tabs button {
-    color: var(--wsd-text-muted);
-    background: transparent;
-    border-color: var(--wsd-border);
-  }
-
-  @media (hover: hover) {
-
-  .app-shell > .chat-panel .chat-tabs button:hover {
-    color: var(--wsd-text);
-    background: var(--wsd-hover);
-  }
-  }
-
-  .app-shell > .chat-panel .chat-tabs button.active {
-    color: var(--wsd-text);
-    background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-raised));
-    border-color: color-mix(in srgb, var(--wsd-accent) 33%, transparent);
   }
 
   .app-shell > .chat-panel .chat-heading {

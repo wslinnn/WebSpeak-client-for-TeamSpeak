@@ -3,6 +3,7 @@ import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 
 import { Icon } from "./icon";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
 import type { ChatController, ChatScrollerAspect } from "@/web-client/chat-controller";
 import { formatTime, resolveMessageAvatar } from "@/web-client/view-utils";
@@ -122,10 +123,12 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
 
   // 旧 listElement ref 平价：把渲染出来的滚动容器交给控制器切面（卸载时解绑）。
+  // 页签切换会卸载/重挂滚动容器（TabsContent 惰性渲染），切换后必须重新绑定，
+  // 否则控制器持有已脱离文档的旧节点（滚动跟随全部失效）。
   useEffect(() => {
     onListElement(listRef.current);
     return () => onListElement(null);
-  }, [onListElement]);
+  }, [onListElement, tab, chatUi.privateConversationKey]);
 
   // 输入框随草稿自动增高，上限 120px。依赖带 mobileHidden：移动端面板在
   // display:none 下挂载时 scrollHeight 恒 0，会把 textarea 钉成 0 高点不开
@@ -135,7 +138,7 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
-  }, [chatUi.messageDraft, mobileHidden]);
+  }, [chatUi.messageDraft, mobileHidden, tab, chatUi.privateConversationKey]);
 
   function onComposerKeydown(event: React.KeyboardEvent<HTMLTextAreaElement>): void {
     if (event.key !== "Enter") return;
@@ -150,6 +153,86 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
     if (chat.canSend() && chatUi.messageDraft.trim()) void chat.submitMessage();
   }
 
+  // 页签值空间：私聊页签用 `private:<key>` 编码（radix Tabs 的 value 必须唯一标识
+  // 每个触发器；私聊会话是动态多枚）。
+  const activeTabValue = tab === "private" ? `private:${chatUi.privateConversationKey}` : tab;
+
+  function onTabChange(value: string): void {
+    if (value.startsWith("private:")) {
+      const conversation = conversations.find((candidate) => `private:${candidate.key}` === value);
+      if (conversation) chat.openConversation(conversation);
+      return;
+    }
+    chat.setTab(value as WebClientChatTab);
+  }
+
+  // 消息面板被多个页签值复用（channel/server/私聊共用同一布局）；惰性渲染下同时
+  // 只有一份挂载，共享同一 JSX 不会双挂。
+  const messagesPanel = (
+    <>
+      <div ref={listRef} className="message-list" data-ws-part="voice.chat.messages" onScroll={() => chat.onScroll()}>
+        {!visibleMessages.length ? (
+          <div className="chat-empty" data-ws-part="voice.chat.empty" data-ws-state="messages-empty">
+            <strong>{tab === "private" ? t("privateChatStart") : t("chatStart")}</strong>
+            <span>{tab === "private" ? t("privateChatStartLead") : t("chatStartLead")}</span>
+          </div>
+        ) : (
+          <ChatMessageList chat={chat} members={members} language={language} t={t} />
+        )}
+      </div>
+      <form
+        className="message-composer"
+        data-ws-part="voice.chat.composer"
+        onSubmit={(event) => { event.preventDefault(); if (!composing) void chat.submitMessage(); }}
+      >
+        <textarea
+          ref={composerRef}
+          value={chatUi.messageDraft}
+          onChange={(event) => chat.setDraft(event.target.value)}
+          rows={1}
+          maxLength={MESSAGE_MAX_LENGTH}
+          enterKeyHint="send"
+          autoComplete="off"
+          onCompositionStart={() => setComposing(true)}
+          onCompositionEnd={() => setComposing(false)}
+          onKeyDown={onComposerKeydown}
+          placeholder={chat.placeholder(t)}
+          aria-label={t("messageInput")}
+        />
+        {chatUi.messageDraft.length > 450 && (
+          <span className="composer-count" aria-live="off">{MESSAGE_MAX_LENGTH - chatUi.messageDraft.length}</span>
+        )}
+        <button
+          className="send-button"
+          type="submit"
+          disabled={!chat.canSend() || !chatUi.messageDraft.trim()}
+          title={t("send")}
+          aria-label={t("send")}
+        >
+          <Icon name="send" size={18} />
+        </button>
+      </form>
+    </>
+  );
+
+  const eventsPanel = (
+    <div ref={listRef} className="message-list" data-ws-part="voice.chat.messages" onScroll={() => chat.onScroll()}>
+      {serverEvents.map((event) => (
+        <article key={event.id} className="event-row" data-ws-part="voice.chat.event">
+          <time>{formatTime(event.timestamp, language)}</time>
+          <span>{event.message}</span>
+        </article>
+      ))}
+      {!serverEvents.length && (
+        <div className="chat-empty" data-ws-part="voice.chat.empty" data-ws-state="events-empty">
+          <div className="chat-empty-icon"><Icon name="bell" size={24} /></div>
+          <strong>{t("noEvents")}</strong>
+          <span>{t("noEventsLead")}</span>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <section className={mobileHidden ? "chat-panel mobile-section-hidden" : "chat-panel"} data-ws-part="voice.chat">
       <div className="chat-conversation-heading" data-ws-part="voice.chat.title-row">
@@ -160,134 +243,51 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
           </button>
         )}
       </div>
-      <div className="chat-tabs" data-ws-part="voice.chat.tabs" role="tablist" aria-label={t("chatTabs")}>
-        <button
-          type="button"
-          role="tab"
-          data-ws-part="voice.chat.tab"
-          data-ws-state={tab === "channel" ? "active" : "idle"}
-          className={tab === "channel" ? "active" : ""}
-          aria-selected={tab === "channel"}
-          onClick={() => chat.setTab("channel")}
-        >
-          <Icon name="hash" size={15} />
-          {" "}
-          {currentChannelName}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          data-ws-part="voice.chat.tab"
-          data-ws-state={tab === "server" ? "active" : "idle"}
-          className={tab === "server" ? "active" : ""}
-          aria-selected={tab === "server"}
-          onClick={() => chat.setTab("server")}
-        >
-          <Icon name="server" size={15} />
-          {" "}
-          {t("serverChat")}
-        </button>
-        {conversations.map((conversation) => {
-          const active = tab === "private" && chatUi.privateConversationKey === conversation.key;
-          return (
-            <button
+      <Tabs value={activeTabValue} onValueChange={onTabChange}>
+        <TabsList className="chat-tabs" data-ws-part="voice.chat.tabs" aria-label={t("chatTabs")}>
+          <TabsTrigger value="channel" data-ws-part="voice.chat.tab" data-ws-state={tab === "channel" ? "active" : "idle"}>
+            <Icon name="hash" size={15} />
+            {" "}
+            {currentChannelName}
+          </TabsTrigger>
+          <TabsTrigger value="server" data-ws-part="voice.chat.tab" data-ws-state={tab === "server" ? "active" : "idle"}>
+            <Icon name="server" size={15} />
+            {" "}
+            {t("serverChat")}
+          </TabsTrigger>
+          {conversations.map((conversation) => (
+            <TabsTrigger
               key={conversation.key}
-              type="button"
-              role="tab"
+              value={`private:${conversation.key}`}
               data-ws-part="voice.chat.tab"
-              data-ws-state={active ? "active" : "idle"}
-              className={active ? "active" : ""}
-              aria-selected={active}
-              onClick={() => chat.openConversation(conversation)}
+              data-ws-state={tab === "private" && chatUi.privateConversationKey === conversation.key ? "active" : "idle"}
             >
               <Icon name="message" size={15} />
               {" "}
               {conversation.name}
-            </button>
-          );
-        })}
-        <button
-          type="button"
-          role="tab"
-          data-ws-part="voice.chat.tab"
-          data-ws-state={tab === "events" ? "active" : "idle"}
-          className={tab === "events" ? "active" : ""}
-          aria-selected={tab === "events"}
-          onClick={() => chat.setTab("events")}
-        >
-          <Icon name="bell" size={15} />
-          {" "}
-          {t("eventLog")}
-        </button>
-      </div>
-      {/* 标题/眉题已删（⑧拍板：页签行已表达位置语义）；计数器保留。 */}
-      <div className="section-heading chat-heading" data-ws-part="voice.chat.heading">
-        <span className="section-counter">
-          {tab === "events"
-            ? t("eventCount", { count: serverEvents.length })
-            : t("messageCount", { count: visibleMessages.length })}
-        </span>
-      </div>
-      <div ref={listRef} className="message-list" data-ws-part="voice.chat.messages" onScroll={() => chat.onScroll()}>
-        {tab === "events" ? (
-          <div>
-            {serverEvents.map((event) => (
-              <article key={event.id} className="event-row" data-ws-part="voice.chat.event">
-                <time>{formatTime(event.timestamp, language)}</time>
-                <span>{event.message}</span>
-              </article>
-            ))}
-            {!serverEvents.length && (
-              <div className="chat-empty" data-ws-part="voice.chat.empty" data-ws-state="events-empty">
-                <div className="chat-empty-icon"><Icon name="bell" size={24} /></div>
-                <strong>{t("noEvents")}</strong>
-                <span>{t("noEventsLead")}</span>
-              </div>
-            )}
-          </div>
-        ) : !visibleMessages.length ? (
-          <div className="chat-empty" data-ws-part="voice.chat.empty" data-ws-state="messages-empty">
-            <strong>{tab === "private" ? t("privateChatStart") : t("chatStart")}</strong>
-            <span>{tab === "private" ? t("privateChatStartLead") : t("chatStartLead")}</span>
-          </div>
-        ) : (
-          <ChatMessageList chat={chat} members={members} language={language} t={t} />
-        )}
-      </div>
-      {tab !== "events" && (
-        <form
-          className="message-composer"
-          data-ws-part="voice.chat.composer"
-          onSubmit={(event) => { event.preventDefault(); if (!composing) void chat.submitMessage(); }}
-        >
-          <textarea
-            ref={composerRef}
-            value={chatUi.messageDraft}
-            onChange={(event) => chat.setDraft(event.target.value)}
-            rows={1}
-            maxLength={MESSAGE_MAX_LENGTH}
-            enterKeyHint="send"
-            autoComplete="off"
-            onCompositionStart={() => setComposing(true)}
-            onCompositionEnd={() => setComposing(false)}
-            onKeyDown={onComposerKeydown}
-            placeholder={chat.placeholder(t)}
-            aria-label={t("messageInput")}
-          />
-          {chatUi.messageDraft.length > 450 && (
-            <span className="composer-count" aria-live="off">{MESSAGE_MAX_LENGTH - chatUi.messageDraft.length}</span>
-          )}
-          <button
-            className="send-button"
-            type="submit"
-            disabled={!chat.canSend() || !chatUi.messageDraft.trim()}
-            title={t("send")}
-            aria-label={t("send")}
-          >
-            <Icon name="send" size={18} />
-          </button>
-        </form>
-      )}
+            </TabsTrigger>
+          ))}
+          <TabsTrigger value="events" data-ws-part="voice.chat.tab" data-ws-state={tab === "events" ? "active" : "idle"}>
+            <Icon name="bell" size={15} />
+            {" "}
+            {t("eventLog")}
+          </TabsTrigger>
+        </TabsList>
+        {/* 标题/眉题已删（⑧拍板：页签行已表达位置语义）；计数器保留。 */}
+        <div className="section-heading chat-heading" data-ws-part="voice.chat.heading">
+          <span className="section-counter">
+            {tab === "events"
+              ? t("eventCount", { count: serverEvents.length })
+              : t("messageCount", { count: visibleMessages.length })}
+          </span>
+        </div>
+        <TabsContent value="channel">{messagesPanel}</TabsContent>
+        <TabsContent value="server">{messagesPanel}</TabsContent>
+        {conversations.map((conversation) => (
+          <TabsContent key={conversation.key} value={`private:${conversation.key}`}>{messagesPanel}</TabsContent>
+        ))}
+        <TabsContent value="events">{eventsPanel}</TabsContent>
+      </Tabs>
       {chat.status(t) && (
         <p className="chat-status" data-ws-part="voice.chat.status" role="status">{chat.status(t)}</p>
       )}

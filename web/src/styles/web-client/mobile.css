@@ -183,6 +183,7 @@
   .member-menu-close,
   .send-button,
   .status-button,
+  .chat-tabs { height: auto; }
   .chat-tabs button { min-height: 44px; min-width: 44px; }
   .chat-tabs button { max-width: 70vw; overflow: hidden; text-overflow: ellipsis; }
 
