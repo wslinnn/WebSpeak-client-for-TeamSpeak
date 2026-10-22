@@ -94,10 +94,21 @@ ws-tokens < ws-base < ws-ui < ws-join < ws-chrome < ws-room
 - 颜色使用点零裸 hex：十文件逐一断言为 0，色值只允许住在命名变量定义里——全局 `--wsd-*`（tokens.css）或组件根语义局部变量（如 `--toast-bg`、`--reconnect-fg`，横幅/恒暗 toast 等组件私有调色板）。`--ws-z-*` 单源；`!important` 锁面盘点。
 - 颜色取用向导：落在 accent 填充上的文字/字形走 `--wsd-accent-contrast`（夜间翻墨色）；哈希色头像首字母、滑杆白盘等非主题填充走 `--wsd-on-fill`（恒白）；日/夜各自成套的组件调色板（纸色横幅、恒暗 toast）收在组件根的语义变量里，夜间由 night.css 直接覆盖声明。
 
-## 6. 沿革
+## 6. UI 原语迁移纪要（2026-10-21 战役收官）
+
+交互控件全面迁 shadcn 栈（tailwind v4 + radix-ui 统一包 + cva/cn，观感照搬 ZCode radix-mira，源在 `web/src/components/ui/`）：
+
+- **浮层六簇**：语言切换器/服务器菜单/成员菜单/服务器切换器迁 DropdownMenu（≤740 底部面板保留旧标记双渲染）；坞悬停面板与性能面板迁 Popover（PopoverAnchor 悬停驱动）。摆位/碰撞/外点/Esc/焦点归原语，手摆定位服务（dropdown-place / member-menu-placement）退役。
+- **弹窗六枚**：频道/服务器密码、共享设置、收藏服务器、身份导入、音频设置迁 Dialog；useDialogFocus 与 body-scroll-lock 退役；「backdrop 点击不关闭」经 onInteractOutside 阻断。
+- **表单控件**：Slider（shadcn canonical，ZCode 无此原语）/Switch 迁原语，rangeStyle 渐变轨道退役。表单控件走单色 primary（日墨/夜白），非 accent。设备/预设原生 select 保留（「默认设备」空值语义不值得 radix Select，已评估推迟）。
+- **浮层挂载点两代规则**：锚定浮层（menu/popover/tooltip）portal 落 **body**——`#root` 有 `zoom: var(--ui-scale)`，portal 回缩放子树会让 popper 坐标再乘缩放；弹窗（dialog/alert-dialog）portal 落 **#root**——居中定位无 popper 坐标，回缩放子树正好跟随整体缩放。令牌作用域必须含 `body`（tokens.css），否则 portal 子树内一切 `var(--wsd-*)` 计算值期整体失效（渲染为透明）。
+- **边界适配**：控制器事件形参（`{target:{value}}`）经组件边界适配保留，radix onValueChange/onCheckedChange 不上溯改控制器签名；尾随 click 吞噬守卫在菜单挂 onSelect、弹层挂 onPointerDownOutside。
+
+## 7. 沿革
 
 - 报告 19（KAAK 对齐）确立四栏工作区与磁贴语言；随后整体重定调为 Graphite × cobalt。
 - 2026-10-18 皮肤系统整体下架：日/夜改 `html.dark` 静态承载，`night.css` 接管夜间组件面。
 - 2026-10-19 管理台并入单一主题通道与令牌源：暗色键从 `data-theme` 双族（显式 dark + system 经 media query 复制整块）统一到 `html.dark`；`--admin-*` 轨道折叠进 `--wsd-*`（局部只剩四个语义位），散装 hex 163→3（全部是局部令牌定义行）；CSP 收紧皮肤时代的 `img-src/font-src blob:` 遗留通道（盘点零消费）。
 - 2026-10-19 令牌单轨（遗留 `--ws-*`/`--surface-*`/`--skin-*` 全部 1:1 映射进 `--wsd-*` 后删除）+ 组件族归位 + 语义层阶梯（原批次序号层 w00–w22 废止）。
 - 2026-10-19 hex 清偿：web-client 十文件颜色使用点裸 hex 归零（原存量约 110 处）；旧绿调色板残留（面包屑/成员面板/聊天输入、移动端收藏 chip）归入石墨令牌；横幅与 toast 改组件根语义变量；新增 `--wsd-on-fill`；夜间层删除日间归一后冗余的覆盖规则；menus 语言切换器剥除失效的 admin 回退值（admin 由 base-auth.css 全套 `--admin-*` 重建）。
+- 2026-10-21 UI 原语迁移战役收官（浮层六簇/弹窗六枚/表单控件，见第 6 节）：修复两处存量层序倒置（≡ 服务器头部、移动语音页控制条均因族规则散居两文件被层序无声杀死）与 portal 令牌缺位（`--wsd-*` 作用域补 body）；stylelint 新增颜色使用点禁裸色值规则与 `--wsd-backdrop-sheet` 语义槽。

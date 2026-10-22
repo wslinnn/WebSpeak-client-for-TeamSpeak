@@ -1314,20 +1314,11 @@
   font-size: 22px;
 }
 
-.language-switcher.tile .language-dropdown {
-  right: auto;
-  left: 0;
-}
-
 @media (max-width: 520px) {
   .language-trigger {
     min-width: 62px;
     min-height: 30px;
     padding-inline: 7px;
-  }
-
-  .language-dropdown {
-    width: min(360px, calc(100vw - 16px));
   }
 }
 
