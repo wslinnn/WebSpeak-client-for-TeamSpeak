@@ -1052,6 +1052,20 @@
   padding-bottom: 3px;
 }
 
+/* Tabs 迁移后消息列表/作曲器住进 TabsContent：列布局的 flex 链（列表撑满、
+ * 作曲器常驻底部）必须穿过 tabs 根与活动页签面板，否则作曲器悬在列中部、
+ * 列表不再撑满（2026-10-21 用户报告「输入框没有常显」的根因）。
+ * data-state 门控，避免碰 radix 置 hidden 的非活动面板。 */
+.chat-panel [data-slot="tabs"] {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.chat-panel [data-slot="tabs-content"][data-state="active"] {
+  display: flex;
+  flex-direction: column;
+}
+
 .member-panel-heading {
   align-items: flex-end;
 }
@@ -1449,18 +1463,8 @@
     position: relative;
     overflow: visible;
   }
-  .app-shell .chat-panel {
-    position: relative;
-    padding-bottom: calc(16px + 48px);
-  }
-  .app-shell .message-composer {
-    position: absolute;
-    z-index: 3;
-    left: 0;
-    right: 0;
-    bottom: 16px;
-    margin-bottom: 0;
-  }
+  /* 作曲器定位随 Tabs 迁移回归流内布局（chat-panel 的 tabs flex 链），旧
+   * absolute 底部锚定与 64px 预留 padding 已成死规则，随链路修复一并清退。 */
 }
 
 .member-row {
