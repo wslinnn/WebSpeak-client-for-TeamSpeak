@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { FavoriteServer } from "@/services/local-persistence";
+import { Button } from "@/components/ui/button";
 
 interface ServerContextMenuProps {
   server: FavoriteServer;
@@ -79,19 +80,19 @@ export function ServerContextMenu({ server, position, part, inRoom, isMobileView
         <div className="server-context-menu ws-popup" data-ws-part={part} role="menu">
           <strong className="server-context-menu-title">{server.label}</strong>
           {inRoom && (
-            <button role="menuitem" type="button" className="ws-menu-item" onClick={() => { act("switch"); onClose(); }}>
+            <Button variant="ghost" role="menuitem" type="button" className="ws-menu-item" onClick={() => { act("switch"); onClose(); }}>
               <Icon name="volume" size={15} />
               <span>{t("switchToServer", { name: server.label })}</span>
-            </button>
+            </Button>
           )}
-          <button role="menuitem" type="button" className="ws-menu-item" onClick={() => { act("edit"); onClose(); }}>
+          <Button variant="ghost" role="menuitem" type="button" className="ws-menu-item" onClick={() => { act("edit"); onClose(); }}>
             <Icon name="settings" size={15} />
             <span>{t("serverMenuEdit")}</span>
-          </button>
-          <button role="menuitem" type="button" className="ws-menu-item danger" onClick={() => { act("removeFavorite"); onClose(); }}>
+          </Button>
+          <Button variant="ghost" role="menuitem" type="button" className="ws-menu-item danger" onClick={() => { act("removeFavorite"); onClose(); }}>
             <Icon name="star" size={15} />
             <span>{t("removeFavoriteNamed", { name: server.label })}</span>
-          </button>
+          </Button>
         </div>
       </>,
       host ?? document.body,
