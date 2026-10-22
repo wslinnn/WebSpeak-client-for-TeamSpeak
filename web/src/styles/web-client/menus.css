@@ -1456,22 +1456,10 @@
   }
 }
 
-.member-server-switcher-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: var(--ws-z-menu-mask, 300);
-  background: rgba(13, 29, 26, .38);
-  backdrop-filter: blur(2px);
-}
-
+/* 服务器切换器面板迁 Radix DropdownMenu（批 1 收尾）：摆位/碰撞/外点/Esc 归
+   原语，这里只留宽度；表面样式随原语（bg-menu）。 */
 .member-server-switcher {
-  position: fixed;
-  z-index: var(--ws-z-menu, 310);
-  display: grid;
-  gap: 3px;
   width: min(250px, calc(100vw - 40px));
-  max-height: min(340px, calc(100dvh - 120px));
-  overflow: auto;
 }
 
 .member-server-switcher-item {

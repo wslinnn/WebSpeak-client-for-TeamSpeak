@@ -322,7 +322,6 @@ export function VoiceShell(props: VoiceShellProps) {
         isSpeaking={(member) => speakingIds.has(member.id)}
         onVolumeInput={props.onVolumeInput}
         rangeStyle={rangeStyle}
-        switcherHost={document.querySelector<HTMLElement>(".web-client")}
         t={t}
       >
         {!props.isMobileViewport && (

@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 
 import { Icon } from "./icon";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
-import { currentUiScale } from "@/app/ui-scale";
 import type { MembersController } from "@/web-client/members-controller";
 import type { TreeChannel } from "@/web-client/channel-tree";
 import type { ChannelMember } from "@shared/voice-models";
@@ -30,8 +29,6 @@ interface ChannelMemberPanelProps {
   isSpeaking(member: ChannelMember): boolean;
   onVolumeInput(clientId: number, value: number): void;
   rangeStyle(value: number, max: number): Record<string, string>;
-  /** 服务器切换器 teleport 的宿主（.web-client 根，由父组件解析）。 */
-  switcherHost: HTMLElement | null;
   children?: React.ReactNode;
   t(key: string, variables?: Record<string, string | number>): string;
 }
@@ -40,7 +37,7 @@ const DRAG_EDGE_PX = 44;
 
 /** 成员面板（旧 ChannelMemberPanel.vue 平价）：服务器头+状态/搜索、频道树
  *  （单击选中、双击/Enter 进房、折叠分支保挂载做网格插值）、成员行（拖拽换频道
- *  + 树边缘自动滚动）、≡ 服务器切换器（teleport 到 .web-client 根）。 */
+ *  + 树边缘自动滚动）、≡ 服务器切换器（Radix DropdownMenu，portal 落 body）。 */
 export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
   const { members, t } = props;
   const menu = useStore(members.store);
@@ -49,12 +46,10 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
   // KAAK 式进房交互：单击只点亮行内 join 提示（面板本地态，不动连接层选台），
   // 双击（或 Enter）提交换台；落台后清除。
   const [pendingJoinId, setPendingJoinId] = useState<string | null>(null);
-  const switcherTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const switcherMenuRef = useRef<HTMLDivElement | null>(null);
-  const [switcherStyle, setSwitcherStyle] = useState<Record<string, string>>({});
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const treeRef = useRef<HTMLDivElement | null>(null);
   const autoScroll = useRef({ frame: 0, delta: 0 });
+  const guardArmed = useRef(false);
 
   // 落台即清除行内 join 提示（旧 watch(currentChannelId) 平价；render 期调态是
   // React 文档认可的「随 props 调整状态」写法，绕开 effect 级联渲染）。
@@ -74,27 +69,20 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
 
   useEffect(() => () => stopAutoScroll(), []);
 
-  const updateSwitcherPlacement = useCallback(() => {
-    const menuEl = switcherMenuRef.current;
-    const trigger = switcherTriggerRef.current;
-    if (!menuEl || !trigger) return;
-    const rect = trigger.getBoundingClientRect();
-    const left = Math.max(8, Math.min(rect.right - menuEl.offsetWidth, window.innerWidth - menuEl.offsetWidth - 8));
-    const top = Math.max(8, Math.min(rect.bottom + 6, window.innerHeight - menuEl.offsetHeight - 8));
-    // 矩形是视觉像素；面板 teleport 进 .web-client 缩放子树，写入前换算。
-    const scale = currentUiScale();
-    setSwitcherStyle({ left: `${left / scale}px`, top: `${top / scale}px` });
-    menuEl.focus();
-  }, []);
-
-  // 提交后摆位（语言切换器⑥同款）：queueMicrotask 抢在 React 提交前执行、
-  // ref 为 null 直接跳过——首次点开的切换器面板没有坐标，看起来就是点不开。
-  useEffect(() => {
-    if (switcherOpen) updateSwitcherPlacement();
-  }, [switcherOpen, updateSwitcherPlacement]);
-
-  function toggleSwitcher(): void {
-    setSwitcherOpen((open) => !open);
+  // radix 在 pointerdown 外点即收起浮层，随后的合成 click 会落进新暴露的
+  // 面板内容（旧 backdrop 会吞掉它）——一次性捕获守卫平价。
+  function armClickGuard(): void {
+    if (guardArmed.current) return;
+    guardArmed.current = true;
+    const swallow = (event: Event): void => {
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    document.addEventListener("click", swallow, { capture: true, once: true });
+    window.setTimeout(() => {
+      document.removeEventListener("click", swallow, { capture: true });
+      guardArmed.current = false;
+    }, 400);
   }
 
   // 搜索框聚焦同理：等挂载提交后再 focus。
@@ -153,18 +141,39 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
     <aside className={cn("member-panel", { "mobile-section-visible": props.mobileVisible })} data-ws-part="voice.member-panel">
       <div className="member-server-header" data-ws-part="voice.server-header">
         <strong>{props.serverLabel}</strong>
-        <button
-          ref={switcherTriggerRef}
-          type="button"
-          className="member-server-menu"
-          data-ws-part="voice.server-switcher.trigger"
-          aria-expanded={switcherOpen}
-          aria-label={t("favoriteServers")}
-          title={t("favoriteServers")}
-          onClick={toggleSwitcher}
-        >
-          <Icon name="menu" size={16} />
-        </button>
+        <DropdownMenu open={switcherOpen} onOpenChange={setSwitcherOpen}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="member-server-menu"
+              data-ws-part="voice.server-switcher.trigger"
+              aria-label={t("favoriteServers")}
+              title={t("favoriteServers")}
+            >
+              <Icon name="menu" size={16} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            side="bottom"
+            align="end"
+            sideOffset={6}
+            className="member-server-switcher"
+            data-ws-part="voice.server-switcher"
+            onPointerDownOutside={armClickGuard}
+          >
+            {props.switcherServers.map((server) => (
+              <DropdownMenuItem
+                key={server.id}
+                className="member-server-switcher-item"
+                data-ws-state={server.address === props.currentAddress ? "current" : "idle"}
+                onSelect={() => props.onSwitchServer(server)}
+              >
+                <span className="member-server-switcher-icon" style={avatarStyle(server.label, false, "")}>{avatarInitial(server.label)}</span>
+                <span className="member-server-switcher-label">{server.label}</span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <div className="member-server-meta" data-ws-part="voice.server-meta">
         <span className="member-server-kind">TeamSpeak</span>
@@ -328,35 +337,6 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
         <div className="member-empty">{t("noMatchingMembers")}</div>
       )}
       {props.children}
-      {switcherOpen && props.switcherHost && createPortal(
-        <>
-          <div className="member-server-switcher-backdrop" data-ws-part="voice.server-switcher-backdrop" onClick={() => setSwitcherOpen(false)} />
-          <div
-            ref={switcherMenuRef}
-            className="member-server-switcher ws-popup"
-            data-ws-part="voice.server-switcher"
-            role="menu"
-            tabIndex={-1}
-            style={switcherStyle}
-            onKeyDown={(event) => { if (event.key === "Escape") setSwitcherOpen(false); }}
-          >
-            {props.switcherServers.map((server) => (
-              <button
-                key={server.id}
-                type="button"
-                role="menuitem"
-                className="member-server-switcher-item"
-                data-ws-state={server.address === props.currentAddress ? "current" : "idle"}
-                onClick={() => { setSwitcherOpen(false); props.onSwitchServer(server); }}
-              >
-                <span className="member-server-switcher-icon" style={avatarStyle(server.label, false, "")}>{avatarInitial(server.label)}</span>
-                <span className="member-server-switcher-label">{server.label}</span>
-              </button>
-            ))}
-          </div>
-        </>,
-        props.switcherHost,
-      )}
     </aside>
   );
 }
