@@ -718,11 +718,14 @@
   font-size: inherit;
 }
 
-.web-client button:focus-visible,
-.web-client a:focus-visible,
-.web-client input:focus-visible,
-.web-client select:focus-visible,
-.web-client textarea:focus-visible {
+/* 手滚控件的焦点环仍由这里统一给；components/ui 原语（data-slot 标记）自带
+ * ring/border 焦点语言，全局描边会在其内部控件上叠出第二圈错位框
+ * （搜索框双框伪影的根因），必须豁免。 */
+.web-client button:not([data-slot]):focus-visible,
+.web-client a:not([data-slot]):focus-visible,
+.web-client input:not([data-slot]):focus-visible,
+.web-client select:not([data-slot]):focus-visible,
+.web-client textarea:not([data-slot]):focus-visible {
   outline: 2px solid var(--wsd-accent);
   outline-offset: 2px;
 }
