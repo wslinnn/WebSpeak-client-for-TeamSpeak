@@ -128,9 +128,6 @@
 :is(.web-client, .download-page) .mode-note {
   background: var(--wsd-raised);
 }
-:is(.web-client, .download-page) .settings-select {
-  color: var(--wsd-text);
-}
 :is(.web-client, .download-page) .room-hero {
   background: linear-gradient(110deg, color-mix(in srgb, var(--wsd-text) 3%, var(--wsd-panel)), var(--wsd-panel) 75%);
 }
@@ -162,11 +159,6 @@
 :is(.web-client, .download-page) .settings-header h2 {
   color: var(--wsd-text);
 }
-:is(.web-client, .download-page) .settings-select {
-  color: var(--wsd-text);
-  background: var(--wsd-raised);
-  border-color: var(--wsd-border);
-}
 :is(.web-client, .download-page) .audio-level-track,
 :is(.web-client, .download-page) .meter i {
   background: var(--wsd-border);
@@ -193,9 +185,6 @@
 .dark :is(.web-client, .download-page) .mic-mode-switch,
 .dark :is(.web-client, .download-page) .mode-note {
   background: var(--wsd-raised);
-}
-.dark :is(.web-client, .download-page) .settings-select {
-  color: var(--wsd-text);
 }
 .dark :is(.web-client, .download-page) .room-hero {
   background: linear-gradient(110deg, color-mix(in srgb, var(--wsd-text) 4%, var(--wsd-panel)), var(--wsd-panel) 75%);
@@ -227,11 +216,6 @@
 .dark :is(.web-client, .download-page) .settings-section h3,
 .dark :is(.web-client, .download-page) .settings-header h2 {
   color: var(--wsd-text);
-}
-.dark :is(.web-client, .download-page) .settings-select {
-  color: var(--wsd-text);
-  background: var(--wsd-raised);
-  border-color: var(--wsd-border);
 }
 .dark :is(.web-client, .download-page) .audio-level-track,
 .dark :is(.web-client, .download-page) .meter i {

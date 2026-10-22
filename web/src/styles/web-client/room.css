@@ -1745,28 +1745,7 @@ button.screen-share-live-indicator:focus-visible {
   white-space: nowrap;
 }
 
-.screen-share-settings-fields select {
-  display: block;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  min-height: 37px;
-  padding: 0 9px;
-  overflow: hidden;
-  color: var(--wsd-text);
-  border: 1px solid var(--wsd-border);
-  border-radius: 8px;
-  background: var(--wsd-raised);
-  font: inherit;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.screen-share-settings-fields select:focus-visible {
-  outline: 2px solid var(--wsd-accent);
-  outline-offset: 2px;
-}
+/* 共享设置下拉皮随一致性战役 B4 退役：选择器归 Select 原语。 */
 
 .screen-share-settings-note {
   margin: 15px 0 0;

@@ -4,10 +4,14 @@ import { useStore } from "zustand";
 import { Icon } from "./icon";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import type { AudioControls } from "@/web-client/audio-controls";
 import { MAX_INPUT_VOLUME, type VoiceSessionController } from "@/voice/session-controller";
+
+/** radix Select item 禁空串值：默认设备的哨兵（真 deviceId 不会是 @ 前缀）。 */
+const DEFAULT_DEVICE_ITEM = "@default";
 
 export interface AudioSettingsModel {
   inputDevices: Array<{ deviceId: string; label: string }>;
@@ -65,6 +69,10 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
     deviceId && devices.some((device) => device.deviceId === deviceId) ? deviceId : "";
   const inputSelectValue = listedValue(model.selectedInputDeviceId, model.inputDevices);
   const outputSelectValue = listedValue(model.selectedOutputDeviceId, model.outputDevices);
+  // radix Select 不允许空串 item 值：默认设备用哨兵表达，Select 边界与 "" 互转
+  // （控制器与 setSinkId 的默认设备语义仍是空串）。
+  const toDeviceItem = (value: string): string => value || DEFAULT_DEVICE_ITEM;
+  const fromDeviceItem = (value: string): string => (value === DEFAULT_DEVICE_ITEM ? "" : value);
 
   // 试听音频是独立播放端点：也钉到所选输出设备，否则选扬声器只管一半声音。
   useEffect(() => {
@@ -112,16 +120,18 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
                 className="settings-label"
                 htmlFor="input-device"
               >{t("microphone")}</label
-              ><select
-                id="input-device"
-                className="settings-select"
-                value={inputSelectValue}
+              ><Select
+                value={toDeviceItem(inputSelectValue)}
                 disabled={model.inputDevices.length === 0}
-                onChange={(event) => void controls.onInputDeviceChange({ target: event.target })}
-              ><option value="">{t("defaultMicrophone")}</option
-                >{model.inputDevices.map((device, index) => (
-                  <option key={device.deviceId || `microphone-${index}`} value={device.deviceId}>{device.label || t("microphoneNumber", { index: index + 1 })}</option>
-                ))}</select
+                onValueChange={(value) => void controls.onInputDeviceChange({ target: { value: fromDeviceItem(value) } })}
+              ><SelectTrigger id="input-device" className="settings-select"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={DEFAULT_DEVICE_ITEM}>{t("defaultMicrophone")}</SelectItem>
+                  {model.inputDevices.map((device, index) => (
+                    <SelectItem key={device.deviceId || `microphone-${index}`} value={device.deviceId}>{device.label || t("microphoneNumber", { index: index + 1 })}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select
               ><p
                 className="settings-error"
                 style={dialogError ? undefined : { display: "none" }}
@@ -255,16 +265,18 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
                     className="settings-label"
                     htmlFor="output-device"
                   >{t("outputDevice")}</label
-                  ><select
-                    id="output-device"
-                    className="settings-select"
-                    value={outputSelectValue}
+                  ><Select
+                    value={toDeviceItem(outputSelectValue)}
                     disabled={model.outputDevices.length === 0}
-                    onChange={(event) => void controls.onOutputDeviceChange({ target: event.target })}
-                  ><option value="">{t("defaultOutput")}</option
-                    >{model.outputDevices.map((device, index) => (
-                      <option key={device.deviceId || `speaker-${index}`} value={device.deviceId}>{device.label || t("speakerNumber", { index: index + 1 })}</option>
-                    ))}</select>
+                    onValueChange={(value) => void controls.onOutputDeviceChange({ target: { value: fromDeviceItem(value) } })}
+                  ><SelectTrigger id="output-device" className="settings-select"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={DEFAULT_DEVICE_ITEM}>{t("defaultOutput")}</SelectItem>
+                      {model.outputDevices.map((device, index) => (
+                        <SelectItem key={device.deviceId || `speaker-${index}`} value={device.deviceId}>{device.label || t("speakerNumber", { index: index + 1 })}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </>
               )}
               {!model.outputDeviceSupported && (

@@ -1,6 +1,7 @@
 import { Icon } from "./icon";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   SCREEN_SHARE_BITRATE_OPTIONS,
   SCREEN_SHARE_FRAME_RATE_OPTIONS,
@@ -49,39 +50,45 @@ export function ScreenShareSettingsDialog({ presets, onPresetsChange, onSubmit, 
         <div className="screen-share-settings-fields" data-ws-part="voice.screen-share-settings.fields">
           <label>
             <span>{t("screenShareResolution")}</span>
-            <select
+            <Select
               value={presets.resolutionPreset}
-              aria-label={t("screenShareResolution")}
-              onChange={(event) => onPresetsChange({ ...presets, resolutionPreset: event.target.value as ScreenShareResolutionPreset })}
+              onValueChange={(value) => onPresetsChange({ ...presets, resolutionPreset: value as ScreenShareResolutionPreset })}
             >
-              {SCREEN_SHARE_RESOLUTION_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{t(option.label)}</option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full" aria-label={t("screenShareResolution")}><SelectValue /></SelectTrigger>
+              <SelectContent position="popper">
+                {SCREEN_SHARE_RESOLUTION_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{t(option.label)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </label>
           <label>
             <span>{t("screenShareFrameRate")}</span>
-            <select
-              value={presets.frameRate}
-              aria-label={t("screenShareFrameRate")}
-              onChange={(event) => onPresetsChange({ ...presets, frameRate: Number(event.target.value) })}
+            <Select
+              value={String(presets.frameRate)}
+              onValueChange={(value) => onPresetsChange({ ...presets, frameRate: Number(value) })}
             >
-              {SCREEN_SHARE_FRAME_RATE_OPTIONS.map((fps) => (
-                <option key={fps} value={fps}>{fps} FPS</option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full" aria-label={t("screenShareFrameRate")}><SelectValue /></SelectTrigger>
+              <SelectContent position="popper">
+                {SCREEN_SHARE_FRAME_RATE_OPTIONS.map((fps) => (
+                  <SelectItem key={fps} value={String(fps)}>{fps} FPS</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </label>
           <label>
             <span>{t("screenShareBitrate")}</span>
-            <select
+            <Select
               value={presets.bitratePreset}
-              aria-label={t("screenShareBitrate")}
-              onChange={(event) => onPresetsChange({ ...presets, bitratePreset: event.target.value as ScreenShareBitratePreset })}
+              onValueChange={(value) => onPresetsChange({ ...presets, bitratePreset: value as ScreenShareBitratePreset })}
             >
-              {SCREEN_SHARE_BITRATE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>{t(option.label)}</option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full" aria-label={t("screenShareBitrate")}><SelectValue /></SelectTrigger>
+              <SelectContent position="popper">
+                {SCREEN_SHARE_BITRATE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{t(option.label)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </label>
         </div>
         <p className="screen-share-settings-note" data-ws-part="voice.screen-share-settings.note">{t("screenShareSettingsNote")}</p>

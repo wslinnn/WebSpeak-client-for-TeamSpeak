@@ -140,7 +140,7 @@ export default tseslint.config(
         },
         {
           selector: "Literal[value=/\\bz-\\[/]",
-          message: "禁裸 z-index：浮层层级只走 --ws-z-* 阶梯的语义类（raised/header/dropdown/menu-mask/menu/modal-mask/toast）。",
+          message: "禁裸 z-index：浮层层级只走 --ws-z-* 阶梯的语义类（raised/header/dropdown/menu-mask/menu/modal-mask/select/toast）。",
         },
         {
           selector: "Property[key.name='zIndex'] > Literal[raw=/^-?[0-9]/]",

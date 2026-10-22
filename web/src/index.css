@@ -10,7 +10,7 @@
  * 约定：
  * - 语义色/字号六级/间距/圆角以 @theme 定义，TSX 禁裸色值、裸字号、裸 z-index（ESLint 门禁）；
  * - 浮层层级走 --ws-z-* 阶梯（raised 10 / header 100 / dropdown 200 / menu-mask 300 /
- *   menu 310 / modal-mask 400 / toast 500），TSX 只用 z-raised…z-toast 语义 utility；
+ *   menu 310 / modal-mask 400 / select 420 / toast 500），TSX 只用 z-raised…z-toast 语义 utility；
  * - 移动条款：safe-area token、44px 触控目标、≤740 输入 16px 防 iOS 聚焦缩放、
  *   prefers-reduced-motion 全局降级（KAAK 双环动画否决的豁免前提，勿删）。
  */
@@ -143,6 +143,7 @@
     --ws-z-menu-mask: 300;
     --ws-z-menu: 310;
     --ws-z-modal-mask: 400;
+    --ws-z-select: 420;
     --ws-z-toast: 500;
 
     /* 移动端安全区与缩放（ui-scale.ts 运行时覆写 inline 值） */
@@ -203,6 +204,7 @@
 @utility z-menu-mask { z-index: var(--ws-z-menu-mask); }
 @utility z-menu { z-index: var(--ws-z-menu); }
 @utility z-modal-mask { z-index: var(--ws-z-modal-mask); }
+@utility z-select { z-index: var(--ws-z-select); }
 @utility z-toast { z-index: var(--ws-z-toast); }
 
 /* 安全区：移动端刘海/手势条回避 */
