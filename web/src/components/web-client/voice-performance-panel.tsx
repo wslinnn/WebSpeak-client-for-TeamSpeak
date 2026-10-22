@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useMemo } from "react";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 
 import { Icon } from "./icon";
-import { currentUiScale } from "@/app/ui-scale";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useVoiceView } from "@/hooks/useVoiceSession";
 import type { VoiceSessionController } from "@/voice/session-controller";
 import { computeVoiceStats, type PerformanceMonitor, type VoiceAudioStats } from "@/web-client/performance-monitor";
@@ -44,62 +43,11 @@ export function VoicePerformancePanel({ monitor, voice, t }: VoicePerformancePan
   const monitorState = useStore(monitor.store);
   const voiceView = useVoiceView(useShallow((view) => ({ connected: view.connected, voiceTransport: view.voiceTransport })));
   const screenShareStats = useStore(voice.screenShare.statsStore);
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
-  const panelRef = useRef<HTMLElement | null>(null);
-  const [anchor, setAnchor] = useState({ right: 0, bottom: 0 });
   const stats = useMemo<VoiceAudioStats>(
     () => computeVoiceStats(monitorState.latest, monitorState.previous, voiceView.connected),
     [monitorState, voiceView.connected],
   );
   const open = monitorState.panelOpen;
-
-  // 面板 portal 到 .web-client 根（坞挂进成员面板后 overflow:hidden 会裁掉
-  // 向下展开的面板，2026-10-17 取证）；fixed 锚定触发钮向上展开。触发钮靠
-  // 屏幕左缘时 380px 面板会出屏，钳到屏内。触发钮矩形是视觉像素（#root zoom
-  // 缩放子树，4K 下 --ui-scale 可达 1.5），fixed 内联坐标按未缩放像素解释——
-  // 写入前除以 ui-scale（member-actions-menu 同款），否则大屏面板会飞出屏。
-  useEffect(() => {
-    if (!open) return;
-    const rect = triggerRef.current?.getBoundingClientRect();
-    if (rect) {
-      const scale = currentUiScale();
-      const viewportWidth = window.innerWidth / scale;
-      const idealRight = (window.innerWidth - rect.right) / scale;
-      const maxRight = viewportWidth - 380 - 8;
-      setAnchor({
-        right: Math.max(8, Math.min(idealRight, maxRight)),
-        bottom: (window.innerHeight - rect.top) / scale + 10,
-      });
-    }
-  }, [open]);
-
-  // 点击触发器/面板之外关闭（与皮肤、语言下拉同一交互契约）；portal 后面板
-  // 不在 rootRef 子树内，须一并检查 panelRef。
-  useEffect(() => {
-    if (!open) return;
-    function onDocumentPointerDown(event: PointerEvent): void {
-      const target = event.target as Node;
-      if (rootRef.current?.contains(target) || panelRef.current?.contains(target)) return;
-      monitor.setPanelOpen(false);
-    }
-    document.addEventListener("pointerdown", onDocumentPointerDown);
-    return () => document.removeEventListener("pointerdown", onDocumentPointerDown);
-  }, [open, monitor]);
-
-  // Esc 关闭并把焦点还给触发钮（语言/服务器切换器同一契约）。
-  useEffect(() => {
-    if (!open) return;
-    function onKeyDown(event: KeyboardEvent): void {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      event.stopPropagation();
-      monitor.setPanelOpen(false);
-      triggerRef.current?.focus();
-    }
-    document.addEventListener("keydown", onKeyDown, true);
-    return () => document.removeEventListener("keydown", onKeyDown, true);
-  }, [open, monitor]);
 
   const transportLabel = t(TRANSPORT_KEYS[voiceView.voiceTransport]);
   const voiceTransportLabel = t(TRANSPORT_KEYS[stats.transport]);
@@ -114,30 +62,28 @@ export function VoicePerformancePanel({ monitor, voice, t }: VoicePerformancePan
         : t("voiceMicWaiting");
 
   return (
-    <div
-      ref={rootRef}
-      className="network-performance"
-      data-ws-part="voice.performance"
-    >
-      <button
-        ref={triggerRef}
-        type="button"
-        className="performance-trigger"
-        title={voiceView.voiceTransport !== "disconnected" ? `${t("voiceStatus")} · ${transportLabel}` : t("voiceStatus")}
-        aria-label={t("voiceStatus")}
-        aria-expanded={open}
-        onClick={(event) => { event.stopPropagation(); monitor.togglePanel(); }}
-      ><Icon name="activity" size={16} /><span className="performance-trigger-label">{t("voiceStatus")}</span
+    <Popover open={open} onOpenChange={(next) => monitor.setPanelOpen(next)}>
+      <div className="network-performance" data-ws-part="voice.performance">
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="performance-trigger"
+            title={voiceView.voiceTransport !== "disconnected" ? `${t("voiceStatus")} · ${transportLabel}` : t("voiceStatus")}
+            aria-label={t("voiceStatus")}
+            onClick={(event) => event.stopPropagation()}
+          ><Icon name="activity" size={16} /><span className="performance-trigger-label">{t("voiceStatus")}</span
       ><small>{voiceView.voiceTransport !== "disconnected" ? transportLabel : null}</small
       ><Icon name="chevron-down" size={13} /></button>
-      {open && createPortal(
-        <section
-          ref={panelRef}
-          className="performance-panel ws-popup"
+        </PopoverTrigger>
+      </div>
+      <PopoverContent
+          side="top"
+          align="end"
+          sideOffset={10}
+          className="performance-panel w-auto"
           data-ws-part="voice.performance.panel"
           role="dialog"
           aria-label={t("voiceStatus")}
-          style={{ right: anchor.right, bottom: anchor.bottom }}
           onClick={(event) => event.stopPropagation()}
         >
           <header
@@ -274,9 +220,7 @@ export function VoicePerformancePanel({ monitor, voice, t }: VoicePerformancePan
               ))}
             </section>
           )}
-        </section>,
-        document.querySelector<HTMLElement>(".web-client") ?? document.body,
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 }

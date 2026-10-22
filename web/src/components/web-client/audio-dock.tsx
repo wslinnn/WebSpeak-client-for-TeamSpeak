@@ -1,10 +1,9 @@
 import type { ReactNode } from "react";
-import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "zustand";
 
 import { Icon } from "./icon";
-import { currentUiScale } from "@/app/ui-scale";
+import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { MAX_INPUT_VOLUME, type VoiceSessionController } from "@/voice/session-controller";
 import { rangeStyle } from "@/web-client/view-utils";
 
@@ -49,9 +48,10 @@ interface AudioDockProps {
 
 const CLOSE_DELAY_MS = 80;
 
-/* 坞内悬浮控件：面板 portal 到 .web-client 根并以 fixed 锚定触发钮。坞挂进
- * 成员面板后，面板的 overflow:hidden 会把向上/向下伸出的浮层整段裁掉——
- * portal 出去是唯一不受裁切的位置（2026-10-17 取证，报告 24 连带批）。 */
+/* 坞内悬浮控件：受控 Popover 悬停驱动（UI 迁移批 1）。触发钮保留自有点击
+ * 语义（静音切换等），面板开关全由 hover/focus 驱动——锚定用 PopoverAnchor
+ * （不用 Trigger，不接管点击）；radix portal 到 body，坞挂进成员面板的
+ * overflow:hidden 裁切与 ui-scale 坐标换算一并消失（碰撞归 popper）。 */
 function DockHoverControl({ part, label, button, panelClassName, panelPart, children }: {
   part: string;
   label: string;
@@ -64,7 +64,6 @@ function DockHoverControl({ part, label, button, panelClassName, panelPart, chil
   const panelRef = useRef<HTMLDivElement | null>(null);
   const closeTimer = useRef<number | null>(null);
   const [open, setOpen] = useState(false);
-  const [anchor, setAnchor] = useState({ left: 0, bottom: 0 });
   const cancelClose = (): void => {
     if (closeTimer.current !== null) {
       window.clearTimeout(closeTimer.current);
@@ -73,17 +72,6 @@ function DockHoverControl({ part, label, button, panelClassName, panelPart, chil
   };
   const openUp = (): void => {
     cancelClose();
-    const rect = controlRef.current?.getBoundingClientRect();
-    if (rect) {
-      // 触发钮矩形是视觉像素（#root zoom 缩放子树，4K 下 --ui-scale 可达 1.5），
-      // portal 面板的 fixed 内联坐标按未缩放像素解释——写入前除以 ui-scale
-      // （member-actions-menu 同款，跳过这步大屏面板会偏右/出屏）。
-      const scale = currentUiScale();
-      setAnchor({
-        left: (rect.left + rect.width / 2) / scale,
-        bottom: (window.innerHeight - rect.top) / scale + 10,
-      });
-    }
     setOpen(true);
   };
   const scheduleClose = (): void => {
@@ -96,30 +84,34 @@ function DockHoverControl({ part, label, button, panelClassName, panelPart, chil
   );
   useEffect(() => cancelClose, []);
   return (
-    <div
-      ref={controlRef}
-      className="dock-hover-control"
-      data-ws-part={part}
-      onMouseEnter={openUp}
-      onMouseLeave={scheduleClose}
-      onFocus={(event) => { if (!keepIfInside(event.relatedTarget)) openUp(); }}
-      onBlur={(event) => { if (!keepIfInside(event.relatedTarget)) scheduleClose(); }}
-    >
-      {button}
-      {open && createPortal(
+    <Popover open={open} onOpenChange={(next) => { if (!next) setOpen(false); }}>
+      <PopoverAnchor asChild>
         <div
-          ref={panelRef}
-          className={`dock-hover-panel ws-popup ${panelClassName}`}
-          data-ws-part={panelPart}
-          role="dialog"
-          aria-label={label}
-          style={{ left: anchor.left, bottom: anchor.bottom }}
-          onMouseEnter={cancelClose}
+          ref={controlRef}
+          className="dock-hover-control"
+          data-ws-part={part}
+          onMouseEnter={openUp}
           onMouseLeave={scheduleClose}
-        >{children}</div>,
-        document.querySelector<HTMLElement>(".web-client") ?? document.body,
-      )}
-    </div>
+          onFocus={(event) => { if (!keepIfInside(event.relatedTarget)) openUp(); }}
+          onBlur={(event) => { if (!keepIfInside(event.relatedTarget)) scheduleClose(); }}
+        >
+          {button}
+        </div>
+      </PopoverAnchor>
+      <PopoverContent
+        ref={panelRef}
+        side="top"
+        align="center"
+        sideOffset={10}
+        onOpenAutoFocus={(event) => event.preventDefault()}
+        onMouseEnter={cancelClose}
+        onMouseLeave={scheduleClose}
+        data-ws-part={panelPart}
+        role="dialog"
+        aria-label={label}
+        className={panelClassName}
+      >{children}</PopoverContent>
+    </Popover>
   );
 }
 

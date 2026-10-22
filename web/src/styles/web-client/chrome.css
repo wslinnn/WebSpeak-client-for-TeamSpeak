@@ -1130,13 +1130,6 @@
   }
 }
 
-@keyframes dock-panel-in {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(6px);
-  }
-}
-
 @keyframes screen-share-live-dot {
   0%,
   100% {

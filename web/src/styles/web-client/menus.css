@@ -180,10 +180,6 @@
 }
 
 .desktop-audio-dock .performance-panel {
-  top: auto;
-  right: auto;
-  bottom: calc(100% + 9px);
-  left: 0;
   width: min(360px, calc(100vw - 108px));
   max-height: min(70dvh, 560px);
   overflow: auto;
@@ -767,11 +763,10 @@
   font-size: 10px;
 }
 
+/* 面板本体迁 Radix Popover（batch 1）：摆位/碰撞/portal/Esc/外点关闭归原语，
+   这里只留宽度；表面样式随原语（bg-popover）。 */
 .performance-panel {
-  position: fixed;
-  z-index: var(--ws-z-dropdown);
   width: 380px;
-  /* Surface comes from .ws-popup (皮肤可染面，报告 22 批 2). */
 }
 
 .performance-panel header {
@@ -1059,12 +1054,6 @@
   .performance-trigger > .ui-icon:last-child {
     display: none;
   }
-  .performance-panel {
-    position: fixed;
-    top: calc(60px + env(safe-area-inset-top, 0px));
-    right: 10px;
-    width: min(340px, calc(100vw - 20px));
-  }
 }
 
 @media (max-width: 390px) {
@@ -1099,38 +1088,8 @@
   min-width: 0;
 }
 
-.dock-hover-panel {
-  position: fixed;
-  z-index: var(--ws-z-dropdown);
-  width: min(224px, calc(100vw - 32px));
-  /* Surface comes from .ws-popup (皮肤可染面，报告 22 批 2). */
-  transform: translateX(-50%);
-  animation: dock-panel-in .16s ease;
-}
-
-.dock-hover-panel::before {
-  content: "";
-  position: absolute;
-  right: 0;
-  left: 0;
-  bottom: -10px;
-  height: 10px;
-}
-
-.dock-hover-panel::after {
-  content: "";
-  position: absolute;
-  right: auto;
-  bottom: -6px;
-  left: 50%;
-  width: 10px;
-  height: 10px;
-  background: var(--wsd-panel);
-  border-right: 1px solid var(--wsd-border);
-  border-bottom: 1px solid var(--wsd-border);
-  transform: translateX(-50%) rotate(45deg);
-}
-
+/* 坞悬停面板本体迁 Radix Popover（batch 1）：摆位/碰撞/portal 归原语，
+   这里只留面板宽度；表面样式随原语（bg-popover）。 */
 .dock-microphone-panel {
   width: min(246px, calc(100vw - 32px));
 }
