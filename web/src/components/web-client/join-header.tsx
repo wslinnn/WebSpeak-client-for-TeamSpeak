@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { BrandMark } from "@/components/brand-mark";
+import { Button } from "@/components/ui/button";
 import { Icon } from "./icon";
 import { LanguageSwitcher } from "./language-switcher";
 import { ThemeToggle } from "./theme-toggle";
@@ -36,14 +37,18 @@ export function JoinHeader({ brandName, brandSubtitle, gatewayStatus, downloadLa
       <div className="header-tools" data-ws-part="home.header-tools">
         <div className="header-note" data-ws-part="home.gateway-status"><span className="tiny-dot"></span> {gatewayStatus}</div>
         <div className={cn("header-links", { open: moreOpen })}>
-          <a className="secondary-button size-sm guide-button" href="/download" data-ws-part="home.download-button" title={downloadLabel} aria-label={downloadLabel}>
-            <Icon name="download" size={15} />
-            <span>{downloadLabel}</span>
-          </a>
-          <a className="secondary-button size-sm guide-button" href="/admin" title={adminLabel} aria-label={adminLabel}>
-            <Icon name="settings" size={15} />
-            <span>{adminLabel}</span>
-          </a>
+          <Button asChild variant="outline">
+            <a className="guide-button" href="/download" data-ws-part="home.download-button" title={downloadLabel} aria-label={downloadLabel}>
+              <Icon name="download" size={15} />
+              <span>{downloadLabel}</span>
+            </a>
+          </Button>
+          <Button asChild variant="outline">
+            <a className="guide-button" href="/admin" title={adminLabel} aria-label={adminLabel}>
+              <Icon name="settings" size={15} />
+              <span>{adminLabel}</span>
+            </a>
+          </Button>
         </div>
         <ThemeToggle dark={theme.dark} onToggle={theme.onToggle} label={theme.label} className="join-theme-toggle" />
         <LanguageSwitcher language={language} onChange={onLanguageChange} menuLabel={languageMenuLabel} />

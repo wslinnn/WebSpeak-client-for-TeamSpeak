@@ -21,38 +21,8 @@
   font-weight: 600;
 }
 
-.primary-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 16px;
-  color: var(--wsd-accent-contrast);
-  background: var(--wsd-accent-fill);
-  border-radius: 9px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform .18s, box-shadow .18s, background .18s;
-}
-
-@media (hover: hover) {
-
-.primary-button:hover:not(:disabled) {
-  background: var(--wsd-accent-fill-hover);
-  transform: translateY(-1px);
-}
-}
-
-.primary-button:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.primary-button:disabled,
-.identity-import-submit:disabled {
-  cursor: not-allowed;
-  opacity: .45;
-}
+/* 按钮支柱（primary/secondary/text-button + size-*）随一致性战役 B2 退役，
+   按钮皮肤统一走 components/ui/button.tsx；此处只留上下文尺寸钩。 */
 
 /* 弹窗壳与遮罩自批 2 起归 Radix Dialog 原语（components/ui/dialog.tsx）：
    .modal-backdrop 配方随六个弹窗迁移删除；admin 面自带同名类不受影响。 */
@@ -722,7 +692,6 @@
   font-size: 12.5px;
 }
 
-.join-page .primary-button,
 .join-page .identity-import-submit {
   font-size: 15px;
 }
@@ -832,8 +801,6 @@
   }
 }
 
-.web-client.language-en .join-page .primary-button,
-.web-client.language-de .join-page .primary-button,
 .web-client.language-en .join-page .identity-import-submit,
 .web-client.language-de .join-page .identity-import-submit {
   font-size: 13.2px;

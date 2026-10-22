@@ -1,4 +1,5 @@
 import type { FavoriteServerDraft } from "./favorite-server-dialog";
+import { Button } from "@/components/ui/button";
 import { Icon } from "./icon";
 import { IdentityImportDialog } from "./identity-import-dialog";
 import { JoinForm } from "./join-form";
@@ -223,9 +224,9 @@ export function JoinPage(props: JoinPageProps) {
         <span className="footer-separator">·</span>
         <span>{t("teamSpeakClient")}</span>
         <span className="footer-spacer" />
-        <button type="button" className="text-button clear-local-button" onClick={props.onClearBrowserData}>
+        <Button type="button" variant="ghost" className="clear-local-button" onClick={props.onClearBrowserData}>
           {t("clearLocalData")}
-        </button>
+        </Button>
       </footer>
     </section>
   );

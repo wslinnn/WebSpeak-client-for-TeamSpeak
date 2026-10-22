@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { Icon } from "./icon";
 import { ServerContextMenu } from "./server-context-menu";
 import { useIsMobileViewport } from "@/hooks/use-mobile-viewport";
@@ -185,10 +186,10 @@ export function JoinForm(props: JoinFormProps) {
       </div>
 
       <div className="device-setup" data-ws-part="home.device-setup">
-        <button type="button" className="secondary-button size-sm identity-action-button" data-ws-part="home.device-setup.open" onClick={props.onOpenDeviceSettings}>
+        <Button type="button" variant="outline" size="sm" className="identity-action-button" data-ws-part="home.device-setup.open" onClick={props.onOpenDeviceSettings}>
           <Icon name="mic" size={15} />
           {t("joinDeviceSetupAction")}
-        </button>
+        </Button>
         {micPermission === "granted" && <p className="device-setup-hint ok" role="status">{t("micPermissionGranted")}</p>}
         {micPermission === "denied" && <p className="device-setup-hint denied" role="alert">{t("micPermissionDenied")}</p>}
         {!outputPickerSupported && <p className="device-setup-hint">{t("outputUnsupportedHint")}</p>}
@@ -229,34 +230,36 @@ export function JoinForm(props: JoinFormProps) {
             </span>
           </label>
           <div className="identity-actions" data-ws-part="home.identity-actions">
-            <button type="button" className="secondary-button size-sm identity-action-button" data-ws-part="home.identity-import.open" onClick={props.onImportIdentity}>
+            <Button type="button" variant="outline" size="sm" className="identity-action-button" data-ws-part="home.identity-import.open" onClick={props.onImportIdentity}>
               {t("identityImport")}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="secondary-button size-sm identity-action-button"
+              variant="outline"
+              size="sm"
+              className="identity-action-button"
               data-ws-part="home.identity-export.button"
               disabled={props.identityExportBusy || !props.rememberIdentity || !props.hasIdentity}
               onClick={props.onExportIdentity}
             >
               {t("identityExport")}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
       {props.rememberIdentity && <p className="identity-warning">{t("rememberIdentityConcurrentWarning")}</p>}
 
-      <button className="primary-button connect-button" data-ws-part="home.connect" disabled={joinDisabled} type="submit">
+      <Button className="connect-button" data-ws-part="home.connect" disabled={joinDisabled} type="submit">
         {connecting && <span className="button-spinner" />}
         {joinRetrySeconds > 0
           ? <span>{t("retryLater", { seconds: joinRetrySeconds })}</span>
           : <span>{connecting ? t("connecting") : t("enterVoice")}</span>}
         {!connecting && <Icon name="chevron-right" size={17} />}
-      </button>
+      </Button>
       {connecting && (
-        <button type="button" className="text-button cancel-connect-button" onClick={props.onDisconnect}>
+        <Button type="button" variant="ghost" className="cancel-connect-button" onClick={props.onDisconnect}>
           {t("cancel")}
-        </button>
+        </Button>
       )}
     </form>
   );

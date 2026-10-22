@@ -38,10 +38,10 @@ test("header parts and gateway status are wired for assistive tech", () => {
   expect(document.querySelector('[data-ws-part="theme.toggle"]')).not.toBeNull();
 });
 
-test("migrated guide buttons carry the shared pillar classes (报告 22 批 1)", () => {
+test("guide links render through the shared Button primitive (asChild)", () => {
   renderHeader();
   for (const link of screen.getAllByRole("link")) {
-    expect(link.className).toContain("secondary-button");
-    expect(link.className).toContain("size-sm");
+    expect(link.getAttribute("data-slot")).toBe("button");
+    expect(link.className).toContain("guide-button");
   }
 });

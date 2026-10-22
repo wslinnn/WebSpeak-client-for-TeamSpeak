@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { Icon } from "./icon";
 
 interface VoiceDegradedBannersProps {
@@ -26,13 +27,14 @@ export function VoiceDegradedBanners(props: VoiceDegradedBannersProps) {
             <span>{props.localizedAudioNotice(props.audioNoticeCode, props.audioNotice)}</span>
           </div>
           <div className="reconnect-actions">
-            <button
+            <Button
               type="button"
-              className="text-button"
+              variant="ghost"
+              size="icon-sm"
               data-ws-part="voice.audio-status-dismiss"
               aria-label={t("close")}
               onClick={() => props.onClearAudioNotice(props.audioNoticeCode)}
-            ><Icon name="close" size={15} /></button>
+            ><Icon name="close" size={15} /></Button>
           </div>
         </div>
       )}
@@ -43,7 +45,7 @@ export function VoiceDegradedBanners(props: VoiceDegradedBannersProps) {
             <span>{props.localizedMicrophoneError(props.microphoneErrorCode, props.microphoneError)}</span>
           </div>
           <div className="reconnect-actions">
-            <button type="button" className="text-button" onClick={props.onClearMicrophoneError}>{t("close")}</button>
+            <Button type="button" variant="ghost" onClick={props.onClearMicrophoneError}>{t("close")}</Button>
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { Icon } from "./icon";
 import { VoiceDegradedBanners } from "./voice-degraded-banners";
 import type { PokeNotification } from "@/voice/session-state";
@@ -78,9 +79,9 @@ export function VoiceBanners(props: VoiceBannersProps) {
           </div>
           <div className="reconnect-actions">
             {reconnectFailed && (
-              <button type="button" className="secondary-button" onClick={props.onReconnect}>{t("reconnectNow")}</button>
+              <Button type="button" variant="outline" onClick={props.onReconnect}>{t("reconnectNow")}</Button>
             )}
-            <button type="button" className="text-button" onClick={props.onLeave}>{t("back")}</button>
+            <Button type="button" variant="ghost" onClick={props.onLeave}>{t("back")}</Button>
           </div>
         </div>
       )}
@@ -107,7 +108,7 @@ export function VoiceBanners(props: VoiceBannersProps) {
             {props.error && <span>{props.localizedMessage(props.error)}</span>}
           </div>
           <div className="reconnect-actions">
-            <button type="button" className="secondary-button" onClick={props.onLeave}>{t("back")}</button>
+            <Button type="button" variant="outline" onClick={props.onLeave}>{t("back")}</Button>
           </div>
         </div>
       )}

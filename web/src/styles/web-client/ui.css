@@ -177,16 +177,6 @@
   color: var(--wsd-text-muted);
 }
 
-.text-button,
-.identity-import-cancel {
-  padding: 0 6px;
-  color: var(--wsd-text-muted);
-  background: transparent;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
 .channel-password-form .field-label {
   margin-bottom: 8px;
 }
@@ -204,11 +194,6 @@
   .field-grid {
     gap: 8px;
   }
-}
-
-.reconnect-actions .secondary-button {
-  min-height: 34px;
-  padding-inline: 13px;
 }
 
 .join-page .notice {
@@ -235,13 +220,13 @@
 }
 
 @media (max-width: 740px) {
-  .whisper-strip > .text-button {
+  .whisper-strip > .whisper-clear {
     min-height: 38px;
   }
 }
 
 @media (max-width: 740px) {
-  .settings-footer .primary-button {
+  .settings-footer button {
     min-height: 48px;
   }
   .field-grid {
@@ -270,43 +255,3 @@
   }
 }
 
-.secondary-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 13px;
-  color: var(--wsd-text);
-  background: var(--wsd-raised);
-  border: 1px solid var(--wsd-border);
-  border-radius: 9px;
-  font-size: 12px;
-  font-weight: 700;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-@media (hover: hover) {
-
-.secondary-button:hover {
-  background: var(--wsd-hover);
-}
-}
-
-.primary-button.size-sm,
-.secondary-button.size-sm,
-.text-button.size-sm {
-  min-height: 30px;
-}
-
-.primary-button.size-md,
-.secondary-button.size-md,
-.text-button.size-md {
-  min-height: 36px;
-}
-
-.primary-button.size-lg,
-.secondary-button.size-lg,
-.text-button.size-lg {
-  min-height: 44px;
-}

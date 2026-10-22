@@ -528,7 +528,7 @@
 }
 
 .join-page .connect-button {
-  font-size: 16.25px;
+  font-size: 15px;
 }
 
 .join-page .join-meta,
@@ -963,7 +963,7 @@
 
 .web-client.language-en .join-page .connect-button,
 .web-client.language-de .join-page .connect-button {
-  font-size: 14.3px;
+  font-size: 13.2px;
 }
 
 /* ThemeToggle 的 join 变体随组件族住在 menus.css（基类在 ws-menus 层）。 */

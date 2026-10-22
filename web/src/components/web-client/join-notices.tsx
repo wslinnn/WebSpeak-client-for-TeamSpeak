@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+
 interface JoinNoticesProps {
   voiceError: string;
   retryWaiting: boolean;
@@ -52,7 +54,7 @@ export function JoinNotices(props: JoinNoticesProps) {
       {props.configLoadFailed && (
         <div className="notice warning-notice" data-ws-part="home.notice" data-ws-state="warning">
           <span className="notice-symbol">!</span>
-          <span>{t("configLoadFailed")} <button type="button" className="text-button" onClick={props.onRetryConfig}>{t("retryAction")}</button></span>
+          <span>{t("configLoadFailed")} <Button type="button" variant="ghost" onClick={props.onRetryConfig}>{t("retryAction")}</Button></span>
         </div>
       )}
       {props.storageUnavailable && (

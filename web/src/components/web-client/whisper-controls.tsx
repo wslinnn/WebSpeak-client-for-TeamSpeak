@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useStore } from "zustand";
 
 import { Icon } from "./icon";
+import { Button } from "@/components/ui/button";
 import type { AudioControls } from "@/web-client/audio-controls";
 
 interface WhisperControlsProps {
@@ -56,14 +57,15 @@ export function WhisperControls({ targets, active, enabled, controls, onClear, t
           {t("whisperTargets")}</strong
         ><span>{targets.map((member) => member.nickname).join("、")}</span></div
       >
-      <button
+      <Button
         type="button"
-        className="text-button"
+        variant="ghost"
+        className="whisper-clear"
         onClick={onClear}
-      >{t("clearWhisperTargets")}</button>
-      <button
+      >{t("clearWhisperTargets")}</Button>
+      <Button
         type="button"
-        className="primary-button size-md whisper-ptt-button"
+        className="whisper-ptt-button"
         {...(engaged ? { "aria-pressed": true } : { "aria-pressed": false })}
         onPointerDown={(event) => { event.preventDefault(); if (enabled) controls.onWhisperPttDown(event.nativeEvent); }}
         onPointerUp={(event) => { event.preventDefault(); controls.onWhisperPttUp(event.nativeEvent); }}
@@ -76,7 +78,7 @@ export function WhisperControls({ targets, active, enabled, controls, onClear, t
           name="mic"
           size={18}
         />
-        {engaged ? t("releaseWhisper") : t("whisperHoldToTalk")}</button>
+        {engaged ? t("releaseWhisper") : t("whisperHoldToTalk")}</Button>
     </div>
   );
 }

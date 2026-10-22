@@ -120,7 +120,7 @@ export function IdentityImportDialog(props: IdentityImportDialogProps) {
           {props.securityNote}
         </p>
         <footer className="identity-import-footer" data-ws-part="home.identity-import.footer">
-          <Button type="button" variant="ghost" className="identity-import-cancel" data-ws-part="home.identity-import.cancel" disabled={busy} onClick={props.onClose}>
+          <Button type="button" variant="ghost" data-ws-part="home.identity-import.cancel" disabled={busy} onClick={props.onClose}>
             {props.cancelLabel}
           </Button>
           <Button
