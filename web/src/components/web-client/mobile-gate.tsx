@@ -1,4 +1,5 @@
 import { Icon } from "./icon";
+import { Button } from "@/components/ui/button";
 
 interface MobileGateProps {
   title: string;
@@ -23,10 +24,10 @@ export function MobileGate({ title, description, downloadLabel, continueLabel, h
             <Icon name="download" size={16} />
             {downloadLabel}
           </a>
-          <button type="button" className="mobile-gate-continue" onClick={onContinue}>
+          <Button variant="ghost" type="button" className="mobile-gate-continue" onClick={onContinue}>
             <Icon name="monitor" size={16} />
             {continueLabel}
-          </button>
+          </Button>
         </div>
         <p className="mobile-gate-hint">{hint}</p>
       </div>

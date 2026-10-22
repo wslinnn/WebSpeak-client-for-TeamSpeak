@@ -53,7 +53,7 @@ export function JoinHeader({ brandName, brandSubtitle, gatewayStatus, downloadLa
         <ThemeToggle dark={theme.dark} onToggle={theme.onToggle} label={theme.label} className="join-theme-toggle" />
         <LanguageSwitcher language={language} onChange={onLanguageChange} menuLabel={languageMenuLabel} />
       </div>
-      <button
+      <Button variant="ghost"
         type="button"
         className="header-more"
         data-ws-part="home.header-more"
@@ -62,9 +62,9 @@ export function JoinHeader({ brandName, brandSubtitle, gatewayStatus, downloadLa
         onClick={() => setMoreOpen((open) => !open)}
       >
         <Icon name="more" size={17} />
-      </button>
+      </Button>
       {moreOpen && (
-        <button
+        <Button variant="ghost"
           type="button"
           className="header-tools-backdrop"
           aria-hidden="true"

@@ -1,4 +1,5 @@
 import { Icon } from "./icon";
+import { Button } from "@/components/ui/button";
 
 interface ThemeToggleProps {
   dark: boolean;
@@ -11,7 +12,7 @@ interface ThemeToggleProps {
 /** 日/夜切换钮（皮肤切换器下架后的唯一外观开关）。 */
 export function ThemeToggle({ dark, onToggle, label, className }: ThemeToggleProps) {
   return (
-    <button
+    <Button variant="ghost"
       type="button"
       className={className ? `theme-toggle ${className}` : "theme-toggle"}
       data-ws-part="theme.toggle"
@@ -21,6 +22,6 @@ export function ThemeToggle({ dark, onToggle, label, className }: ThemeTogglePro
       onClick={onToggle}
     >
       <Icon name={dark ? "sun" : "moon"} size={15} />
-    </button>
+    </Button>
   );
 }

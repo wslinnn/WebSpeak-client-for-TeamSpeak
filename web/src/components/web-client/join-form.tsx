@@ -130,7 +130,7 @@ export function JoinForm(props: JoinFormProps) {
         <div className="local-servers" data-ws-part="home.server-history">
           {favoriteServers.map((server) => (
             <div key={server.id} className="local-server-item" data-ws-part="home.server-history.item" data-ws-state="favorite">
-              <button
+              <Button variant="ghost"
                 type="button"
                 className={server.address === currentTarget ? "local-server-select active" : "local-server-select"}
                 title={server.label}
@@ -148,13 +148,13 @@ export function JoinForm(props: JoinFormProps) {
               >
                 {server.password && <Icon name="lock" size={12} className="server-tab-lock" />}
                 {server.label}
-              </button>
+              </Button>
             </div>
           ))}
-          <button type="button" className="local-server-add" data-ws-part="home.server-history.add" onClick={() => props.onOpenFavoriteDialog()}>
+          <Button variant="ghost" type="button" className="local-server-add" data-ws-part="home.server-history.add" onClick={() => props.onOpenFavoriteDialog()}>
             <Icon name="plus" size={12} />
             {t("addFavoriteServer")}
-          </button>
+          </Button>
         </div>
       )}
       {rowMenu && (

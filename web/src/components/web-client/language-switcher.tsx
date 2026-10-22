@@ -11,6 +11,7 @@ import {
 import { LANGUAGE_OPTIONS } from "@/i18n/language-options";
 import { cn } from "@/lib/utils";
 import type { Language } from "@/i18n/web-client";
+import { Button } from "@/components/ui/button";
 
 interface LanguageSwitcherProps {
   language: Language;
@@ -54,7 +55,7 @@ export function LanguageSwitcher({ language, onChange, menuLabel, tile, fixedBel
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <div className={cn("language-switcher", { open, tile }, className)}>
         <DropdownMenuTrigger asChild>
-          <button
+          <Button variant="ghost"
             type="button"
             className="language-trigger"
             data-ws-part="language.trigger"
@@ -65,7 +66,7 @@ export function LanguageSwitcher({ language, onChange, menuLabel, tile, fixedBel
             <span className="language-current-flag" aria-hidden="true">{current.flag}</span>
             {!tile && <span className="language-current-code">{current.code}</span>}
             {!tile && <Icon name="chevron-down" size={13} />}
-          </button>
+          </Button>
         </DropdownMenuTrigger>
       </div>
       <DropdownMenuContent
