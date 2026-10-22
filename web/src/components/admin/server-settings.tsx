@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useStore } from "zustand";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -223,8 +224,8 @@ export function AdminServerSettings({ model, messages, onWebRtcToggle }: {
                   </div>
                 </header>
                 <label className={`choice toggle-choice${form.webRtcEnabled ? " selected" : ""}`}>
-                  <input type="checkbox" checked={form.webRtcEnabled}
-                    onChange={(event) => { model.setField("webRtcEnabled", event.target.checked); onWebRtcToggle(); }} />
+                  <Checkbox checked={form.webRtcEnabled} aria-label={tr("webrtcEnabled")}
+                    onCheckedChange={(value) => { model.setField("webRtcEnabled", value === true); onWebRtcToggle(); }} />
                   <span><strong>{tr("webrtcEnabled")}</strong><small>{tr("webrtcEnabledLead")}</small></span>
                 </label>
                 <div className="webrtc-port-fields">
@@ -252,7 +253,8 @@ export function AdminServerSettings({ model, messages, onWebRtcToggle }: {
                   <small className="field-help">{tr("webrtcPublicHostLead")}</small>
                 </label>
                 <label className={`choice toggle-choice${form.webRtcIpv6Enabled ? " selected" : ""}`}>
-                  <input type="checkbox" checked={form.webRtcIpv6Enabled} onChange={(event) => model.setField("webRtcIpv6Enabled", event.target.checked)} />
+                  <Checkbox checked={form.webRtcIpv6Enabled} aria-label={tr("webrtcIpv6")}
+                    onCheckedChange={(value) => model.setField("webRtcIpv6Enabled", value === true)} />
                   <span><strong>{tr("webrtcIpv6")}</strong><small>{tr("webrtcIpv6Lead")}</small></span>
                 </label>
                 <label className="webrtc-network-field">
