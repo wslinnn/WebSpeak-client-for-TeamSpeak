@@ -1248,26 +1248,6 @@
     background: var(--wsd-accent);
   }
 
-  .member-server-header {
-    display: flex;
-    flex: 0 0 auto;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    min-height: 50px;
-    padding: 0 14px;
-  }
-
-  .member-server-header strong {
-    min-width: 0;
-    overflow: hidden;
-    color: var(--wsd-text);
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: -.35px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
   .member-server-meta {
     display: flex;
     flex: 0 0 auto;
@@ -1339,11 +1319,6 @@
 
   .breadcrumbs strong {
     color: var(--wsd-text);
-  }
-
-  .member-server-header {
-    min-height: 52px;
-    padding: 0 16px;
   }
 }
 

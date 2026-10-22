@@ -2356,6 +2356,30 @@ button.screen-share-live-indicator:focus-visible {
     cursor: pointer;
   }
 
+  /* 服务器名行在上方连接态默认区被 display:none 收起，≥981 的展开必须同文件
+   * 后位压制（跨文件回 chrome 层会被 ws-room 无条件 none 永久吃掉——0c0b6f6
+   * 分文件时层序倒置，≡ 服务器切换器随之全视口不可达）。 */
+  .member-server-header {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 52px;
+    padding: 0 16px;
+  }
+
+  .member-server-header strong {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--wsd-text);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -.35px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .member-search {
     display: none;
   }
