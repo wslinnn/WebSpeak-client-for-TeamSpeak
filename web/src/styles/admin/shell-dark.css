@@ -53,7 +53,7 @@
   gap: 4px;
   margin-top: auto;
   padding-top: 20px;
-  border-top: 1px solid rgba(255,255,255,.1);
+  border-top: 1px solid var(--admin-on-dark-line);
 }
 
 .admin-topbar {
@@ -261,7 +261,7 @@
   align-items: center;
   gap: 7px;
   padding: 8px 12px;
-  background: rgba(255,255,255,.12);
+  background: var(--admin-on-dark-chip);
   border-radius: 99px;
   font-size: 11px;
   font-weight: 700;

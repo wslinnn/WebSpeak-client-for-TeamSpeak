@@ -58,12 +58,14 @@ function countRawShadows(css: string): number {
 }
 
 describe("声明纪律棘轮", () => {
-  it("web-client 颜色使用点零裸 hex（色值只住在命名变量定义里）", () => {
-    for (const name of readdirSync(join(stylesDir, "web-client"))) {
-      if (!name.endsWith(".css")) continue;
-      const key = `styles/web-client/${name}`;
-      const n = countUseSiteHex(read(join("src", key)));
-      expect(n, `${key} 使用点裸 hex ${n}；颜色一律 var() 引用，新色值先落成命名变量`).toBe(0);
+  it("web-client 与 admin 颜色使用点零裸 hex（色值只住在命名变量定义里）", () => {
+    for (const sub of ["web-client", "admin"]) {
+      for (const name of readdirSync(join(stylesDir, sub))) {
+        if (!name.endsWith(".css")) continue;
+        const key = `styles/${sub}/${name}`;
+        const n = countUseSiteHex(read(join("src", key)));
+        expect(n, `${key} 使用点裸 hex ${n}；颜色一律 var() 引用，新色值先落成命名变量`).toBe(0);
+      }
     }
   });
 

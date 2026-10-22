@@ -7,6 +7,18 @@
 /* Overlay ladder values come from index.css :root（全局入口样式，随路由恒在）；
    这里不再重复定义，同一份 --ws-z-* 同时供给 admin 与 web-client。 */
 
+/* 管理台局部调色板（rgba 归槽）：暗面白叠层与语义淡底在此单点定义，
+   使用点一律 var() 引用；定义行属性名带 -- 前缀，豁免颜色使用点新规。 */
+html[data-ws-route="admin"] {
+  --admin-on-dark-soft: rgba(255, 255, 255, .08);
+  --admin-on-dark-line: rgba(255, 255, 255, .1);
+  --admin-on-dark-strong: rgba(255, 255, 255, .35);
+  --admin-on-dark-chip: rgba(255, 255, 255, .12);
+  --admin-brand-glow: rgba(95, 211, 191, .2);
+  --admin-backdrop: rgba(5, 41, 38, .38);
+  --admin-success-tint: rgba(30, 122, 64, .1);
+}
+
 .admin-topbar .theme-toggle {
   display: inline-flex;
   align-items: center;
@@ -62,8 +74,8 @@ html[data-ws-route="admin"] body {
 
 .step-list button.active {
   color: var(--wsd-on-fill);
-  background: rgba(255,255,255,.08);
-  border-color: rgba(255,255,255,.1);
+  background: var(--admin-on-dark-soft);
+  border-color: var(--admin-on-dark-line);
 }
 
 .step-list button.done {
@@ -221,7 +233,7 @@ fieldset {
 .spinner.small {
   width: 15px;
   height: 15px;
-  border-color: rgba(255,255,255,.35);
+  border-color: var(--admin-on-dark-strong);
   border-top-color: currentColor;
 }
 
@@ -286,7 +298,7 @@ fieldset {
   min-height: 100dvh;
   place-items: center;
   padding: 25px;
-  background: radial-gradient(circle at 50% 10%,rgba(95,211,191,.2),transparent 30rem),var(--wsd-bg);
+  background: radial-gradient(circle at 50% 10%,var(--admin-brand-glow),transparent 30rem),var(--wsd-bg);
 }
 
 .login-card {

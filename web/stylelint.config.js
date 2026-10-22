@@ -5,9 +5,8 @@
  * 2. transition 禁 all、禁 width/height/top/left/right/bottom/margin/padding/gap
  *    ——布局属性过渡必致回流；grid-template-* 的过渡是工作区折叠动画的刻意
  *    设计，保留。
- * 3. 裸 hex 的存量债务（web-client 面约 100 处组件级一次性色值）由
- *    styles/color-debt.test.ts 棘轮看管：只许降不许涨；admin 面调色板独立
- *    （prefers-color-scheme 暗色），令牌单轨化属主题统一课题另行处理。
+ * 3. 颜色使用点（hex/rgba/rgb）一律走命名变量：web-client 与 admin 双面同规；
+ *    唯一豁免是 custom property 定义行（--xxx: 值）。
  */
 export default {
   extends: [],
@@ -38,17 +37,4 @@ export default {
     },
     "no-empty-source": true,
   },
-  overrides: [
-    {
-      // admin chunk 的色值单轨翻新另有批次（7 处 rgba 使用点待归槽），暂不套
-      // 颜色新规；z 阶梯与 transition 纪律维持全仓一致。
-      files: ["src/styles/admin/**/*.css"],
-      rules: {
-        "declaration-property-value-disallowed-list": {
-          transition: [/(^|[\s,])all\b/, /(^|[\s,])(width|height|top|left|right|bottom|margin|padding|gap)\b/],
-          "transition-property": [/(^|[\s,])all\b/, /(^|[\s,])(width|height|top|left|right|bottom|margin|padding|gap)\b/],
-        },
-      },
-    },
-  ],
 };

@@ -68,19 +68,6 @@ html[data-ws-route="admin"].dark .admin-root {
   color: var(--wsd-text-muted);
 }
 
-.admin-root select {
-  color: var(--wsd-text);
-  background: var(--admin-field);
-  border-color: var(--wsd-border);
-}
-
-.admin-root select:disabled {
-  color: var(--wsd-text-muted);
-  background: var(--wsd-raised);
-  border-color: var(--wsd-border);
-  opacity: 1;
-}
-
 .admin-root input[type="checkbox"],
 .admin-root input[type="radio"] {
   accent-color: var(--wsd-accent);
@@ -105,17 +92,9 @@ html[data-ws-route="admin"].dark .admin-root {
 .admin-root .connection-row,
 .admin-root .connection-history-heading,
 .admin-root .diagnostic-list div,
-.admin-root .log-row,
-.admin-root .invite-row {
+.admin-root .log-row {
   color: var(--wsd-text);
   background: var(--wsd-raised);
-  border-color: var(--wsd-border);
-}
-
-.admin-root .welcome-editor select,
-.admin-root .welcome-editor textarea {
-  color: var(--wsd-text);
-  background: var(--admin-field);
   border-color: var(--wsd-border);
 }
 
@@ -127,8 +106,7 @@ html[data-ws-route="admin"].dark .admin-root {
 .admin-root .connection-detail small,
 .admin-root .connection-history-heading small,
 .admin-root .diagnostic-list dt,
-.admin-root .log-row small,
-.admin-root .invite-row small {
+.admin-root .log-row small {
   color: var(--wsd-text-muted);
 }
 

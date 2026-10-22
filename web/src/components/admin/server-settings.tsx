@@ -4,6 +4,7 @@ import { useStore } from "zustand";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 import type { AdminMessages } from "@/i18n/admin-messages";
@@ -174,11 +175,14 @@ export function AdminServerSettings({ model, messages, onWebRtcToggle }: {
                   <div className="welcome-editor-heading">
                     <label>
                       <span>{tr("welcomeLanguage")}</span>
-                      <select value={welcomeLanguage} onChange={(event) => setWelcomeLanguage(event.target.value as SiteLanguage)}>
-                        {WELCOME_LANGUAGE_OPTIONS.map((option) => (
-                          <option key={option.value} value={option.value}>{option.label}</option>
-                        ))}
-                      </select>
+                      <Select value={welcomeLanguage} onValueChange={(value) => setWelcomeLanguage(value as SiteLanguage)}>
+                        <SelectTrigger aria-label={tr("welcomeLanguage")}><SelectValue /></SelectTrigger>
+                        <SelectContent position="popper">
+                          {WELCOME_LANGUAGE_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </label>
                     <small>{tr("welcomeLanguageHint")}</small>
                   </div>

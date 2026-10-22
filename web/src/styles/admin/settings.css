@@ -254,7 +254,6 @@ html[data-ws-route="admin"].dark .connection-history-heading {
 }
 
 html[data-ws-route="admin"].dark .operation-card,
-html[data-ws-route="admin"].dark .invite-row,
 html[data-ws-route="admin"].dark .diagnostic-list div,
 html[data-ws-route="admin"].dark .log-row {
   color: var(--wsd-text);
@@ -267,15 +266,13 @@ html[data-ws-route="admin"].dark .table-wrap {
 }
 
 html[data-ws-route="admin"].dark .table-wrap th,
-html[data-ws-route="admin"].dark .table-wrap td,
-html[data-ws-route="admin"].dark .invite-list {
+html[data-ws-route="admin"].dark .table-wrap td {
   border-color: var(--wsd-border);
 }
 
 html[data-ws-route="admin"].dark .operation-card header p,
 html[data-ws-route="admin"].dark .table-wrap th,
-html[data-ws-route="admin"].dark .table-wrap td small,
-html[data-ws-route="admin"].dark .invite-row small {
+html[data-ws-route="admin"].dark .table-wrap td small {
   color: var(--wsd-text-muted);
 }
 
@@ -297,7 +294,6 @@ html[data-ws-route="admin"].dark .invite-row small {
     margin-right: -18px;
     margin-bottom: -18px;
   }
-  .invite-form-grid,
   .diagnostic-list {
     grid-template-columns: 1fr;
   }
@@ -410,23 +406,7 @@ html[data-ws-route="admin"] *::-webkit-scrollbar-thumb:hover {
   line-height: 1.5;
 }
 
-.welcome-editor select {
-  width: 100%;
-  height: 40px;
-  padding: 0 10px;
-  color: var(--wsd-text);
-  background: var(--wsd-bg);
-  border: 1px solid var(--wsd-border);
-  border-radius: 9px;
-  font: inherit;
-  font-size: 12px;
-  outline: none;
-}
-
-.welcome-editor select:focus {
-  border-color: var(--wsd-accent);
-  box-shadow: 0 0 0 3px rgba(43,92,217,.13);
-}
+/* 欢迎文案语种下拉皮随一致性战役 C3 退役：选择器归 Select 原语。 */
 
 .webrtc-port-fields {
   display: grid;
@@ -470,7 +450,7 @@ html[data-ws-route="admin"] *::-webkit-scrollbar-thumb:hover {
   display: grid;
   place-items: center;
   padding: 22px;
-  background: rgba(5,41,38,.38);
+  background: var(--admin-backdrop);
   backdrop-filter: blur(3px);
 }
 
@@ -516,12 +496,6 @@ html[data-ws-route="admin"].dark .port-fields-heading small {
 
 html[data-ws-route="admin"].dark .welcome-editor {
   background: var(--wsd-raised);
-  border-color: var(--wsd-border);
-}
-
-html[data-ws-route="admin"].dark .welcome-editor select {
-  color: var(--wsd-text);
-  background: var(--wsd-panel);
   border-color: var(--wsd-border);
 }
 
@@ -661,7 +635,7 @@ html[data-ws-route="admin"].dark .modal-card p {
   padding: 3px 6px;
   border-radius: 999px;
   color: var(--wsd-success);
-  background: rgba(30, 122, 64, .10);
+  background: var(--admin-success-tint);
   font-size: 8px;
   font-weight: 800;
 }
