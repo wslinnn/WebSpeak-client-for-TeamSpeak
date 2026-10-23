@@ -1,0 +1,33 @@
+{
+ "language.trigger": {
+  "w": 79,
+  "h": 32,
+  "display": "inline-flex",
+  "position": "static",
+  "flexDirection": "",
+  "alignItems": "",
+  "justifyContent": "",
+  "gap": "6px",
+  "backgroundColor": "",
+  "color": "rgb(43, 92, 217)",
+  "borderColor": "",
+  "borderRadius": "",
+  "borderTopWidth": "",
+  "borderRightWidth": "",
+  "borderBottomWidth": "",
+  "borderLeftWidth": "",
+  "padding": "0px 9px",
+  "margin": "0px",
+  "fontSize": "",
+  "fontWeight": "",
+  "lineHeight": "",
+  "overflowX": "",
+  "overflowY": "",
+  "cursor": "pointer",
+  "visibility": "visible",
+  "zIndex": "",
+  "minHeight": "",
+  "maxHeight": "",
+  "boxShadow": ""
+ }
+}
