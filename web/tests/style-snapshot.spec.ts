@@ -8,6 +8,12 @@ import { join } from "node:path";
 // 以「金样零漂移」为最硬安全网。结构对齐 smoke.spec（fixture page + init 脚本），
 // 属性白名单只收布局/涂装/层级/光标等稳定值，不收内容文本；可见部件才入样。
 
+// 金样 w/h 取自 getBoundingClientRect，含文本固有宽度——跨平台字体光栅化
+// 必漂 1-5px（Windows 录样、Linux CI 跑样实证：10 例全为文字宽度/派生
+// margin 漂移、零颜色漂移）。门禁定位为录样同构环境的本地提交前门禁，
+// CI 只跑功能冒烟（2026-10-23 拍板）。
+test.skip(!!process.env.CI, "样式金样为本地门禁：几何含文本固有宽度，跨平台字体光栅化必漂，只在录样同构环境执行");
+
 const PROPS = [
   "display", "position", "flexDirection", "alignItems", "justifyContent", "gap",
   "backgroundColor", "color", "borderColor", "borderRadius",
