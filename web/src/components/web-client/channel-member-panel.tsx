@@ -247,7 +247,6 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
                   data-ws-state={current ? "current" : "idle"}
                   data-password-protected={channelItem.passwordProtected ? "true" : undefined}
                   aria-current={current ? "true" : undefined}
-                  title={channelItem.passwordProtected ? `${t("switchChannel")} · ${t("channelPasswordRequired")}` : t("switchChannel")}
                   onClick={() => setPendingJoinId(channelItem.id)}
                   onDoubleClick={() => props.onSelectChannel(channelItem)}
                   onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); props.onSelectChannel(channelItem); } }}
