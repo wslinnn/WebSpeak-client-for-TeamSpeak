@@ -147,7 +147,6 @@
   background: var(--wsd-raised);
   border: 2px solid transparent;
   border-radius: 18px;
-  cursor: pointer;
   transition: background .15s ease, border-color .15s ease;
   /* Same long-press contract as the strip chips. */
   -webkit-user-select: none;
@@ -247,7 +246,6 @@
   color: var(--wsd-text-muted);
   background: transparent;
   border: 1px dashed color-mix(in srgb, var(--wsd-text) 26%, transparent);
-  cursor: pointer;
 }
 
 @media (hover: hover) {
@@ -1208,8 +1206,7 @@
     background: transparent;
     border: none;
     border-radius: 7px;
-    cursor: pointer;
-  }
+}
   .workspace {
     background: var(--wsd-bg);
   }
@@ -1315,7 +1312,6 @@
   border-radius: 11px;
   font-size: 13px;
   font-weight: 700;
-  cursor: pointer;
 }
 
 .web-client .mobile-gate-primary {

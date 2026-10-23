@@ -422,7 +422,6 @@
   color: var(--wsd-accent-contrast);
   background: var(--wsd-accent-fill);
   border-radius: 50%;
-  cursor: pointer;
 }
 
 .send-button:disabled {
@@ -774,12 +773,11 @@
   flex: 1;
   padding: 5px 4px;
   /* Full-brightness section title: KAAK group headings read at the channel
-   * name's level, not a muted one. */
+  * name's level, not a muted one. */
   color: var(--wsd-text);
   background: transparent;
   border-radius: 7px;
   text-align: left;
-  cursor: pointer;
   transition: color .14s ease, background-color .14s ease;
 }
 
@@ -808,7 +806,6 @@
   color: var(--wsd-text-dim);
   background: transparent;
   border-radius: 6px;
-  cursor: pointer;
 }
 
 .member-channel-fold .ui-icon {
@@ -1274,8 +1271,7 @@
     border-radius: 10px;
     font-size: 12px;
     font-weight: 700;
-    cursor: pointer;
-  }
+}
   .mobile-voice-toggle {
     flex: 1 1 auto;
   }
@@ -2242,8 +2238,7 @@ button.screen-share-live-indicator:focus-visible {
     background: transparent;
     border: 0;
     border-radius: 7px;
-    cursor: pointer;
-  }
+}
 
   /* 服务器名行在上方连接态默认区被 display:none 收起，≥981 的展开必须同文件
    * 后位压制（跨文件回 chrome 层会被 ws-room 无条件 none 永久吃掉——0c0b6f6
