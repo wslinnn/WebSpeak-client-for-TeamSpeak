@@ -4,6 +4,8 @@ import type { createHomeStore } from "@/web-client/home-store";
 /** 冒烟测试桥句柄：把前端置进房态（种子）、开受密频道/服务器密码/身份导入弹窗，或复位回首页态。 */
 export interface WebSpeakTestHooks {
   seedRoomState(): void;
+  /** 直写会话 store 的频道消息（无真 TS 服务器时探针滚动/回滚场景用）。 */
+  seedChatMessages(count: number): void;
   /** 断线横幅家族：mode=warning 渲染重连中（warning 变体），mode=failed 渲染重连失败（destructive 变体）。 */
   seedVoiceBanners(mode: "warning" | "failed"): void;
   seedChannelPasswordDialog(): void;
@@ -47,6 +49,19 @@ export function installTestHooks(voice: VoiceSessionController, homeStore?: Retu
           { id: "2", parentID: "0", name: "音乐房", members: [] },
         ],
         members: [{ id: 1, nickname: "你", isSelf: true }, { id: 7, nickname: "Probe 成员" }],
+      });
+    },
+    seedChatMessages(count) {
+      const now = Date.now();
+      voice.session.store.setState({
+        chatMessages: Array.from({ length: count }, (_, i) => ({
+          id: `probe-${i}`,
+          scope: "channel",
+          invokerName: i % 3 === 0 ? "你" : `压测成员${i % 7}`,
+          message: `压测消息第 ${i + 1} 条：把消息列表撑出滚动阈值，再多写几个字保证换行占行。`,
+          timestamp: now - (count - i) * 30_000,
+          isSelf: i % 3 === 0,
+        })),
       });
     },
     // 断线横幅同样需要真实网络故障才出现；种子直接置 store 的三态字段。

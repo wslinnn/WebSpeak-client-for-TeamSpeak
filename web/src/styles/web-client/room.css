@@ -948,6 +948,10 @@
 .chat-panel [data-slot="tabs-content"][data-state="active"] {
   display: flex;
   flex-direction: column;
+  /* 原语 flex-1 不带 min-height:0，flex 列里自动最小尺寸会把面板撑到内容
+   * 全高——列表失去约束不再滚动、作曲器被推出屏外（2026-10-21 用户报告，
+   * 120 条种子消息三视口探针实锤，平板靠旧 max-height 兜底幸免）。 */
+  min-height: 0;
 }
 
 .member-panel-heading {
