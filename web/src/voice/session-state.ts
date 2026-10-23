@@ -61,7 +61,11 @@ export function createVoiceSessionState(options: SessionStateOptions) {
   const AVATAR_CACHE_LIMIT = 200;
 
   // Live mutable working arrays; the public snapshot carries copies so
-  // consumers see one consistent replacement per message.
+  // consumers see one consistent replacement per message. **All** writes to
+  // these arrays must go through the backing arrays (+ sync*): a direct
+  // store.setState bypass diverges from the backing and the next sync wipes
+  // it — loadHistory used to do exactly that, so the first appendLocal after
+  // a refresh collapsed the list to just the new message (2026-10-23 根因).
   const members: ChannelMember[] = [];
   const channels: ChannelInfo[] = [];
   const chatMessages: ChatMessage[] = [];
@@ -143,7 +147,12 @@ export function createVoiceSessionState(options: SessionStateOptions) {
     };
     probe.src = url;
   };
-  const nextId = (kind: string) => `${kind}-${store.getState().epoch}-${sequence++}`;
+  // 页实例 nonce：epoch/sequence 都是页面内存态，刷新后从零重放，而聊天历史
+  // （IndexedDB）跨页面保留旧 id——不加 nonce 时刷新后的第一条消息必与历史撞
+  // id，React 重复 key 把整列打崩成只剩新行（2026-10-23 探针实锤）。nonce 每次
+  // 加载唯一，新 id 永不与历史相撞；React key/持久化去重/按 id 撤回均兼容。
+  const instanceNonce = Math.random().toString(36).slice(2, 8);
+  const nextId = (kind: string) => `${kind}-${store.getState().epoch}-${instanceNonce}-${sequence++}`;
   const normalize = (member: ChannelMember): ChannelMember => {
     const cached = !member.avatar && member.uid ? getAvatar(member.uid) : undefined;
     return { ...member, ...(cached ? { avatar: cached } : {}), isSelf: member.id === options.selfId() };
@@ -394,6 +403,21 @@ export function createVoiceSessionState(options: SessionStateOptions) {
     }
   }
 
+  /** 历史合并（loadHistory 专用通道）：唯一允许的历史写入路径。按 id 对后端
+   *  数组去重、按时间排序、封顶后同步——chat-controller 不得直写 store。 */
+  function mergeChatHistory(additions: readonly ChatMessage[]): void {
+    if (!additions.length) return;
+    const known = new Set(chatMessages.map(message => message.id));
+    for (const message of additions) {
+      if (known.has(message.id)) continue;
+      known.add(message.id);
+      chatMessages.push(message);
+    }
+    chatMessages.sort((left, right) => left.timestamp - right.timestamp);
+    if (chatMessages.length > CHAT_HISTORY_LIMIT) chatMessages.splice(0, chatMessages.length - CHAT_HISTORY_LIMIT);
+    syncChat();
+  }
+
   function reset(): void {
     store.setState({ epoch: store.getState().epoch + 1 });
     replaceMembers([]);
@@ -409,7 +433,7 @@ export function createVoiceSessionState(options: SessionStateOptions) {
     syncPokes();
   }
 
-  return { store, connected, receive, appendLocal, retractLocal, reset,
+  return { store, connected, receive, appendLocal, retractLocal, mergeChatHistory, reset,
     /** Live working array for non-render consumers (e.g. volume sync inside
      *  onMembersChanged, which runs before the store snapshot syncs). */
     membersLive: () => members,

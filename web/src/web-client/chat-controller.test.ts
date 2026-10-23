@@ -31,6 +31,10 @@ function harness(overrides: Partial<Parameters<typeof createChatController>[0]> 
     home,
     session,
     voice,
+    mergeChatHistory: (additions) => {
+      const known = new Set(session.getState().chatMessages.map((message) => message.id));
+      session.setState({ chatMessages: [...session.getState().chatMessages, ...additions.filter((message) => !known.has(message.id))] });
+    },
     getClientId: () => 1,
     getServerKey: () => "example.test:9987",
     getCurrentChannel: () => CHANNEL,

@@ -53,16 +53,16 @@ export function installTestHooks(voice: VoiceSessionController, homeStore?: Retu
     },
     seedChatMessages(count) {
       const now = Date.now();
-      voice.session.store.setState({
-        chatMessages: Array.from({ length: count }, (_, i) => ({
-          id: `probe-${i}`,
-          scope: "channel",
-          invokerName: i % 3 === 0 ? "你" : `压测成员${i % 7}`,
-          message: `压测消息第 ${i + 1} 条：把消息列表撑出滚动阈值，再多写几个字保证换行占行。`,
-          timestamp: now - (count - i) * 30_000,
-          isSelf: i % 3 === 0,
-        })),
-      });
+      // 走 mergeChatHistory（后端数组通道）而非直写 store：与真实 loadHistory
+      // 同形，避免与 appendLocal 的后端数组分叉（直写会被下一次 syncChat 抹掉）。
+      voice.session.mergeChatHistory(Array.from({ length: count }, (_, i) => ({
+        id: `probe-${i}`,
+        scope: "channel",
+        invokerName: i % 3 === 0 ? "你" : `压测成员${i % 7}`,
+        message: `压测消息第 ${i + 1} 条：把消息列表撑出滚动阈值，再多写几个字保证换行占行。`,
+        timestamp: now - (count - i) * 30_000,
+        isSelf: i % 3 === 0,
+      })));
     },
     // 断线横幅同样需要真实网络故障才出现；种子直接置 store 的三态字段。
     seedVoiceBanners(mode) {

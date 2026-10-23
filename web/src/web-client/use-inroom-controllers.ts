@@ -151,6 +151,7 @@ export function useInRoomControllers(options: InRoomOptions) {
   const chat = useMemo(() => createChatController({
     home: store,
     session: voice.session.store,
+    mergeChatHistory: voice.session.mergeChatHistory,
     voice: voice.store,
     getClientId: () => voice.store.getState().tsClientId,
     getServerKey: () => {

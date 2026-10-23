@@ -36,6 +36,10 @@ interface Options {
   home: StoreApi<{ chatTab: WebClientChatTab }>;
   /** 会话目录/消息快照 store（chatMessages/members/epoch）。 */
   session: StoreApi<{ chatMessages: ChatMessage[]; members: ChannelMember[]; epoch: number }>;
+  /** 历史合并专用通道（session-state 后端数组）：loadHistory 禁止直写 session
+   *  store——旁路写入会与 appendLocal 的后端数组分叉，下一次 syncChat 把历史
+   *  整体抹掉（2026-10-23「刷新后发消息旧消息全没」根因）。 */
+  mergeChatHistory(additions: readonly ChatMessage[]): void;
   voice: StoreApi<{ connected: boolean }>;
   getClientId(): number;
   getServerKey(): string;
@@ -302,7 +306,9 @@ export function createChatController(options: Options) {
     const existingIds = new Set(messages.map((message) => message.id));
     const additions = history.filter((message) => !existingIds.has(message.id));
     if (additions.length) {
-      options.session.setState({ chatMessages: [...messages, ...additions].sort((left, right) => left.timestamp - right.timestamp) });
+      // 合并走会话状态的后端数组通道（见 Options.mergeChatHistory 注释）；
+      // 原来这里直写 store，是「发一条消息旧消息全没」的根因。
+      options.mergeChatHistory(additions);
     }
     for (const message of options.session.getState().chatMessages) if (!message.isHistory) persistedMessageIds.add(message.id);
   }
