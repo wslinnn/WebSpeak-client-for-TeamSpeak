@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
 import type { ChatController, ChatScrollerAspect } from "@/web-client/chat-controller";
 import { formatTime, resolveMessageAvatar } from "@/web-client/view-utils";
-import type { ChannelMember, ChatMessage, ServerEvent } from "@shared/voice-models";
+import type { ChannelMember, ServerEvent } from "@shared/voice-models";
 import type { Language } from "@/i18n/web-client";
 import type { WebClientChatTab } from "@/web-client/home-store";
 import { Button } from "@/components/ui/button";
@@ -31,18 +31,6 @@ interface ChatPanelProps {
 }
 
 const MESSAGE_MAX_LENGTH = 500;
-// 同一发送者在窗口内的连续消息合并为一组：头像与名/时间只在首行。
-const MESSAGE_GROUP_WINDOW_MS = 5 * 60_000;
-
-function isGroupedMessage(messages: readonly ChatMessage[], index: number): boolean {
-  const current = messages[index];
-  const previous = messages[index - 1];
-  if (!current || !previous || previous.isSelf !== current.isSelf) return false;
-  const currentKey = current.senderUid ?? `id:${current.senderId}`;
-  const previousKey = previous.senderUid ?? `id:${previous.senderId}`;
-  if (currentKey !== previousKey) return false;
-  return current.timestamp - previous.timestamp < MESSAGE_GROUP_WINDOW_MS;
-}
 
 interface ChatMessageListProps {
   chat: ChatController;
@@ -68,35 +56,29 @@ function ChatMessageListImpl({ chat, members, language, t }: ChatMessageListProp
   const visibleMessages = chat.visibleMessages(chatMessages);
   return (
     <>
-      {visibleMessages.map((message, index) => {
-        const grouped = isGroupedMessage(visibleMessages, index);
-        // 合并行不渲染头像：解析（O(成员数) find）只在首行做（报告 21 F1）。
-        const avatar = grouped ? "" : resolveMessageAvatar(message, members);
+      {/* 每条消息固定渲染头像+名/时间（2026-10-23 拍板撤除合并态：占位行
+       * 只剩空圈，信息密度反而低）。 */}
+      {visibleMessages.map((message) => {
+        const avatar = resolveMessageAvatar(message, members);
         return (
           <article
             key={message.id}
-            className={message.isSelf ? "message-row mine" : grouped ? "message-row grouped" : "message-row"}
+            className={message.isSelf ? "message-row mine" : "message-row"}
             data-ws-part="voice.chat.message"
             data-ws-state={message.isSelf ? "mine" : "other"}
           >
-            {!grouped ? (
-              <div
-                className="message-avatar"
-                data-ws-part="voice.chat.message-avatar"
-                style={avatarStyle(message.invokerName, Boolean(message.isSelf), avatar)}
-              >
-                {avatar ? "" : avatarInitial(message.invokerName)}
-              </div>
-            ) : (
-              <div className="message-avatar message-avatar-spacer" aria-hidden="true" />
-            )}
+            <div
+              className="message-avatar"
+              data-ws-part="voice.chat.message-avatar"
+              style={avatarStyle(message.invokerName, Boolean(message.isSelf), avatar)}
+            >
+              {avatar ? "" : avatarInitial(message.invokerName)}
+            </div>
             <div className="message-body" data-ws-part="voice.chat.message-body">
-              {!grouped && (
-                <div className="message-meta">
-                  <strong>{message.isSelf ? t("you") : message.invokerName}</strong>
-                  <time>{formatTime(message.timestamp, language)}</time>
-                </div>
-              )}
+              <div className="message-meta">
+                <strong>{message.isSelf ? t("you") : message.invokerName}</strong>
+                <time>{formatTime(message.timestamp, language)}</time>
+              </div>
               <div className="message-bubble" data-ws-part="voice.chat.message-bubble">{message.message}</div>
             </div>
           </article>

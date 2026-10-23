@@ -105,12 +105,11 @@ test("typing a draft re-renders the composer but never rebuilds message rows", (
   expect(vi.mocked(resolveMessageAvatar).mock.calls.length).toBe(avatarCallsAfterRender);
 });
 
-test("incoming messages reach the memoized list and grouped rows skip avatar resolution", async () => {
+test("incoming messages reach the memoized list and every row renders avatar+meta", async () => {
   const { chat, session } = harness([message("m1", { senderUid: "u1" })]);
   const view = renderPanel(chat);
   expect(view.container.querySelectorAll(".message-row")).toHaveLength(1);
 
-  const avatarCallsBefore = vi.mocked(resolveMessageAvatar).mock.calls.length;
   session.setState({
     chatMessages: [
       message("m1", { senderUid: "u1" }),
@@ -118,8 +117,9 @@ test("incoming messages reach the memoized list and grouped rows skip avatar res
     ],
   });
   await waitFor(() => expect(view.container.querySelectorAll(".message-row")).toHaveLength(2));
-  // 同一发送者的连续消息合并：第二行只渲染头像占位，不重做 O(成员数) 的头像解析。
-  expect(view.container.querySelectorAll(".message-avatar-spacer")).toHaveLength(1);
-  expect(view.container.querySelectorAll(".message-meta")).toHaveLength(1);
-  expect(vi.mocked(resolveMessageAvatar).mock.calls.length).toBe(avatarCallsBefore + 1);
+  // 每条消息固定渲染头像+名/时间（2026-10-23 拍板撤除合并态：占位行只剩空圈，
+  // 信息密度反而低）；旧合并逻辑的 spacer 类随分支一并清退。
+  expect(view.container.querySelectorAll(".message-avatar")).toHaveLength(2);
+  expect(view.container.querySelectorAll(".message-avatar-spacer")).toHaveLength(0);
+  expect(view.container.querySelectorAll(".message-meta")).toHaveLength(2);
 });
