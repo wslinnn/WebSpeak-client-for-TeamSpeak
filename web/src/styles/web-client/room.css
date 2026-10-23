@@ -1015,9 +1015,15 @@
   gap: 6px;
   height: auto;
   overflow-x: auto;
-  padding: 0 0 3px;
+  padding: 0;
   background: transparent;
   border-radius: 0;
+  /* 滚动条隐藏（拍板④）：滚轮/触摸仍可滚，与移动端口径一致。 */
+  scrollbar-width: none;
+}
+
+.chat-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .chat-tabs [data-slot="tabs-trigger"][data-state] {
