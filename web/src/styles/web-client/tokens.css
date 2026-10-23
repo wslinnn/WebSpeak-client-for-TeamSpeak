@@ -31,15 +31,17 @@ body {
   --wsd-text: #22262b;
   --wsd-text-muted: #626a72;
   --wsd-text-dim: #9099a1;
-  /* Graphite × cobalt: one interactive hue, AA-checked on every surface it
-   * touches. --wsd-accent-contrast is the text color for accent-filled
-   * controls (ink on the light night fill, white on the day fill). */
-  --wsd-accent: #2b5cd9;
-  --wsd-accent-hover: #234db8;
-  --wsd-accent-fill: #2b5cd9;
-  --wsd-accent-fill-hover: #234db8;
+  /* Graphite monochrome: a neutral accent on both themes — interactive hue
+   * is carried by lightness contrast alone (2026-10-21 拍板弃钴蓝). Semantic
+   * status hues (success/warning/danger) stay colored. --wsd-accent-contrast
+   * is the text color for accent-filled controls (ink on the night fill,
+   * white on the day fill). */
+  --wsd-accent: #202329;
+  --wsd-accent-hover: #0d0f12;
+  --wsd-accent-fill: #202329;
+  --wsd-accent-fill-hover: #0d0f12;
   --wsd-accent-contrast: #ffffff;
-  --wsd-accent-soft: rgba(43, 92, 217, .10);
+  --wsd-accent-soft: rgba(32, 35, 41, .10);
   /* Constant white for glyphs on non-themed fills: avatar initials on inline
    * pastel/hash colors, slider knobs, the notice symbol. Unlike the
    * *-contrast pair this does not flip at night — white stays correct on
@@ -84,12 +86,12 @@ body {
   --wsd-text: #f0f1f3;
   --wsd-text-muted: #a0a2a8;
   --wsd-text-dim: #777a82;
-  --wsd-accent: #7d96f2;
-  --wsd-accent-hover: #93a9f5;
-  --wsd-accent-fill: #7d96f2;
-  --wsd-accent-fill-hover: #93a9f5;
+  --wsd-accent: #e8eaee;
+  --wsd-accent-hover: #ffffff;
+  --wsd-accent-fill: #e8eaee;
+  --wsd-accent-fill-hover: #ffffff;
   --wsd-accent-contrast: #101318;
-  --wsd-accent-soft: rgba(125, 150, 242, .16);
+  --wsd-accent-soft: rgba(232, 234, 238, .16);
   --wsd-success: #4cc27a;
   --wsd-warning: #e2b36c;
   --wsd-danger: #ee8a82;

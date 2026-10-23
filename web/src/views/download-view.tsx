@@ -54,7 +54,7 @@ export default function DownloadView() {
     <main className="download-page min-h-dvh bg-background px-[clamp(12px,3vw,44px)] pb-11 pt-[clamp(14px,2vw,30px)] text-foreground" data-ws-page="download">
       <header className="mx-auto flex max-w-[1060px] flex-wrap items-center justify-between gap-3.5 max-[640px]:flex-col max-[640px]:items-stretch" data-ws-part="download.header">
         <div className="flex min-w-0 items-center gap-2.5" data-ws-part="download.brand">
-          <BrandMark className="size-[38px] [color:var(--wsd-accent,#2b5cd9)]" />
+          <BrandMark className="size-[38px] [color:var(--wsd-accent)]" />
           <div>
             <strong className="block text-lg">WebSpeak</strong>
             <small className="block text-sm text-muted-foreground">{t("browserWorkspace")}</small>
