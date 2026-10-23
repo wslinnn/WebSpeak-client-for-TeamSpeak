@@ -69,7 +69,6 @@ export function VoicePerformancePanel({ monitor, voice, t }: VoicePerformancePan
           <Button variant="ghost"
             type="button"
             className="performance-trigger"
-            title={voiceView.voiceTransport !== "disconnected" ? `${t("voiceStatus")} · ${transportLabel}` : t("voiceStatus")}
             aria-label={t("voiceStatus")}
             onClick={(event) => event.stopPropagation()}
           ><Icon name="activity" size={16} /><span className="performance-trigger-label">{t("voiceStatus")}</span

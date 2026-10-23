@@ -305,10 +305,38 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
                               {(member.away === true || speaking) && <span>{member.away === true ? t("away") : t("speaking")}</span>}
                             </div>
                             <div className="member-flags" data-ws-part="voice.member-row.flags" aria-label={t("memberStates")}>
-                              {member.away && <span title={t("away")} aria-label={t("away")}><Icon name="clock" size={13} /></span>}
-                              {member.inputMuted && <span title={t("inputMuted")} aria-label={t("inputMuted")}><Icon name="mic-off" size={13} /></span>}
-                              {member.outputMuted && <span title={t("outputMuted")} aria-label={t("outputMuted")}><Icon name="volume-off" size={13} /></span>}
-                              {member.channelCommander && <span title={t("channelCommander")} aria-label={t("channelCommander")}><Icon name="shield" size={13} /></span>}
+                              {member.away && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span aria-label={t("away")}><Icon name="clock" size={13} /></span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{t("away")}</TooltipContent>
+                                </Tooltip>
+                              )}
+                              {member.inputMuted && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span aria-label={t("inputMuted")}><Icon name="mic-off" size={13} /></span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{t("inputMuted")}</TooltipContent>
+                                </Tooltip>
+                              )}
+                              {member.outputMuted && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span aria-label={t("outputMuted")}><Icon name="volume-off" size={13} /></span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{t("outputMuted")}</TooltipContent>
+                                </Tooltip>
+                              )}
+                              {member.channelCommander && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span aria-label={t("channelCommander")}><Icon name="shield" size={13} /></span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{t("channelCommander")}</TooltipContent>
+                                </Tooltip>
+                              )}
                             </div>
                             {!member.isSelf && (
                               <div className="member-volume" data-ws-part="voice.member-row.volume" onPointerDown={(event) => event.stopPropagation()}>

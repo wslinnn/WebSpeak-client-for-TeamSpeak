@@ -4,6 +4,7 @@ import { findScreenShareStreamForMember } from "@/web-client/screen-share-view";
 import type { ScreenShareStreamDescription as ScreenShareStream } from "@shared/screen-share";
 import type { ChannelMember } from "@shared/voice-models";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface VoiceMembersProps {
   currentMembers: ChannelMember[];
@@ -56,14 +57,18 @@ export function VoiceMembers({ currentMembers, isMobileViewport, isSpeaking, scr
                 <Icon name="more" size={17} />
               </Button>
             )}
-            <span
-              className="voice-mic-status"
-              data-ws-part="voice.member.mic-status"
-              data-ws-state={member.inputMuted ? "muted" : "idle"}
-              title={member.inputMuted ? t("inputMuted") : t("microphone")}
-            >
-              <Icon name={member.inputMuted ? "mic-off" : "mic"} size={13} />
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className="voice-mic-status"
+                  data-ws-part="voice.member.mic-status"
+                  data-ws-state={member.inputMuted ? "muted" : "idle"}
+                >
+                  <Icon name={member.inputMuted ? "mic-off" : "mic"} size={13} />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{member.inputMuted ? t("inputMuted") : t("microphone")}</TooltipContent>
+            </Tooltip>
             <div
               className={shareStream ? "voice-avatar-wrap screen-share-avatar-wrap" : "voice-avatar-wrap"}
               data-ws-part="voice.member.avatar-wrap"
@@ -81,7 +86,7 @@ export function VoiceMembers({ currentMembers, isMobileViewport, isSpeaking, scr
                   className={viewingThis ? "screen-share-live-indicator viewing" : "screen-share-live-indicator"}
                   data-ws-part="voice.member.live-indicator"
                   data-ws-state={viewingThis ? "viewing" : "live"}
-                  title={viewingThis ? t("leaveScreenShare") : t("watchScreenShare")}
+                  aria-label={viewingThis ? t("leaveScreenShare") : t("watchScreenShare")}
                   aria-pressed={viewingThis}
                   onClick={(event) => { event.stopPropagation(); onToggleScreenShare(member); }}
                 >

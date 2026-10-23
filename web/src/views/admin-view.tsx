@@ -121,11 +121,11 @@ export default function AdminView() {
               <h1>{currentPageTitle}</h1>
             </div>
             <div className="admin-tools">
-              <span className="gateway-status" role="status" title={tr("gatewayRunning")}>
+              <span className="gateway-status" role="status">
                 <span className="running-dot" aria-hidden="true" />
                 <span className="gateway-status-label">{tr("gatewayRunning")}</span>
               </span>
-              <Button variant="ghost" type="button" className="theme-toggle" title={themeDark ? tr("switchToLightTheme") : tr("switchToDarkTheme")}
+              <Button variant="ghost" type="button" className="theme-toggle"
                 aria-label={themeDark ? tr("switchToLightTheme") : tr("switchToDarkTheme")}
                 onClick={() => saveTheme(nextTheme(themeMode))}>
                 {themeDark ? <SunIcon size={17} aria-hidden="true" /> : <MoonIcon size={17} aria-hidden="true" />}

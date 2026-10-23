@@ -30,7 +30,7 @@ export function JoinHeader({ brandName, brandSubtitle, gatewayStatus, downloadLa
       <div className="brand-lockup" data-ws-part="home.brand">
         <BrandMark className="brand-mark" />
         <div>
-          <strong title={brandName}>{brandName}</strong>
+          <strong>{brandName}</strong>
           <small>{brandSubtitle}</small>
         </div>
       </div>
@@ -38,13 +38,13 @@ export function JoinHeader({ brandName, brandSubtitle, gatewayStatus, downloadLa
         <div className="header-note" data-ws-part="home.gateway-status"><span className="tiny-dot"></span> {gatewayStatus}</div>
         <div className={cn("header-links", { open: moreOpen })}>
           <Button asChild variant="outline">
-            <a className="guide-button" href="/download" data-ws-part="home.download-button" title={downloadLabel} aria-label={downloadLabel}>
+            <a className="guide-button" href="/download" data-ws-part="home.download-button" aria-label={downloadLabel}>
               <Icon name="download" size={15} />
               <span>{downloadLabel}</span>
             </a>
           </Button>
           <Button asChild variant="outline">
-            <a className="guide-button" href="/admin" title={adminLabel} aria-label={adminLabel}>
+            <a className="guide-button" href="/admin" aria-label={adminLabel}>
               <Icon name="settings" size={15} />
               <span>{adminLabel}</span>
             </a>

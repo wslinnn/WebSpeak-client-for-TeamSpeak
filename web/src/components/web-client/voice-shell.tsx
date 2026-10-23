@@ -11,6 +11,7 @@ import { MemberActionsMenu } from "./member-actions-menu";
 import { ServerContextMenu } from "./server-context-menu";
 import { LanguageSwitcher } from "./language-switcher";
 import { ThemeToggle } from "./theme-toggle";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { VoiceBanners } from "./voice-banners";
 import { VoiceMobileMore } from "./voice-mobile-more";
 import { VoicePerformancePanel } from "./voice-performance-panel";
@@ -202,7 +203,6 @@ export function VoiceShell(props: VoiceShellProps) {
               data-ws-part="voice.favorite-server-chip"
               aria-pressed={server.address === currentAddress}
               disabled={Boolean(switchState.pending) || voiceView.connecting}
-              title={server.address === currentAddress ? `${server.label} · ${t("currentServerBadge")}` : server.label}
               aria-label={t("switchToServer", { name: server.label })}
               onClick={() => props.onSwitchServer(server)}
               onPointerDown={(event) => railGestures.pointerDown(event.nativeEvent, server)}
@@ -216,45 +216,62 @@ export function VoiceShell(props: VoiceShellProps) {
               <span className="favorite-server-chip-label">{server.label}</span>
             </Button>
           ))}
-          <Button variant="ghost" type="button" className="favorite-server-add" data-ws-part="voice.favorite-server-add" aria-label={t("addFavoriteServer")} title={t("addFavoriteServer")} onClick={props.onOpenFavoriteDialog}>
-            <Icon name="plus" size={14} />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" type="button" className="favorite-server-add" data-ws-part="voice.favorite-server-add" aria-label={t("addFavoriteServer")} onClick={props.onOpenFavoriteDialog}>
+                <Icon name="plus" size={14} /></Button>
+            </TooltipTrigger>
+            <TooltipContent>{t("addFavoriteServer")}</TooltipContent>
+          </Tooltip>
         </div>
       )}
 
       {/* 桌面 rail：open 模式的收藏 + 皮肤/语言/身份位（皮肤/身份随 P4-7/P4-5） */}
       <aside className="favorite-server-rail" data-ws-part="voice.favorite-server-rail" role="toolbar" aria-label={t("favoriteServers")}>
         {railServers.map((server) => (
-          <Button variant="ghost"
-            key={server.id}
-            type="button"
-            className={server.address === currentAddress ? "favorite-server-button active" : "favorite-server-button"}
-            data-ws-state={server.address === currentAddress ? "current" : "idle"}
-            aria-pressed={server.address === currentAddress}
-            disabled={Boolean(switchState.pending) || voiceView.connecting}
-            title={server.address === currentAddress ? `${server.label}\n${server.address}\n${t("currentServerBadge")}` : `${server.label}\n${server.address}`}
-            aria-label={t("switchToServer", { name: server.label })}
-            onClick={() => props.onSwitchServer(server)}
-            onPointerDown={(event) => railGestures.pointerDown(event.nativeEvent, server)}
-            onPointerMove={(event) => railGestures.pointerMove(event.nativeEvent)}
-            onPointerUp={() => railGestures.pointerUp()}
-            onPointerCancel={() => railGestures.pointerCancel()}
-            onClickCapture={(event) => railGestures.clickCapture(event.nativeEvent)}
-            onContextMenu={(event) => railGestures.contextMenu(event.nativeEvent, server)}
-          >
-            <span className="favorite-server-avatar">{avatarInitial(server.label)}</span>
-            {server.password && <span className="favorite-server-rail-lock"><Icon name="lock" size={9} /></span>}
-          </Button>
+          <Tooltip key={server.id}>
+            <TooltipTrigger asChild>
+              <Button variant="ghost"
+                type="button"
+                className={server.address === currentAddress ? "favorite-server-button active" : "favorite-server-button"}
+                data-ws-state={server.address === currentAddress ? "current" : "idle"}
+                aria-pressed={server.address === currentAddress}
+                disabled={Boolean(switchState.pending) || voiceView.connecting}
+                aria-label={t("switchToServer", { name: server.label })}
+                onClick={() => props.onSwitchServer(server)}
+                onPointerDown={(event) => railGestures.pointerDown(event.nativeEvent, server)}
+                onPointerMove={(event) => railGestures.pointerMove(event.nativeEvent)}
+                onPointerUp={() => railGestures.pointerUp()}
+                onPointerCancel={() => railGestures.pointerCancel()}
+                onClickCapture={(event) => railGestures.clickCapture(event.nativeEvent)}
+                onContextMenu={(event) => railGestures.contextMenu(event.nativeEvent, server)}
+              >
+                <span className="favorite-server-avatar">{avatarInitial(server.label)}</span>
+                {server.password && <span className="favorite-server-rail-lock"><Icon name="lock" size={9} /></span>}
+              </Button>
+            </TooltipTrigger>
+            {/* 头像瓦片无文字，多行提示 = 名称/地址/当前标记（原 title 三行平价）。 */}
+            <TooltipContent className="whitespace-pre-line">{server.address === currentAddress ? `${server.label}\n${server.address}\n${t("currentServerBadge")}` : `${server.label}\n${server.address}`}</TooltipContent>
+          </Tooltip>
         ))}
-        <Button variant="ghost" type="button" className="favorite-server-add" data-ws-part="voice.favorite-server-rail.add" aria-label={t("addFavoriteServer")} title={t("addFavoriteServer")} onClick={props.onOpenFavoriteDialog}>
-          <Icon name="plus" size={21} />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" type="button" className="favorite-server-add" data-ws-part="voice.favorite-server-rail.add" aria-label={t("addFavoriteServer")} onClick={props.onOpenFavoriteDialog}>
+              <Icon name="plus" size={21} /></Button>
+          </TooltipTrigger>
+          <TooltipContent>{t("addFavoriteServer")}</TooltipContent>
+        </Tooltip>
         <ThemeToggle dark={props.theme.dark} onToggle={props.theme.onToggle} label={props.theme.label} className="rail-switcher-tile theme-toggle-tile" />
         <LanguageSwitcher language={i18n.language} onChange={i18n.setLanguage} menuLabel={props.t("languageMenu")} className="rail-switcher-tile" tile />
-        <div className="rail-identity" data-ws-part="voice.rail-identity" title={homeState.nickname}>
-          <span className="rail-identity-avatar" style={avatarStyle(homeState.nickname, true, "")} aria-hidden="true">{avatarInitial(homeState.nickname)}</span>
-          <span className="rail-identity-presence" aria-hidden="true"></span>
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="rail-identity" data-ws-part="voice.rail-identity">
+              <span className="rail-identity-avatar" style={avatarStyle(homeState.nickname, true, "")} aria-hidden="true">{avatarInitial(homeState.nickname)}</span>
+              <span className="rail-identity-presence" aria-hidden="true"></span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>{homeState.nickname}</TooltipContent>
+        </Tooltip>
       </aside>
 
       <VoiceWorkspace

@@ -134,7 +134,6 @@ export function JoinForm(props: JoinFormProps) {
               <Button variant="ghost"
                 type="button"
                 className={server.address === currentTarget ? "local-server-select active" : "local-server-select"}
-                title={server.label}
                 onClick={() => props.onConnectServer({ address: server.address, nickname: server.nickname, channel: server.lastChannelHint?.name, password: server.password })}
                 onPointerDown={(event) => rowGestures.pointerDown(event.nativeEvent, server)}
                 onPointerMove={(event) => rowGestures.pointerMove(event.nativeEvent)}

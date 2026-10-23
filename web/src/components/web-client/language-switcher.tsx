@@ -12,6 +12,7 @@ import { LANGUAGE_OPTIONS } from "@/i18n/language-options";
 import { cn } from "@/lib/utils";
 import type { Language } from "@/i18n/web-client";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface LanguageSwitcherProps {
   language: Language;
@@ -51,23 +52,34 @@ export function LanguageSwitcher({ language, onChange, menuLabel, tile, fixedBel
     }, 400);
   }
 
+  // tile 是旗帜瓦片（无文字）才需要 tooltip 提示；常规态有语言代码文字，提示冗余。
+  const triggerButton = (
+    <Button variant="ghost"
+      type="button"
+      className="language-trigger"
+      data-ws-part="language.trigger"
+      aria-label={menuLabel}
+      onClick={(event) => event.stopPropagation()}
+    >
+      <span className="language-current-flag" aria-hidden="true">{current.flag}</span>
+      {!tile && <span className="language-current-code">{current.code}</span>}
+      {!tile && <Icon name="chevron-down" size={13} />}
+    </Button>
+  );
+
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <div className={cn("language-switcher", { open, tile }, className)}>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost"
-            type="button"
-            className="language-trigger"
-            data-ws-part="language.trigger"
-            aria-label={menuLabel}
-            title={tile ? menuLabel : undefined}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <span className="language-current-flag" aria-hidden="true">{current.flag}</span>
-            {!tile && <span className="language-current-code">{current.code}</span>}
-            {!tile && <Icon name="chevron-down" size={13} />}
-          </Button>
-        </DropdownMenuTrigger>
+        {tile ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>{triggerButton}</DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent>{menuLabel}</TooltipContent>
+          </Tooltip>
+        ) : (
+          <DropdownMenuTrigger asChild>{triggerButton}</DropdownMenuTrigger>
+        )}
       </div>
       <DropdownMenuContent
         data-ws-part="language.menu"

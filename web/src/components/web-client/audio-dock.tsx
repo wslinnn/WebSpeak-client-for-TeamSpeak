@@ -213,7 +213,6 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
         <Button variant="ghost"
           type="button"
           className="desktop-audio-dock-control desktop-audio-dock-settings"
-          title={t("audioSettings")}
           aria-label={t("audioSettings")}
           onClick={onSettings}
         ><Icon name="settings" size={15} /><span>{t("audioSettings")}</span></Button>

@@ -1,5 +1,6 @@
 import { Icon } from "./icon";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ThemeToggleProps {
   dark: boolean;
@@ -12,16 +13,20 @@ interface ThemeToggleProps {
 /** 日/夜切换钮（皮肤切换器下架后的唯一外观开关）。 */
 export function ThemeToggle({ dark, onToggle, label, className }: ThemeToggleProps) {
   return (
-    <Button variant="ghost"
-      type="button"
-      className={className ? `theme-toggle ${className}` : "theme-toggle"}
-      data-ws-part="theme.toggle"
-      data-ws-state={dark ? "dark" : "light"}
-      aria-label={label}
-      title={label}
-      onClick={onToggle}
-    >
-      <Icon name={dark ? "sun" : "moon"} size={15} />
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant="ghost"
+          type="button"
+          className={className ? `theme-toggle ${className}` : "theme-toggle"}
+          data-ws-part="theme.toggle"
+          data-ws-state={dark ? "dark" : "light"}
+          aria-label={label}
+          onClick={onToggle}
+        >
+          <Icon name={dark ? "sun" : "moon"} size={15} />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 }

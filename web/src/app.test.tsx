@@ -4,6 +4,7 @@ import { afterEach, beforeAll, expect, test, vi } from "vitest";
 
 import { AppRoutes } from "./App";
 import { I18nProvider } from "./components/app/i18n-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { loadWebClientMessages } from "@/hooks/use-i18n";
 
 // 语言包按语言动态 import 在 vitest 里是按需转译（秒级），先于测试计时器预热
@@ -22,9 +23,12 @@ afterEach(() => {
 function renderRoutes(initialPath: string) {
   return render(
     <I18nProvider>
-      <MemoryRouter initialEntries={[initialPath]}>
-        <AppRoutes />
-      </MemoryRouter>
+      {/* 镜像 App 根壳：TooltipProvider 住 App，本替身直挂 AppRoutes 需自备。 */}
+      <TooltipProvider>
+        <MemoryRouter initialEntries={[initialPath]}>
+          <AppRoutes />
+        </MemoryRouter>
+      </TooltipProvider>
     </I18nProvider>,
   );
 }

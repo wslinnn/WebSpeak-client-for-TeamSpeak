@@ -6,6 +6,7 @@ import type { ScreenShareUi } from "@/web-client/use-screen-share";
 import type { ChannelMember } from "@shared/voice-models";
 import type { ScreenShareViewerDescription } from "@shared/screen-share";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ScreenSharePlayerProps {
   ui: ScreenShareUi;
@@ -73,30 +74,38 @@ export function ScreenSharePlayer({ ui, onPlayerElement, onVideoElement, nicknam
           </span>
           <span className="screen-share-player-viewer-avatars">
             {viewers.map((viewer) => (
-              <span
-                key={viewer.peerId}
-                className="screen-share-player-viewer-avatar"
-                data-ws-part="voice.screen-player.viewer-avatar"
-                style={viewerStyle(viewer)}
-                title={viewer.nickname}
-              >{resolveScreenShareViewerAvatar(viewer, members) ? "" : avatarInitial(viewer.nickname)}</span>
+              <Tooltip key={viewer.peerId}>
+                <TooltipTrigger asChild>
+                  <span
+                    className="screen-share-player-viewer-avatar"
+                    data-ws-part="voice.screen-player.viewer-avatar"
+                    style={viewerStyle(viewer)}
+                  >{resolveScreenShareViewerAvatar(viewer, members) ? "" : avatarInitial(viewer.nickname)}</span>
+                </TooltipTrigger>
+                <TooltipContent>{viewer.nickname}</TooltipContent>
+              </Tooltip>
             ))}
           </span>
         </div>
         <span className="screen-share-player-live" data-ws-part="voice.screen-player.live"><i></i>{t("watchingScreenShare")}</span>
         <span className="screen-share-player-source" data-ws-part="voice.screen-player.source">{ownerName}</span>
         <div className="screen-share-player-controls" data-ws-part="voice.screen-player.controls">
-          <div data-ws-part="voice.screen-player.volume" title={t("screenShareVolume")}>
-            <Icon name={state.remoteVolume === 0 ? "volume-off" : "volume"} size={18} />
-            <Slider
-              className="w-[102px]"
-              value={[Math.round(state.remoteVolume * 100)]}
-              max={100}
-              step={5}
-              aria-label={t("screenShareVolume")}
-              onValueChange={(values) => ui.onVolumeInput({ target: { value: String(values[0]) } })}
-            />
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div data-ws-part="voice.screen-player.volume">
+                <Icon name={state.remoteVolume === 0 ? "volume-off" : "volume"} size={18} />
+                <Slider
+                  className="w-[102px]"
+                  value={[Math.round(state.remoteVolume * 100)]}
+                  max={100}
+                  step={5}
+                  aria-label={t("screenShareVolume")}
+                  onValueChange={(values) => ui.onVolumeInput({ target: { value: String(values[0]) } })}
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>{t("screenShareVolume")}</TooltipContent>
+          </Tooltip>
           <Button variant="ghost"
             type="button"
             data-ws-part="voice.screen-player.fullscreen"
