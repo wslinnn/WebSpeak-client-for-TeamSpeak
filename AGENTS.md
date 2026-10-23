@@ -88,3 +88,5 @@ npm --prefix web ci --no-audit --no-fund
 - 判「样式为什么这样渲染」必须真浏览器查计算样式（产物 CSS + 手摆 DOM 探针 + getComputedStyle），规则文本 grep 与部署状态推断都不算数（四轮曾据此误判「部署过期」）。
 - 做 CSS 层重排/分片合并必须用**全对**冲突扫描判据（`reports/layer-tools/p4b-scan-all.mjs`：报告 26 原版只记 `spec(早)>spec(晚)` 对，同特异性翻盘不可见）；合并前后做规则多重集对账（零丢失零改写）。
 - 临时脚本/探针页用完即删；后台网关（3041）用完即停，`reuseExistingServer:false` 下残留端口会静默吃掉下一次冒烟。
+- 弹性链/滚动约束的探针验证必须种子出内容再测（空态无症状：TabsContent 缺 `min-height:0` 的断链曾以空列表探针全绿漏检，有内容后列表全撑开、作曲器出视口）。
+- 组件渲染 radix 浮层原语（Tooltip/DropdownMenu 等）时，组件测试与 app 替身要自备 Provider（App 根有的壳，测试替身直挂路由会以 context 报错＋超时收场）。
