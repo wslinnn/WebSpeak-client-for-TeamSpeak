@@ -1,4 +1,5 @@
-
+/* 房间：语音卡网格、成员面板、聊天、屏幕共享、whisper 语音条、
+ * 语音活动艺术品。 */
 
 .screen-share-settings-button[aria-expanded="true"] {
   color: var(--wsd-accent);
@@ -50,8 +51,7 @@
   color: var(--wsd-accent);
   background: var(--wsd-accent-soft);
 }
-}/* 房间：语音卡网格、成员面板、聊天、屏幕共享、whisper 语音条、
- * 语音活动艺术品。 */
+}
 
 .card-kicker,
 .section-kicker {
