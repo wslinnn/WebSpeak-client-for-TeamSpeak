@@ -93,15 +93,22 @@ export function createChatController(options: Options) {
   const destination = () =>
     `${options.session.getState().epoch}:${tab()}:${tab() === "private" ? state().privateConversationKey : tab() === "channel" ? options.getCurrentChannel()?.id ?? options.getSelectedChannelId() : ""}`;
 
-  // —— 派生（视图订阅 store 后按需调用） ——
-  function conversations(): PrivateConversation[] {
+  // —— 派生（视图订阅 store 后调用，必须把订阅值作实参传入）——
+  // 参数化是编译器契约：React Compiler 把方法调用按实参缓存，零参调用的键里
+  // 没有订阅值，store 更新后返回陈旧数组（2026-10-23 消息不上屏根因，产物
+  // 代码实锤：缓存槽键 [chat, language, members, t] 无 chatMessages）。默认
+  // 参数仅保留给控制器内部调用；组件侧一律传订阅到的数组。
+  function conversations(
+    messages: readonly ChatMessage[] = options.session.getState().chatMessages,
+    members: readonly ChannelMember[] = options.session.getState().members,
+  ): PrivateConversation[] {
     const byConversation = new Map<string, PrivateConversation>();
-    for (const message of options.session.getState().chatMessages) {
+    for (const message of messages) {
       if (message.scope !== "private" || !message.conversationId) continue;
       const id = Number(message.conversationId);
       if (!id) continue;
       const key = messageKey(message);
-      const member = options.session.getState().members.find((candidate) => memberKey(candidate) === key);
+      const member = members.find((candidate) => memberKey(candidate) === key);
       const existing = byConversation.get(key);
       byConversation.set(key, {
         id: member?.id ?? id, key,
@@ -112,8 +119,7 @@ export function createChatController(options: Options) {
     return [...byConversation.values()].sort((left, right) => right.lastMessage - left.lastMessage);
   }
 
-  function visibleMessages(): ChatMessage[] {
-    const messages = options.session.getState().chatMessages;
+  function visibleMessages(messages: readonly ChatMessage[] = options.session.getState().chatMessages): ChatMessage[] {
     if (tab() === "server") return messages.filter((message) => message.scope === "server");
     if (tab() === "private") return messages.filter((message) => message.scope === "private" && messageKey(message) === state().privateConversationKey);
     if (tab() !== "channel") return [];
@@ -330,8 +336,10 @@ export function createChatController(options: Options) {
   return {
     store,
     /** title/conversations/visibleMessages/canSend 跨读本 store 与 voice store
-     *  （Vue computed 自动跨 store 追踪的等价物）——视图必须显式订阅两者，
-     *  否则 React Compiler 按 props memo 会漏掉消息/连接态变化（⑧）。 */
+     *  （Vue computed 自动跨 store 追踪的等价物）——视图必须显式订阅两者；
+     *  且 conversations/visibleMessages 必须把订阅值作实参传入（React Compiler
+     *  把方法调用按实参缓存，零参调用在 store 更新后返回陈旧数组，2026-10-23
+     *  消息不上屏根因）。 */
     sessionStore: options.session,
     voiceStore: options.voice,
     setTab,

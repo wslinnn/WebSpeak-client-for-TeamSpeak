@@ -54,14 +54,18 @@ interface ChatMessageListProps {
 /** 消息行独立成 memo 组件：输入框受控，草稿每敲一字面板必重渲，但本组件 props
  *  （chat/members/language/t 引用）不随草稿变，memo 拦下整列重建——否则每次按键
  *  重跑时间格式化与头像解析（报告 21 F1：500 行 ≈35ms/按键）。 */
-const ChatMessageList = memo(function ChatMessageList({ chat, members, language, t }: ChatMessageListProps) {
-  // 消息/成员/代际跨读 session store，必须显式订阅（React Compiler 的 props memo
-  // 会漏）；订阅自持在 memo 内，父面板重渲被拦下时列表变化仍能自行更新。
+function ChatMessageListImpl({ chat, members, language, t }: ChatMessageListProps) {
+  // 消息/成员/代际跨读 session store，必须显式订阅（编译器产物里订阅更新链路
+  // 会被其缓存改写，见下方派生注释）。
   const { chatMessages } = useStore(chat.sessionStore, useShallow((state) => ({ chatMessages: state.chatMessages, members: state.members, epoch: state.epoch })));
   // 跟随滚动必须在 React 提交之后执行（layout effect）：控制器 microtask 版跑在
   // DOM 增长前，新行撑高后 48px 距底判定把跟随关死——感知为「消息接收延迟」。
   useLayoutEffect(() => { chat.scrollToEndIfFollowing(); }, [chat, chatMessages]);
-  const visibleMessages = chat.visibleMessages();
+  // 订阅值必须作实参传进派生：React Compiler 把方法调用按实参缓存，零参调用
+  // 的键里没有订阅值，消息到达后仍返回陈旧数组——感知为「不上屏、切页签才
+  // 可见」（2026-10-23 根因；另证 "use no compiler" 指令在当前 oxc 工具链
+  // 不生效：产物保留指令字符串但缓存槽照注，勿再依赖）。
+  const visibleMessages = chat.visibleMessages(chatMessages);
   return (
     <>
       {visibleMessages.map((message, index) => {
@@ -100,7 +104,9 @@ const ChatMessageList = memo(function ChatMessageList({ chat, members, language,
       })}
     </>
   );
-});
+}
+
+const ChatMessageList = memo(ChatMessageListImpl);
 
 /** 聊天面板（旧 ChatPanel.vue 平价）：页签行/标题/消息列表/输入区。控制器状态经
  *  store 订阅；草稿与提交纪律在 chat-controller。 */
@@ -114,13 +120,13 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
     privateConversationKey: state.privateConversationKey,
   })));
   // title/conversations/visibleMessages/canSend/status 跨读 session/voice store，
-  // 但那些变化不动本组件任何 prop——React Compiler 的 props memo 会跳过重渲，
-  // 表现为刷新后历史/私聊页签消失、标题不更新。这里显式订阅两个 store 的相关切片。
-  useStore(chat.sessionStore, useShallow((state) => ({ chatMessages: state.chatMessages, members: state.members, epoch: state.epoch })));
+  // 但那些变化不动本组件任何 prop——必须显式订阅两个 store 的相关切片。
+  const sessionSlice = useStore(chat.sessionStore, useShallow((state) => ({ chatMessages: state.chatMessages, members: state.members, epoch: state.epoch })));
   useStore(chat.voiceStore, (state) => state.connected);
-  const conversations = chat.conversations();
+  // 派生一律传订阅值（契约同 ChatMessageListImpl 内注释）。
+  const conversations = chat.conversations(sessionSlice.chatMessages, sessionSlice.members);
   // 计数与空态判断用；行渲染在 ChatMessageList 内自算（那里的数组不能每渲新建）。
-  const visibleMessages = chat.visibleMessages();
+  const visibleMessages = chat.visibleMessages(sessionSlice.chatMessages);
   const [composing, setComposing] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
