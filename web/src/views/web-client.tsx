@@ -8,7 +8,8 @@ import type { FavoriteServerDraft } from "@/components/web-client/favorite-serve
 import { JoinPage } from "@/components/web-client/join-page";
 import { RootDialogs } from "@/components/web-client/root-dialogs";
 import { VoiceShell } from "@/components/web-client/voice-shell";
-import { VoiceSessionProvider, useVoiceSession, useVoiceView } from "@/hooks/useVoiceSession";
+import { useVoiceSession, useVoiceView } from "@/hooks/useVoiceSession";
+import { VoiceSessionProvider } from "@/hooks/voice-session-provider";
 import { useI18n, useWebClientMessages } from "@/hooks/use-i18n";
 import { pendingWebClientMessages } from "@/i18n/messages";
 import { getThemeController } from "@/web-client/theme-controller";
@@ -16,6 +17,7 @@ import { readMobileGateSignals, shouldShowMobileGate, storeMobileGateChoice } fr
 import { createMobileAwayController, type MobileAwayController } from "@/services/mobile-away";
 import { createScreenWakeLockController, getScreenWakeLockApi, type ScreenWakeLockSnapshot } from "@/services/screen-wake-lock";
 import { observeMobileViewport, type MobileViewport } from "@/services/mobile-viewport";
+import { useIsMobileViewport } from "@/hooks/use-mobile-viewport";
 import {
   clearLocalData as clearStoredLocalData,
   clearNamespacedStorageEntries,
@@ -59,7 +61,7 @@ function WebClientRoot() {
   // 冒烟测试桥：函数体在普通构建里是常量折叠后的死分支，生产产物不含生效桥。
   useEffect(() => {
     installTestHooks(voice, store);
-  }, [voice]);
+  }, [voice, store]);
 
   // —— 主题控制（皮肤系统下架后的唯一外观开关，日/夜二值）——
   const theme = getThemeController();
@@ -74,7 +76,8 @@ function WebClientRoot() {
   const [browserWarning] = useState(() => voice.checkBrowserWarning() ?? "");
   const [mobileGateActive, setMobileGateActive] = useState(() => shouldShowMobileGate(readMobileGateSignals(window)));
   const [mobileViewport, setMobileViewport] = useState<MobileViewport>({ height: window.innerHeight, top: 0, keyboardOpen: false });
-  const [isMobileViewport, setIsMobileViewport] = useState(() => window.matchMedia("(max-width: 740px)").matches);
+  // ≤740 信号归 useIsMobileViewport 单源（原自持 state 的 setter 零调用=冻结首帧）。
+  const isMobileViewport = useIsMobileViewport();
   const [favoriteDialogInitial, setFavoriteDialogInitial] = useState<Partial<FavoriteServerDraft> | null>(null);
 
   const voiceView = useVoiceView(useShallow((view) => ({
@@ -216,12 +219,8 @@ function WebClientRoot() {
       }
     }).catch(() => undefined);
     const stopViewport = observeMobileViewport(window, (value) => setMobileViewport(value));
-    const media = window.matchMedia("(max-width: 740px)");
-    const onMedia = (event: MediaQueryListEvent) => setIsMobileViewport(event.matches);
-    media.addEventListener("change", onMedia);
     return () => {
       stopViewport();
-      media.removeEventListener("change", onMedia);
       // preserveConnection：卸载（刷新/路由离开）必须保留恢复票——刷新后
       // tryResumeVoiceSession 靠它领回 detached 的 TS 会话（Vue 时代靠
       // onUnmounted 在卸载时从不运行才碰巧工作；React 的 effect 清理会跑）。

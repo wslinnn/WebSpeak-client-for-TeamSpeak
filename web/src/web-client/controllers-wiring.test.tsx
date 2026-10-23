@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 import type { LocalPreferences } from "../services/local-persistence";
 
 import { I18nContext } from "@/hooks/use-i18n";
-import { VoiceSessionProvider } from "@/hooks/useVoiceSession";
+import { VoiceSessionProvider } from "@/hooks/voice-session-provider";
 
 const preferenceStore = vi.hoisted(() => ({ current: undefined as LocalPreferences | undefined }));
 const savedFavorites = vi.hoisted(() => ({ current: [] as unknown[] }));
