@@ -1,21 +1,6 @@
 /* 房间：语音卡网格、成员面板、聊天、屏幕共享、whisper 语音条、
  * 语音活动艺术品。 */
 
-.screen-share-settings-button[aria-expanded="true"] {
-  color: var(--wsd-accent);
-  border-color: color-mix(in srgb, var(--wsd-accent) 35%, var(--wsd-border));
-  background: color-mix(in srgb, var(--wsd-accent) 9%, var(--wsd-panel));
-}
-
-@media (hover: hover) {
-
-.screen-share-settings-button:hover {
-  color: var(--wsd-accent);
-  border-color: color-mix(in srgb, var(--wsd-accent) 35%, var(--wsd-border));
-  background: color-mix(in srgb, var(--wsd-accent) 9%, var(--wsd-panel));
-}
-}
-
 .member-row:focus-within {
   background: var(--wsd-hover);
 }
@@ -65,8 +50,7 @@
    本类只留布局钩（外距/移动端触控体量/显隐状态）。channel-search 死类
    （零消费方）一并退役。 */
 
-.workspace-actions,
-.dock-actions {
+.workspace-actions {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -106,20 +90,6 @@
   color: var(--wsd-text-muted);
   font-size: 12px;
   line-height: 1.6;
-}
-
-.hero-decoration.one {
-  width: 250px;
-  height: 250px;
-  right: 48px;
-  top: -116px;
-}
-
-.hero-decoration.two {
-  width: 355px;
-  height: 355px;
-  right: -20px;
-  top: -168px;
 }
 
 .section-heading {
@@ -429,46 +399,6 @@
   opacity: .35;
 }
 
-.mic-mode-switch {
-  display: flex;
-  padding: 3px;
-  background: var(--wsd-raised);
-  border-radius: 8px;
-}
-
-.mic-mode-switch button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 7px 9px;
-  color: var(--wsd-text-muted);
-  background: transparent;
-  border-radius: 6px;
-  font-size: 10px;
-  cursor: pointer;
-}
-
-.mic-mode-switch button.active {
-  color: var(--wsd-accent);
-  background: var(--wsd-panel);
-  box-shadow: var(--wsd-shadow-raised);
-  font-weight: 700;
-}
-
-.ptt-indicator.active {
-  color: var(--wsd-accent);
-}
-
-.ptt-indicator.active span {
-  background: var(--wsd-accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--wsd-accent) 20%, transparent);
-}
-
-.dock-actions {
-  min-width: 140px;
-  justify-content: flex-end;
-}
-
 .member-panel {
   min-width: 0;
   padding: 26px 16px;
@@ -620,14 +550,7 @@
   text-align: center;
 }
 
-.member-panel-tip .ui-icon {
-  color: var(--wsd-accent);
-}
-
 @media (max-width: 1200px) {
-  .mic-mode-switch button {
-    padding-inline: 7px;
-  }
   .member-panel {
     padding-inline: 12px;
   }
@@ -646,8 +569,6 @@
 }
 
 @media (max-width: 740px) {
-  .nav-rail,
-  .channel-sidebar,
   .member-panel {
     display: none;
   }
@@ -672,13 +593,6 @@
   .message-row {
     max-width: 92%;
   }
-  .mic-mode-switch button {
-    padding: 6px 7px;
-    font-size: 9px;
-  }
-  .dock-actions {
-    min-width: 75px;
-  }
 }
 
 @media (max-width: 420px) {
@@ -691,31 +605,11 @@
   .section-counter {
     display: none;
   }
-  .dock-actions {
-    min-width: 37px;
-  }
 }
 
 @media (min-width: 741px) {
   .app-shell .voice-grid {
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  }
-}
-
-.screen-share-card-button {
-  min-height: 28px;
-  font-size: 10px;
-}
-
-.screen-share-settings-button {
-  width: 28px;
-  min-width: 28px;
-  min-height: 28px;
-}
-
-@media (max-width: 740px) {
-  .screen-share-card-button {
-    font-size: 9px;
   }
 }
 
@@ -906,12 +800,6 @@
   font-size: 10px;
 }
 
-.app-shell .dock-user span,
-.app-shell .mic-mode-switch button,
-.app-shell .ptt-indicator {
-  font-size: 11.25px;
-}
-
 .app-shell .member-panel-heading h2 {
   font-size: 23.75px;
 }
@@ -933,8 +821,7 @@
   font-size: 11.25px;
 }
 
-.app-shell .member-empty,
-.app-shell .member-panel-tip {
+.app-shell .member-empty {
   font-size: 12.5px;
 }
 
@@ -965,9 +852,6 @@
   }
   .app-shell .message-bubble {
     font-size: 13.75px;
-  }
-  .app-shell .mic-mode-switch button {
-    font-size: 11.25px;
   }
 }
 
@@ -1262,8 +1146,7 @@
     border: 1px solid var(--wsd-border);
     border-radius: 14px;
   }
-  .mobile-voice-toggle,
-  .mobile-voice-settings {
+  .mobile-voice-toggle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1358,9 +1241,8 @@
     font-size: 12px;
   }
   .desktop-audio-dock,
-  .member-flags,
-  .member-volume,
-  .member-panel-tip {
+.member-flags,
+.member-volume {
     display: none;
   }
   .app-shell.mobile-view-chat .chat-panel {
@@ -1586,52 +1468,6 @@ button.screen-share-live-indicator:focus-visible {
   animation-delay: -.66s;
 }
 
-.screen-share-stop-button {
-  position: absolute;
-  bottom: -4px;
-  left: -5px;
-  z-index: 3;
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  color: var(--wsd-danger);
-  border: 2px solid var(--wsd-panel);
-  border-radius: 7px;
-  background: var(--wsd-raised);
-  box-shadow: var(--wsd-shadow-raised);
-  cursor: pointer;
-}
-
-@media (hover: hover) {
-
-.screen-share-stop-button:hover {
-  color: var(--wsd-danger-contrast);
-  border-color: var(--wsd-danger);
-  background: var(--wsd-danger);
-}
-}
-
-.screen-share-stop-button:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--wsd-danger) 55%, transparent);
-  outline-offset: 2px;
-}
-
-.screen-share-settings-button {
-  display: grid;
-  place-items: center;
-  width: 25px;
-  min-width: 25px;
-  min-height: 25px;
-  padding: 0;
-  color: var(--wsd-text-muted);
-  border: 1px solid var(--wsd-border);
-  border-radius: 50%;
-  background: var(--wsd-panel);
-  cursor: pointer;
-}
-
 /* 弹窗壳与遮罩归 Radix Dialog 原语（批 2）：摆位/焦点/Esc/外点随原语，
    这里只留卡片表面。display:block 中和原语 grid（行距由子元素 margin 供给）。 */
 .screen-share-settings-modal {
@@ -1725,12 +1561,6 @@ button.screen-share-live-indicator:focus-visible {
   margin-top: 20px;
   padding-top: 15px;
   border-top: 1px solid var(--wsd-border);
-}
-
-.screen-share-settings-start {
-  min-height: 35px;
-  padding: 0 12px;
-  font-size: 10px;
 }
 
 .screen-share-player {

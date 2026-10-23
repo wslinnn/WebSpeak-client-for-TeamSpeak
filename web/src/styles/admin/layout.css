@@ -655,19 +655,16 @@ html[data-ws-route="admin"] #root {
   background: var(--background);
 }
 
-.admin-root .login-card,
-.admin-root .setup-card {
+.admin-root .login-card {
   background: var(--card);
   border-color: var(--border);
   box-shadow: var(--wsd-shadow-raised);
 }
 
 .admin-root .login-card h1,
-.admin-root .setup-card h1,
 .admin-root .login-card h2,
 .admin-root .login-card p,
-.admin-root .login-card label,
-.admin-root .setup-card label {
+.admin-root .login-card label {
   color: var(--foreground);
 }
 

@@ -28,11 +28,9 @@ html[data-ws-route="admin"].dark .admin-root {
 
 .admin-root .admin-topbar,
 .admin-root .settings-card,
-.admin-root .readonly-card,
 .admin-root .overview-card,
 .admin-root .operation-card,
 .admin-root .metric-grid article,
-.admin-root .setup-card,
 .admin-root .login-card {
   color: var(--wsd-text);
   background: var(--wsd-panel);
@@ -41,7 +39,6 @@ html[data-ws-route="admin"].dark .admin-root {
 
 .admin-root .settings-card h3,
 .admin-root .settings-card h4,
-.admin-root .readonly-card h3,
 .admin-root .overview-card h3,
 .admin-root .operation-card h3,
 .admin-root .page-heading h2,
@@ -59,7 +56,6 @@ html[data-ws-route="admin"].dark .admin-root {
 .admin-root .settings-card .choice small,
 .admin-root .settings-card .welcome-editor-heading>small,
 .admin-root .settings-card .port-fields-heading small,
-.admin-root .readonly-card dt,
 .admin-root .overview-card dt,
 .admin-root .metric-grid small,
 .admin-root .metric-grid em,
@@ -86,7 +82,6 @@ html[data-ws-route="admin"].dark .admin-root {
 
 .admin-root .welcome-editor,
 .admin-root .webrtc-port-fields,
-.admin-root .readonly-card dl div,
 .admin-root .overview-card dl div,
 .admin-root .event-list li,
 .admin-root .connection-row,
@@ -132,8 +127,7 @@ html[data-ws-route="admin"].dark .admin-root {
   background: var(--wsd-accent);
 }
 
-.admin-root .password-actions button.danger,
-.admin-root .text-danger {
+.admin-root .password-actions button.danger {
   color: var(--wsd-danger);
   background: color-mix(in srgb,var(--wsd-danger) 12%,var(--wsd-panel));
   border-color: color-mix(in srgb,var(--wsd-danger) 30%,var(--wsd-border));

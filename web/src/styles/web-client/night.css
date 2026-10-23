@@ -80,7 +80,6 @@
   background: color-mix(in srgb, var(--wsd-panel) 92%, transparent);
   border-color: var(--wsd-border);
 }
-:is(.web-client, .download-page) .mic-mode-switch,
 :is(.web-client, .download-page) .mode-note {
   background: var(--wsd-raised);
 }
@@ -104,12 +103,8 @@
   border-color: var(--wsd-border);
 }
 
-:is(.web-client, .download-page) .settings-content,
-:is(.web-client, .download-page) .settings-nav {
+:is(.web-client, .download-page) .settings-content {
   background: var(--wsd-panel);
-}
-:is(.web-client, .download-page) .settings-nav {
-  border-right-color: var(--wsd-border);
 }
 :is(.web-client, .download-page) .settings-section h3,
 :is(.web-client, .download-page) .settings-header h2 {
@@ -138,7 +133,6 @@
   background: color-mix(in srgb, var(--wsd-panel) 94%, transparent);
   border-color: var(--wsd-border);
 }
-.dark :is(.web-client, .download-page) .mic-mode-switch,
 .dark :is(.web-client, .download-page) .mode-note {
   background: var(--wsd-raised);
 }
@@ -162,12 +156,8 @@
   border-color: var(--wsd-border);
 }
 
-.dark :is(.web-client, .download-page) .settings-content,
-.dark :is(.web-client, .download-page) .settings-nav {
+.dark :is(.web-client, .download-page) .settings-content {
   background: var(--wsd-panel);
-}
-.dark :is(.web-client, .download-page) .settings-nav {
-  border-right-color: var(--wsd-border);
 }
 .dark :is(.web-client, .download-page) .settings-section h3,
 .dark :is(.web-client, .download-page) .settings-header h2 {
@@ -189,10 +179,6 @@
 }
 .dark :is(.web-client, .download-page) .channel-password-modal h2 { color: var(--wsd-text); }
 .dark :is(.web-client, .download-page) .channel-password-modal > p { color: var(--wsd-text-muted); }
-.dark :is(.web-client, .download-page) .channel-password-icon {
-  color: var(--wsd-accent);
-  background: color-mix(in srgb, var(--wsd-accent) 13%, var(--wsd-raised));
-}
 
 .dark :is(.web-client, .download-page) .brand-lockup strong { color: var(--wsd-text); }
 .dark :is(.web-client, .download-page) .brand-lockup strong span { color: var(--wsd-text); }

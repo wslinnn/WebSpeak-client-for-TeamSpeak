@@ -1,9 +1,7 @@
 /* 共享控件原语：按钮三态、输入域、通知条。只放跨区域复用的类；
  * 区域私有控件样式归各区域文件。 */
 
-.tiny-dot,
-.online-dot,
-.status-pulse {
+.tiny-dot {
   display: inline-block;
   width: 7px;
   height: 7px;
@@ -111,27 +109,6 @@
   animation: spin .8s linear infinite;
 }
 
-.round-icon {
-  display: grid;
-  place-items: center;
-  width: 31px;
-  height: 31px;
-  flex: 0 0 auto;
-  color: var(--wsd-text-muted);
-  background: transparent;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: .18s;
-}
-
-@media (hover: hover) {
-
-.round-icon:hover {
-  color: var(--wsd-accent);
-  background: var(--wsd-accent-soft);
-}
-}
-
 .favorite-server-columns .field-label {
   margin-top: 0;
 }
@@ -142,11 +119,6 @@
 
 .channel-password-form [data-slot="input-group"] {
   margin-bottom: 12px;
-}
-
-.channel-password-submit .button-spinner {
-  width: 14px;
-  height: 14px;
 }
 
 @media (max-width: 740px) {
@@ -163,8 +135,7 @@
   font-size: 13.75px;
 }
 
-.header-action,
-.round-icon {
+.header-action {
   line-height: 0;
 }
 

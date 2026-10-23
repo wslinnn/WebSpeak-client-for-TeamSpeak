@@ -133,7 +133,6 @@
 }
 
 .settings-card,
-.readonly-card,
 .overview-card {
   padding: 24px;
   background: var(--wsd-panel);
@@ -148,7 +147,6 @@
 }
 
 .settings-card h3,
-.readonly-card h3,
 .overview-card h3 {
   margin: 0;
   font-size: 15px;
@@ -185,7 +183,6 @@
 }
 
 
-.readonly-card dl,
 .overview-card dl {
   display: grid;
   grid-template-columns: repeat(4,1fr);
@@ -193,20 +190,17 @@
   margin: 18px 0 0;
 }
 
-.readonly-card dl div,
 .overview-card dl div {
   padding: 13px;
   background: var(--wsd-raised);
   border-radius: 9px;
 }
 
-.readonly-card dt,
 .overview-card dt {
   color: var(--wsd-text-dim);
   font-size: 10px;
 }
 
-.readonly-card dd,
 .overview-card dd {
   margin: 5px 0 0;
   font-size: 12px;
@@ -468,7 +462,6 @@
 }
 
 @media (max-width:520px) {
-  .setup-card,
   .login-card {
     padding: 25px 20px;
     border-radius: 15px;
@@ -480,11 +473,9 @@
     gap: 15px;
   }
   .settings-card,
-  .readonly-card,
-  .overview-card {
+.overview-card {
     padding: 18px;
   }
-  .readonly-card dl,
   .overview-card dl {
     grid-template-columns: 1fr;
   }
@@ -510,17 +501,14 @@
 }
 
 html[data-ws-route="admin"].dark .admin-root,
-html[data-ws-route="admin"].dark .login-page,
-html[data-ws-route="admin"].dark .auth-panel {
+html[data-ws-route="admin"].dark .login-page {
   color: var(--wsd-text);
   background: var(--wsd-bg);
 }
 
 html[data-ws-route="admin"].dark .admin-topbar,
-html[data-ws-route="admin"].dark .setup-card,
 html[data-ws-route="admin"].dark .login-card,
 html[data-ws-route="admin"].dark .settings-card,
-html[data-ws-route="admin"].dark .readonly-card,
 html[data-ws-route="admin"].dark .overview-card {
   color: var(--wsd-text);
   background: var(--wsd-panel);
@@ -529,7 +517,6 @@ html[data-ws-route="admin"].dark .overview-card {
 
 html[data-ws-route="admin"].dark .admin-topbar,
 html[data-ws-route="admin"].dark .settings-card,
-html[data-ws-route="admin"].dark .readonly-card,
 html[data-ws-route="admin"].dark .overview-card {
   border-color: var(--wsd-border);
 }
@@ -537,7 +524,6 @@ html[data-ws-route="admin"].dark .overview-card {
 html[data-ws-route="admin"].dark .admin-topbar h1,
 html[data-ws-route="admin"].dark .page-heading h2,
 html[data-ws-route="admin"].dark .settings-card h3,
-html[data-ws-route="admin"].dark .readonly-card h3,
 html[data-ws-route="admin"].dark .overview-card h3,
 html[data-ws-route="admin"].dark .login-card h1 {
   color: var(--wsd-text);
@@ -550,7 +536,6 @@ html[data-ws-route="admin"].dark label > span {
 }
 
 html[data-ws-route="admin"].dark .metric-grid article,
-html[data-ws-route="admin"].dark .readonly-card dl div,
 html[data-ws-route="admin"].dark .overview-card dl div,
 html[data-ws-route="admin"].dark .event-list li {
   background: var(--wsd-raised);

@@ -72,17 +72,6 @@ html[data-ws-route="admin"] body {
   font-size: 11px;
 }
 
-.step-list button.active {
-  color: var(--wsd-on-fill);
-  background: var(--admin-on-dark-soft);
-  border-color: var(--admin-on-dark-line);
-}
-
-.step-list button.done {
-  color: var(--wsd-success);
-}
-
-.panel-tools button,
 .language-link,
 .admin-topbar button {
   color: var(--wsd-text);
@@ -95,7 +84,6 @@ html[data-ws-route="admin"] body {
   cursor: pointer;
 }
 
-.setup-card,
 .login-card {
   width: min(560px,100%);
   padding: 36px;
@@ -105,14 +93,12 @@ html[data-ws-route="admin"] body {
   box-shadow: var(--wsd-shadow-raised);
 }
 
-.setup-card header h2,
 .login-card h1 {
   margin: 10px 0 7px;
   font-size: 29px;
   letter-spacing: -.045em;
 }
 
-.setup-card header p,
 .login-card header p {
   margin: 0;
   color: var(--wsd-text-muted);
@@ -120,7 +106,6 @@ html[data-ws-route="admin"] body {
   line-height: 1.6;
 }
 
-.form-stack,
 .login-card form {
   display: grid;
   gap: 17px;

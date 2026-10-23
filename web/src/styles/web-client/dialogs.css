@@ -116,27 +116,10 @@
   box-shadow: var(--wsd-shadow-modal);
 }
 
-.settings-nav {
-  display: flex;
-  flex-direction: column;
-  width: 215px;
-  flex: 0 0 auto;
-  padding: 28px 12px 20px;
-  background: var(--wsd-raised);
-  border-right: 1px solid var(--wsd-border);
-}
-
 .settings-title {
   padding: 0 13px 20px;
   color: var(--wsd-text);
   font-size: 19px;
-  font-weight: 700;
-}
-
-.settings-nav-item.active {
-  color: var(--wsd-accent);
-  background: var(--wsd-accent-soft);
-  border-left-color: var(--wsd-accent);
   font-weight: 700;
 }
 
@@ -405,18 +388,6 @@
   margin-top: 21px;
 }
 
-.channel-password-submit {
-  min-width: 82px;
-  min-height: 36px;
-  padding: 0 14px;
-  border-radius: 13px;
-}
-
-.channel-password-submit:disabled {
-  cursor: wait;
-  opacity: .7;
-}
-
 @media (max-width: 740px) {
   /* 遮罩与居中摆位归 radix 原语后，底板化改为直改卡片定位（ws-dialogs 层压过原语 utilities）。 */
   .channel-password-modal {
@@ -459,9 +430,6 @@
   .settings-modal {
     max-height: calc(100dvh - 28px);
   }
-  .settings-nav {
-    display: none;
-  }
   .settings-content {
     padding: 24px 20px;
   }
@@ -486,10 +454,6 @@
 
 .settings-modal {
   width: min(760px, 100%);
-}
-
-.settings-nav {
-  display: none;
 }
 
 .settings-content {

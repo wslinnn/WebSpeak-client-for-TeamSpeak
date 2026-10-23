@@ -54,9 +54,6 @@
     overscroll-behavior: contain;
   }
   .mobile-more-panel button { flex-shrink: 0; }
-  .mobile-member-controls { display: flex; flex: 0 0 auto; align-items: stretch; gap: 8px; margin-top: 10px; padding: 8px; background: var(--wsd-raised); border: 1px solid var(--wsd-border); border-radius: 14px; }
-  .mobile-member-controls .mobile-voice-toggle { flex: 1 1 0; min-height: 50px; font-size: 13px; }
-  .mobile-member-leave { flex: 0 0 42px; width: 42px; min-height: 42px; align-self: center; padding: 0; color: var(--wsd-danger); }
   .mobile-voice-controls .mobile-voice-toggle { flex: 1 1 0; min-height: 44px; }
   .mobile-voice-controls .mobile-voice-leave { flex: 0 0 42px; width: 42px; min-height: 44px; padding: 0; color: var(--wsd-danger); }
   .app-shell .member-panel.mobile-section-visible {

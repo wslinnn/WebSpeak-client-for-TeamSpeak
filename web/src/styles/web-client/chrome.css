@@ -572,20 +572,8 @@
   font-size: 15px;
 }
 
-.app-shell .live-pill {
-  font-size: 11.25px;
-}
-
 .app-shell .room-stats {
   font-size: 12.5px;
-}
-
-.app-shell .more-count {
-  font-size: 17.5px;
-}
-
-.app-shell .dock-user strong {
-  font-size: 13.75px;
 }
 
 @media (min-width: 741px) and (max-width: 980px) {
