@@ -90,3 +90,4 @@ npm --prefix web ci --no-audit --no-fund
 - 临时脚本/探针页用完即删；后台网关（3041）用完即停，`reuseExistingServer:false` 下残留端口会静默吃掉下一次冒烟。
 - 弹性链/滚动约束的探针验证必须种子出内容再测（空态无症状：TabsContent 缺 `min-height:0` 的断链曾以空列表探针全绿漏检，有内容后列表全撑开、作曲器出视口）。
 - 组件渲染 radix 浮层原语（Tooltip/DropdownMenu 等）时，组件测试与 app 替身要自备 Provider（App 根有的壳，测试替身直挂路由会以 context 报错＋超时收场）。
+- React Compiler 把零参方法调用按 props 缓存——跨 store 派生必须把订阅值作实参传入（`chat.visibleMessages(chatMessages)` 形态，零参在 store 更新后返回陈旧值即「消息不上屏」根因）；`"use no compiler"` 指令当前 oxc 工具链不生效（产物保留指令字符串但缓存槽照注），勿依赖；此类回归 vitest 抓不到（无编译器转换），只有产物级冒烟能抓（`chat-live-update.spec`）。

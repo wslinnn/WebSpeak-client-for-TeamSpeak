@@ -95,7 +95,11 @@ function adminScope(): Plugin {
 
 export default defineConfig({
   // compiler: React Compiler 构建转换（oxc-transform-react）——组件自动 memo 化；
-  // 移植全程按其规则编写（DECISIONS #36/#42/#45/#47），异常组件可逐个 "use no compiler" 豁免。
+  // 移植全程按其规则编写（DECISIONS #36/#42/#45/#47）。两条硬约束（2026-10-23
+  // 消息不上屏根因复盘）：零参方法调用按 props 缓存——跨 store 派生必须把订阅
+  // 值作实参传入（chat.visibleMessages(chatMessages) 形态）；"use no compiler"
+  // 指令在当前 oxc 版本不生效（产物保留指令字符串但缓存槽照注），勿依赖。
+  // 此类回归 vitest 抓不到（无编译器转换），只有产物级冒烟能抓（chat-live-update.spec）。
   plugins: [react({ compiler: { logDiagnostics: true } }), tailwindcss(), adminScope()],
   resolve: {
     alias: {
