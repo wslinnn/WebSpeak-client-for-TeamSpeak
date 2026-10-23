@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 import { Icon } from "./icon";
@@ -221,11 +222,8 @@ export function JoinForm(props: JoinFormProps) {
         </InputGroup>
         <div className="identity-controls">
           <label className="remember-identity">
-            <input
-              type="checkbox"
-              checked={props.rememberIdentity}
-              onChange={(event) => props.onRememberIdentityChange(event.target.checked)}
-            />
+            <Checkbox checked={props.rememberIdentity} aria-label={t("rememberIdentity")}
+              onCheckedChange={(value) => props.onRememberIdentityChange(value === true)} />
             <span>
               <strong>{t("rememberIdentity")}</strong>
               <small>{t("rememberIdentityHint")}</small>
