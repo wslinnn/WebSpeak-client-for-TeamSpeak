@@ -65,7 +65,7 @@
   "w": 375,
   "h": 0,
   "display": "flex",
-  "position": "absolute",
+  "position": "relative",
   "flexDirection": "",
   "alignItems": "",
   "justifyContent": "",
@@ -559,7 +559,7 @@
  },
  "voice.chat.messages": {
   "w": 347,
-  "h": 316,
+  "h": 308,
   "display": "flex",
   "position": "relative",
   "flexDirection": "",
@@ -621,7 +621,7 @@
  },
  "voice.chat.composer": {
   "w": 347,
-  "h": 54,
+  "h": 62,
   "display": "block",
   "position": "relative",
   "flexDirection": "",

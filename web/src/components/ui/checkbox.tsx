@@ -15,7 +15,9 @@ function Checkbox({ className, checkIconStrokeWidth, ...props }: CheckboxProps) 
     <CheckboxPrimitive.Root
       data-slot="checkbox"
       className={cn(
-        "peer size-4 shrink-0 rounded-sm border border-input bg-input/20 text-primary-foreground outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary dark:bg-input/30",
+        // after 伪元素扩触控热区（±10px，同 Switch 手法）：16px 点选面太小，
+        // 且部分消费点（管理台设置行）没有可代替点击的包裹 label。
+        "peer relative size-4 shrink-0 rounded-sm border border-input bg-input/20 text-primary-foreground outline-none transition-colors after:absolute after:-inset-2.5 focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=indeterminate]:border-primary data-[state=indeterminate]:bg-primary dark:bg-input/30",
         className,
       )}
       {...props}

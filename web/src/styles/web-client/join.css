@@ -355,6 +355,17 @@
   cursor: pointer;
 }
 
+/* 输入面体量钩：原语默认 h-7=28px（管理台密度），home 表单按迁移前 42px 平价
+ * （fd78d90 迁移时体量定义随 field 皮一并退役）。 */
+.join-form [data-ws-part="home.field"] {
+  min-height: 42px;
+}
+
+/* 身份/设备按钮行抬到可点体量（原语 sm 档 h-7=28px 偏矮）。 */
+.identity-action-button {
+  min-height: 40px;
+}
+
 .remember-identity strong,
 .remember-identity small {
   display: block;
@@ -416,6 +427,7 @@
 .local-server-select {
   flex: 1 1 auto;
   min-width: 0;
+  min-height: 44px;
   padding: 5px 8px;
   color: var(--wsd-accent);
   background: var(--wsd-accent-soft);

@@ -65,7 +65,7 @@
   "w": 768,
   "h": 0,
   "display": "flex",
-  "position": "absolute",
+  "position": "relative",
   "flexDirection": "",
   "alignItems": "",
   "justifyContent": "",
@@ -1241,7 +1241,7 @@
  },
  "voice.member-panel.search": {
   "w": 218,
-  "h": 28,
+  "h": 33,
   "display": "flex",
   "position": "relative",
   "flexDirection": "",
@@ -1272,7 +1272,7 @@
  },
  "voice.member-panel.channels": {
   "w": 218,
-  "h": 707,
+  "h": 699,
   "display": "block",
   "position": "relative",
   "flexDirection": "",
@@ -1644,7 +1644,7 @@
  },
  "voice.member-row.volume": {
   "w": 96,
-  "h": 14,
+  "h": 26,
   "display": "flex",
   "position": "static",
   "flexDirection": "",
@@ -1799,7 +1799,7 @@
  },
  "voice.audio-dock": {
   "w": 218,
-  "h": 146,
+  "h": 148,
   "display": "flex",
   "position": "static",
   "flexDirection": "",
@@ -1861,7 +1861,7 @@
  },
  "voice.audio-dock.controls": {
   "w": 192,
-  "h": 37,
+  "h": 39,
   "display": "grid",
   "position": "static",
   "flexDirection": "",
@@ -1892,7 +1892,7 @@
  },
  "voice.audio-dock.microphone": {
   "w": 28,
-  "h": 26,
+  "h": 28,
   "display": "block",
   "position": "relative",
   "flexDirection": "",
@@ -1923,7 +1923,7 @@
  },
  "voice.audio-dock.output": {
   "w": 36,
-  "h": 26,
+  "h": 28,
   "display": "block",
   "position": "relative",
   "flexDirection": "",

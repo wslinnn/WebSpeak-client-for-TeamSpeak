@@ -448,6 +448,8 @@
 
 .member-search {
   margin-top: 18px;
+  /* 桌面回补迁移前 33px 平价（原语 h-7=28px 偏矮；≤740 已有 44px 钩）。 */
+  min-height: 33px;
 }
 
 .member-list {

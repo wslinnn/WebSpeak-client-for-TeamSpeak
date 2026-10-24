@@ -191,6 +191,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* 与上方滑杆的热区（slider root py-2.5）拉开间距，标签不再贴轨。 */
+  margin-top: 8px;
 }
 
 .settings-range-row .settings-label {
@@ -433,6 +435,14 @@
   .settings-content {
     padding: 24px 20px;
   }
+  .settings-separator {
+    /* 移动端分隔带收半（桌面 32px 上下在满屏弹窗里过粗）。 */
+    margin: 18px auto;
+  }
+  .settings-select {
+    /* 下拉触发器原语默认 28px，触屏不过标。 */
+    min-height: 44px;
+  }
   .settings-header {
     min-height: 62px;
     padding-inline: 20px;
@@ -467,8 +477,20 @@
   margin-bottom: 19px;
 }
 
+/* 输入面体量钩（原语默认 h-7=28px 是管理台密度，产品弹窗按迁移前 42px 平价）。 */
+.channel-password-form [data-slot="input-group"],
+.favorite-server-form [data-slot="input-group"] {
+  min-height: 42px;
+}
+
+.settings-footer button {
+  /* 主操作孤行小钮（48×36）扩到可见主 CTA 宽度。 */
+  min-width: 96px;
+}
+
 .settings-error {
-  margin: -9px 0 15px;
+  /* 负 margin 曾把错误行叠上「音频状态」文字（2026-10-24 实测），归零走正常流。 */
+  margin: 0 0 15px;
   color: var(--wsd-danger);
   font-size: 10px;
   line-height: 1.5;
@@ -637,7 +659,8 @@
     padding: 24px 20px;
   }
   .settings-modal .settings-header h2 {
-    font-size: 32px;
+    /* 移动端回落 19px：32px 重钉曾压死 440 行的 19px 意图（特异性+后位双胜）。 */
+    font-size: 19px;
   }
 }
 
@@ -724,7 +747,7 @@
 }
 
 @media (max-width: 420px) {
-  .identity-action-button {
+  .identity-actions .identity-action-button {
     flex: 1 1 120px;
     min-width: 0;
     overflow-wrap: anywhere;

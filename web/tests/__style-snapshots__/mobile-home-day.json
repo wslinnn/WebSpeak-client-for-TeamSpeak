@@ -280,7 +280,7 @@
  },
  "home.join-card": {
   "w": 347,
-  "h": 668,
+  "h": 638,
   "display": "block",
   "position": "relative",
   "flexDirection": "",
@@ -435,7 +435,7 @@
  },
  "home.form": {
   "w": 315,
-  "h": 490,
+  "h": 460,
   "display": "grid",
   "position": "relative",
   "flexDirection": "",
@@ -497,7 +497,7 @@
  },
  "home.field": {
   "w": 315,
-  "h": 28,
+  "h": 42,
   "display": "flex",
   "position": "relative",
   "flexDirection": "",
@@ -528,7 +528,7 @@
  },
  "home.device-setup": {
   "w": 315,
-  "h": 120,
+  "h": 36,
   "display": "flex",
   "position": "static",
   "flexDirection": "",
@@ -559,7 +559,7 @@
  },
  "home.device-setup.open": {
   "w": 315,
-  "h": 120,
+  "h": 36,
   "display": "flex",
   "position": "static",
   "flexDirection": "",
@@ -621,7 +621,7 @@
  },
  "home.field#1": {
   "w": 315,
-  "h": 28,
+  "h": 42,
   "display": "flex",
   "position": "relative",
   "flexDirection": "",
@@ -652,7 +652,7 @@
  },
  "home.identity": {
   "w": 315,
-  "h": 123,
+  "h": 149,
   "display": "block",
   "position": "static",
   "flexDirection": "",
@@ -714,7 +714,7 @@
  },
  "home.field#2": {
   "w": 315,
-  "h": 28,
+  "h": 42,
   "display": "flex",
   "position": "relative",
   "flexDirection": "",
@@ -745,7 +745,7 @@
  },
  "home.identity-actions": {
   "w": 315,
-  "h": 28,
+  "h": 40,
   "display": "flex",
   "position": "static",
   "flexDirection": "",
@@ -776,7 +776,7 @@
  },
  "home.identity-import.open": {
   "w": 154,
-  "h": 28,
+  "h": 40,
   "display": "flex",
   "position": "static",
   "flexDirection": "",
@@ -807,7 +807,7 @@
  },
  "home.identity-export.button": {
   "w": 154,
-  "h": 28,
+  "h": 40,
   "display": "flex",
   "position": "static",
   "flexDirection": "",

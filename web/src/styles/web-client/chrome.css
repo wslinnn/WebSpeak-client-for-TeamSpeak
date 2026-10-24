@@ -616,11 +616,11 @@
 }
 
 .voice-banners {
-  position: absolute;
-  top: calc(10px + env(safe-area-inset-top, 0px));
-  left: 0;
-  right: 0;
-  z-index: var(--ws-z-dropdown);
+  /* 占位布局（原 absolute 顶部浮层压住服务器名/收藏条且挡点击）：app-shell
+   * 第 1 行本就空置（auto，无内容时 0 高），横幅有则推下内容、无则零占位。 */
+  position: relative;
+  grid-column: 1 / -1;
+  grid-row: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
