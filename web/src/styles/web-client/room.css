@@ -921,6 +921,10 @@
   height: auto;
   overflow-x: auto;
   padding: 0;
+  /* 原语基类 justify-center：内容溢出时向两侧对称溢出，左溢出是不可滚达的
+   * 负空间——第一个页签永远被裁且用户滑到最左也到不了（2026-10-26 用户实测）。
+   * 横滑行必须 flex-start，溢出只向右。 */
+  justify-content: flex-start;
   background: transparent;
   border-radius: 0;
   /* 滚动条隐藏（拍板④）：滚轮/触摸仍可滚，与移动端口径一致。 */
