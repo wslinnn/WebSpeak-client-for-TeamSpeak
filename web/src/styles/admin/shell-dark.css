@@ -14,11 +14,23 @@
   flex-direction: column;
   padding: 26px 18px;
   background: var(--admin-sunk);
-  color: var(--wsd-text);
+  /* 常暗井上的文字恒亮：壳底日夜皆深，字色若随主题翻，浅色主题即深字贴深底 */
+  color: var(--admin-on-dark-text);
 }
 
 .admin-sidebar .admin-brand {
   padding: 0 8px 28px;
+}
+
+/* 品牌 mark 恒用夜间对（浅块墨柱）：badge 走主题 accent 会在浅色主题下深块
+ * 贴深底隐形；子树内钉住这对变量，BrandMark 组件与使用方 className 零改动。 */
+.admin-sidebar .admin-brand {
+  --wsd-accent: #e8eaee;
+  --wsd-accent-contrast: #101318;
+}
+
+.admin-sidebar .admin-brand small {
+  color: var(--admin-sidebar-muted);
 }
 
 .admin-sidebar nav {
@@ -252,7 +264,9 @@
 
 .hero-status p {
   margin: 0;
-  color: var(--admin-hero-muted);
+  /* 横幅底=accent 随主题翻面（夜浅日深），弱化字色从对比色派生才两态可读；
+   * 旧 --admin-hero-muted 是青色 accent 时代的恒定青，夜间浅底上洗白不可读。 */
+  color: color-mix(in srgb, var(--wsd-accent-contrast) 70%, transparent);
   font-size: 12px;
 }
 
@@ -261,7 +275,8 @@
   align-items: center;
   gap: 7px;
   padding: 8px 12px;
-  background: var(--admin-on-dark-chip);
+  /* 白叠层只为暗色横幅设计；底翻面后改从对比色派生（日间与原值同效）。 */
+  background: color-mix(in srgb, var(--wsd-accent-contrast) 12%, transparent);
   border-radius: 99px;
   font-size: 11px;
   font-weight: 700;

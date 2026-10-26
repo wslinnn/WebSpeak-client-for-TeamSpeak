@@ -6,12 +6,12 @@
 
 .admin-root {
   /* 管理台局部令牌（其余色值全部走全局 --wsd-*）：field 输入域面（夜间刻意
-   * 凹陷）、sunk 常暗井色（侧栏轨道/夜间输入面）、sidebar-muted 常暗轨道上
-   * 的弱化字色、hero-muted 登录英雄带（深青底）的弱化字色。 */
+   * 凹陷）、sunk 常暗井色（侧栏轨道/夜间输入面）、sidebar-muted/on-dark-text
+   * 常暗井上的字色两档——侧栏日夜皆深底，其上的字色恒定不随主题翻。 */
   --admin-field: var(--wsd-panel);
   --admin-sunk: #17171a;
   --admin-sidebar-muted: #b9babf;
-  --admin-hero-muted: #a8d8d1;
+  --admin-on-dark-text: #f0f1f3;
   color: var(--wsd-text);
   background: var(--wsd-bg);
 }

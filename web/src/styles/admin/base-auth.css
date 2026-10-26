@@ -10,10 +10,8 @@
 /* 管理台局部调色板（rgba 归槽）：暗面白叠层与语义淡底在此单点定义，
    使用点一律 var() 引用；定义行属性名带 -- 前缀，豁免颜色使用点新规。 */
 html[data-ws-route="admin"] {
-  --admin-on-dark-soft: rgba(255, 255, 255, .08);
   --admin-on-dark-line: rgba(255, 255, 255, .1);
   --admin-on-dark-strong: rgba(255, 255, 255, .35);
-  --admin-on-dark-chip: rgba(255, 255, 255, .12);
   --admin-brand-glow: rgba(95, 211, 191, .2);
   --admin-backdrop: rgba(5, 41, 38, .38);
   --admin-success-tint: rgba(30, 122, 64, .1);
