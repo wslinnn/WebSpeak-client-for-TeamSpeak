@@ -7,18 +7,63 @@ function localeOf(language: Language): string {
   return language === "zh" ? "zh-CN" : "en-US";
 }
 
-/** 按语言缓存时钟格式化器：Intl.DateTimeFormat 构造昂贵（500 次构造+格式化 ≈35ms，
+/** 按语言×分档缓存格式化器：Intl 构造昂贵（500 次构造+格式化 ≈35ms，
  *  复用 ≈0.4ms——报告 21 F1），消息列表每次按键重建时这里是热点。格式化器无状态，
  *  跨渲染/跨组件共享安全。 */
-const timeFormatters = new Map<Language, Intl.DateTimeFormat>();
+const timeFormatters = new Map<string, Intl.DateTimeFormat>();
 
-export function formatTime(timestamp: number, language: Language): string {
-  let formatter = timeFormatters.get(language);
+function formatterFor(language: Language, tier: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const cacheKey = `${language}:${tier}`;
+  let formatter = timeFormatters.get(cacheKey);
   if (!formatter) {
-    formatter = new Intl.DateTimeFormat(localeOf(language), { hour: "2-digit", minute: "2-digit" });
-    timeFormatters.set(language, formatter);
+    formatter = new Intl.DateTimeFormat(localeOf(language), options);
+    timeFormatters.set(cacheKey, formatter);
   }
-  return formatter.format(timestamp);
+  return formatter;
+}
+
+const relativeFormatters = new Map<Language, Intl.RelativeTimeFormat>();
+
+function relativeFormatterFor(language: Language): Intl.RelativeTimeFormat {
+  let formatter = relativeFormatters.get(language);
+  if (!formatter) {
+    formatter = new Intl.RelativeTimeFormat(localeOf(language), { numeric: "auto" });
+    relativeFormatters.set(language, formatter);
+  }
+  return formatter;
+}
+
+function dayStart(timestamp: number): number {
+  const date = new Date(timestamp);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+/** 消息时间智能分档：今天只显时分；昨天借 Intl.RelativeTimeFormat 出「昨天/yesterday」；
+ *  今年「M月d日 HH:mm」；跨年带年份。悬停精度走 formatFullTimestamp。 */
+export function formatTime(timestamp: number, language: Language): string {
+  const time = formatterFor(language, "time", { hour: "2-digit", minute: "2-digit" }).format(timestamp);
+  const day = dayStart(timestamp);
+  const today = dayStart(Date.now());
+  if (day === today) return time;
+  const yesterdayDate = new Date(today);
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  if (day === yesterdayDate.getTime()) {
+    const raw = relativeFormatterFor(language).format(-1, "day");
+    return `${raw.charAt(0).toUpperCase()}${raw.slice(1)} ${time}`;
+  }
+  const sameYear = new Date(timestamp).getFullYear() === new Date().getFullYear();
+  return `${formatterFor(language, sameYear ? "date" : "dateYear", sameYear
+    ? { month: "short", day: "numeric" }
+    : { year: "numeric", month: "short", day: "numeric" }).format(timestamp)} ${time}`;
+}
+
+/** 悬停完整时间戳（本地时区 yyyy-MM-dd HH:mm:ss），不进 Intl。 */
+export function formatFullTimestamp(timestamp: number): string {
+  const date = new Date(timestamp);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} `
+    + `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
 /** 消息头像：按发送者 uid 优先匹配成员头像。 */

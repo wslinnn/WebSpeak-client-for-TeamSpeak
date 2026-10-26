@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
 import type { ChatController, ChatScrollerAspect } from "@/web-client/chat-controller";
-import { formatTime, resolveMessageAvatar } from "@/web-client/view-utils";
+import { formatFullTimestamp, formatTime, resolveMessageAvatar } from "@/web-client/view-utils";
 import type { ChannelMember, ServerEvent } from "@shared/voice-models";
 import type { Language } from "@/i18n/web-client";
 import type { WebClientChatTab } from "@/web-client/home-store";
@@ -77,7 +77,7 @@ function ChatMessageListImpl({ chat, members, language, t }: ChatMessageListProp
             <div className="message-body" data-ws-part="voice.chat.message-body">
               <div className="message-meta">
                 <strong>{message.isSelf ? t("you") : message.invokerName}</strong>
-                <time>{formatTime(message.timestamp, language)}</time>
+                <time dateTime={new Date(message.timestamp).toISOString()} title={formatFullTimestamp(message.timestamp)}>{formatTime(message.timestamp, language)}</time>
               </div>
               <div className="message-bubble" data-ws-part="voice.chat.message-bubble">{message.message}</div>
             </div>
@@ -214,7 +214,7 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
     <div ref={listRef} className="message-list" data-ws-part="voice.chat.messages" onScroll={() => chat.onScroll()}>
       {serverEvents.map((event) => (
         <article key={event.id} className="event-row" data-ws-part="voice.chat.event">
-          <time>{formatTime(event.timestamp, language)}</time>
+          <time dateTime={new Date(event.timestamp).toISOString()} title={formatFullTimestamp(event.timestamp)}>{formatTime(event.timestamp, language)}</time>
           <span>{event.message}</span>
         </article>
       ))}
