@@ -18,7 +18,7 @@
 ## 结构
 
 - `src/` — 后端（Express + ws + TeamSpeak SDK + Opus + werift + SQLite）：`server/` 网关核心，`shared/` 前后端共享的线上协议类型与运行时校验，`admin/` `security/` `persistence/`
-- `vendor/teamspeak-client/` — vendored 的 `@echosixhiya/teamspeak-client` 构建产物（MIT）；升级步骤见 `VENDOR.md`
+- `vendor/teamspeak-client/` — vendored 的 `@echosixhiya/teamspeak-client` 构建产物（MIT）；升级步骤见 `VENDOR.md`，含一处本地修复（同昵称自我识别，VENDOR.md 在案）。**upstream 服务端代码按 `@honeybbq/teamspeak` beta.19 API 编写（其 `/query` 子模块 0.2.4 没有）——从 upstream 合并 `src/server` 相关前先核对 SDK API 漂移**
 - `web/` — React 19 + Vite 前端（前端依赖独立安装，`web/package-lock.json`）：
   - `web/src/voice/` — 语音核心（framework-free，ESLint zone 禁反向依赖 UI）：`session-controller.ts` 门面 + 八个纯移动拆分模块（audio-preferences / chat-send / connection-lifecycle / audio-output / microphone / audio-devices / session-model / error-messages），133 节点门面测试只打公共契约
   - `web/src/web-client/` — 控制器层（chat-controller / channel-tree / members-controller / audio-controls 等页面自有控制器）
