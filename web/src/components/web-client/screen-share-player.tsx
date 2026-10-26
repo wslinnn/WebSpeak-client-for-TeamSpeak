@@ -63,7 +63,6 @@ export function ScreenSharePlayer({ ui, onPlayerElement, onVideoElement, nicknam
           className="screen-share-player-exit"
           data-ws-part="voice.screen-player.exit"
           aria-label={t("screenShareExit")}
-          title={t("screenShareExit")}
           onClick={ui.leaveViewing}
         ><Icon name="close" size={22} /></Button>
         <div className="screen-share-player-viewers" data-ws-part="voice.screen-player.viewers" aria-label={t("screenShareViewers")}>
@@ -110,7 +109,6 @@ export function ScreenSharePlayer({ ui, onPlayerElement, onVideoElement, nicknam
             type="button"
             data-ws-part="voice.screen-player.fullscreen"
             aria-label={ui.fullscreen ? t("screenShareExitFullscreen") : t("screenShareFullscreen")}
-            title={ui.fullscreen ? t("screenShareExitFullscreen") : t("screenShareFullscreen")}
             onClick={ui.toggleFullscreen}
           ><Icon name={ui.fullscreen ? "fullscreen-exit" : "fullscreen"} size={19} /></Button>
         </div>

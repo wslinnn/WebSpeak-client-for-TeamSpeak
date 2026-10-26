@@ -39,7 +39,6 @@ export function ScreenShareSettingsDialog({ presets, onPresetsChange, onSubmit, 
             size="icon-sm"
             className="screen-share-settings-close"
             aria-label={t("close")}
-            title={t("close")}
           ><Icon name="close" size={17} /></Button>
         </DialogClose>
         <div className="screen-share-settings-heading" data-ws-part="voice.screen-share-settings.heading">

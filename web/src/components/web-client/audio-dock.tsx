@@ -239,7 +239,6 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
               type="button"
               className="desktop-audio-dock-control"
               data-muted={model.microphoneMuted ? "true" : undefined}
-              title={model.microphoneMuted ? t("unmuteMic") : t("muteMic")}
               aria-label={model.microphoneMuted ? t("microphoneMuted") : t("microphoneActive")}
               aria-pressed={!model.microphoneMuted}
               onClick={controls.toggleMicrophone}
@@ -299,7 +298,6 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
               type="button"
               className="desktop-audio-dock-control"
               data-muted={model.outputMuted ? "true" : undefined}
-              title={model.outputMuted ? t("unmuteOutput") : t("muteOutput")}
               aria-label={model.outputMuted ? t("unmuteOutput") : t("muteOutput")}
               aria-pressed={!model.outputMuted}
               onClick={onOutputMute}

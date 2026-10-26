@@ -4,6 +4,7 @@ import { useShallow } from "zustand/react/shallow";
 
 import { Icon } from "./icon";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useVoiceView } from "@/hooks/useVoiceSession";
 import type { VoiceSessionController } from "@/voice/session-controller";
 import { computeVoiceStats, type PerformanceMonitor, type VoiceAudioStats } from "@/web-client/performance-monitor";
@@ -65,16 +66,25 @@ export function VoicePerformancePanel({ monitor, voice, t }: VoicePerformancePan
   return (
     <Popover open={open} onOpenChange={(next) => monitor.setPanelOpen(next)}>
       <div className="network-performance" data-ws-part="voice.performance">
-        <PopoverTrigger asChild>
-          <Button variant="ghost"
-            type="button"
-            className="performance-trigger"
-            aria-label={t("voiceStatus")}
-            onClick={(event) => event.stopPropagation()}
-          ><Icon name="activity" size={16} /><span className="performance-trigger-label">{t("voiceStatus")}</span
-      ><small>{voiceView.voiceTransport !== "disconnected" ? transportLabel : null}</small
-      ><Icon name="chevron-down" size={13} /></Button>
-        </PopoverTrigger>
+        {/* 嵌套顺序：Tooltip 在外、PopoverTrigger 在内——链式 asChild 反过来
+         * （Popover 外 Tooltip 内）会吞掉 popover 的 toggle（探针实锤：面板永
+         * 不打开）。面板开着时只摘 TooltipContent：提示与 top 向面板同位会叠；
+         * 按钮上已印「语音状态」，提示内容用 hint 句补信息增量。 */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <PopoverTrigger asChild>
+              <Button variant="ghost"
+                type="button"
+                className="performance-trigger"
+                aria-label={t("voiceStatus")}
+                onClick={(event) => event.stopPropagation()}
+              ><Icon name="activity" size={16} /><span className="performance-trigger-label">{t("voiceStatus")}</span
+          ><small>{voiceView.voiceTransport !== "disconnected" ? transportLabel : null}</small
+          ><Icon name="chevron-down" size={13} /></Button>
+            </PopoverTrigger>
+          </TooltipTrigger>
+          {!open && <TooltipContent>{t("voiceStatusHint")}</TooltipContent>}
+        </Tooltip>
       </div>
       <PopoverContent
           side="top"
@@ -90,13 +100,18 @@ export function VoicePerformancePanel({ monitor, voice, t }: VoicePerformancePan
             ><div
               ><strong>{t("voiceStatus")}</strong
               ><small>{t("voiceStatusHint")}</small></div
-            ><Button variant="ghost"
-              type="button"
-              className="performance-refresh"
-              title={t("measureNow")}
-              disabled={monitorState.running}
-              onClick={() => monitor.refresh()}
-            ><Icon name="refresh" size={15} /></Button
+            ><Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost"
+                  type="button"
+                  className="performance-refresh"
+                  aria-label={t("measureNow")}
+                  disabled={monitorState.running}
+                  onClick={() => monitor.refresh()}
+                ><Icon name="refresh" size={15} /></Button>
+              </TooltipTrigger>
+              <TooltipContent>{t("measureNow")}</TooltipContent>
+            </Tooltip
           ></header>
           <div
             className="voice-status-summary"

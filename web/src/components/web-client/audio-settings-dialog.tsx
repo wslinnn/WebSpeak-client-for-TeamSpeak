@@ -104,7 +104,7 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
               ><Button
                 variant="ghost"
                 size="icon-sm"
-                title={t("close")}
+                aria-label={t("close")}
               ><Icon
                   name="close"
                   size={19} /></Button></DialogClose></header
