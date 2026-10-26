@@ -27,7 +27,7 @@ export interface ScreenShareView {
 }
 
 export type { ScreenShareCaptureStats, ScreenSharePeerStats, ScreenShareWebRtcStats } from "./screen-share-stats";
-import { createScreenShareStats } from "./screen-share-stats";
+import { createScreenShareStats, summarizeIceFailure } from "./screen-share-stats";
 
 interface ScreenShareTransport {
   isOpen(): boolean;
@@ -121,11 +121,19 @@ export function createScreenShareController(transport: ScreenShareTransport) {
   function failScreenSharePeer(peerId: string, message?: string): void {
     const viewingStream = V().streams.find((stream) => stream.streamId === V().viewingStreamId && stream.ownerPeerId === peerId);
     if (viewingStream) sendScreenShareMessage({ type: "screenShareLeave", streamId: viewingStream.streamId });
+    // collectStats must run before close(): a closed peer rejects getStats.
+    const failingPeer = screenSharePeers.get(peerId);
+    const failureSummary = failingPeer ? summarizeIceFailure(failingPeer) : Promise.resolve(null);
     closeScreenSharePeer(peerId);
     if (viewingStream) {
       store.setState({ viewing: false, viewingStreamId: "", remoteStream: null });
     }
-    setScreenShareP2PError(message);
+    const baseMessage = message ?? "直连 P2P 失败，当前网络无法建立浏览器之间的直接连接";
+    setScreenShareP2PError(baseMessage);
+    void failureSummary.then((summary) => {
+      // Only augment if the failure message is still the one on display.
+      if (summary && V().error === baseMessage) store.setState({ error: `${baseMessage}（诊断：${summary}）` });
+    });
   }
 
   function createScreenSharePeer(streamId: string, peerId: string, role: "owner" | "viewer"): RTCPeerConnection {

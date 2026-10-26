@@ -36,6 +36,34 @@ export interface ScreenShareWebRtcStats {
 
 type ScreenShareStatsRecord = Record<string, unknown>;
 
+/** One-line ICE failure diagnosis (zh, matching this module's inline error
+ *  style): which candidate types were actually gathered decides whether the
+ *  failure is "STUN unreachable" or "NAT unfriendly". Returns null when the
+ *  report says nothing useful (closed peer, already-succeeded pair). */
+export async function summarizeIceFailure(peer: RTCPeerConnection): Promise<string | null> {
+  try {
+    const report = await peer.getStats();
+    const localTypes = new Set<string>();
+    const remoteTypes = new Set<string>();
+    let anyPairSucceeded = false;
+    report.forEach((raw) => {
+      const record = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
+      const type = typeof record.type === "string" ? record.type : "";
+      const candidateType = typeof record.candidateType === "string" ? record.candidateType : "";
+      if (type === "local-candidate" && candidateType) localTypes.add(candidateType);
+      if (type === "remote-candidate" && candidateType) remoteTypes.add(candidateType);
+      if (type === "candidate-pair" && (record.state === "succeeded" || record.selected === true || record.nominated === true)) anyPairSucceeded = true;
+    });
+    if (anyPairSucceeded || localTypes.size === 0) return null;
+    const hasPublicCandidate = localTypes.has("srflx") || localTypes.has("prflx") || localTypes.has("relay");
+    if (!hasPublicCandidate) return "未获取到公网候选（STUN 不可达或被网络拦截），跨网直连需要可用的 STUN 服务或 IPv6";
+    if (remoteTypes.size === 0) return "已获取公网候选，但对端候选未到达，请检查对端网络或刷新重试";
+    return `已交换候选（本地 ${[...localTypes].join("/")}，对端 ${[...remoteTypes].join("/")}）但未能打洞，常见于双方都在对称 NAT 或运营商大内网之后`;
+  } catch {
+    return null;
+  }
+}
+
 export interface ScreenShareStatsDeps {
   /** The controller's local capture track, when a capture is live. */
   getLocalVideoTrack: () => MediaStreamTrack | undefined;
