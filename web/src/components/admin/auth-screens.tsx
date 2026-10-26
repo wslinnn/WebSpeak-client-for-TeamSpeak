@@ -30,15 +30,15 @@ export function LoginScreen({ controller, messages }: { controller: AdminControl
           {view.errorMessage && <div className="alert error">{view.errorMessage}</div>}
           <label>
             <span>{tr("adminUsername")}</span>
-            <Input value={view.loginUsername} autoComplete="username" autoFocus
+            <Input className="h-[42px]" value={view.loginUsername} autoComplete="username" autoFocus
               onChange={(event) => controller.setLoginUsername(event.target.value.trim())} />
           </label>
           <label>
             <span>{tr("adminPassword")}</span>
-            <Input value={view.loginPassword} type="password" autoComplete="current-password"
+            <Input className="h-[42px]" value={view.loginPassword} type="password" autoComplete="current-password"
               onChange={(event) => controller.setLoginPassword(event.target.value)} />
           </label>
-          <Button className="wide" disabled={view.submitting} type="submit">
+          <Button className="wide h-[42px]" disabled={view.submitting} type="submit">
             {view.submitting && <span className="spinner small" aria-hidden="true" />}
             {tr("login")}
           </Button>
@@ -75,17 +75,17 @@ export function ChangePasswordScreen({ controller, messages }: { controller: Adm
           {view.errorMessage && <div className="alert error">{view.errorMessage}</div>}
           <label>
             <span>{tr("newPassword")}</span>
-            <Input value={view.newPassword} type="password" autoComplete="new-password" maxLength={1024} autoFocus
+            <Input className="h-[42px]" value={view.newPassword} type="password" autoComplete="new-password" maxLength={1024} autoFocus
               placeholder={tr("passwordPlaceholder")}
               onChange={(event) => controller.setNewPassword(event.target.value)} />
           </label>
           <label>
             <span>{tr("confirmPassword")}</span>
-            <Input value={view.confirmNewPassword} type="password" autoComplete="new-password" maxLength={1024}
+            <Input className="h-[42px]" value={view.confirmNewPassword} type="password" autoComplete="new-password" maxLength={1024}
               onChange={(event) => controller.setConfirmNewPassword(event.target.value)} />
           </label>
           <div className="strength"><i style={{ width: `${strength}%` }} /></div>
-          <Button className="wide" disabled={view.submitting} type="submit">
+          <Button className="wide h-[42px]" disabled={view.submitting} type="submit">
             {view.submitting && <span className="spinner small" aria-hidden="true" />}
             {tr("savePassword")}
           </Button>

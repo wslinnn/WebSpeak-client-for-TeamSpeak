@@ -90,7 +90,7 @@ export default function DownloadView() {
             <h2 className="m-0 text-lg">{t("downloadOfficialTitle")}</h2>
           </div>
           <p className="m-0 text-base text-muted-foreground">{t("downloadOfficialDescription")}</p>
-          <Button asChild className="mt-auto">
+          <Button asChild className="mt-auto h-[42px]">
             <a href="https://teamspeak.com/en/downloads/" target="_blank" rel="noopener noreferrer">
               {t("downloadOfficialAction")}
               <ChevronRightIcon size={16} aria-hidden="true" />
@@ -130,7 +130,7 @@ export default function DownloadView() {
                   </div>
                 )}
               </dl>
-              <Button asChild className="mt-auto">
+              <Button asChild className="mt-auto h-[42px]">
                 <a href={release.apkUrl} target="_blank" rel="noopener noreferrer">
                   {t("downloadAndroidAction")}
                   <ChevronRightIcon size={16} aria-hidden="true" />
