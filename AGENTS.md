@@ -90,5 +90,6 @@ npm --prefix web ci --no-audit --no-fund
 - 临时脚本/探针页用完即删；后台网关（3041）用完即停，`reuseExistingServer:false` 下残留端口会静默吃掉下一次冒烟。
 - 弹性链/滚动约束的探针验证必须种子出内容再测（空态无症状：TabsContent 缺 `min-height:0` 的断链曾以空列表探针全绿漏检，有内容后列表全撑开、作曲器出视口）。
 - 组件渲染 radix 浮层原语（Tooltip/DropdownMenu 等）时，组件测试与 app 替身要自备 Provider（App 根有的壳，测试替身直挂路由会以 context 报错＋超时收场）。
+- 一个按钮同时挂组件 Tooltip 与浮层触发（PopoverTrigger 等）时，嵌套必须 **Tooltip 在外、浮层 Trigger 在内**——反序的链式 asChild 会静默吞掉浮层 toggle（无报错、面板永不打开，性能面板触发钮探针实锤）；且勿按浮层开合条件换树（触发钮重挂同样吞 toggle），要只在面板开着时摘 TooltipContent。
 - React Compiler 把零参方法调用按 props 缓存——跨 store 派生必须把订阅值作实参传入（`chat.visibleMessages(chatMessages)` 形态，零参在 store 更新后返回陈旧值即「消息不上屏」根因）；`"use no compiler"` 指令当前 oxc 工具链不生效（产物保留指令字符串但缓存槽照注），勿依赖；此类回归 vitest 抓不到（无编译器转换），只有产物级冒烟能抓（`chat-live-update.spec`）。
 - 会话状态（`session-state.ts`）的后端数组是唯一事实源，store 只是它的快照——**一切 chatMessages/members/channels 写入必须过后端数组 + `sync*`**；直写 `store.setState` 的旁路会在下一次 sync 被后端数组内容整体覆盖（「刷新后发消息旧消息全没」根因，历史合并走 `mergeChatHistory`）。
