@@ -39,7 +39,7 @@ npm --prefix web ci --no-audit --no-fund
 ```
 
 - 全量验证（提交/合并前必须全绿）：`npm run verify` = `lint` + `test` + `build` + `web:ci`；web 侧 `ci` = ESLint + **stylelint**（声明纪律：z-index 只准 `--ws-z-*` 变量、transition 禁 all 与布局属性）+ Vitest + `tsc -b && vite build`。
-- 跑单个测试文件：`node --import tsx --test <路径>`；`npm test` 通过 `scripts/run-tests.mjs` 自动发现所有 `*.test.{ts,mjs}`，新增测试文件无需登记清单。
+- 跑单个测试文件：node:test 文件用 `node --import tsx --test <路径>`，vitest 文件（`import ... from "vitest"`）必须 `cd web && npx vitest run <路径>`——用 node --test 跑 vitest 文件会以「Vitest failed to find the current suite」炸掉；`npm test` 通过 `scripts/run-tests.mjs` 自动发现所有 `*.test.{ts,mjs}`，新增测试文件无需登记清单。
 - 开发调试：`npm run dev`（后端，端口 3040）、`npm run web:dev`（前端 Vite）。
 - 冒烟门禁：`npm run smoke`（Playwright 三视口 375/768/1280，单 worker 全串行 ~30s；`scripts/smoke-server.mjs` 一次性网关编排，端口 3041，`reuseExistingServer:false`——起服前清端口）。
 
