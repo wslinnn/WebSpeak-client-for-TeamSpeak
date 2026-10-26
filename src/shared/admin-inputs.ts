@@ -15,4 +15,7 @@ export interface AdminSettingsInput {
   webRtcStunServer?: string;
   webRtcUdpStart?: number;
   webRtcUdpEnd?: number;
+  /** Raw JSON array of {urls, username?, credential?} for screen-share ICE;
+   *  empty string clears the override. Validated server-side before storing. */
+  screenShareIceServersJson?: string;
 }

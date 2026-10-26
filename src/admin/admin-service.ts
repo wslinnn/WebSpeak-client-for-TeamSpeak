@@ -18,6 +18,30 @@ import type { WebRtcAudioOptions } from "../server/webrtc-audio.js";
 import { DEFAULT_WEBRTC_UDP_PORT_RANGE, MIN_WEBRTC_UDP_PORT_RANGE_PORTS, WEBRTC_UDP_PORT_MAX, WEBRTC_UDP_PORT_MIN } from "../server/webrtc-config.js";
 import { DEFAULT_WELCOME_TEXTS, resolveWelcomeTexts } from "../site-copy.js";
 
+/** The admin supplies a JSON array of ICE server entries; entries without a
+ *  string `urls` (string or list) are rejected rather than silently dropped,
+ *  so a typo cannot quietly disable the override. */
+function validateScreenShareIceJson(raw: string): void {
+  if (!raw) return;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new AdminInputError("INVALID_SCREEN_SHARE_ICE", "Screen-share ICE must be a JSON array");
+  }
+  if (!Array.isArray(parsed)) throw new AdminInputError("INVALID_SCREEN_SHARE_ICE", "Screen-share ICE must be a JSON array");
+  for (const entry of parsed) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new AdminInputError("INVALID_SCREEN_SHARE_ICE", "Each screen-share ICE entry must be an object with urls");
+    }
+    const urls = (entry as Record<string, unknown>).urls;
+    const urlsOk = typeof urls === "string"
+      ? urls.trim().length > 0
+      : Array.isArray(urls) && urls.length > 0 && urls.every((value) => typeof value === "string" && value.trim().length > 0);
+    if (!urlsOk) throw new AdminInputError("INVALID_SCREEN_SHARE_ICE", "Each screen-share ICE entry must be an object with urls");
+  }
+}
+
 export interface ConnectionPolicy {
   defaultTarget: string;
   serverPassword: string;
@@ -122,6 +146,7 @@ export class AdminService {
       webRtcStunServer: settings.webRtcStunServer,
       webRtcUdpStart: settings.webRtcUdpStart,
       webRtcUdpEnd: settings.webRtcUdpEnd,
+      screenShareIceServers: this.database.getMeta("screen_share_ice_servers") ?? "",
       internalPort: 3040,
       updatedAt: settings.updatedAt,
     };
@@ -142,6 +167,14 @@ export class AdminService {
     const current = this.database.getSettings();
     const settings = this.normalizeSettings(input, current);
     const targetChanged = current.tsHost !== settings.tsHost || current.tsPort !== settings.tsPort || current.tsTarget !== settings.tsTarget;
+    // Screen-share ICE lives in metadata (not the settings table): it is a
+    // deployment-level override of the self-hosted STUN default, and keeping
+    // it out of the settings row avoids a schema migration for it.
+    if (typeof input.screenShareIceServersJson === "string") {
+      const raw = input.screenShareIceServersJson.trim();
+      validateScreenShareIceJson(raw);
+      this.database.setMeta("screen_share_ice_servers", raw);
+    }
     this.database.updateSettings(settings);
     if (targetChanged) this.database.clearConnectionTest();
   }

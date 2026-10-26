@@ -188,6 +188,11 @@
   font-size: 10px;
 }
 
+.ice-card textarea {
+  font-family: ui-monospace,SFMono-Regular,Consolas,monospace;
+  font-size: 12px;
+}
+
 .text-link {
   color: var(--wsd-accent);
   font-size: 10px;

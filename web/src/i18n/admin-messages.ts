@@ -29,6 +29,7 @@ const errorLabels: Record<string, AdminTranslationKey> = {
   INVALID_PASSWORD: "invalidPassword", INVALID_ADMIN_PASSWORD: "setupPasswordShort", PASSWORD_CHANGE_REQUIRED: "changePasswordLead", RATE_LIMITED: "rateLimited",
   INVALID_WEBRTC_PUBLIC_HOST: "invalidWebRtcNetworkError", INVALID_WEBRTC_STUN_SERVER: "invalidWebRtcNetworkError", INVALID_WEBRTC_IPV6: "invalidWebRtcNetworkError",
   INVALID_WEBRTC_PORT_RANGE: "invalidWebRtcPortRangeError", WEBRTC_PORT_LOCKED: "webRtcPortLockedError",
+  INVALID_SCREEN_SHARE_ICE: "screenShareIceInvalidError",
   INVALID_TARGET: "invalidTargetError", PING_UNAVAILABLE: "icmpUnavailableError", HOST_NOT_FOUND: "probeHostNotFoundError",
   UNREACHABLE: "probeUnreachableError", TIMEOUT: "probeTimeoutError", PROTOCOL_NEGOTIATION_FAILED: "probeProtocolError",
   SERVER_REJECTED: "probeRejectedError", TARGET_NOT_ALLOWED: "targetNotAllowedError",

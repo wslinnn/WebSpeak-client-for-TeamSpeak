@@ -39,6 +39,7 @@ export interface ServerForm {
   webRtcEnabled: boolean;
   webRtcUdpStart: number;
   webRtcUdpEnd: number;
+  screenShareIceServers: string;
   lastTestAt: string | null;
   lastTestLatencyMs: number | null;
 }
@@ -48,12 +49,13 @@ export function emptyServerForm(): ServerForm {
     address: "", port: "9987", serverPassword: "", passwordAction: "keep", hasPassword: false,
     accessMode: "fixed", siteName: "WebSpeak", welcomeText: "", welcomeTextEn: "", welcomeTextDe: "", welcomeTextRu: "", welcomeTextJa: "",
     welcomeDefaults: { ...DEFAULT_WELCOME_TEXTS }, webRtcPublicHost: "", webRtcIpv6Enabled: false, webRtcStunServer: "", webRtcEnabled: false, webRtcUdpStart: 40000, webRtcUdpEnd: 41999,
+    screenShareIceServers: "",
     lastTestAt: null, lastTestLatencyMs: null,
   };
 }
 
 export type EditableServerField = Exclude<keyof ServerForm, "serverPassword" | "passwordAction" | "hasPassword" | "welcomeDefaults" | "lastTestAt" | "lastTestLatencyMs">;
-const editable: readonly EditableServerField[] = ["address", "port", "accessMode", "siteName", "welcomeText", "welcomeTextEn", "welcomeTextDe", "welcomeTextRu", "welcomeTextJa", "webRtcEnabled", "webRtcPublicHost", "webRtcIpv6Enabled", "webRtcStunServer", "webRtcUdpStart", "webRtcUdpEnd"];
+const editable: readonly EditableServerField[] = ["address", "port", "accessMode", "siteName", "welcomeText", "welcomeTextEn", "welcomeTextDe", "welcomeTextRu", "welcomeTextJa", "webRtcEnabled", "webRtcPublicHost", "webRtcIpv6Enabled", "webRtcStunServer", "webRtcUdpStart", "webRtcUdpEnd", "screenShareIceServers"];
 // 探针作废监听的字段（旧版 flush:sync watch 的显式化）。
 const probeSensitive: readonly EditableServerField[] = ["address", "port"];
 const snapshot = (form: ServerForm): ServerForm => JSON.parse(JSON.stringify(form)) as ServerForm;
@@ -160,6 +162,7 @@ export function createServerSettingsController(options: Options) {
       welcomeText: form.welcomeText, welcomeTextEn: form.welcomeTextEn, welcomeTextDe: form.welcomeTextDe, welcomeTextRu: form.welcomeTextRu, welcomeTextJa: form.welcomeTextJa,
       webRtcPublicHost: form.webRtcPublicHost, webRtcIpv6Enabled: form.webRtcIpv6Enabled, webRtcStunServer: form.webRtcStunServer,
       webRtcEnabled: form.webRtcEnabled, webRtcUdpStart: form.webRtcUdpStart, webRtcUdpEnd: form.webRtcUdpEnd,
+      screenShareIceServersJson: form.screenShareIceServers,
     };
   }
 

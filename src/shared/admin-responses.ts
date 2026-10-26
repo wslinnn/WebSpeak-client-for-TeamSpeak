@@ -37,6 +37,7 @@ const settings = object({
   webRtcPublicHost: value => value === undefined ? "" : text(value),
   webRtcIpv6Enabled: value => value === undefined ? false : boolean(value),
   webRtcStunServer: value => value === undefined ? "" : text(value),
+  screenShareIceServers: value => value === undefined ? "" : text(value),
   internalPort: number, updatedAt: text,
 });
 const teamSpeak = object({ target: text, status: text, lastTestAt: nullable(text), latencyMs: nullable(number), lastError: nullable(text) });

@@ -265,6 +265,18 @@ export function AdminServerSettings({ model, messages, onWebRtcToggle }: {
                 </label>
                 <small className="field-help">{tr("webrtcApplyHint")}</small>
               </section>
+              <section className="settings-subsection ice-card">
+                <header className="settings-subsection-heading">
+                  <div>
+                    <h4>{tr("screenShareIceTitle")}</h4>
+                    <p className="card-help">{tr("screenShareIceHelp")}</p>
+                  </div>
+                </header>
+                <Textarea value={form.screenShareIceServers} rows={4} className="field-sizing-fixed" spellCheck={false}
+                  placeholder={`[{"urls":"stun:stun.example.com:3478"}]`}
+                  onChange={(event) => model.setField("screenShareIceServers", event.target.value)} />
+                <small className="field-help">{tr("screenShareIceHint")}</small>
+              </section>
             </div>
           </div>
         </details>

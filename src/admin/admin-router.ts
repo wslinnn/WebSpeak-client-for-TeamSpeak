@@ -348,6 +348,7 @@ function readSettingsInput(body: Record<string, unknown>): AdminSettingsInput {
     webRtcPublicHost: body.webRtcPublicHost as string | undefined,
     webRtcIpv6Enabled: body.webRtcIpv6Enabled as boolean | undefined,
     webRtcStunServer: body.webRtcStunServer as string | undefined,
+    screenShareIceServersJson: typeof body.screenShareIceServersJson === "string" ? body.screenShareIceServersJson.slice(0, 8192) : undefined,
     webRtcUdpStart: readOptionalInteger(body, "webRtcUdpStart"),
     webRtcUdpEnd: readOptionalInteger(body, "webRtcUdpEnd"),
   };
