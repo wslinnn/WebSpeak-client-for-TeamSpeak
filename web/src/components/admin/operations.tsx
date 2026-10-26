@@ -1,8 +1,10 @@
-import { ActivityIcon, CheckIcon, InfoIcon, RefreshCwIcon, UsersIcon } from "lucide-react";
+import { ActivityIcon, InfoIcon, RefreshCwIcon, UsersIcon } from "lucide-react";
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useStore } from "zustand";
 
 import { Button } from "@/components/ui/button";
+import { AdminEventList } from "@/components/admin/event-list";
 
 import type { AdminMessages } from "@/i18n/admin-messages";
 import type { OperationsController } from "@/admin/operations-controller";
@@ -15,13 +17,22 @@ function normalizeSection(value: string | null): OperationsSection {
   return value === "logs" || value === "audit" || value === "maintenance" ? value : "sessions";
 }
 
+const LOG_FILTER_LEVELS = ["DEBUG", "INFO", "WARN", "ERROR"] as const;
+type LogFilterLevel = (typeof LOG_FILTER_LEVELS)[number];
+
+// FATAL 按 ERROR 过滤与计数；未知级别（协议扩展兜底）归入 INFO。
+function filterLevelOf(level: string): LogFilterLevel {
+  if (level === "FATAL") return "ERROR";
+  return (LOG_FILTER_LEVELS as readonly string[]).includes(level) ? (level as LogFilterLevel) : "INFO";
+}
+
 // 旧 AdminOperations.vue 平价 + 上游 a2f91e6 的分区页签化：section 落在
 // ?section= 查询参数（URL 即状态），深链与点击共用一条路。
 export function AdminOperations({ model, messages }: {
   model: OperationsController;
   messages: AdminMessages;
 }) {
-  const { tr, formatDate, formatAge, sessionStateLabel, connectionStatusLabel, eventName, connectionFailureText } = messages;
+  const { tr, formatDate, formatAge, formatRelative, formatLogTime, logMessage, logContextParts, sessionStateLabel, connectionStatusLabel, connectionFailureText } = messages;
   const operations = useStore(model.store);
   const { loading, terminating } = operations;
   const [searchParams, setSearchParams] = useSearchParams();
@@ -35,10 +46,24 @@ export function AdminOperations({ model, messages }: {
     maintenance: tr("diagnostics"),
   };
 
-  const connectionRoute = (record: AdminConnectionRecord) =>
-    tr("connectionFromTo", { ip: record.clientIp || "—", target: record.target || "—" });
-  const formatContext = (context: Record<string, string | number | boolean>) =>
-    Object.entries(context).map(([key, value]) => `${key}=${value}`).join(" · ");
+  // 级别筛选片：默认全开，点片隐藏/显示该级别；条数常显，一眼看出严重度分布。
+  const [hiddenLevels, setHiddenLevels] = useState<ReadonlySet<LogFilterLevel>>(() => new Set());
+  const levelCounts: Record<LogFilterLevel, number> = { DEBUG: 0, INFO: 0, WARN: 0, ERROR: 0 };
+  for (const entry of operations.logs.entries) levelCounts[filterLevelOf(entry.level)] += 1;
+  const visibleEntries = operations.logs.entries.filter((entry) => !hiddenLevels.has(filterLevelOf(entry.level)));
+  const toggleLevel = (level: LogFilterLevel) => setHiddenLevels((current) => {
+    const next = new Set(current);
+    if (next.has(level)) { next.delete(level); } else { next.add(level); }
+    return next;
+  });
+
+  // 完整起止时刻与 technical 细节收进行悬停提示，行内只留一句话。
+  const connectionRowTitle = (record: AdminConnectionRecord) =>
+    [
+      `${record.connectedAt ? tr("connectedAt") : tr("connectionAttemptedAt")} ${formatDate(record.connectedAt || record.startedAt)}`,
+      record.disconnectedAt ? `${tr("disconnectedAt")} ${formatDate(record.disconnectedAt)}` : "",
+      record.failureDetail ? `${tr("failureDetail")} ${record.failureDetail}` : "",
+    ].filter(Boolean).join(" · ");
 
   return (
     <section className="page-content operations-page">
@@ -175,47 +200,76 @@ export function AdminOperations({ model, messages }: {
             </div>
             {!operations.logs.available && <span className="muted-label">{tr("logsUnavailable")}</span>}
           </header>
+          {operations.logs.entries.length > 0 && (
+            <div className="log-filter" role="group" aria-label={tr("logFilter")}>
+              {LOG_FILTER_LEVELS.map((level) => (
+                <button key={level} type="button"
+                  className={["log-filter-chip", level.toLowerCase()].join(" ")}
+                  aria-pressed={!hiddenLevels.has(level)}
+                  disabled={levelCounts[level] === 0}
+                  onClick={() => toggleLevel(level)}>
+                  {level}
+                  <span className="log-filter-count">{levelCounts[level]}</span>
+                </button>
+              ))}
+            </div>
+          )}
           {operations.logs.sessions.length > 0 && (
             <div className="connection-list">
               <div className="connection-history-heading">
                 <strong>{tr("connectionHistory")}</strong>
                 <small>{tr("connectionHistoryLead")}</small>
               </div>
-              {operations.logs.sessions.map((record) => (
-                <div key={record.id} className="connection-row">
-                  <div className="connection-person">
-                    <strong>{record.nickname}</strong>
-                    <small>{record.target}</small>
-                    <small className="connection-route">{connectionRoute(record)}</small>
-                  </div>
-                  <div className="connection-detail">
+              {operations.logs.sessions.map((record) => {
+                const routeParts: string[] = [];
+                if (record.target && record.target !== "—") routeParts.push(record.target);
+                if (record.clientIp && record.clientIp !== "—") routeParts.push(`${tr("ctxClientIp")} ${record.clientIp}`);
+                if (record.status === "failed" && record.reason) routeParts.push(connectionFailureText(record.reason));
+                const anchor = record.disconnectedAt ?? record.connectedAt ?? record.startedAt;
+                return (
+                  <div key={record.id} className="connection-row" title={connectionRowTitle(record)}>
                     <span className={["connection-status", record.status].join(" ")}>{connectionStatusLabel(record.status)}</span>
-                    <small>{record.connectedAt ? tr("connectedAt") : tr("connectionAttemptedAt")}：{formatDate(record.connectedAt || record.startedAt)}</small>
-                    <small>{tr("duration")}：{formatAge(record.durationSeconds)}</small>
-                    {record.disconnectedAt && <small>{tr("disconnectedAt")}：{formatDate(record.disconnectedAt)}</small>}
-                    {record.reason && <small>{tr("failureReason")}：{connectionFailureText(record.reason)}</small>}
-                    {record.failureDetail && <small className="failure-detail">{tr("failureDetail")}：{record.failureDetail}</small>}
+                    <div className="connection-person">
+                      <strong>{record.nickname}</strong>
+                      {routeParts.length > 0 && <small className="connection-route">{routeParts.join(" · ")}</small>}
+                    </div>
+                    <div className="connection-when">
+                      {record.durationSeconds != null && <small>{tr("duration")} {formatAge(record.durationSeconds)}</small>}
+                      <small>{formatRelative(anchor)}</small>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
-          {operations.logs.entries.length > 0 && (
+          {visibleEntries.length > 0 ? (
             <div className="log-list">
-              {operations.logs.entries.map((entry, index) => (
-                <div key={`${entry.timestamp}-${index}`} className="log-row">
-                  <span className={["log-level", entry.level.toLowerCase()].join(" ")}>{entry.level}</span>
-                  <div>
-                    <strong>{entry.message || "—"}</strong>
-                    <small>
-                      {formatDate(entry.timestamp)}
-                      {Object.keys(entry.context).length > 0 && <> · {formatContext(entry.context)}</>}
-                    </small>
+              {visibleEntries.map((entry, index) => {
+                const level = filterLevelOf(entry.level);
+                const parts = logContextParts(entry.context);
+                return (
+                  <div key={`${entry.timestamp}-${index}`} className="log-row" data-level={level}>
+                    {level === "WARN" || level === "ERROR"
+                      ? <span className={`log-level ${entry.level.toLowerCase()}`}>{entry.level}</span>
+                      : <span className="log-dot" aria-hidden="true" />}
+                    <time className="log-time" dateTime={entry.timestamp ?? undefined}
+                      title={entry.timestamp ? formatDate(entry.timestamp) : undefined}>
+                      {formatLogTime(entry.timestamp)}
+                    </time>
+                    <div>
+                      <strong>{logMessage(entry.message) || "—"}</strong>
+                      {parts.length > 0 && <small>{parts.join(" · ")}</small>}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          )}
+          ) : operations.logs.entries.length > 0 ? (
+            <div className="operation-empty">
+              <ActivityIcon size={22} aria-hidden="true" />
+              <span>{tr("noLogs")}</span>
+            </div>
+          ) : null}
           {operations.logs.sessions.length === 0 && operations.logs.entries.length === 0 && (
             <div className="operation-empty">
               <ActivityIcon size={22} aria-hidden="true" />
@@ -234,18 +288,7 @@ export function AdminOperations({ model, messages }: {
               <p>{tr("auditLead")}</p>
             </div>
           </header>
-          <ul className="event-list">
-            {operations.audit.map((event) => (
-              <li key={`${event.event}-${event.createdAt}`}>
-                <span><CheckIcon size={14} aria-hidden="true" /></span>
-                <div>
-                  <strong>{eventName(event.event)}</strong>
-                  <small>{formatDate(event.createdAt)}</small>
-                </div>
-              </li>
-            ))}
-            {operations.audit.length === 0 && <li className="empty-event">{tr("auditEmpty")}</li>}
-          </ul>
+          <AdminEventList events={operations.audit} messages={messages} emptyText={tr("auditEmpty")} />
         </article>
       </div>
       )}

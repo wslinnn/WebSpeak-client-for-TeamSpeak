@@ -19,7 +19,7 @@ export interface OperationsSnapshot {
     voiceTransports: { connected: number; webrtc: number; compat: number; compatRatio: number } | null;
   };
   logs: { available: boolean; entries: AdminLog[]; sessions: AdminConnectionRecord[] };
-  audit: Array<{ event: string; createdAt: string }>;
+  audit: Array<{ event: string; createdAt: string; details: Record<string, string | number> }>;
 }
 
 function emptyDiagnostics(): OperationsSnapshot["diagnostics"] {

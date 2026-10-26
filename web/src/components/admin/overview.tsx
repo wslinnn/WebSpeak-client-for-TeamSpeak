@@ -1,8 +1,9 @@
-import { ActivityIcon, CheckIcon, ServerIcon, UsersIcon } from "lucide-react";
+import { ActivityIcon, ServerIcon, UsersIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import type { AdminMessages } from "@/i18n/admin-messages";
 import type { AdminOverview } from "@/admin/admin-controller";
+import { AdminEventList } from "@/components/admin/event-list";
 import { Button } from "@/components/ui/button";
 
 // 旧 AdminView.vue 总览区平价（类名保留，样式在 admin.css）。
@@ -11,7 +12,7 @@ export function AdminOverview({ overview, messages, onDismissLegacyNotice }: {
   messages: AdminMessages;
   onDismissLegacyNotice(): void;
 }) {
-  const { tr, formatDate, formatUptime, eventName } = messages;
+  const { tr, formatDate, formatRelative, formatUptime } = messages;
   const targetStatusText = overview.teamSpeak.status === "reachable"
     ? tr("reachable")
     : overview.teamSpeak.status === "unreachable" ? tr("unreachable") : tr("notTested");
@@ -68,7 +69,11 @@ export function AdminOverview({ overview, messages, onDismissLegacyNotice }: {
             </div>
             <div>
               <dt>{tr("lastTest")}</dt>
-              <dd>{formatDate(overview.teamSpeak.lastTestAt)}</dd>
+              <dd>
+                <time dateTime={overview.teamSpeak.lastTestAt ?? undefined} title={formatDate(overview.teamSpeak.lastTestAt)}>
+                  {formatRelative(overview.teamSpeak.lastTestAt)}
+                </time>
+              </dd>
             </div>
             <div>
               <dt>{tr("latency")}</dt>
@@ -83,18 +88,7 @@ export function AdminOverview({ overview, messages, onDismissLegacyNotice }: {
               <p>{tr("recentEventsLead")}</p>
             </div>
           </header>
-          <ul className="event-list">
-            {overview.recentEvents.map((event) => (
-              <li key={`${event.event}-${event.createdAt}`}>
-                <span><CheckIcon size={14} aria-hidden="true" /></span>
-                <div>
-                  <strong>{eventName(event.event)}</strong>
-                  <small>{formatDate(event.createdAt)}</small>
-                </div>
-              </li>
-            ))}
-            {overview.recentEvents.length === 0 && <li className="empty-event">{tr("noRecentEvents")}</li>}
-          </ul>
+          <AdminEventList events={overview.recentEvents} messages={messages} emptyText={tr("noRecentEvents")} />
         </article>
       </div>
     </section>

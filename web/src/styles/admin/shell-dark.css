@@ -420,19 +420,48 @@
   border-radius: 8px;
 }
 
+/* 事件语义色：登录失败红、测试失败/终止会话琥珀、成功绿；中性保持 accent。 */
+.event-list li>span.success {
+  color: var(--wsd-success);
+  background: color-mix(in srgb, var(--wsd-success) 10%, transparent);
+}
+
+.event-list li>span.danger {
+  color: var(--wsd-danger);
+  background: color-mix(in srgb, var(--wsd-danger) 8%, transparent);
+}
+
+.event-list li>span.warning {
+  color: var(--wsd-warning);
+  background: color-mix(in srgb, var(--wsd-warning) 10%, transparent);
+}
+
+.event-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .event-list strong,
 .event-list small {
   display: block;
 }
 
 .event-list strong {
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .event-list small {
   margin-top: 3px;
   color: var(--wsd-text-dim);
-  font-size: 9px;
+  font-size: 11px;
+}
+
+.event-list li time {
+  flex: none;
+  margin-left: auto;
+  color: var(--wsd-text-dim);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 .event-list .empty-event {

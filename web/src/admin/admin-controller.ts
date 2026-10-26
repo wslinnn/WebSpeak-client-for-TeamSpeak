@@ -15,7 +15,7 @@ export interface AdminOverview {
   gateway: { version: string; uptimeSeconds: number };
   teamSpeak: { target: string; status: string; lastTestAt: string | null; latencyMs: number | null };
   sessions: { active: number; peak: number; limit: number };
-  recentEvents: Array<{ event: string; createdAt: string }>;
+  recentEvents: Array<{ event: string; createdAt: string; details: Record<string, string | number> }>;
   legacyConfigImported: boolean;
 }
 
