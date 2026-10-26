@@ -123,7 +123,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     if (viewingStream) sendScreenShareMessage({ type: "screenShareLeave", streamId: viewingStream.streamId });
     // collectStats must run before close(): a closed peer rejects getStats.
     const failingPeer = screenSharePeers.get(peerId);
-    const failureSummary = failingPeer ? summarizeIceFailure(failingPeer) : Promise.resolve(null);
+    const failureSummary = failingPeer ? summarizeIceFailure(failingPeer, screenShareIceServers) : Promise.resolve(null);
     closeScreenSharePeer(peerId);
     if (viewingStream) {
       store.setState({ viewing: false, viewingStreamId: "", remoteStream: null });
