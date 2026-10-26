@@ -4,13 +4,11 @@ import { useStore } from "zustand";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Icon } from "./icon";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Slider } from "@/components/ui/slider";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
 import type { MembersController } from "@/web-client/members-controller";
 import type { TreeChannel } from "@/web-client/channel-tree";
 import type { ChannelMember } from "@shared/voice-models";
-import type { FavoriteServer } from "@/services/local-persistence";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
@@ -26,9 +24,6 @@ interface ChannelMemberPanelProps {
   volumes: Record<number, number>;
   foldedChannels: ReadonlySet<string>;
   onToggleFold(channelId: string): void;
-  switcherServers: readonly FavoriteServer[];
-  currentAddress: string;
-  onSwitchServer(server: FavoriteServer): void;
   onSelectChannel(channel: TreeChannel): void;
   isSpeaking(member: ChannelMember): boolean;
   onVolumeInput(clientId: number, value: number): void;
@@ -40,11 +35,11 @@ const DRAG_EDGE_PX = 44;
 
 /** 成员面板（旧 ChannelMemberPanel.vue 平价）：服务器头+状态/搜索、频道树
  *  （单击选中、双击/Enter 进房、折叠分支保挂载做网格插值）、成员行（拖拽换频道
- *  + 树边缘自动滚动）、≡ 服务器切换器（Radix DropdownMenu，portal 落 body）。 */
+ *  + 树边缘自动滚动）。房内 ≡ 常用服务器切换器已删（2026-10-26 拍板：空收藏时
+ *  点开是空菜单形同坏了，功能亦冗余；换服走首页/桌面 rail/移动 chips）。 */
 export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
   const { members, t } = props;
   const menu = useStore(members.store);
-  const [switcherOpen, setSwitcherOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   // KAAK 式进房交互：单击只点亮行内 join 提示（面板本地态，不动连接层选台），
   // 双击（或 Enter）提交换台；落台后清除。
@@ -52,7 +47,6 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const treeRef = useRef<HTMLDivElement | null>(null);
   const autoScroll = useRef({ frame: 0, delta: 0 });
-  const guardArmed = useRef(false);
 
   // 落台即清除行内 join 提示（旧 watch(currentChannelId) 平价；render 期调态是
   // React 文档认可的「随 props 调整状态」写法，绕开 effect 级联渲染）。
@@ -62,31 +56,7 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
     setPendingJoinId(null);
   }
 
-  useEffect(() => {
-    function onKeydown(event: KeyboardEvent): void {
-      if (event.key === "Escape") setSwitcherOpen(false);
-    }
-    window.addEventListener("keydown", onKeydown);
-    return () => window.removeEventListener("keydown", onKeydown);
-  }, []);
-
   useEffect(() => () => stopAutoScroll(), []);
-
-  // radix 在 pointerdown 外点即收起浮层，随后的合成 click 会落进新暴露的
-  // 面板内容（旧 backdrop 会吞掉它）——一次性捕获守卫平价。
-  function armClickGuard(): void {
-    if (guardArmed.current) return;
-    guardArmed.current = true;
-    const swallow = (event: Event): void => {
-      event.preventDefault();
-      event.stopPropagation();
-    };
-    document.addEventListener("click", swallow, { capture: true, once: true });
-    window.setTimeout(() => {
-      document.removeEventListener("click", swallow, { capture: true });
-      guardArmed.current = false;
-    }, 400);
-  }
 
   // 搜索框聚焦同理：等挂载提交后再 focus。
   useEffect(() => {
@@ -144,43 +114,6 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
     <aside className={cn("member-panel", { "mobile-section-visible": props.mobileVisible })} data-ws-part="voice.member-panel">
       <div className="member-server-header" data-ws-part="voice.server-header">
         <strong>{props.serverLabel}</strong>
-        <DropdownMenu open={switcherOpen} onOpenChange={setSwitcherOpen}>
-          <DropdownMenuTrigger asChild>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost"
-                  type="button"
-                  className="member-server-menu"
-                  data-ws-part="voice.server-switcher.trigger"
-                  aria-label={t("favoriteServers")}
-                >
-                  <Icon name="menu" size={16} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t("favoriteServers")}</TooltipContent>
-            </Tooltip>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            side="bottom"
-            align="end"
-            sideOffset={6}
-            className="member-server-switcher"
-            data-ws-part="voice.server-switcher"
-            onPointerDownOutside={armClickGuard}
-          >
-            {props.switcherServers.map((server) => (
-              <DropdownMenuItem
-                key={server.id}
-                className="member-server-switcher-item"
-                data-ws-state={server.address === props.currentAddress ? "current" : "idle"}
-                onSelect={() => props.onSwitchServer(server)}
-              >
-                <span className="member-server-switcher-icon" style={avatarStyle(server.label, false, "")}>{avatarInitial(server.label)}</span>
-                <span className="member-server-switcher-label">{server.label}</span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
       <div className="member-server-meta" data-ws-part="voice.server-meta">
         <span className="member-server-kind">TeamSpeak</span>

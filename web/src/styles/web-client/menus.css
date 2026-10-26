@@ -1313,61 +1313,6 @@
   }
 }
 
-/* 服务器切换器面板迁 Radix DropdownMenu（批 1 收尾）：摆位/碰撞/外点/Esc 归
-   原语，这里只留宽度；表面样式随原语（bg-menu）。 */
-.member-server-switcher {
-  width: min(250px, calc(100vw - 40px));
-}
-
-.member-server-switcher-item {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-width: 0;
-  min-height: 44px;
-  padding: 5px 8px;
-  border: 0;
-  border-radius: 7px;
-  color: inherit;
-  background: transparent;
-  font-size: 12px;
-  text-align: left;
-  cursor: pointer;
-}
-
-@media (hover: hover) {
-
-.member-server-switcher-item:hover {
-  background: var(--wsd-hover);
-}
-}
-
-.member-server-switcher-item[data-ws-state="current"] {
-  color: var(--wsd-accent);
-  font-weight: 700;
-}
-
-.member-server-switcher-icon {
-  display: grid;
-  flex: 0 0 28px;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  overflow: hidden;
-  border-radius: 50%;
-  color: var(--wsd-on-fill);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.member-server-switcher-label {
-  min-width: 0;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .web-client .server-context-menu-backdrop {
   position: fixed;
   inset: 0;

@@ -333,9 +333,6 @@ export function VoiceShell(props: VoiceShellProps) {
         volumes={voiceView.volumes}
         foldedChannels={foldedChannels}
         onToggleFold={(channelId) => fold.toggle(channelId)}
-        switcherServers={railServers}
-        currentAddress={currentAddress}
-        onSwitchServer={props.onSwitchServer}
         onSelectChannel={props.onSelectChannel}
         isSpeaking={(member) => speakingIds.has(member.id)}
         onVolumeInput={props.onVolumeInput}

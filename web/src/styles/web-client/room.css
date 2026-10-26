@@ -2057,41 +2057,15 @@ button.screen-share-live-indicator:focus-visible {
   }
   }
 
-  .member-server-menu:focus-visible,
-.member-server-menu[aria-expanded="true"] {
-    color: var(--wsd-text);
-    background: var(--wsd-hover);
-  }
-
-  @media (hover: hover) {
-
-  .member-server-menu:hover {
-    color: var(--wsd-text);
-    background: var(--wsd-hover);
-  }
-  }
   .member-panel {
     background: var(--wsd-panel);
     border-right: 1px solid var(--wsd-border);
     border-left: 0;
   }
 
-  .member-server-menu {
-    display: grid;
-    place-items: center;
-    flex: 0 0 auto;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    color: var(--wsd-text-dim);
-    background: transparent;
-    border: 0;
-    border-radius: 7px;
-}
-
   /* 服务器名行在上方连接态默认区被 display:none 收起，≥981 的展开必须同文件
    * 后位压制（跨文件回 chrome 层会被 ws-room 无条件 none 永久吃掉——0c0b6f6
-   * 分文件时层序倒置，≡ 服务器切换器随之全视口不可达）。 */
+   * 分文件时层序倒置，服务器名行随之全视口不可达）。 */
   .member-server-header {
     display: flex;
     flex: 0 0 auto;

@@ -60,9 +60,4 @@ describe("important 锁单源化", () => {
     expect(migrated, "36px 规则必须住在 join.css 与 device-setup 族同文件").toBe(true);
     expect(shard("room").includes('data-ws-part="home.device-setup.open"'), "room.css 不得残留旧副本").toBe(false);
   });
-
-  it("switcher 项的杀灭规则不带 :focus-visible（键盘焦点环保留）", () => {
-    const css = shard("menus");
-    expect(css).not.toMatch(/\.member-server-switcher-item[^{]*:focus-visible[^{]*\{[^}]*outline:\s*none/);
-  });
 });
