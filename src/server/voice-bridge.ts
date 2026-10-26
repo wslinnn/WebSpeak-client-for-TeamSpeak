@@ -108,7 +108,7 @@ export class VoiceBridge {
       cleanupEntry: (entry, reason) => this.cleanupEntry(entry, reason),
       teardown: (entryId, reason) => this.teardown(entryId, reason),
       getWebRtcOptions: () => this.getWebRtcOptions(),
-      getScreenShareIceServers: () => this.getScreenShareIceServers(),
+      getScreenShareIceServers: (advertisedHost?: string) => this.getScreenShareIceServers(advertisedHost),
       stopWebRtc: entry => this.stopWebRtc(entry),
       handleWebRtcOffer: (entry, offer, sendJson) => this.handleWebRtcOffer(entry, offer, sendJson),
     });
@@ -285,9 +285,9 @@ export class VoiceBridge {
     return typeof configured === "function" ? configured() : configured;
   }
 
-  private getScreenShareIceServers(): ScreenShareIceServer[] {
+  private getScreenShareIceServers(advertisedHost?: string): ScreenShareIceServer[] {
     const configured = this.options.screenShareIceServers;
-    const servers = typeof configured === "function" ? configured() : configured;
+    const servers = typeof configured === "function" ? configured(advertisedHost) : configured;
     return normalizeScreenShareIceServers(servers);
   }
 

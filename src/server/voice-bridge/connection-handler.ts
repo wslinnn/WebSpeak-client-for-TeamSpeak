@@ -23,7 +23,7 @@ import type { AvatarService } from "../avatar-service.js";
 import type { DetachedSessionPool } from "./detached-pool.js";
 import type { ServerEvent, VoiceBridgeDependencies, VoiceBridgeOptions, WebClientEntry } from "./types.js";
 import { admitConnection, notePasswordFailure } from "./connection-admission.js";
-import { publicFailureDetail } from "./connection-request.js";
+import { publicFailureDetail, resolveWebRtcPublicHost } from "./connection-request.js";
 import { createConnectionFailureReporter } from "./connection-failure.js";
 import { bindSocketHandlers } from "./connection-socket.js";
 import { connectWithDialTimeout } from "./connection-dial.js";
@@ -46,7 +46,7 @@ export interface VoiceConnectionHandlerDeps {
   cleanupEntry: (entry: WebClientEntry, reason: SessionTeardownReason) => Promise<void>;
   teardown: (entryId: string, reason: SessionTeardownReason) => Promise<void>;
   getWebRtcOptions: () => WebRtcAudioOptions | undefined;
-  getScreenShareIceServers: () => ScreenShareIceServer[];
+  getScreenShareIceServers: (advertisedHost?: string) => ScreenShareIceServer[];
   stopWebRtc: (entry: WebClientEntry) => Promise<void>;
   handleWebRtcOffer: (entry: WebClientEntry, offer: WebRtcSessionDescription, sendJson: (message: ServerMessage) => void) => Promise<void>;
 }
@@ -244,7 +244,7 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       whisperActive: entry!.whisperActive,
       webrtcAvailable: deps.getWebRtcOptions()?.enabled === true,
       webRtcStunServer: deps.getWebRtcOptions()?.stunServer ?? "",
-      screenShareIceServers: deps.getScreenShareIceServers(),
+      screenShareIceServers: deps.getScreenShareIceServers(resolveWebRtcPublicHost(req, deps.trustedProxies)),
       ...(entry!.reconnectTicketToken ? { reconnectTicket: entry!.reconnectTicketToken } : {}),
       ...(entry!.rememberIdentity ? { identity: tsClient.getIdentityString() } : {}),
     });

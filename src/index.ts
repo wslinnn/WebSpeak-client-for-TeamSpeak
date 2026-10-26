@@ -84,15 +84,17 @@ async function main() {
 
   // Screen-share ICE list precedence: explicit env config wins, then the
   // admin-managed list (saved from the console), then the gateway's own STUN
-  // (advertised at the voice public host so cross-LAN peers can actually
-  // reach it), then TeamSpeak's public STUN as fallback.
-  const screenShareIceServers = (): ScreenShareIceServer[] => {
+  // (advertised at the voice public host when set, otherwise at the address
+  // this very connection arrived at — public-VPS deployments configure
+  // neither), then TeamSpeak's public STUN as fallback.
+  const screenShareIceServers = (advertisedHost?: string): ScreenShareIceServer[] => {
     if (ENV_SCREEN_SHARE_ICE_CONFIGURED) return ENV_SCREEN_SHARE_ICE_SERVERS;
     const adminConfigured = database.getMeta("screen_share_ice_servers")?.trim();
     if (adminConfigured) return readScreenShareIceServers(adminConfigured);
-    const publicHost = adminService.getWebRtcAudioOptions().publicHost?.trim() ?? "";
+    const host = adminService.getWebRtcAudioOptions().publicHost?.trim() || advertisedHost || "";
+    const hostLiteral = host.includes(":") ? `[${host}]` : host;
     const servers: ScreenShareIceServer[] = [];
-    if (selfStun && publicHost) servers.push({ urls: `stun:${publicHost}:${STUN_PORT}` });
+    if (selfStun && hostLiteral) servers.push({ urls: `stun:${hostLiteral}:${STUN_PORT}` });
     return normalizeScreenShareIceServers(servers.length ? servers : undefined);
   };
 

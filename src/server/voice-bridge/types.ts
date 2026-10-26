@@ -21,7 +21,11 @@ export interface VoiceBridgeOptions {
    *  resume before the kept TeamSpeak connection is released. */
   resumeGraceMs?: number;
   webRtc?: WebRtcAudioOptions | (() => WebRtcAudioOptions);
-  screenShareIceServers?: ScreenShareIceServer[] | (() => ScreenShareIceServer[]);
+  /** ICE list for browser screen-share peers. The supplier receives the
+   *  media host this very connection arrived at (console override when set,
+   *  otherwise inferred from request headers) so a gateway can advertise its
+   *  own STUN without any console configuration. */
+  screenShareIceServers?: ScreenShareIceServer[] | ((advertisedHost?: string) => ScreenShareIceServer[]);
   /** Declares the reverse proxy in front of the gateway. Forwarded headers are
    *  believed only when the peer that sent them is in `trustedProxies`; this
    *  flag alone means the same-host (loopback) proxy. */
