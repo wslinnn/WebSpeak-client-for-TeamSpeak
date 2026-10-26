@@ -201,6 +201,7 @@ export const enCopy = {
     audit: "Audit trail",
     auditLead: "Administrator and system actions; chat content and secrets are excluded.",
     auditEmpty: "No audit events.",
+    usersTab: "Users",
     justNow: "just now",
     logFilter: "Filter log levels",
     ctxNickname: "user",

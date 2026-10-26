@@ -201,6 +201,7 @@ export const zhCopy = {
     audit: "审计记录",
     auditLead: "管理员和系统操作记录，不包含聊天内容或敏感值。",
     auditEmpty: "暂无审计记录。",
+    usersTab: "用户",
     justNow: "刚刚",
     logFilter: "日志级别筛选",
     ctxNickname: "昵称",

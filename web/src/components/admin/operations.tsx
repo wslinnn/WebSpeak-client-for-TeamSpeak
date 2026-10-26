@@ -40,7 +40,7 @@ export function AdminOperations({ model, messages }: {
   const selectSection = (section: OperationsSection) =>
     setSearchParams(section === "sessions" ? {} : { section }, { replace: true });
   const sectionLabels: Record<OperationsSection, string> = {
-    sessions: tr("sessions"),
+    sessions: tr("usersTab"),
     logs: tr("logViewer"),
     audit: tr("audit"),
     maintenance: tr("diagnostics"),
@@ -140,6 +140,38 @@ export function AdminOperations({ model, messages }: {
             </div>
           )}
         </article>
+        {operations.logs.sessions.length > 0 && (
+          <article className="operation-card">
+            <header>
+              <div>
+                <h3>{tr("connectionHistory")}</h3>
+                <p>{tr("connectionHistoryLead")}</p>
+              </div>
+            </header>
+            <div className="connection-list">
+              {operations.logs.sessions.map((record) => {
+                const routeParts: string[] = [];
+                if (record.target && record.target !== "—") routeParts.push(record.target);
+                if (record.clientIp && record.clientIp !== "—") routeParts.push(`${tr("ctxClientIp")} ${record.clientIp}`);
+                if (record.status === "failed" && record.reason) routeParts.push(connectionFailureText(record.reason));
+                const anchor = record.disconnectedAt ?? record.connectedAt ?? record.startedAt;
+                return (
+                  <div key={record.id} className="connection-row" title={connectionRowTitle(record)}>
+                    <span className={["connection-status", record.status].join(" ")}>{connectionStatusLabel(record.status)}</span>
+                    <div className="connection-person">
+                      <strong>{record.nickname}</strong>
+                      {routeParts.length > 0 && <small className="connection-route">{routeParts.join(" · ")}</small>}
+                    </div>
+                    <div className="connection-when">
+                      {record.durationSeconds != null && <small>{tr("duration")} {formatAge(record.durationSeconds)}</small>}
+                      <small>{formatRelative(anchor)}</small>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </article>
+        )}
       </div>
       )}
       {activeSection === "maintenance" && (
@@ -214,35 +246,17 @@ export function AdminOperations({ model, messages }: {
               ))}
             </div>
           )}
-          {operations.logs.sessions.length > 0 && (
-            <div className="connection-list">
-              <div className="connection-history-heading">
-                <strong>{tr("connectionHistory")}</strong>
-                <small>{tr("connectionHistoryLead")}</small>
-              </div>
-              {operations.logs.sessions.map((record) => {
-                const routeParts: string[] = [];
-                if (record.target && record.target !== "—") routeParts.push(record.target);
-                if (record.clientIp && record.clientIp !== "—") routeParts.push(`${tr("ctxClientIp")} ${record.clientIp}`);
-                if (record.status === "failed" && record.reason) routeParts.push(connectionFailureText(record.reason));
-                const anchor = record.disconnectedAt ?? record.connectedAt ?? record.startedAt;
-                return (
-                  <div key={record.id} className="connection-row" title={connectionRowTitle(record)}>
-                    <span className={["connection-status", record.status].join(" ")}>{connectionStatusLabel(record.status)}</span>
-                    <div className="connection-person">
-                      <strong>{record.nickname}</strong>
-                      {routeParts.length > 0 && <small className="connection-route">{routeParts.join(" · ")}</small>}
-                    </div>
-                    <div className="connection-when">
-                      {record.durationSeconds != null && <small>{tr("duration")} {formatAge(record.durationSeconds)}</small>}
-                      <small>{formatRelative(anchor)}</small>
-                    </div>
-                  </div>
-                );
-              })}
+          {operations.logs.entries.length === 0 ? (
+            <div className="operation-empty">
+              <ActivityIcon size={22} aria-hidden="true" />
+              <span>{tr("noLogs")}</span>
             </div>
-          )}
-          {visibleEntries.length > 0 ? (
+          ) : visibleEntries.length === 0 ? (
+            <div className="operation-empty">
+              <ActivityIcon size={22} aria-hidden="true" />
+              <span>{tr("noLogs")}</span>
+            </div>
+          ) : (
             <div className="log-list">
               {visibleEntries.map((entry, index) => {
                 const level = filterLevelOf(entry.level);
@@ -263,17 +277,6 @@ export function AdminOperations({ model, messages }: {
                   </div>
                 );
               })}
-            </div>
-          ) : operations.logs.entries.length > 0 ? (
-            <div className="operation-empty">
-              <ActivityIcon size={22} aria-hidden="true" />
-              <span>{tr("noLogs")}</span>
-            </div>
-          ) : null}
-          {operations.logs.sessions.length === 0 && operations.logs.entries.length === 0 && (
-            <div className="operation-empty">
-              <ActivityIcon size={22} aria-hidden="true" />
-              <span>{tr("noLogs")}</span>
             </div>
           )}
         </article>
