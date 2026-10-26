@@ -73,7 +73,9 @@ HTTP/WebSocket reachability does not imply media reachability. Allow the complet
 
 ### Screen-share ICE candidates
 
-Screen-share media still prefers a direct browser-to-browser path; WebSpeak only relays negotiation signaling. By default it uses TeamSpeak's public STUN services to discover server-reflexive candidates; STUN does not carry media. If the deployment has an authorized external TURN service, set `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` before starting WebSpeak with a JSON array, for example:
+Screen-share media still prefers a direct browser-to-browser path; WebSpeak only relays negotiation signaling. The gateway ships its own STUN service (UDP `3478`; `WEBSPEAK_STUN_PORT` changes the port, `0` disables it): when the **public media address** is configured, screen share prefers `stun:<public media address>:3478` for reflexive-candidate discovery, with TeamSpeak's public STUN as fallback. STUN only discovers addresses and never carries media. Cross-LAN direct connections require UDP `3478` to be allowed in the firewall. STUN cannot traverse symmetric NATs (including carrier-grade NAT): when both ends sit behind such networks without IPv6 there is no direct path — that is a network property, not a defect.
+
+To override the candidate list entirely (including an external TURN service), set `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` before starting WebSpeak with a JSON array or a comma-separated URL list; it replaces the defaults, for example:
 
 ```json
 [{"urls":"stun:turn.teamspeak.com:3478"},{"urls":"turns:turn.example.com:5349","username":"<username>","credential":"<credential>"}]

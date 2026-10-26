@@ -74,7 +74,9 @@ WebRTC 启用后端口范围会锁定。要修改端口，先关闭 WebRTC 并�
 
 ### 屏幕共享的 ICE 候选
 
-屏幕共享媒体仍优先走浏览器之间的直连，WebSpeak 只转发协商信令。默认使用 TeamSpeak 官方 STUN 服务发现公网候选地址；STUN 不承载媒体。若部署者有合规的外部 TURN 服务，可在启动 WebSpeak 前设置 `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS`，值为 JSON 数组，例如：
+屏幕共享媒体仍优先走浏览器之间的直连，WebSpeak 只转发协商信令。网关自带 STUN 服务（UDP `3478`，`WEBSPEAK_STUN_PORT` 可改端口、设为 `0` 关闭）：设置了「公网媒体地址」时，屏幕共享默认优先使用 `stun:<公网媒体地址>:3478` 发现公网候选，TeamSpeak 官方 STUN 仅作后备；STUN 只做地址发现，不承载媒体。跨网直连需要防火墙放行 UDP `3478`。STUN 无法穿透对称 NAT（含运营商 CGNAT）：两端都处于此类网络且无 IPv6 时没有直连路径，属网络条件限制。
+
+若部署者要完全自定义候选列表（含外部 TURN），可在启动 WebSpeak 前设置 `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS`，值为 JSON 数组或逗号分隔的 URL，设置后覆盖默认列表，例如：
 
 ```json
 [{"urls":"stun:turn.teamspeak.com:3478"},{"urls":"turns:turn.example.com:5349","username":"<username>","credential":"<credential>"}]

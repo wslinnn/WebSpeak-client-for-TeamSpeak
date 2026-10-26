@@ -2,6 +2,7 @@ import path from "node:path";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { normalizeScreenShareIceServers, type ScreenShareIceServer } from "./server/screen-share.js";
+import { startStunServer } from "./server/stun-server.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..");
@@ -13,7 +14,12 @@ const DATA_DIR = process.env.WEBSPEAK_DATA_DIR?.trim() || path.join(ROOT_DIR, "d
 const LOG_DIR = path.join(DATA_DIR, "logs");
 const STATIC_DIR = path.join(ROOT_DIR, "web", "dist");
 const APP_VERSION = readPackageVersion();
-const SCREEN_SHARE_ICE_SERVERS = readScreenShareIceServers(process.env.WEBSPEAK_SCREEN_SHARE_ICE_SERVERS);
+// The gateway answers STUN bindings itself so screen-share peers get a
+// reachable address-discovery server without depending on TeamSpeak's
+// foreign public STUN. WEBSPEAK_STUN_PORT=0 disables the listener.
+const STUN_PORT = readStunPort(process.env.WEBSPEAK_STUN_PORT);
+const ENV_SCREEN_SHARE_ICE_SERVERS = readScreenShareIceServers(process.env.WEBSPEAK_SCREEN_SHARE_ICE_SERVERS);
+const ENV_SCREEN_SHARE_ICE_CONFIGURED = Boolean(process.env.WEBSPEAK_SCREEN_SHARE_ICE_SERVERS?.trim());
 
 async function main() {
   const [{ createLogger }, { createWebServer }, { APP_PORT }, { WebSpeakDatabase }, { loadOrCreateMasterSecret }, { AdminService }, { JoinTicketStore }, { ReconnectTicketStore }, { ServerPasswordGuard }, { createAndroidReleaseLookup }] = await Promise.all([
@@ -72,7 +78,23 @@ async function main() {
 
   logger.info({ dataDir: DATA_DIR }, "Starting WebSpeak server");
 
+  const selfStun = STUN_PORT > 0 ? await startStunServer({ port: STUN_PORT, logger }) : null;
+
   const hasCert = existsSync(path.join(CERT_DIR, "cert.pem"));
+
+  // Screen-share ICE list precedence: explicit env config wins, then the
+  // admin-managed list (saved from the console), then the gateway's own STUN
+  // (advertised at the voice public host so cross-LAN peers can actually
+  // reach it), then TeamSpeak's public STUN as fallback.
+  const screenShareIceServers = (): ScreenShareIceServer[] => {
+    if (ENV_SCREEN_SHARE_ICE_CONFIGURED) return ENV_SCREEN_SHARE_ICE_SERVERS;
+    const adminConfigured = database.getMeta("screen_share_ice_servers")?.trim();
+    if (adminConfigured) return readScreenShareIceServers(adminConfigured);
+    const publicHost = adminService.getWebRtcAudioOptions().publicHost?.trim() ?? "";
+    const servers: ScreenShareIceServer[] = [];
+    if (selfStun && publicHost) servers.push({ urls: `stun:${publicHost}:${STUN_PORT}` });
+    return normalizeScreenShareIceServers(servers.length ? servers : undefined);
+  };
 
   const webServer = createWebServer({
     port: APP_PORT,
@@ -84,7 +106,7 @@ async function main() {
       joinTickets,
       reconnectTickets,
       webRtc: () => adminService.getWebRtcAudioOptions(),
-      screenShareIceServers: () => SCREEN_SHARE_ICE_SERVERS,
+      screenShareIceServers,
       trustProxy,
       trustedProxies,
       serverPasswordGuard,
@@ -103,6 +125,7 @@ async function main() {
   const shutdown = async (signal: string) => {
     logger.info({ signal }, "Shutting down");
     await webServer.stop();
+    await selfStun?.close();
     database.close();
     process.exit(0);
   };
@@ -132,6 +155,13 @@ function removeObsoleteBootstrapFile(): void {
 function readTrustedProxies(value: string | undefined): string[] | undefined {
   const entries = value?.split(/[\s,]+/).filter(Boolean) ?? [];
   return entries.length ? entries : undefined;
+}
+
+function readStunPort(value: string | undefined): number {
+  const raw = value?.trim();
+  if (!raw) return 3478;
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed >= 0 && parsed <= 65535 ? parsed : 3478;
 }
 
 function readScreenShareIceServers(value: string | undefined): ScreenShareIceServer[] {
