@@ -22,7 +22,12 @@ function object<T extends Record<string, Reader>>(fields: T): AdminResponseReade
   };
 }
 
-const auditEvent = object({ event: text, createdAt: text });
+const auditDetails: AdminResponseReader<Record<string, string | number>> = value => Object.fromEntries(
+  Object.entries(record(value))
+    .filter(([, entry]) => typeof entry === "string" || (typeof entry === "number" && Number.isFinite(entry)))
+    .map(([key, entry]) => [key, entry as string | number]),
+);
+const auditEvent = object({ event: text, createdAt: text, details: value => value === undefined ? {} : auditDetails(value) });
 const welcomeTexts = object({ zh: text, en: text, de: text, ru: text, ja: text });
 const settings = object({
   target: text, hasPassword: boolean, accessMode: choice("fixed", "open"), siteName: text,

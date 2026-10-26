@@ -64,16 +64,14 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
     // proxy into one bucket — one person's typos would lock out all logins.
     // Resolve the real client (only trusting forwarded headers when the
     // operator declared a proxy) and aggregate IPv6 the same way as the other
-    // limiters.
-    const peerFor = (request: Request): string => {
-      return rateLimitPeerKey(resolveClientAddress(
-        request.socket.remoteAddress,
-        request.headers["x-forwarded-for"],
-        options.trustedProxies,
-        request.headers["x-real-ip"],
-      ));
-    };
-    const peer = peerFor(request);
+    // limiters. The resolved address is also what the audit trail records.
+    const clientAddress = () => resolveClientAddress(
+      request.socket.remoteAddress,
+      request.headers["x-forwarded-for"],
+      options.trustedProxies,
+      request.headers["x-real-ip"],
+    );
+    const peer = rateLimitPeerKey(clientAddress());
     const retryAfterMs = limiter.retryAfterMs(peer);
     if (retryAfterMs > 0) {
       response.setHeader("Retry-After", String(Math.ceil(retryAfterMs / 1000)));
@@ -86,13 +84,13 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
     if (!await options.service.verifyPassword(username, password)) {
       const delayMs = limiter.recordFailure(peer);
       await waitFor(delayMs);
-      options.service.database.addAudit("ADMIN_LOGIN_FAILED");
+      options.service.database.addAudit("ADMIN_LOGIN_FAILED", { clientIp: clientAddress() });
       logger.warn("Administrator login failed");
       response.status(401).json({ ok: false, code: "INVALID_PASSWORD" });
       return;
     }
     limiter.recordSuccess(peer);
-    options.service.database.addAudit("ADMIN_LOGIN_SUCCEEDED");
+    options.service.database.addAudit("ADMIN_LOGIN_SUCCEEDED", { clientIp: clientAddress() });
     const session = options.sessions.create(response, isSecureRequest(request));
     response.json({ ok: true, csrfToken: session.csrfToken, expiresAt: session.expiresAt, mustChangePassword: options.service.isPasswordChangeRequired() });
   });

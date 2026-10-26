@@ -74,8 +74,11 @@ function readLogTail(filePath: string, maxLines: number, maxBytes = LOG_TAIL_MAX
 
 export function readRecentLogs(logFile: string | undefined, limit: number): AdminLogEntry[] {
   if (!logFile) return [];
-  const lines = readLogTail(logFile, limit).reverse();
-  return lines.map((line) => {
+  // Newest-first: the log viewer answers "what just happened", so the freshest
+  // entry must be the first thing the admin sees (readLogTail already walks
+  // the file backwards). The connection-history view re-derives its own
+  // chronological order from the same file.
+  return readLogTail(logFile, limit).map((line) => {
     try {
       const raw = JSON.parse(line) as Record<string, unknown>;
       const context: Record<string, string | number | boolean> = {};

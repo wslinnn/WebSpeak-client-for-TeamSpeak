@@ -219,12 +219,25 @@ export class WebSpeakDatabase {
     this.insertAudit(event, details, new Date().toISOString());
   }
 
-  recentAudit(limit = 8): Array<{ event: string; createdAt: string }> {
+  recentAudit(limit = 8): Array<{ event: string; createdAt: string; details: Record<string, string | number> }> {
     const normalizedLimit = Math.max(1, Math.min(50, Math.floor(limit)));
     const rows = this.database.prepare(
-      "SELECT event, created_at FROM audit_events ORDER BY id DESC LIMIT ?",
-    ).all(normalizedLimit) as Array<{ event: string; created_at: string }>;
-    return rows.map((row) => ({ event: row.event, createdAt: row.created_at }));
+      "SELECT event, created_at, details_json FROM audit_events ORDER BY id DESC LIMIT ?",
+    ).all(normalizedLimit) as Array<{ event: string; created_at: string; details_json: string }>;
+    return rows.map((row) => {
+      const details: Record<string, string | number> = {};
+      try {
+        const parsed = JSON.parse(row.details_json) as unknown;
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          for (const [key, value] of Object.entries(parsed)) {
+            if (typeof value === "string" || typeof value === "number") details[key] = value;
+          }
+        }
+      } catch {
+        // Malformed details should never take the whole audit feed down.
+      }
+      return { event: row.event, createdAt: row.created_at, details };
+    });
   }
 
   private migrate(existed: boolean): void {
