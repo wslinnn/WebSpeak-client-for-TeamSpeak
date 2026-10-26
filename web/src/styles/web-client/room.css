@@ -540,7 +540,19 @@
   align-items: center;
   gap: 5px;
   color: var(--wsd-text-dim);
-  width: 96px;
+  /* 轨道 w-14 联动定宽：图标 14 + gap 5 + 轨道 56 + gap 5 + 读数 30 = 110 */
+  width: 110px;
+}
+
+/* 原语触控体量（thumb 20px + 纵向垫 10px）为全宽弹窗滑杆设计，紧凑轨道被 thumb
+ * 占近半行程（2026-10-26 用户截图指认过大）；成员行 44px 行高已兜触控，收回密度。 */
+.member-volume [data-slot="slider"] {
+  padding-block: 2px;
+}
+
+.member-volume [data-slot="slider-thumb"] {
+  width: 16px;
+  height: 16px;
 }
 
 .member-volume-value {

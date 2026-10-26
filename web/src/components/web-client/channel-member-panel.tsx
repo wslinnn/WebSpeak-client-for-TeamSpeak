@@ -274,7 +274,7 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
                               <div className="member-volume" data-ws-part="voice.member-row.volume" onPointerDown={(event) => event.stopPropagation()}>
                                 <Icon name={volume === 0 ? "volume-off" : "volume"} size={14} />
                                 <Slider
-                                  className="w-11"
+                                  className="w-14"
                                   value={[Math.round(volume * 100)]}
                                   max={400}
                                   step={5}
