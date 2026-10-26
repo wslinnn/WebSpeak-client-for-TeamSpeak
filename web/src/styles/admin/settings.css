@@ -7,6 +7,73 @@
   gap: 18px;
 }
 
+/* 运营页分区页签：activeSection 落 ?section= 查询参数，深链与点击共用一条路。 */
+.admin-section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 20px;
+  padding: 5px;
+  border: 1px solid var(--wsd-border);
+  border-radius: 12px;
+  background: var(--wsd-raised);
+}
+
+.admin-section-nav > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 9px 15px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: var(--wsd-text-dim);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.admin-section-nav > button:hover {
+  color: var(--wsd-text);
+  background: var(--wsd-panel);
+}
+
+.admin-section-nav > button[aria-current="page"] {
+  color: var(--wsd-accent);
+  background: var(--wsd-panel);
+  border-color: var(--wsd-border);
+}
+
+.admin-section-nav > button:focus-visible {
+  outline: 2px solid var(--wsd-accent);
+  outline-offset: 2px;
+}
+
+.admin-tab-count {
+  padding: 2px 7px;
+  border-radius: 6px;
+  color: var(--wsd-accent);
+  background: var(--wsd-accent-soft);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width:850px) {
+  .admin-section-nav {
+    gap: 4px;
+    padding: 4px;
+  }
+  .admin-section-nav > button {
+    flex: 1 1 auto;
+    padding: 9px 11px;
+    font-size: 11px;
+  }
+}
+
 .system-notice {
   display: flex;
   align-items: center;
@@ -119,10 +186,6 @@
   margin-top: -8px;
   color: var(--wsd-text-dim);
   font-size: 10px;
-}
-
-.lower-operations {
-  margin-top: 18px;
 }
 
 .text-link {
@@ -285,9 +348,6 @@ html[data-ws-route="admin"].dark .table-wrap td small {
   }
   .diagnostic-list {
     grid-template-columns: 1fr;
-  }
-  .lower-operations {
-    margin-top: 14px;
   }
 }
 

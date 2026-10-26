@@ -1,4 +1,5 @@
 import { ActivityIcon, CheckIcon, InfoIcon, RefreshCwIcon, UsersIcon } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { useStore } from "zustand";
 
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,15 @@ import type { AdminMessages } from "@/i18n/admin-messages";
 import type { OperationsController } from "@/admin/operations-controller";
 import type { AdminConnectionRecord } from "@shared/admin-responses";
 
-// 旧 AdminOperations.vue 平价。诊断报告直下（普通链接，无 api 封装）沿用旧语义。
+type OperationsSection = "sessions" | "logs" | "audit" | "maintenance";
+const OPERATIONS_SECTIONS: OperationsSection[] = ["sessions", "logs", "audit", "maintenance"];
+
+function normalizeSection(value: string | null): OperationsSection {
+  return value === "logs" || value === "audit" || value === "maintenance" ? value : "sessions";
+}
+
+// 旧 AdminOperations.vue 平价 + 上游 a2f91e6 的分区页签化：section 落在
+// ?section= 查询参数（URL 即状态），深链与点击共用一条路。
 export function AdminOperations({ model, messages }: {
   model: OperationsController;
   messages: AdminMessages;
@@ -15,6 +24,16 @@ export function AdminOperations({ model, messages }: {
   const { tr, formatDate, formatAge, sessionStateLabel, connectionStatusLabel, eventName, connectionFailureText } = messages;
   const operations = useStore(model.store);
   const { loading, terminating } = operations;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeSection = normalizeSection(searchParams.get("section"));
+  const selectSection = (section: OperationsSection) =>
+    setSearchParams(section === "sessions" ? {} : { section }, { replace: true });
+  const sectionLabels: Record<OperationsSection, string> = {
+    sessions: tr("sessions"),
+    logs: tr("logViewer"),
+    audit: tr("audit"),
+    maintenance: tr("diagnostics"),
+  };
 
   const connectionRoute = (record: AdminConnectionRecord) =>
     tr("connectionFromTo", { ip: record.clientIp || "—", target: record.target || "—" });
@@ -37,6 +56,16 @@ export function AdminOperations({ model, messages }: {
         <InfoIcon size={16} aria-hidden="true" />
         <span>{tr("updateNotice", { version: operations.diagnostics.version || "—" })}</span>
       </div>
+      <nav className="admin-section-nav" aria-label={tr("operations")}>
+        {OPERATIONS_SECTIONS.map((section) => (
+          <button key={section} type="button" aria-current={activeSection === section ? "page" : undefined}
+            onClick={() => selectSection(section)}>
+            {sectionLabels[section]}
+            {section === "sessions" && <span className="admin-tab-count">{operations.sessions.length}</span>}
+          </button>
+        ))}
+      </nav>
+      {activeSection === "sessions" && (
       <div className="operations-grid operations-primary">
         <article className="operation-card operation-wide">
           <header>
@@ -87,7 +116,9 @@ export function AdminOperations({ model, messages }: {
           )}
         </article>
       </div>
-      <div className="operations-grid lower-operations">
+      )}
+      {activeSection === "maintenance" && (
+      <div className="operations-grid">
         <article className="operation-card diagnostics-card">
           <header>
             <div>
@@ -132,6 +163,10 @@ export function AdminOperations({ model, messages }: {
             {tr("exportBackup")}
           </Button>
         </article>
+      </div>
+      )}
+      {activeSection === "logs" && (
+      <div className="operations-grid">
         <article className="operation-card logs-card">
           <header>
             <div>
@@ -188,6 +223,10 @@ export function AdminOperations({ model, messages }: {
             </div>
           )}
         </article>
+      </div>
+      )}
+      {activeSection === "audit" && (
+      <div className="operations-grid">
         <article className="operation-card audit-card">
           <header>
             <div>
@@ -209,6 +248,7 @@ export function AdminOperations({ model, messages }: {
           </ul>
         </article>
       </div>
+      )}
     </section>
   );
 }

@@ -254,11 +254,6 @@ html[data-ws-route="admin"] #root {
   grid-template-columns: repeat(auto-fit,minmax(min(100%,400px),1fr));
 }
 
-.lower-operations {
-  grid-template-columns: repeat(auto-fit,minmax(min(100%,340px),1fr));
-  margin-top: 0;
-}
-
 .operation-card {
   height: auto;
   min-height: 0;
@@ -446,9 +441,6 @@ html[data-ws-route="admin"] #root {
   .operations-page .operations-primary {
     grid-template-columns: repeat(auto-fit,minmax(min(100%,360px),1fr));
   }
-  .operations-page .lower-operations {
-    grid-template-columns: repeat(auto-fit,minmax(min(100%,320px),1fr));
-  }
   .operations-page .operation-card {
     height: auto;
     min-height: 0;
@@ -520,8 +512,7 @@ html[data-ws-route="admin"] #root {
   .overview-page .target-health-card dl {
     grid-template-columns: repeat(auto-fit,minmax(min(100%,190px),1fr));
   }
-  .operations-page .operations-primary,
-  .operations-page .lower-operations {
+  .operations-page .operations-primary {
     grid-template-columns: minmax(0,1fr);
   }
   .operations-page .operation-card {
@@ -587,8 +578,7 @@ html[data-ws-route="admin"] #root {
   gap: 14px;
 }
 
-.operations-page .operations-primary,
-.operations-page .lower-operations {
+.operations-page .operations-primary {
   grid-template-columns: minmax(0,1fr);
   margin-top: 0;
 }
@@ -633,8 +623,7 @@ html[data-ws-route="admin"] #root {
 }
 
 @media (max-width:850px) {
-  .operations-page .operations-primary,
-  .operations-page .lower-operations {
+  .operations-page .operations-primary {
     grid-template-columns: minmax(0,1fr);
   }
   .operations-page .diagnostics-card {
