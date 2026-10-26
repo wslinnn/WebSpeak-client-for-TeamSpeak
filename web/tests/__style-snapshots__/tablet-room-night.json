@@ -1612,7 +1612,7 @@
   "boxShadow": ""
  },
  "voice.member-row.copy#1": {
-  "w": 44,
+  "w": 30,
   "h": 19,
   "display": "block",
   "position": "static",
@@ -1643,8 +1643,8 @@
   "boxShadow": ""
  },
  "voice.member-row.volume": {
-  "w": 96,
-  "h": 26,
+  "w": 110,
+  "h": 14,
   "display": "flex",
   "position": "static",
   "flexDirection": "",

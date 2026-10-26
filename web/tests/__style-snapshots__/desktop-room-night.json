@@ -1303,7 +1303,7 @@
  },
  "voice.channel-group": {
   "w": 277,
-  "h": 111,
+  "h": 110,
   "display": "block",
   "position": "static",
   "flexDirection": "",
@@ -1427,7 +1427,7 @@
  },
  "voice.channel-group.members": {
   "w": 259,
-  "h": 56,
+  "h": 55,
   "display": "flex",
   "position": "static",
   "flexDirection": "",
@@ -1551,7 +1551,7 @@
  },
  "voice.member-row#1": {
   "w": 271,
-  "h": 30,
+  "h": 29,
   "display": "grid",
   "position": "relative",
   "flexDirection": "",
@@ -1612,7 +1612,7 @@
   "boxShadow": ""
  },
  "voice.member-row.copy#1": {
-  "w": 107,
+  "w": 93,
   "h": 19,
   "display": "block",
   "position": "static",
@@ -1643,7 +1643,7 @@
   "boxShadow": ""
  },
  "voice.member-row.flags": {
-  "w": 96,
+  "w": 110,
   "h": 0,
   "display": "block",
   "position": "static",
@@ -1674,8 +1674,8 @@
   "boxShadow": ""
  },
  "voice.member-row.volume": {
-  "w": 96,
-  "h": 26,
+  "w": 110,
+  "h": 14,
   "display": "flex",
   "position": "static",
   "flexDirection": "",
