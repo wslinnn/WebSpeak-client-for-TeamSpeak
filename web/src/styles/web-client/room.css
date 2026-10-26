@@ -2296,6 +2296,9 @@ button.screen-share-live-indicator:focus-visible {
 
   .member-search {
     flex: 0 0 auto;
+    /* 原语 w-full(width:100%) 不含外边距，叠加 16px 水平 margin 会把展开的
+     * 搜索框推出成员列右界 ~15px（压进语音列）——width:auto 交回 flex 拉伸。 */
+    width: auto;
     margin: 10px 16px 0;
   }
 
