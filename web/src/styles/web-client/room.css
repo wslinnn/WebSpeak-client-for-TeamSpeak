@@ -312,6 +312,17 @@
   max-width: 78%;
 }
 
+/* 我的消息右置：头像靠右、内容右对齐（气泡 accent 填充见 .message-bubble.mine 变体）；
+ * align-self 让行收缩到内容宽并贴右（容器是 stretch 的 flex 纵列）。 */
+.message-row.mine {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.message-row.mine .message-meta {
+  justify-content: flex-end;
+}
+
 .message-avatar {
   display: grid;
   place-items: center;
@@ -352,11 +363,18 @@
    * column; pre-wrap preserves the newlines the sender typed. */
   overflow-wrap: anywhere;
   white-space: pre-wrap;
-  padding: 0;
+  padding: 7px 11px;
   color: var(--wsd-text);
-  background: transparent;
+  background: var(--wsd-accent-soft);
+  border-radius: 12px;
   font-size: 13px;
   line-height: 1.55;
+}
+
+/* 我的消息：accent 填充 + 反白字形（夜间自动翻转为浅填充深字形）。 */
+.message-row.mine .message-bubble {
+  color: var(--wsd-accent-contrast);
+  background: var(--wsd-accent-fill);
 }
 
 /* 作曲器皮随一致性战役 F2 退役：容器归 InputGroup 原语（边框/底色/焦点环/
