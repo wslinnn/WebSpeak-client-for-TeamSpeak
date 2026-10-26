@@ -1401,12 +1401,32 @@
   width: 100%;
   min-height: 46px;
   justify-content: flex-start;
+  gap: 8px;
   padding-inline: 12px;
   color: var(--wsd-text);
   background: var(--wsd-raised);
   border: 1px solid var(--wsd-border);
   border-radius: 9px;
   font-size: 12px;
+  font-weight: 700;
+}
+
+/* 移动端「更多」面板：语言触发器与面板其它行同款通栏（fixedBelow 悬浮
+ * 展开逻辑不变，只动外观）。 */
+.mobile-language-switcher .language-trigger {
+  display: flex;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding-inline: 12px;
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border: 1px solid var(--wsd-border);
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 /* The more-panel row recipe lives in ws-chrome; this modifier restates the

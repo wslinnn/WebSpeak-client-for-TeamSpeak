@@ -243,9 +243,9 @@
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  color: var(--wsd-text-muted);
-  background: transparent;
-  border: 1px dashed color-mix(in srgb, var(--wsd-text) 26%, transparent);
+  color: var(--wsd-text);
+  background: var(--wsd-raised);
+  border: 1px dashed color-mix(in srgb, var(--wsd-text) 45%, transparent);
 }
 
 @media (hover: hover) {
@@ -455,17 +455,22 @@
     height: auto;
     padding: 4px 5px 5px;
     border-radius: 11px;
+    color: var(--wsd-text);
     background: transparent;
     border-color: transparent;
   }
+  /* 字母方块自带实体表面：恒白 on-fill 字色只配桌面 rail 的按钮底，
+   * 移动条透明 chip 上是白字贴白底（浅色主题不可见）。 */
   .favorite-server-chip-initial {
     display: grid;
     place-items: center;
     width: 38px;
     height: 38px;
     border-radius: 12px;
-    color: var(--wsd-on-fill);
+    color: var(--wsd-text);
+    background: var(--wsd-raised);
     font-size: 15px;
+    font-weight: 700;
   }
   .favorite-server-chip-label {
     display: block;
@@ -484,7 +489,12 @@
   .favorite-server-chip.active {
     color: var(--wsd-accent);
     background: color-mix(in srgb, var(--wsd-accent) 12%, var(--wsd-panel));
+    border-color: color-mix(in srgb, var(--wsd-accent) 38%, transparent);
     box-shadow: none;
+  }
+  .favorite-server-chip.active .favorite-server-chip-initial {
+    color: var(--wsd-accent);
+    background: color-mix(in srgb, var(--wsd-accent) 14%, var(--wsd-panel));
   }
   .crumb-muted,
   .breadcrumbs > .ui-icon {

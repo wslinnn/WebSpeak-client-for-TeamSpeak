@@ -1316,7 +1316,8 @@
     font-size: 12px;
   }
   .app-shell.mobile-view-chat .message-bubble {
-    padding: 0;
+    /* padding: 0 是气泡填色改造前「裸文本」时代的旧口径，会让移动端气泡
+     * 字贴边——删去后回落基础规则的 7px 11px 内边距。 */
     font-size: 14px;
   }
   .app-shell.mobile-view-chat .message-composer {

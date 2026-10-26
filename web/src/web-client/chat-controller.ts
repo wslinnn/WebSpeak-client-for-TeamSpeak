@@ -13,6 +13,9 @@ interface PrivateConversation {
   key: string;
   name: string;
   lastMessage: number;
+  /** 对端不在当前频道成员列表（换身份重连/离开）：页签排尾加离线标记，
+   *  本地历史保留可查看；对端重新同频道后自动回到正常排序。 */
+  offline: boolean;
 }
 
 export interface ChatStore {
@@ -118,9 +121,12 @@ export function createChatController(options: Options) {
         id: member?.id ?? id, key,
         name: member?.nickname ?? message.conversationName ?? existing?.name ?? (message.isSelf ? options.t("privateMessage") : message.invokerName),
         lastMessage: Math.max(existing?.lastMessage ?? 0, message.timestamp),
+        offline: !member,
       });
     }
-    return [...byConversation.values()].sort((left, right) => right.lastMessage - left.lastMessage);
+    // 在册会话按最近消息排前，过期（对端不在频道）会话排尾，各自组内仍按时间降序。
+    return [...byConversation.values()].sort((left, right) =>
+      left.offline !== right.offline ? (left.offline ? 1 : -1) : right.lastMessage - left.lastMessage);
   }
 
   function visibleMessages(messages: readonly ChatMessage[] = options.session.getState().chatMessages): ChatMessage[] {
@@ -187,7 +193,7 @@ export function createChatController(options: Options) {
   function openPrivateChat(targetClientId: number): void {
     const member = options.session.getState().members.find((candidate) => candidate.id === targetClientId);
     if (!member || targetClientId === options.getClientId()) return;
-    openConversation({ id: targetClientId, key: memberKey(member), name: member.nickname, lastMessage: 0 });
+    openConversation({ id: targetClientId, key: memberKey(member), name: member.nickname, lastMessage: 0, offline: false });
   }
 
   function openConversation(conversation: PrivateConversation): void {

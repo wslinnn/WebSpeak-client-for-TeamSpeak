@@ -127,3 +127,33 @@ test("incoming messages reach the memoized list and every row renders avatar+met
   expect(view.container.querySelectorAll(".message-avatar-spacer")).toHaveLength(0);
   expect(view.container.querySelectorAll(".message-meta")).toHaveLength(2);
 });
+
+test("页签切换把激活页签滚入视野（移动端横滑容器）", () => {
+  // jsdom 未实现 scrollIntoView：原型补 spy，测试后移除。
+  const scrollIntoView = vi.fn();
+  (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView = scrollIntoView;
+  try {
+    const { chat } = harness([message("m1")]);
+    const view = renderPanel(chat);
+    const callsAfterMount = scrollIntoView.mock.calls.length;
+    view.rerender(
+      <TooltipProvider>
+        <ChatPanel
+          chat={chat}
+          tab="events"
+          language="zh"
+          currentChannelName="Lobby"
+          mobileHidden={false}
+          serverEvents={[]}
+          members={[]}
+          onListElement={() => {}}
+          onCollapse={() => {}}
+          t={(key) => key}
+        />
+      </TooltipProvider>,
+    );
+    expect(scrollIntoView.mock.calls.length).toBeGreaterThan(callsAfterMount);
+  } finally {
+    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+  }
+});

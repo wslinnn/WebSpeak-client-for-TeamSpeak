@@ -188,6 +188,14 @@
   }
   .chat-tabs button { min-height: 44px; min-width: 44px; }
   .chat-tabs button { max-width: 70vw; overflow: hidden; text-overflow: ellipsis; }
+  .chat-tabs button[data-offline] { opacity: .55; }
+  /* 页签条横滑且滚动条隐藏：右缘渐隐提示还有更多页签（配合激活页签
+   * scrollIntoView，切到被裁的页签自动带过去）。mask 只取 alpha 通道，
+   * currentColor 提供不透明色即可。 */
+  .chat-tabs {
+    mask-image: linear-gradient(to right, currentColor calc(100% - 28px), transparent);
+    -webkit-mask-image: linear-gradient(to right, currentColor calc(100% - 28px), transparent);
+  }
 
   .member-menu-backdrop {
     top: var(--ws-viewport-top, 0px);

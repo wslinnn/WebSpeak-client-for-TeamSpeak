@@ -186,6 +186,7 @@ export const zh: Record<string, string> = {
     chatTabs: "聊天标签",
     serverChat: "服务器",
     privateMessage: "私聊",
+    offlineConversationTab: "对端已离开频道，仅剩本地历史",
     privateMessagePlaceholder: "发送私聊消息…",
     serverMessagePlaceholder: "发送服务器消息…",
     channelPasswordPrompt: "请输入频道密码",

@@ -34,7 +34,9 @@ export function VoiceMobileMore(props: VoiceMobileMoreProps) {
         onToggle={props.theme.onToggle}
         label={props.theme.label}
         className="mobile-theme-toggle"
-      />
+      >
+        {props.theme.label}
+      </ThemeToggle>
       {/* 原 Vue 版这里可点开语言菜单；React 平移时曾退化成静态 div，移动端
        *  语言切换完全不可达（2026-10-18 用户报告）。 */}
       <LanguageSwitcher

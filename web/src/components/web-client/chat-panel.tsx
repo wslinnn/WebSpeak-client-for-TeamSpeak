@@ -147,6 +147,14 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
   // 页签值空间：私聊页签用 `private:<key>` 编码（radix Tabs 的 value 必须唯一标识
   // 每个触发器；私聊会话是动态多枚）。
   const activeTabValue = tab === "private" ? `private:${chatUi.privateConversationKey}` : tab;
+  const tabsListRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    // 移动端页签条横滑且滚动条隐藏：切到被视口裁掉的页签（如事件日志）时
+    // 自动滚入视野，block:nearest 防止连带滚动整页。scrollIntoView 可选链
+    // 兼容 jsdom（未实现该方法）。
+    tabsListRef.current?.querySelector('[data-state="active"]')
+      ?.scrollIntoView?.({ inline: "nearest", block: "nearest" });
+  }, [activeTabValue]);
 
   function onTabChange(value: string): void {
     if (value.startsWith("private:")) {
@@ -244,7 +252,7 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
         )}
       </div>
       <Tabs value={activeTabValue} onValueChange={onTabChange}>
-        <TabsList className="chat-tabs" data-ws-part="voice.chat.tabs" aria-label={t("chatTabs")}>
+        <TabsList ref={tabsListRef} className="chat-tabs" data-ws-part="voice.chat.tabs" aria-label={t("chatTabs")}>
           <TabsTrigger value="channel" data-ws-part="voice.chat.tab" data-ws-state={tab === "channel" ? "active" : "idle"}>
             <Icon name="hash" size={15} />
             {" "}
@@ -261,6 +269,8 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
               value={`private:${conversation.key}`}
               data-ws-part="voice.chat.tab"
               data-ws-state={tab === "private" && chatUi.privateConversationKey === conversation.key ? "active" : "idle"}
+              data-offline={conversation.offline ? "true" : undefined}
+              title={conversation.offline ? t("offlineConversationTab") : undefined}
             >
               <Icon name="message" size={15} />
               {" "}

@@ -186,6 +186,7 @@ export const en: Record<string, string> = {
     chatTabs: "Chat tabs",
     serverChat: "Server",
     privateMessage: "Private message",
+    offlineConversationTab: "Peer has left the channel; only local history remains",
     privateMessagePlaceholder: "Message privately…",
     serverMessagePlaceholder: "Message the server…",
     channelPasswordPrompt: "Enter the channel password",
