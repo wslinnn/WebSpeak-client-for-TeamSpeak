@@ -56,6 +56,12 @@
   border-top: 1px solid var(--admin-on-dark-line);
 }
 
+/* a 与 shadcn Button（自带 justify-center）对齐：底部两行动作内容统一居中。 */
+.sidebar-bottom a,
+.sidebar-bottom button {
+  justify-content: center;
+}
+
 .admin-topbar {
   display: flex;
   align-items: center;

@@ -157,7 +157,6 @@ html[data-ws-route="admin"].dark .admin-root {
   color: var(--admin-sidebar-muted);
 }
 
-.admin-root .admin-sidebar nav a.active {
-  color: var(--wsd-text);
-  background: var(--wsd-accent);
-}
+/* nav a.active 的锁面单源住 shell-dark.css（accent 底 + accent-contrast 字，夜间
+ * 翻墨）；本文件曾有一份 --wsd-text 字的副本且后位胜出，夜间浅底浅字不可读，
+ * 已删——勿再加回来。 */
