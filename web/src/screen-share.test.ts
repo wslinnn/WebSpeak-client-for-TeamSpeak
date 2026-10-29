@@ -32,6 +32,7 @@ class Peer {
   parameters: { encodings: Array<Record<string, unknown>> } | null = null;
   codecPreferences: Array<{ mimeType: string }> = [];
   closed = false;
+  restartCalls = 0;
   configuration: { iceServers?: unknown };
   private readonly transceivers: Array<Record<string, unknown>> = [];
   constructor(configuration: { iceServers?: unknown }) {
@@ -65,6 +66,7 @@ class Peer {
   }
   getTransceivers() { return this.transceivers; }
   getStats() { return Peer.stats(); }
+  restartIce() { this.restartCalls++; }
   close() { this.closed = true; this.connectionState = "closed"; }
 }
 
@@ -194,4 +196,74 @@ test("AV1 keeps its fallback priority over VP8 when the browser has no H.264", a
   assert.deepEqual(Peer.instances[0]?.codecPreferences.map(codec => codec.mimeType), [
     "video/av1", "video/vp8", "video/rtx",
   ]);
+});
+
+test("a viewer's failed watch attempt never paints an error on the owner or stops the broadcast", async () => {
+  await controller.startScreenShare();
+  confirmStart("live-1");
+  controller.handleMessage({ type: "screenShareSignal", streamId: "live-1", fromPeerId: "viewer-1", signal: { kind: "offer", sdp: "offer" } } as never);
+  await nextTurn();
+  const peer = Peer.instances.at(-1)!;
+  assert.equal(sent.some(message => message.type === "screenShareSignal"), true);
+  peer.connectionState = "failed";
+  (peer as unknown as { onconnectionstatechange?: () => void }).onconnectionstatechange?.();
+  assert.equal(peer.restartCalls, 1);
+  assert.equal(SS().error, "");
+  peer.connectionState = "failed";
+  (peer as unknown as { onconnectionstatechange?: () => void }).onconnectionstatechange?.();
+  assert.equal(peer.closed, true);
+  assert.equal(SS().error, "");
+  assert.equal(SS().active, true);
+  assert.equal(SS().activeStreamId, "live-1");
+  assert.equal(sent.some(message => message.type === "screenShareStop"), false);
+  assert.equal(sent.some(message => message.type === "screenShareLeave"), false);
+});
+
+test("a stalled viewer negotiation retries once via ICE restart before failing locally", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    controller.handleMessage({ type: "screenShareJoined", stream: remote } as never);
+    await nextTurn();
+    await nextTurn();
+    assert.equal(sent.some(message => message.type === "screenShareSignal"), true);
+    const peer = Peer.instances[0]!;
+    await vi.advanceTimersByTimeAsync(15_000);
+    assert.equal(peer.restartCalls, 1);
+    assert.equal(SS().viewing, true);
+    assert.equal(SS().error, "");
+    await vi.advanceTimersByTimeAsync(15_000);
+    assert.equal(peer.restartCalls, 1);
+    assert.equal(SS().error.includes("协商超时"), true);
+    assert.equal(SS().viewing, false);
+    assert.equal(SS().remoteStream, null);
+    assert.equal(sent.some(message => message.type === "screenShareLeave"), true);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("a late duplicate start acknowledgement never stops the live broadcast", async () => {
+  await controller.startScreenShare();
+  const requestId = sent.at(-1)?.requestId;
+  confirmStart("live-1", requestId);
+  assert.equal(SS().active, true);
+  controller.handleMessage({ type: "screenShareStarted", owner: true, requestId: "stale", stream: { ...remote, streamId: "live-1" } } as never);
+  assert.equal(sent.some(message => message.type === "screenShareStop"), false);
+  assert.equal(SS().active, true);
+  assert.equal(SS().activeStreamId, "live-1");
+});
+
+test("an unrelated error cannot abort a pending start, a start rejection still can", async () => {
+  const capture = stream();
+  Object.assign(globalThis.navigator as { mediaDevices: { getDisplayMedia: () => Promise<unknown> } }, {
+    mediaDevices: { getDisplayMedia: async () => capture },
+  });
+  await controller.startScreenShare();
+  const requestId = sent.at(-1)?.requestId;
+  controller.handleMessage({ type: "screenShareError", requestId: "other-request", code: "SCREEN_SHARE_SIGNAL_FAILED", message: "unrelated" } as never);
+  assert.equal(SS().starting, true);
+  assert.equal(capture.track.readyState, "live");
+  controller.handleMessage({ type: "screenShareError", requestId, code: "SCREEN_SHARE_ERROR", message: "start rejected" } as never);
+  assert.equal(SS().starting, false);
+  assert.equal(capture.track.readyState, "ended");
 });

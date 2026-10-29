@@ -3,6 +3,10 @@ import { parseScreenShareStream, parseScreenShareViewers, type ServerMessage } f
 import { normalizeScreenShareIceServers, type ScreenShareIceServer, type ScreenShareClientMessage, type ScreenShareStreamDescription as ScreenShareStream, type ScreenSharePeerSignal as ScreenShareSignal } from "@shared/screen-share";
 
 const SCREEN_SHARE_NEGOTIATION_TIMEOUT_MS = 15_000;
+// Each peer gets one ICE-restart retry (slow candidate exchange gets a second
+// gathering window); the budget is consumed by whichever arrives first — the
+// negotiation timer or a `failed` connection state.
+const SCREEN_SHARE_CONNECT_RETRIES = 1;
 
 export interface ScreenShareOutputSettings {
   maxWidth?: number;
@@ -58,6 +62,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
   const screenSharePendingIce = new Map<string, RTCIceCandidateInit[]>();
   const screenSharePeerStreams = new Map<string, MediaStream>();
   const screenSharePeerTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const screenSharePeerRetries = new Map<string, number>();
   let screenShareRequestSequence = 0;
   let screenSharePendingStartId = "";
   let screenShareStartCancelled = false;
@@ -74,12 +79,29 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     screenSharePeerTimers.delete(peerId);
   }
 
+  function restartScreenShareIce(peerId: string, peer: RTCPeerConnection): boolean {
+    const attempts = screenSharePeerRetries.get(peerId) ?? 0;
+    if (attempts >= SCREEN_SHARE_CONNECT_RETRIES) return false;
+    screenSharePeerRetries.set(peerId, attempts + 1);
+    try {
+      peer.restartIce();
+    } catch {
+      return false;
+    }
+    return true;
+  }
+
   function armScreenSharePeerTimer(peerId: string): void {
     if (!screenSharePeers.has(peerId)) return;
     clearScreenSharePeerTimer(peerId);
     screenSharePeerTimers.set(peerId, setTimeout(() => {
       screenSharePeerTimers.delete(peerId);
-      if (!screenSharePeers.has(peerId)) return;
+      const peer = screenSharePeers.get(peerId);
+      if (!peer) return;
+      if (restartScreenShareIce(peerId, peer)) {
+        armScreenSharePeerTimer(peerId);
+        return;
+      }
       failScreenSharePeer(peerId, "屏幕共享直连协商超时，请确认双方网络允许浏览器直连");
     }, SCREEN_SHARE_NEGOTIATION_TIMEOUT_MS));
   }
@@ -89,6 +111,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     const peer = screenSharePeers.get(peerId);
     screenSharePeers.delete(peerId);
     screenSharePeerRoles.delete(peerId);
+    screenSharePeerRetries.delete(peerId);
     screenShareStats.forgetPeer(peerId);
     screenSharePendingIce.delete(peerId);
     screenSharePeerStreams.get(peerId)?.getTracks().forEach(track => track.stop());
@@ -123,17 +146,21 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     if (viewingStream) sendScreenShareMessage({ type: "screenShareLeave", streamId: viewingStream.streamId });
     // collectStats must run before close(): a closed peer rejects getStats.
     const failingPeer = screenSharePeers.get(peerId);
-    const failureSummary = failingPeer ? summarizeIceFailure(failingPeer, screenShareIceServers) : Promise.resolve(null);
+    const failureSummary = viewingStream && failingPeer ? summarizeIceFailure(failingPeer, screenShareIceServers) : Promise.resolve(null);
     closeScreenSharePeer(peerId);
     if (viewingStream) {
       store.setState({ viewing: false, viewingStreamId: "", remoteStream: null });
+      const baseMessage = message ?? "直连 P2P 失败，当前网络无法建立浏览器之间的直接连接";
+      setScreenShareP2PError(baseMessage);
+      void failureSummary.then((summary) => {
+        // Only augment if the failure message is still the one on display.
+        if (summary && V().error === baseMessage) store.setState({ error: `${baseMessage}（诊断：${summary}）` });
+      });
     }
-    const baseMessage = message ?? "直连 P2P 失败，当前网络无法建立浏览器之间的直接连接";
-    setScreenShareP2PError(baseMessage);
-    void failureSummary.then((summary) => {
-      // Only augment if the failure message is still the one on display.
-      if (summary && V().error === baseMessage) store.setState({ error: `${baseMessage}（诊断：${summary}）` });
-    });
+    // Facet separation: a viewer's failed watch attempt surfaces only on the
+    // viewer. The owner silently retires the peer — the same event used to
+    // paint a fatal P2P banner on the owner's workspace, which read as "the
+    // stream died" and made owners stop a healthy broadcast.
   }
 
   function createScreenSharePeer(streamId: string, peerId: string, role: "owner" | "viewer"): RTCPeerConnection {
@@ -188,8 +215,9 @@ export function createScreenShareController(transport: ScreenShareTransport) {
       // transitions we need to handle here.
       if (peer.connectionState === "connected") {
         clearScreenSharePeerTimer(peerId);
+        screenSharePeerRetries.delete(peerId);
       } else if (peer.connectionState === "failed") {
-        failScreenSharePeer(peerId);
+        if (!restartScreenShareIce(peerId, peer)) failScreenSharePeer(peerId);
       }
       if (peer.connectionState === "closed" && screenSharePeers.get(peerId) === peer) closeScreenSharePeer(peerId);
     };
@@ -565,11 +593,19 @@ export function createScreenShareController(transport: ScreenShareTransport) {
         if (msg.owner === true) {
           const requestId = typeof msg.requestId === "string" ? msg.requestId : "";
           const isCurrentStart = Boolean(screenSharePendingStartId) && requestId === screenSharePendingStartId && !screenShareStartCancelled;
-          if (!isCurrentStart) {
-            sendScreenShareMessage({ type: "screenShareStop", streamId: stream.streamId });
-            removeStream(stream.streamId);
+        if (!isCurrentStart) {
+          // An acknowledgement for the stream we are already sharing is a late
+          // duplicate, not a ghost: reposting screenShareStop from here once
+          // tore down a healthy broadcast for every viewer.
+          if (V().activeStreamId === stream.streamId) {
+            screenSharePendingStartId = "";
+            store.setState({ starting: false, active: true });
             break;
           }
+          sendScreenShareMessage({ type: "screenShareStop", streamId: stream.streamId });
+          removeStream(stream.streamId);
+          break;
+        }
           screenSharePendingStartId = "";
           store.setState({ starting: false, active: true, activeStreamId: stream.streamId });
         }
@@ -635,12 +671,20 @@ export function createScreenShareController(transport: ScreenShareTransport) {
         };
         store.setState(patch);
         if (V().starting) {
-          screenSharePendingStartId = "";
-          screenShareStartCancelled = false;
-          screenShareLocalStream?.getTracks().forEach((track) => track.stop());
-          screenShareLocalStream = null;
-          screenShareOutputSettings = null;
-          store.setState({ starting: false });
+          // Only a rejection of the start request itself may abort a pending
+          // start. Any other error used to clear the pending start id, so a
+          // late screenShareStarted then failed the currency check and the
+          // stale-start guard reposted screenShareStop — killing the broadcast
+          // server-side while the capture was already gone.
+          const requestId = typeof msg.requestId === "string" ? msg.requestId : "";
+          if (requestId && requestId === screenSharePendingStartId) {
+            screenSharePendingStartId = "";
+            screenShareStartCancelled = false;
+            screenShareLocalStream?.getTracks().forEach((track) => track.stop());
+            screenShareLocalStream = null;
+            screenShareOutputSettings = null;
+            store.setState({ starting: false });
+          }
         }
         if (V().viewing) {
           if (V().viewingStreamId) sendScreenShareMessage({ type: "screenShareLeave", streamId: V().viewingStreamId });
