@@ -8,6 +8,13 @@ const SCREEN_SHARE_NEGOTIATION_TIMEOUT_MS = 15_000;
 // target on the owner side. The negotiated fmtp ceiling (our offers declare
 // stereo + 510 kbps receive) remains the harder cap above this target.
 const SCREEN_SHARE_AUDIO_SEND_BITRATE_BPS = 128_000;
+// ICE/DTLS success is not picture success: a connected peer can stay black
+// when the publisher stalled. The first actually decoded frame is the proof
+// that watching works; until then the viewer gets a Progress note, and a
+// connected-but-frameless peer gets an explicit stall diagnosis instead of an
+// infinite spinner (Piik decoded-frame-proof 同源，路由无切换时仅作观看诊断).
+const SCREEN_SHARE_FIRST_FRAME_PROOF_TICK_MS = 500;
+const SCREEN_SHARE_FIRST_FRAME_PROOF_TIMEOUT_MS = 10_000;
 // Each peer gets one ICE-restart retry (slow candidate exchange gets a second
 // gathering window); the budget is consumed by whichever arrives first — the
 // negotiation timer or a `failed` connection state.
@@ -96,6 +103,68 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     return true;
   }
 
+  const screenShareFrameProofTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+  function stopFirstFrameProof(peerId: string): void {
+    const timer = screenShareFrameProofTimers.get(peerId);
+    if (!timer) return;
+    clearTimeout(timer);
+    screenShareFrameProofTimers.delete(peerId);
+  }
+
+  async function readFirstDecodedFrame(peer: RTCPeerConnection, track: MediaStreamTrack): Promise<number> {
+    try {
+      const receiver = typeof peer.getReceivers === "function" ? peer.getReceivers().find(candidate => candidate.track === track) : null;
+      if (!receiver?.getStats) return 0;
+      const stats = await receiver.getStats();
+      let decoded = 0;
+      stats?.forEach((report) => {
+        const entry = report as { type?: string; kind?: string; framesDecoded?: number };
+        if (entry.type === "inbound-rtp" && entry.kind === "video" && typeof entry.framesDecoded === "number") {
+          decoded = Math.max(decoded, entry.framesDecoded);
+        }
+      });
+      return decoded;
+    } catch {
+      return 0;
+    }
+  }
+
+  /** 观看端首帧证明：ontrack 只说明 SDP 已应用，不说明有画面。探针
+   *  轮询接收端 framesDecoded，首帧落地即静默退役；连接打开后 10s 仍无
+   *  帧才给观看者本地 stall 诊断（慢 ICE 不计窗口——预算从连接真正打开
+   *  起算；协商死线无论此刻是否连接都由既有 timer 兜底）。 */
+  function startFirstFrameProof(peerId: string, peer: RTCPeerConnection, track: MediaStreamTrack): void {
+    stopFirstFrameProof(peerId);
+    const startedAt = Date.now();
+    let openedAt = 0;
+    const schedule = (): void => {
+      screenShareFrameProofTimers.set(peerId, setTimeout(tick, SCREEN_SHARE_FIRST_FRAME_PROOF_TICK_MS));
+    };
+    const tick = (): void => {
+      screenShareFrameProofTimers.delete(peerId);
+      if (!screenSharePeers.has(peerId)) return;
+      if (peer.connectionState !== "connected") {
+        // 慢 ICE 阶段不计画面窗口：未连接期的失败由协商死线兜底；探针仅在
+        // 双倍预算内陪跑，超了静默退役，避免与协商超时叠报。
+        if (Date.now() - startedAt < SCREEN_SHARE_FIRST_FRAME_PROOF_TIMEOUT_MS * 2) schedule();
+        return;
+      }
+      if (!openedAt) openedAt = Date.now();
+      void readFirstDecodedFrame(peer, track).then((decoded) => {
+        if (!screenSharePeers.has(peerId)) return;
+        if (decoded > 0 || Date.now() - openedAt >= SCREEN_SHARE_FIRST_FRAME_PROOF_TIMEOUT_MS) {
+          if (decoded === 0) {
+            store.setState({ error: "直连已建立但迟迟没有画面帧：共享端可能已停止画面或编码卡住，可停止观看后重新观看" });
+          }
+          return;
+        }
+        schedule();
+      });
+    };
+    schedule();
+  }
+
   function armScreenSharePeerTimer(peerId: string): void {
     if (!screenSharePeers.has(peerId)) return;
     clearScreenSharePeerTimer(peerId);
@@ -113,6 +182,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
 
   function closeScreenSharePeer(peerId: string): void {
     clearScreenSharePeerTimer(peerId);
+    stopFirstFrameProof(peerId);
     const peer = screenSharePeers.get(peerId);
     screenSharePeers.delete(peerId);
     screenSharePeerRoles.delete(peerId);
@@ -207,11 +277,14 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     };
     peer.ontrack = (event) => {
       if (!isCurrentPeer(peerId, peer) || role !== "viewer") return;
-      clearScreenSharePeerTimer(peerId);
+      // The negotiation deadline stays armed until the connection itself
+      // proves itself: ontrack fires with the SDP, not with picture. Clearing
+      // here once left slow-ICE viewers in an unguarded endless spinner.
       const remote = event.streams[0] ?? screenSharePeerStreams.get(peerId) ?? new MediaStream();
       if (!event.streams[0]) remote.addTrack(event.track);
       screenSharePeerStreams.set(peerId, remote);
       store.setState({ remoteStream: remote, viewing: true });
+      startFirstFrameProof(peerId, peer, event.track);
     };
     peer.onconnectionstatechange = () => {
       if (!isCurrentPeer(peerId, peer)) return;

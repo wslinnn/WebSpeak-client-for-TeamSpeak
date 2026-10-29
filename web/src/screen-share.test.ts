@@ -33,6 +33,8 @@ class Peer {
   codecPreferences: Array<{ mimeType: string }> = [];
   closed = false;
   restartCalls = 0;
+  receivers: Array<{ track: unknown; getStats: () => Promise<Map<string, Record<string, unknown>>> }> = [];
+  ontrack: ((event: { track: unknown; streams: readonly unknown[] }) => void) | null = null;
   configuration: { iceServers?: unknown };
   private readonly transceivers: Array<Record<string, unknown>> = [];
   constructor(configuration: { iceServers?: unknown }) {
@@ -66,6 +68,7 @@ class Peer {
   }
   getTransceivers() { return this.transceivers; }
   getStats() { return Peer.stats(); }
+  getReceivers() { return this.receivers; }
   restartIce() { this.restartCalls++; }
   close() { this.closed = true; this.connectionState = "closed"; }
 }
@@ -285,6 +288,90 @@ test("the owner pins a music-grade send target on the audio sender", async () =>
   const peer = Peer.instances.at(-1)!;
   const encodings = ((peer.parameters ?? { encodings: [] }).encodings?.[0] ?? {}) as { maxBitrate?: number };
   assert.equal(encodings.maxBitrate, 128_000, "the audio sender carries the music bitrate target");
+});
+
+test("a decoded frame retires the first-frame proof silently", async () => {
+  vi.stubGlobal("MediaStream", class {
+    private readonly tracks: Track[];
+    constructor(tracks?: Track[]) { this.tracks = [...(tracks ?? [])]; }
+    addTrack(track: Track): void { this.tracks.push(track); }
+    getTracks(): Track[] { return this.tracks; }
+  });
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+  try {
+    controller.handleMessage({ type: "screenShareJoined", stream: remote } as never);
+    await vi.advanceTimersByTimeAsync(0);
+    const peer = Peer.instances[0]!;
+    const proofTrack = new Track();
+    peer.receivers = [{ track: proofTrack, getStats: () => Promise.resolve(new Map([["r1", { type: "inbound-rtp", kind: "video", framesDecoded: 5 }]])) }];
+    peer.ontrack?.({ track: proofTrack, streams: [] } as never);
+    await vi.advanceTimersByTimeAsync(600);
+    assert.equal(SS().error, "", "a decoded frame is proof of a working watch");
+    assert.equal(SS().viewing, true);
+    assert.equal(sent.some(message => message.type === "screenShareLeave"), false);
+  } finally {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.stubGlobal("RTCPeerConnection", Peer);
+    vi.stubGlobal("navigator", { mediaDevices: { getDisplayMedia: async () => stream() } });
+  }
+});
+
+test("a connected but frameless peer gets a stall diagnosis instead of an endless spinner", async () => {
+  vi.stubGlobal("MediaStream", class {
+    private readonly tracks: Track[];
+    constructor(tracks?: Track[]) { this.tracks = [...(tracks ?? [])]; }
+    addTrack(track: Track): void { this.tracks.push(track); }
+    getTracks(): Track[] { return this.tracks; }
+  });
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+  try {
+    controller.handleMessage({ type: "screenShareJoined", stream: remote } as never);
+    await vi.advanceTimersByTimeAsync(0);
+    const peer = Peer.instances[0]!;
+    const proofTrack = new Track();
+    peer.receivers = [{ track: proofTrack, getStats: () => Promise.resolve(new Map([["r1", { type: "inbound-rtp", kind: "video", framesDecoded: 0 }]])) }];
+    peer.ontrack?.({ track: proofTrack, streams: [] } as never);
+    peer.connectionState = "connected";
+    await vi.advanceTimersByTimeAsync(10_500);
+    assert.equal(SS().error.includes("直连已建立但迟迟没有画面帧"), true);
+    assert.equal(SS().viewing, true, "stall diagnosis never tears the watch down by itself");
+    assert.equal(sent.some(message => message.type === "screenShareLeave"), false);
+  } finally {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.stubGlobal("RTCPeerConnection", Peer);
+    vi.stubGlobal("navigator", { mediaDevices: { getDisplayMedia: async () => stream() } });
+  }
+});
+
+test("ontrack no longer disarms the negotiation deadline for a slow-ICE viewer", async () => {
+  vi.stubGlobal("MediaStream", class {
+    private readonly tracks: Track[];
+    constructor(tracks?: Track[]) { this.tracks = [...(tracks ?? [])]; }
+    addTrack(track: Track): void { this.tracks.push(track); }
+    getTracks(): Track[] { return this.tracks; }
+  });
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+  try {
+    controller.handleMessage({ type: "screenShareJoined", stream: remote } as never);
+    await vi.advanceTimersByTimeAsync(0);
+    const peer = Peer.instances[0]!;
+    const proofTrack = new Track();
+    peer.receivers = [{ track: proofTrack, getStats: () => Promise.resolve(new Map()) }];
+    peer.ontrack?.({ track: proofTrack, streams: [] } as never);
+    await vi.advanceTimersByTimeAsync(15_000);
+    assert.equal(peer.restartCalls, 1, "the retry budget is consumed first");
+    assert.equal(SS().error, "");
+    await vi.advanceTimersByTimeAsync(15_000);
+    assert.equal(SS().error.includes("协商超时"), true, "the negotiation deadline still owns never-connected failures");
+    assert.equal(sent.some(message => message.type === "screenShareLeave"), true);
+  } finally {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    vi.stubGlobal("RTCPeerConnection", Peer);
+    vi.stubGlobal("navigator", { mediaDevices: { getDisplayMedia: async () => stream() } });
+  }
 });
 
 test("an unrelated error cannot abort a pending start, a start rejection still can", async () => {
