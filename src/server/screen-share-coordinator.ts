@@ -30,7 +30,7 @@ export class ScreenShareCoordinator {
   constructor(
     private readonly entries: ReadonlyMap<string, ScreenShareParticipant>,
     private readonly sendToEntry: (entryId: string, message: ServerMessage) => void,
-    private readonly logger: Pick<Logger, "debug" | "warn">,
+    private readonly logger: Pick<Logger, "debug" | "info" | "warn">,
   ) {
     this.discovery = createScreenShareDiscovery(entries, logger);
     this.relay = {
@@ -250,6 +250,16 @@ export class ScreenShareCoordinator {
       }
     }
     const message: ServerMessage = { type: "screenShareStopped", streamId: stream.streamId, reason };
+    // 停播原因遥测：运维/复盘按 reason 归因（owner-stopped=人因重启、
+    // owner-left=会话离场、source-stopped=TS6 侧停流等），停止本就低频，
+    // 恒开 INFO。观看端失败计数另一路见 fail 站点日志。
+    this.logger.info({
+      streamId: stream.streamId,
+      reason,
+      owner: stream.ownerNickname,
+      browserViewers: stream.viewerEntryIds.size,
+      nativeViewers: stream.nativeViewerClids.size,
+    }, "Screen share stopped");
     this.broadcastScreenMessage(stream, message);
     stream.viewerEntryIds.clear();
     stream.nativeViewerClids.clear();
@@ -288,6 +298,13 @@ export class ScreenShareCoordinator {
         streamId: stream.streamId,
         err: error instanceof Error ? error.message : String(error),
       }, "Could not publish browser screen share to TeamSpeak");
+      // TS6 桥接失败升级为共享端可见：网页共享不受影响，但 TS6 原生观看端
+      // 将无法加入——此前只留一行 warn，「网页能看、TS 客户端看不到」无提示。
+      this.sendToEntry(entry.id, {
+        type: "screenShareError",
+        code: "SCREEN_SHARE_NATIVE_BRIDGE_FAILED",
+        message: "屏幕共享已开始，但 TeamSpeak 客户端桥接不可用：原生观看端暂时无法加入，网页观看不受影响",
+      });
     }
   }
 
@@ -321,6 +338,7 @@ export class ScreenShareCoordinator {
         || this.screenStreams.get(screenStreamKey(stream.targetKey, stream.streamId)) !== stream
         || stream.viewerEntryIds.get(entry.id) !== membership) return;
       this.leaveScreenStream(entry, stream);
+      this.logger.warn({ streamId: stream.streamId, err: error instanceof Error ? error.message : String(error) }, "Could not join native screen stream");
       sendJson({ type: "screenShareError", requestId, code: "SCREEN_SHARE_JOIN_FAILED", message: error instanceof Error ? error.message : "无法加入屏幕共享" });
     }
   }

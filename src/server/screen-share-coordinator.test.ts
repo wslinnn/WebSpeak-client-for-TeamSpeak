@@ -9,11 +9,16 @@ function fixture() {
   const entries = new Map<string, ScreenShareParticipant>();
   const messages: Array<{ to: string; message: ServerMessage }> = [];
   const commands: Array<{ from: string; command: string }> = [];
+  const infoLogs: Array<{ fields: Record<string, unknown>; message: string }> = [];
   const send = (to: string, message: ServerMessage) => {
     assert.ok(parseServerMessage(JSON.parse(JSON.stringify(message))), `invalid message: ${message.type}`);
     messages.push({ to, message });
   };
-  const coordinator = new ScreenShareCoordinator(entries, send, { debug() {}, warn() {} });
+  const coordinator = new ScreenShareCoordinator(entries, send, {
+    debug() { /* quiet */ },
+    info: (fields: unknown, message?: string) => { infoLogs.push({ fields: fields as Record<string, unknown>, message: message ?? String(fields) }); },
+    warn() { /* quiet */ },
+  });
   function participant(id: string, clientId: number, channel = 1n, host = "first.example") {
     const entry: ScreenShareParticipant = {
       id, nickname: id, screenPeerId: `peer-${id}`, target: { host, port: 9987 }, members: new Map([[clientId, {}]]),
@@ -41,7 +46,7 @@ function fixture() {
     assert.ok(share);
     return share.streamId;
   }
-  return { entries, messages, commands, coordinator, participant, handle, list, start };
+  return { entries, messages, commands, infoLogs, coordinator, participant, handle, list, start };
 }
 
 test("sharing is isolated by server and channel, and only its owner can stop it", () => {
@@ -393,4 +398,31 @@ test("native removal notification and acknowledgement publish only one viewer-le
   await nextTurn();
   assert.equal(f.list(owner)[0]?.viewerCount, 0);
   assert.equal(f.messages.filter(({ message }) => message.type === "screenShareViewerLeft").length, 1);
+});
+
+test("a failed TS6 bridge publication warns the owner without stopping the share", async () => {
+  const f = fixture();
+  const owner = f.participant("owner", 1);
+  const inner = owner.tsClient.sendProtocolCommand.bind(owner.tsClient);
+  owner.tsClient.sendProtocolCommand = (command: string) => command.startsWith("setupstream")
+    ? Promise.reject(new Error("bridge down"))
+    : inner(command);
+  const streamId = f.start(owner);
+  await nextTurn();
+  const warning = f.messages.find(({ to, message }) => to === owner.id
+    && message.type === "screenShareError"
+    && (message as { code?: string }).code === "SCREEN_SHARE_NATIVE_BRIDGE_FAILED");
+  assert.ok(warning, "a failed bridge publication must reach the owner as an explicit error");
+  assert.ok(f.list(owner).some(candidate => candidate.streamId === streamId), "the web share stays alive");
+});
+
+test("every stop records its reason for operator attribution", () => {
+  const f = fixture();
+  const owner = f.participant("owner", 1);
+  const streamId = f.start(owner);
+  f.handle(owner, { type: "screenShareStop", streamId, requestId: "stop" });
+  const last = f.infoLogs.at(-1);
+  assert.ok(last, "the stop must emit an info line");
+  assert.equal((last.fields as { reason?: string }).reason, "owner-stopped");
+  assert.equal(last.message, "Screen share stopped");
 });
