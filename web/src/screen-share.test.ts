@@ -374,6 +374,23 @@ test("ontrack no longer disarms the negotiation deadline for a slow-ICE viewer",
   }
 });
 
+test("the owner's picture preference and codec choice reach the sender and transceiver", async () => {
+  const codecs = [
+    { mimeType: "video/vp8", clockRate: 90_000 },
+    { mimeType: "video/h264", clockRate: 90_000, sdpFmtpLine: "packetization-mode=1;profile-level-id=42e01f" },
+  ];
+  vi.stubGlobal("RTCRtpSender", { getCapabilities: () => ({ codecs }) });
+  await controller.startScreenShare(true, { codecPreference: "vp8", degradationPreference: "maintain-framerate" });
+  confirmStart("live-1");
+  controller.handleMessage({ type: "screenShareSignal", streamId: "live-1", fromPeerId: "viewer-1", signal: { kind: "offer", sdp: "offer" } } as never);
+  await nextTurn();
+  const peer = Peer.instances.at(-1)!;
+  assert.equal(peer.codecPreferences[0]?.mimeType, "video/vp8", "a forced codec is promoted to the front");
+  assert.equal(peer.codecPreferences.at(-1)?.mimeType, "video/h264", "the rest of the order stays as fallback");
+  const parameters = peer.parameters as { degradationPreference?: string } | null;
+  assert.equal(parameters?.degradationPreference, "maintain-framerate", "the picture preference rides the sender parameters");
+});
+
 test("an unrelated error cannot abort a pending start, a start rejection still can", async () => {
   const capture = stream();
   Object.assign(globalThis.navigator as { mediaDevices: { getDisplayMedia: () => Promise<unknown> } }, {

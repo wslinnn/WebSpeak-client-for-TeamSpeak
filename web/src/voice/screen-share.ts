@@ -25,6 +25,10 @@ export interface ScreenShareOutputSettings {
   maxHeight?: number;
   maxFrameRate?: number;
   maxBitrate?: number;
+  /** 降级策略（Piik 画面偏好三态同源）：清晰=保分辨率押帧率、均衡、流畅=保帧率。 */
+  degradationPreference?: "maintain-resolution" | "balanced" | "maintain-framerate";
+  /** 编码偏好用户入口：auto=H264>AV1>VP8（现状默认）、h264/vp8=强制把所选编码排到首位。 */
+  codecPreference?: "auto" | "h264" | "vp8";
 }
 
 /** View-facing screen-share state. Stream objects are replaced (never
@@ -259,7 +263,9 @@ export function createScreenShareController(transport: ScreenShareTransport) {
       const stream = V().streams.find((candidate) => candidate.streamId === streamId);
       if (stream?.audio) peer.addTransceiver("audio", { direction: "recvonly" });
     }
-    preferScreenShareCodecs(peer);
+    // 编码偏好仅在共享端生效：浏览器共享流里 codec 由共享端 sender 决定，
+    // 观看端只接收；TS6 来源流的编码则是 TS6 自己的选择。
+    preferScreenShareCodecs(peer, role === "owner" ? screenShareOutputSettings?.codecPreference : undefined);
     peer.onicecandidate = (event) => {
       if (!isCurrentPeer(peerId, peer) || !event.candidate) return;
       const candidate = event.candidate;
@@ -359,10 +365,11 @@ export function createScreenShareController(transport: ScreenShareTransport) {
       );
       firstEncoding.maxBitrate = maxBitrate;
       parameters.encodings = [firstEncoding, ...encodings.slice(1)];
-      // Prefer keeping resolution/detail crisp under pressure and let the
-      // encoder drop frame rate instead; screen share quality is judged by
-      // readability of the shared content.
-      parameters.degradationPreference = "maintain-resolution";
+      // Default keeps resolution/detail crisp under pressure and lets the
+      // encoder drop frame rate; screen share quality is judged by
+      // readability of the shared content. User choice overrides (Piik
+      // 画面偏好三态：清晰/均衡/流畅 → degradationPreference).
+      parameters.degradationPreference = requested?.degradationPreference ?? "maintain-resolution";
       await sender.setParameters(parameters);
     } catch {
       // Older browsers may reject one of the optional sender parameters. The
@@ -371,7 +378,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     }
   }
 
-  function preferScreenShareCodecs(peer: RTCPeerConnection): void {
+  function preferScreenShareCodecs(peer: RTCPeerConnection, codecPreference?: "auto" | "h264" | "vp8"): void {
     const transceiver = peer.getTransceivers().find((candidate) => candidate.sender.track?.kind === "video" || candidate.receiver.track?.kind === "video");
     // Sender capabilities, not receiver: setCodecPreferences constrains what
     // WE encode, and Chrome rejects receiver-side codec lists with
@@ -382,7 +389,15 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     // than VP8 at the bitrates typical of relayed screen shares. All three are
     // listed in that order so AV1 keeps its place ahead of VP8 even when
     // H.264 is present but the browser's own codec order would put VP8 next.
-    const preferred = ["video/h264", "video/av1", "video/vp8"].flatMap((mimeType) =>
+    // A user-forced codec is simply promoted to the front of the list; the
+    // rest of the order stays as fallback so an unusable codec still degrades
+    // gracefully instead of failing negotiation.
+    const mimeOrder = codecPreference === "vp8"
+      ? ["video/vp8", "video/h264", "video/av1"]
+      : codecPreference === "h264"
+        ? ["video/h264", "video/av1", "video/vp8"]
+        : ["video/h264", "video/av1", "video/vp8"];
+    const preferred = mimeOrder.flatMap((mimeType) =>
       capabilities.codecs.filter((codec) => codec.mimeType.toLowerCase() === mimeType),
     );
     if (!preferred.length) return;

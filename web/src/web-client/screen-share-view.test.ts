@@ -138,20 +138,25 @@ test("viewer avatars resolve from the local directory by client id", () => {
 
 test("share settings submit the selected resolution and frame rate", async () => {
   const f = harness();
-  await f.view.startWithSettings({ resolutionPreset: "720p", frameRate: 30, bitratePreset: "auto" });
-  assert.deepEqual(f.starts, [[true, { maxWidth: 1280, maxHeight: 720, maxFrameRate: 30 }]]);
+  await f.view.startWithSettings({ resolutionPreset: "720p", frameRate: 30, bitratePreset: "auto", picturePreference: "smooth", codecChoice: "auto" });
+  assert.deepEqual(f.starts, [[true, { maxWidth: 1280, maxHeight: 720, maxFrameRate: 30, degradationPreference: "maintain-framerate", codecPreference: "auto" }]]);
   assert.equal(f.storage.get("webspeak:screen-share-framerate"), "30");
 });
 
-test("share settings default to 1080p, 15 fps and auto bitrate, persisting all three", async () => {
+test("share settings default to 1080p, 15 fps, auto bitrate, clarity and auto codec, persisting all", async () => {
   const f = harness();
   assert.deepEqual(readScreenSharePresets(f.shareStorage), DEFAULT_SCREEN_SHARE_PRESETS);
-  assert.deepEqual(computeScreenShareOutputSettings(DEFAULT_SCREEN_SHARE_PRESETS), { maxWidth: 1920, maxHeight: 1080, maxFrameRate: 15 });
+  assert.deepEqual(computeScreenShareOutputSettings(DEFAULT_SCREEN_SHARE_PRESETS), {
+    maxWidth: 1920, maxHeight: 1080, maxFrameRate: 15,
+    degradationPreference: "maintain-resolution", codecPreference: "auto",
+  });
   await f.view.startWithSettings(DEFAULT_SCREEN_SHARE_PRESETS);
-  assert.deepEqual(f.starts, [[true, { maxWidth: 1920, maxHeight: 1080, maxFrameRate: 15 }]]);
+  assert.deepEqual(f.starts, [[true, { maxWidth: 1920, maxHeight: 1080, maxFrameRate: 15, degradationPreference: "maintain-resolution", codecPreference: "auto" }]]);
   assert.equal(f.storage.get("webspeak:screen-share-resolution"), "1080p");
   assert.equal(f.storage.get("webspeak:screen-share-framerate"), "15");
   assert.equal(f.storage.get("webspeak:screen-share-bitrate"), "auto");
+  assert.equal(f.storage.get("webspeak:screen-share-picture-preference"), "clarity");
+  assert.equal(f.storage.get("webspeak:screen-share-codec"), "auto");
 });
 
 test("a bitrate preset caps the encoder and stored presets are restored", async () => {
@@ -159,11 +164,19 @@ test("a bitrate preset caps the encoder and stored presets are restored", async 
     "webspeak:screen-share-resolution": "720p",
     "webspeak:screen-share-framerate": "30",
     "webspeak:screen-share-bitrate": "8",
+    "webspeak:screen-share-picture-preference": "balanced",
+    "webspeak:screen-share-codec": "h264",
   });
   const presets: ScreenSharePresets = readScreenSharePresets(f.shareStorage);
-  assert.deepEqual(presets, { resolutionPreset: "720p", frameRate: 30, bitratePreset: "8" });
+  assert.deepEqual(presets, {
+    resolutionPreset: "720p", frameRate: 30, bitratePreset: "8",
+    picturePreference: "balanced", codecChoice: "h264",
+  });
   await f.view.startWithSettings(presets);
-  assert.deepEqual(f.starts, [[true, { maxWidth: 1280, maxHeight: 720, maxFrameRate: 30, maxBitrate: 8_000_000 }]]);
+  assert.deepEqual(f.starts, [[true, {
+    maxWidth: 1280, maxHeight: 720, maxFrameRate: 30, maxBitrate: 8_000_000,
+    degradationPreference: "balanced", codecPreference: "h264",
+  }]]);
   assert.equal(f.storage.get("webspeak:screen-share-bitrate"), "8");
 });
 
@@ -172,6 +185,8 @@ test("corrupt stored share settings fall back to the defaults", () => {
     "webspeak:screen-share-resolution": "480p",
     "webspeak:screen-share-framerate": "999",
     "webspeak:screen-share-bitrate": "99",
+    "webspeak:screen-share-picture-preference": "butter",
+    "webspeak:screen-share-codec": "av1",
   });
   assert.deepEqual(readScreenSharePresets(f.shareStorage), DEFAULT_SCREEN_SHARE_PRESETS);
 });

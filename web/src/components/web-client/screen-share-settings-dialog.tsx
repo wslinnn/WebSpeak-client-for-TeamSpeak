@@ -4,9 +4,13 @@ import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   SCREEN_SHARE_BITRATE_OPTIONS,
+  SCREEN_SHARE_CODEC_OPTIONS,
   SCREEN_SHARE_FRAME_RATE_OPTIONS,
+  SCREEN_SHARE_PICTURE_PREFERENCE_OPTIONS,
   SCREEN_SHARE_RESOLUTION_OPTIONS,
   type ScreenShareBitratePreset,
+  type ScreenShareCodecChoice,
+  type ScreenSharePicturePreference,
   type ScreenSharePresets,
   type ScreenShareResolutionPreset,
 } from "@/web-client/screen-share-view";
@@ -84,6 +88,34 @@ export function ScreenShareSettingsDialog({ presets, onPresetsChange, onSubmit, 
               <SelectTrigger className="w-full" aria-label={t("screenShareBitrate")}><SelectValue /></SelectTrigger>
               <SelectContent position="popper">
                 {SCREEN_SHARE_BITRATE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{t(option.label)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </label>
+          <label>
+            <span>{t("screenSharePicturePreference")}</span>
+            <Select
+              value={presets.picturePreference}
+              onValueChange={(value) => onPresetsChange({ ...presets, picturePreference: value as ScreenSharePicturePreference })}
+            >
+              <SelectTrigger className="w-full" aria-label={t("screenSharePicturePreference")}><SelectValue /></SelectTrigger>
+              <SelectContent position="popper">
+                {SCREEN_SHARE_PICTURE_PREFERENCE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>{t(option.label)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </label>
+          <label>
+            <span>{t("screenShareCodecChoice")}</span>
+            <Select
+              value={presets.codecChoice}
+              onValueChange={(value) => onPresetsChange({ ...presets, codecChoice: value as ScreenShareCodecChoice })}
+            >
+              <SelectTrigger className="w-full" aria-label={t("screenShareCodecChoice")}><SelectValue /></SelectTrigger>
+              <SelectContent position="popper">
+                {SCREEN_SHARE_CODEC_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>{t(option.label)}</SelectItem>
                 ))}
               </SelectContent>

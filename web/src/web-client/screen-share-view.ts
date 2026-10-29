@@ -2,7 +2,7 @@ import type { ScreenShareStreamDescription as ScreenShareStream, ScreenShareView
 import type { ChannelMember } from "@shared/voice-models";
 import type { ScreenShareOutputSettings } from "@/voice/screen-share";
 
-export type ScreenShareResolutionPreset = "source" | "720p" | "1080p";
+export type ScreenShareResolutionPreset = "source" | "720p" | "1080p" | "1440p" | "4k";
 
 export type ScreenShareBitratePreset = "auto" | "1.5" | "3" | "5" | "8" | "12";
 
@@ -19,10 +19,31 @@ export interface ScreenShareBitrateOption {
   label: string;
 }
 
+/** 画面偏好→degradationPreference：清晰=保分辨率押帧率（现状默认）、
+ *  均衡=框架 balanced、流畅=保帧率押分辨率（Piik 画面偏好三态同源）。 */
+export type ScreenSharePicturePreference = "clarity" | "balanced" | "smooth";
+
+export const SCREEN_SHARE_PICTURE_PREFERENCE_OPTIONS: Array<{ value: ScreenSharePicturePreference; label: string }> = [
+  { value: "clarity", label: "screenSharePictureClarity" },
+  { value: "balanced", label: "screenSharePictureBalanced" },
+  { value: "smooth", label: "screenSharePictureSmooth" },
+];
+
+/** auto=现状默认序（H264>AV1>VP8）；h264/vp8 把所选编码排至首位，余序兜底。 */
+export type ScreenShareCodecChoice = "auto" | "h264" | "vp8";
+
+export const SCREEN_SHARE_CODEC_OPTIONS: Array<{ value: ScreenShareCodecChoice; label: string }> = [
+  { value: "auto", label: "screenShareCodecAuto" },
+  { value: "h264", label: "screenShareCodecH264" },
+  { value: "vp8", label: "screenShareCodecVP8" },
+];
+
 export interface ScreenSharePresets {
   resolutionPreset: ScreenShareResolutionPreset;
   frameRate: number;
   bitratePreset: ScreenShareBitratePreset;
+  picturePreference: ScreenSharePicturePreference;
+  codecChoice: ScreenShareCodecChoice;
 }
 
 /** These are encoder/output limits; the display track itself keeps the source
@@ -31,6 +52,8 @@ export const SCREEN_SHARE_RESOLUTION_OPTIONS: ScreenShareResolutionOption[] = [
   { value: "source", label: "screenShareResolutionSource" },
   { value: "720p", width: 1280, height: 720, label: "screenShareResolution720p" },
   { value: "1080p", width: 1920, height: 1080, label: "screenShareResolution1080p" },
+  { value: "1440p", width: 2560, height: 1440, label: "screenShareResolution1440p" },
+  { value: "4k", width: 3840, height: 2160, label: "screenShareResolution4K" },
 ];
 
 export const SCREEN_SHARE_FRAME_RATE_OPTIONS = [5, 10, 15, 24, 30, 60];
@@ -47,11 +70,15 @@ export const SCREEN_SHARE_BITRATE_OPTIONS: ScreenShareBitrateOption[] = [
 const PRESET_RESOLUTION_KEY = "webspeak:screen-share-resolution";
 const PRESET_FRAME_RATE_KEY = "webspeak:screen-share-framerate";
 const PRESET_BITRATE_KEY = "webspeak:screen-share-bitrate";
+const PRESET_PICTURE_PREFERENCE_KEY = "webspeak:screen-share-picture-preference";
+const PRESET_CODEC_KEY = "webspeak:screen-share-codec";
 
 export const DEFAULT_SCREEN_SHARE_PRESETS: ScreenSharePresets = {
   resolutionPreset: "1080p",
   frameRate: 15,
   bitratePreset: "auto",
+  picturePreference: "clarity",
+  codecChoice: "auto",
 };
 
 export interface ScreenShareViewStorage {
@@ -67,15 +94,27 @@ function isBitratePreset(value: unknown): value is ScreenShareBitratePreset {
   return SCREEN_SHARE_BITRATE_OPTIONS.some((option) => option.value === value);
 }
 
+function isPicturePreference(value: unknown): value is ScreenSharePicturePreference {
+  return SCREEN_SHARE_PICTURE_PREFERENCE_OPTIONS.some((option) => option.value === value);
+}
+
+function isCodecChoice(value: unknown): value is ScreenShareCodecChoice {
+  return SCREEN_SHARE_CODEC_OPTIONS.some((option) => option.value === value);
+}
+
 /** Corrupt or missing stored values fall back to the defaults. */
 export function readScreenSharePresets(storage: ScreenShareViewStorage): ScreenSharePresets {
   const storedResolution: unknown = storage.getItem(PRESET_RESOLUTION_KEY);
   const storedFrameRate = Number(storage.getItem(PRESET_FRAME_RATE_KEY));
   const storedBitrate: unknown = storage.getItem(PRESET_BITRATE_KEY);
+  const storedPicture: unknown = storage.getItem(PRESET_PICTURE_PREFERENCE_KEY);
+  const storedCodec: unknown = storage.getItem(PRESET_CODEC_KEY);
   return {
     resolutionPreset: isResolutionPreset(storedResolution) ? storedResolution : DEFAULT_SCREEN_SHARE_PRESETS.resolutionPreset,
     frameRate: SCREEN_SHARE_FRAME_RATE_OPTIONS.includes(storedFrameRate) ? storedFrameRate : DEFAULT_SCREEN_SHARE_PRESETS.frameRate,
     bitratePreset: isBitratePreset(storedBitrate) ? storedBitrate : DEFAULT_SCREEN_SHARE_PRESETS.bitratePreset,
+    picturePreference: isPicturePreference(storedPicture) ? storedPicture : DEFAULT_SCREEN_SHARE_PRESETS.picturePreference,
+    codecChoice: isCodecChoice(storedCodec) ? storedCodec : DEFAULT_SCREEN_SHARE_PRESETS.codecChoice,
   };
 }
 
@@ -83,15 +122,24 @@ export function persistScreenSharePresets(storage: ScreenShareViewStorage, prese
   storage.setItem(PRESET_RESOLUTION_KEY, presets.resolutionPreset);
   storage.setItem(PRESET_FRAME_RATE_KEY, String(presets.frameRate));
   storage.setItem(PRESET_BITRATE_KEY, presets.bitratePreset);
+  storage.setItem(PRESET_PICTURE_PREFERENCE_KEY, presets.picturePreference);
+  storage.setItem(PRESET_CODEC_KEY, presets.codecChoice);
 }
 
 export function computeScreenShareOutputSettings(presets: ScreenSharePresets): ScreenShareOutputSettings {
   const preset = SCREEN_SHARE_RESOLUTION_OPTIONS.find((option) => option.value === presets.resolutionPreset);
   const bitrateOption = SCREEN_SHARE_BITRATE_OPTIONS.find((option) => option.value === presets.bitratePreset);
+  const degradation: Record<ScreenSharePicturePreference, ScreenShareOutputSettings["degradationPreference"]> = {
+    clarity: "maintain-resolution",
+    balanced: "balanced",
+    smooth: "maintain-framerate",
+  };
   return {
     ...(preset?.width && preset.height ? { maxWidth: preset.width, maxHeight: preset.height } : {}),
     maxFrameRate: presets.frameRate,
     ...(bitrateOption?.bitrate ? { maxBitrate: bitrateOption.bitrate } : {}),
+    degradationPreference: degradation[presets.picturePreference],
+    codecPreference: presets.codecChoice,
   };
 }
 
