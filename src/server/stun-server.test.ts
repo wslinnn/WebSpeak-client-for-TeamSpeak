@@ -3,7 +3,10 @@ import test from "node:test";
 
 import { createStunRateLimiter, handleStunDatagram } from "./stun-server.js";
 
-const MAGIC_COOKIE = 0x2112_a444;
+// RFC 8489 §6 mandates 0x2112A44D — the test must quote the RFC number, never
+// import the implementation's constant: a shared literal lets a typo validate
+// itself (one did, for the entire first deployment).
+const MAGIC_COOKIE = 0x2112_a44d;
 
 function bindingRequest(transactionId: Buffer): Buffer {
   const request = Buffer.alloc(20);
@@ -31,6 +34,20 @@ function unmaskXorMapped(response: Buffer): { family: number; port: number; addr
     : bytes.join(".");
   return { family, port, address };
 }
+
+test("the response bytes match a golden vector hand-derived from RFC 8489", () => {
+  // Known-answer anchor written from the RFC (cookie 0x2112A44D, port
+  // 54321=0xD431 ^0x2112=0xF523, 203.0.113.7 ^ cookie bytes
+  // = ea 12 d5(113^164=d5) 4a(7^0x4d=4a)), independent of how the
+  // implementation computes the same bytes.
+  const transactionId = Buffer.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  const reply = handleStunDatagram(bindingRequest(transactionId), { address: "203.0.113.7", port: 54_321 }, () => true);
+  assert.ok(reply);
+  assert.equal(
+    reply.toString("hex"),
+    "0101000c2112a44d0102030405060708090a0b0c002000080001f523ea12d54a",
+  );
+});
 
 test("binding request yields a success response with the XOR-mapped IPv4 address", () => {
   const transactionId = Buffer.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);

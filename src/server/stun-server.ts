@@ -13,7 +13,12 @@ import type { Logger } from "../logger.js";
  *  response carries a few dozen bytes and never touches media.
  */
 
-const MAGIC_COOKIE = 0x2112_a444;
+// RFC 8489 §6: the fixed magic cookie 0x2112A44D. A past typo here (…a444)
+// made the cookie gate silently reject every real browser packet while unit
+// tests echoed the same wrong literal — golden values below now anchor to the
+// RFC number, and scripts/stun-browser-probe.mts closes the loop with real
+// Chromium outside any self-written decoder.
+const MAGIC_COOKIE = 0x2112_a44d;
 const BINDING_REQUEST = 0x0001;
 const BINDING_SUCCESS = 0x0101;
 const ATTR_XOR_MAPPED_ADDRESS = 0x0020;

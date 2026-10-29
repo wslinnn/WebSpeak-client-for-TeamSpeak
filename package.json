@@ -22,7 +22,8 @@
     "web:lint": "npm --prefix web run lint",
     "web:test": "npm --prefix web run test",
     "web:ci": "npm --prefix web run ci",
-    "check:cycles": "node scripts/check-import-cycles.mjs"
+    "check:cycles": "node scripts/check-import-cycles.mjs",
+    "probe:stun": "node --import tsx scripts/stun-browser-probe.mts"
   },
   "prepare": "husky",
   "dependencies": {
