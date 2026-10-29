@@ -93,3 +93,4 @@ npm --prefix web ci --no-audit --no-fund
 - 一个按钮同时挂组件 Tooltip 与浮层触发（PopoverTrigger 等）时，嵌套必须 **Tooltip 在外、浮层 Trigger 在内**——反序的链式 asChild 会静默吞掉浮层 toggle（无报错、面板永不打开，性能面板触发钮探针实锤）；且勿按浮层开合条件换树（触发钮重挂同样吞 toggle），要只在面板开着时摘 TooltipContent。
 - React Compiler 把零参方法调用按 props 缓存——跨 store 派生必须把订阅值作实参传入（`chat.visibleMessages(chatMessages)` 形态，零参在 store 更新后返回陈旧值即「消息不上屏」根因）；`"use no compiler"` 指令当前 oxc 工具链不生效（产物保留指令字符串但缓存槽照注），勿依赖；此类回归 vitest 抓不到（无编译器转换），只有产物级冒烟能抓（`chat-live-update.spec`）。
 - 会话状态（`session-state.ts`）的后端数组是唯一事实源，store 只是它的快照——**一切 chatMessages/members/channels 写入必须过后端数组 + `sync*`**；直写 `store.setState` 的旁路会在下一次 sync 被后端数组内容整体覆盖（「刷新后发消息旧消息全没」根因，历史合并走 `mergeChatHistory`）。
+- 自实现协议常量必须有**独立参照**（RFC 真值编号/线缆抓包字节），测试禁止复用实现的字面量——同一 typo 在实现与测试里互证即全绿裸奔（STUN cookie 444/44d 事故 2026-10-29：单测全绿但上线起从未服务过真浏览器，真相由用户「要不要用现成库」的质疑触发彻查；`npm run probe:stun` socket 级门禁为此设立）。
