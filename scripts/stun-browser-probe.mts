@@ -21,7 +21,7 @@ const GOLDEN_REQUEST_COOKIE = 0x2112_a44d;
 const REQUEST_TRANSACTION_ID = Buffer.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 
 const logger = {
-  debug: () => {},
+  debug: (message: unknown) => console.log(`[stun-debug] ${message}`),
   info: (message: unknown) => console.log(`[stun] ${message}`),
   warn: (message: unknown) => console.log(`[stun-warn] ${message}`),
 };
@@ -37,22 +37,30 @@ REQUEST_TRANSACTION_ID.copy(request, 8);
 const client = createSocket("udp4");
 let senderPort = 0;
 let reply: Buffer;
+const retransmitTimers: Array<NodeJS.Timeout> = [];
 try {
   reply = await new Promise<Buffer>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`STUN ${TARGET}:${TARGET_PORT} 无应答（3 秒）：UDP 可达性不通，或服务未启动/端口未放行`)), 3_000);
+    // RFC 风格重传（0/300/900/2100ms）：跨国 UDP 单包易丢，单发探针会把
+    // 可用服务误判为不可达。
+    const timer = setTimeout(() => reject(new Error(`STUN ${TARGET}:${TARGET_PORT} 无应答（重传 4 次后）：UDP 可达性不通，或服务未启动/端口未放行`)), 4_000);
     client.on("message", (message) => {
       clearTimeout(timer);
+      for (const retransmit of retransmitTimers) clearTimeout(retransmit);
       resolve(message);
     });
     client.bind(() => {
       senderPort = (client.address() as { port: number }).port;
-      client.send(request, TARGET_PORT, TARGET, () => undefined);
+      for (const delay of [0, 300, 900, 2_100]) {
+        retransmitTimers.push(setTimeout(() => client.send(request, TARGET_PORT, TARGET, () => undefined), delay));
+      }
     });
   });
 } finally {
+  for (const retransmit of retransmitTimers) clearTimeout(retransmit);
   client.close();
-  await server?.close();
 }
+// server 的关闭放在所有观测层之后（文件末尾）：曾在本 finally 提前 close，
+// 浏览器观测层面对死端口而恒报 srflx=0。
 
 // 独立解码（探针自持、不经实现代码）：响应头 cookie/事务须回显，属性须为
 // XOR-MAPPED-ADDRESS，由 RFC 公式反解出 IPv4 地址与端口并语义断言。
@@ -105,3 +113,6 @@ if (!REMOTE_TARGET) {
   console.log("[observe] 远程模式无浏览器观测层（需要本机起 server）");
 }
 
+
+try { client.close(); } catch { /* already closed */ }
+await server?.close();

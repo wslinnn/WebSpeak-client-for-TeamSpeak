@@ -49,6 +49,38 @@ test("the response bytes match a golden vector hand-derived from RFC 8489", () =
   );
 });
 
+test("the observed-browser cookie flavor (0x2112a442) is answered with self-consistent masking", () => {
+  // 现场形态：真实浏览器族被实测以 0x2112a442 作 cookie 且以自身 cookie 作
+  // XOR key。服务器掩码 key 取自请求头——442 进、442 掩码出，客户端自洽可解。
+  const request = Buffer.alloc(20);
+  request.writeUInt16BE(0x0001, 0);
+  request.writeUInt32BE(0x2112_a442, 4);
+  request.writeUInt32BE(0x0707_0707, 8);
+  request.writeUInt32BE(0x0707_0707, 12);
+  request.writeUInt32BE(0x0707_0707, 16);
+  const reply = handleStunDatagram(request, { address: "198.51.100.9", port: 12_345 }, () => true);
+  assert.ok(reply);
+  // port 12345=0x3039 ^0x2112=0x112B；198.51.100.9 ^ (21,12,a4,42)=e7 21 c0 4b。
+  assert.equal(
+    reply.toString("hex"),
+    "0101000c2112a442070707070707070707070707002000080001112be721c04b",
+  );
+});
+
+test("an IPv4-mapped IPv6 arrival is normalized to a plain IPv4 answer", () => {
+  // 双栈套接字竞态的防线：v4 包以 ::ffff: 形态到达时按 v4 应答（family=01、
+  // 4 字节 XOR），而不是落到对 v4-mapped 文本算出乱码的 v6 路径。
+  const transactionId = Buffer.from([9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 1, 2]);
+  const reply = handleStunDatagram(bindingRequest(transactionId), { address: "::ffff:203.0.113.7", port: 54_321 }, () => true);
+  assert.ok(reply);
+  assert.equal(reply.readUInt16BE(0), 0x0101);
+  assert.equal(reply.readUInt8(25), 0x01, "family must be IPv4");
+  const port = reply.readUInt16BE(26) ^ 0x2112;
+  assert.equal(port, 54_321);
+  const address = [0, 1, 2, 3].map((index) => reply.readUInt8(28 + index) ^ reply.readUInt8(4 + index)).join(".");
+  assert.equal(address, "203.0.113.7");
+});
+
 test("binding request yields a success response with the XOR-mapped IPv4 address", () => {
   const transactionId = Buffer.from([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   const reply = handleStunDatagram(bindingRequest(transactionId), { address: "203.0.113.7", port: 54321 }, () => true);
