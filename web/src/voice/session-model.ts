@@ -81,6 +81,10 @@ export interface VoiceSessionView extends VoiceState {
   accompanimentActive: boolean;
   accompanimentSupported: boolean;
   accompanimentErrorCode: AccompanimentErrorCode;
+  /** 伴奏分接专属增益（0..2，默认 1=源电平不动；与麦克风链路参数正交）。 */
+  accompanimentVolume: number;
+  /** 伴奏源贴近满刻度（削波风险）的提示态，由电平轮询维护、消散后自动清除。 */
+  accompanimentClipping: boolean;
   /** Live transport for header chrome, derived at every write point from the
    *  transport snapshot and connection state. */
   voiceTransport: "webrtc" | "websocket" | "negotiating" | "disconnected";

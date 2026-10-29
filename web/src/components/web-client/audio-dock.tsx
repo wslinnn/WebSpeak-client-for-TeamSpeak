@@ -25,6 +25,7 @@ interface AudioDockModel {
 interface AudioDockControls {
   toggleMicrophone(): void;
   onInputVolume(event: { target: { value: string } }): void;
+  onAccompanimentVolume(event: { target: { value: string } }): void;
   onOutputVolume(event: { target: { value: string } }): void;
   onNoiseSuppressionToggle(event: { target: { checked: boolean } }): void;
   onEchoCancellationToggle(event: { target: { checked: boolean } }): void;
@@ -141,6 +142,9 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
   // 重渲会让移动端滑条划不动）。
   const inputVolume = useStore(voice.store, (view) => view.inputVolume);
   const outputVolume = useStore(voice.store, (view) => view.outputVolume);
+  // 伴奏音量与削波提示同音量滑条一样窄订阅：改值不惊动壳层。
+  const accompanimentVolume = useStore(voice.store, (view) => view.accompanimentVolume);
+  const accompanimentClipping = useStore(voice.store, (view) => view.accompanimentClipping);
   const displayMicLevel = model.microphoneMuted ? 0 : micLevel;
   return (
     <div
@@ -193,18 +197,41 @@ export function AudioDock({ model, controls, voice, share, t, channelName, onSet
             <TooltipContent>{t("screenShareSettings")}</TooltipContent>
           </Tooltip>
         </div>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost"
-              type="button"
-              className="desktop-audio-dock-accompaniment"
-              aria-pressed={model.accompanimentActive}
-              aria-label={model.accompanimentActive ? t("stopAccompaniment") : t("startAccompaniment")}
-              onClick={() => void controls.toggleAccompaniment()}
-            ><Icon name="music" size={16} /></Button>
-          </TooltipTrigger>
-          <TooltipContent>{model.accompanimentActive ? t("stopAccompaniment") : t("startAccompaniment")}</TooltipContent>
-        </Tooltip>
+        <DockHoverControl
+          part="voice.audio-dock.accompaniment"
+          label={t("accompanimentVolume")}
+          panelClassName="dock-accompaniment-panel gap-2.5"
+          panelPart="voice.audio-dock.accompaniment-panel"
+          button={
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost"
+                  type="button"
+                  className="desktop-audio-dock-accompaniment"
+                  aria-pressed={model.accompanimentActive}
+                  aria-label={model.accompanimentActive ? t("stopAccompaniment") : t("startAccompaniment")}
+                  onClick={() => void controls.toggleAccompaniment()}
+                ><Icon name="music" size={16} /></Button>
+              </TooltipTrigger>
+              <TooltipContent>{model.accompanimentActive ? t("stopAccompaniment") : t("startAccompaniment")}</TooltipContent>
+            </Tooltip>
+          }
+        >
+          <div className="dock-slider-heading"
+            ><span>{t("accompanimentVolume")}</span
+            ><strong>{Math.round(accompanimentVolume * 100)}%</strong></div
+          >
+          <Slider
+            value={[Math.round(accompanimentVolume * 100)]}
+            max={MAX_INPUT_VOLUME * 100}
+            step={5}
+            aria-label={t("accompanimentVolume")}
+            onValueChange={(values) => controls.onAccompanimentVolume({ target: { value: String(values[0]) } })}
+          />
+          {accompanimentClipping && (
+            <div className="dock-clip-warning" role="alert">{t("accompanimentClipping")}</div>
+          )}
+        </DockHoverControl>
       </div>
       <div
         className="desktop-audio-dock-controls"

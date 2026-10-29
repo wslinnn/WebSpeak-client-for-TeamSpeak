@@ -114,6 +114,7 @@ export function createAudioPreferences(deps: AudioPreferencesDeps) {
       autoGainControlEnabled: committedAutoGainControlEnabled,
       voxThreshold: V().voxThreshold,
       inputGain: V().inputVolume,
+      accompanimentGain: V().accompanimentVolume,
       outputVolume: V().outputVolume,
       notificationVolume: V().notificationVolume,
       preferredOutputDeviceId: committedOutputDeviceId,
@@ -142,6 +143,7 @@ export function createAudioPreferences(deps: AudioPreferencesDeps) {
     }
     if (typeof preferences.voxThreshold === "number") next.voxThreshold = clamp(preferences.voxThreshold, 0.001, 0.08);
     if (typeof preferences.inputGain === "number") next.inputVolume = Math.max(0, Math.min(MAX_INPUT_VOLUME, preferences.inputGain));
+    if (typeof preferences.accompanimentGain === "number") next.accompanimentVolume = Math.max(0, Math.min(MAX_INPUT_VOLUME, preferences.accompanimentGain));
     if (typeof preferences.outputVolume === "number") next.outputVolume = Math.max(0, Math.min(1, preferences.outputVolume));
     if (!outputDeviceTouched) {
       if (!V().selectedOutputDeviceId) next.selectedOutputDeviceId = preferences.preferredOutputDeviceId ?? "";

@@ -48,6 +48,32 @@ export function createAudioDevices(deps: AudioDevicesDeps) {
       deps.mic.applyUplinkRouting(stream !== null);
     },
   };
+
+  // 削波提示：读伴奏分接的专属增益节点输出（0..1+ 浮点），样本贴满刻度
+  // （峰值 ≥1）即判削波风险；提示滞留 2s 防抖、回到安全电平自动清除。
+  // 轮询只消费分析节点，不产生音频副作用；无分接（R/G 直连、无伴奏）时
+  // 读数为 null，恒不提示。onActive 开关保证停伴奏/被 ended 释放必停表。
+  const ACCOMPANIMENT_CLIP_TICK_MS = 300;
+  const ACCOMPANIMENT_CLIP_PEAK = 1;
+  const ACCOMPANIMENT_CLIP_HOLD_MS = 2_000;
+  let accompanimentClipTimer: ReturnType<typeof setInterval> | null = null;
+  let accompanimentClipHotUntil = 0;
+  function stopAccompanimentClipWatch(): void {
+    if (accompanimentClipTimer) clearInterval(accompanimentClipTimer);
+    accompanimentClipTimer = null;
+    accompanimentClipHotUntil = 0;
+    if (V().accompanimentClipping) patch({ accompanimentClipping: false });
+  }
+  function startAccompanimentClipWatch(): void {
+    stopAccompanimentClipWatch();
+    accompanimentClipTimer = setInterval(() => {
+      const peak = deps.mic.accompanimentPeak();
+      const now = Date.now();
+      if (peak !== null && peak >= ACCOMPANIMENT_CLIP_PEAK) accompanimentClipHotUntil = now + ACCOMPANIMENT_CLIP_HOLD_MS;
+      const clipping = now < accompanimentClipHotUntil;
+      if (V().accompanimentClipping !== clipping) patch({ accompanimentClipping: clipping });
+    }, ACCOMPANIMENT_CLIP_TICK_MS);
+  }
   const accompaniment = createAccompaniment({
     isSupported: () => V().accompanimentSupported,
     // One stable target identity: the accompaniment module compares
@@ -62,6 +88,8 @@ export function createAudioDevices(deps: AudioDevicesDeps) {
       const changed = V().accompanimentActive !== active;
       if (changed) patch({ accompanimentActive: active });
       if (changed && webrtc.active) deps.sendCmd("setAccompanimentActive", { active });
+      if (active) startAccompanimentClipWatch();
+      else stopAccompanimentClipWatch();
     },
     onError: code => { patch({ accompanimentErrorCode: code }); },
   });

@@ -182,7 +182,8 @@ export function createMicrophone(deps: MicrophoneDeps) {
       factoryOwnsStream = true;
       nextCapture = await microphoneCaptureFactory.prepare({
         context: ctx, stream: nextStream, signal: controller.signal, assertCurrent,
-        noiseSuppression: V().noiseSuppressionEnabled, volume: V().inputVolume, onSamples: handleCaptureChunk,
+        noiseSuppression: V().noiseSuppressionEnabled, volume: V().inputVolume,
+        accompanimentVolume: V().accompanimentVolume, onSamples: handleCaptureChunk,
       });
       assertCurrent();
       // Commit only a complete graph. Permission and node failures leave the
@@ -399,6 +400,18 @@ export function createMicrophone(deps: MicrophoneDeps) {
     deps.audioPrefs.queueSave();
   }
 
+  /** 伴奏分接专属增益（镜像 setInputVolume）：store 是事实源，已有分接图
+   *  即刻生效；无图（R/G 直连、未连接）时等下一次捕获图 prepare 读 store。 */
+  function setAccompanimentVolume(volume: number): void {
+    patch({ accompanimentVolume: Math.max(0, Math.min(MAX_INPUT_VOLUME, volume)) });
+    microphoneCapture?.setAccompanimentVolume(volume);
+    deps.audioPrefs.queueSave();
+  }
+
+  function accompanimentPeak(): number | null {
+    return microphoneCapture?.accompanimentPeak() ?? null;
+  }
+
   async function setNoiseSuppressionEnabled(enabled: boolean): Promise<void> {
     if (V().noiseSuppressionEnabled === enabled) return;
     deps.audioPrefs.markTouched("noiseSuppression");
@@ -446,6 +459,8 @@ export function createMicrophone(deps: MicrophoneDeps) {
     setMicrophoneTestPlayback,
     setMicrophoneMuted,
     setInputVolume,
+    setAccompanimentVolume,
+    accompanimentPeak,
     setNoiseSuppressionEnabled,
     setEchoCancellationEnabled,
     setAutoGainControlEnabled,

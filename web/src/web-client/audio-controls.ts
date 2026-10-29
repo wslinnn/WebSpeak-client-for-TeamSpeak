@@ -26,6 +26,7 @@ interface AudioControlsOptions {
   getWhisperTargetCount(): number;
   prepareInputDevices(): Promise<void>;
   setInputVolume(value: number): void;
+  setAccompanimentVolume(value: number): void;
   setNoiseSuppressionEnabled(enabled: boolean): Promise<void>;
   setEchoCancellationEnabled(enabled: boolean): Promise<void>;
   setAutoGainControlEnabled(enabled: boolean): Promise<void>;
@@ -81,6 +82,10 @@ export function createAudioControls(options: AudioControlsOptions) {
 
   function onInputVolume(event: ControlEventLike): void {
     options.setInputVolume(Number(event.target.value) / 100);
+  }
+
+  function onAccompanimentVolume(event: ControlEventLike): void {
+    options.setAccompanimentVolume(Number(event.target.value) / 100);
   }
 
   function onNoiseSuppressionToggle(event: ControlCheckEventLike): void {
@@ -246,6 +251,7 @@ export function createAudioControls(options: AudioControlsOptions) {
     meterBarHeight,
     meterBars: METER_BARS,
     onInputVolume,
+    onAccompanimentVolume,
     onNoiseSuppressionToggle,
     onEchoCancellationToggle,
     onAutoGainControlToggle,

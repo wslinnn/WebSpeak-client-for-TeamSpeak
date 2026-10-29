@@ -27,6 +27,7 @@ function mount(extra: Record<string, unknown> = {}): { controls: AudioControls; 
     getWhisperTargetCount: () => 0,
     prepareInputDevices: async () => {},
     setInputVolume: () => {},
+    setAccompanimentVolume: () => {},
     setNoiseSuppressionEnabled: async () => {},
     setEchoCancellationEnabled: async () => {},
     setAutoGainControlEnabled: async () => {},

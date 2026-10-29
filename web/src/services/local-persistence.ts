@@ -51,6 +51,7 @@ export interface LocalPreferences {
   preferredInputDeviceId?: string;
   preferredOutputDeviceId?: string;
   inputGain?: number;
+  accompanimentGain?: number;
   outputVolume?: number;
   notificationVolume?: number;
   lastNickname?: string;

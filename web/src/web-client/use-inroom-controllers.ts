@@ -98,6 +98,7 @@ export function useInRoomControllers(options: InRoomOptions) {
     getWhisperTargetCount: () => voice.store.getState().whisperTargetIds.size,
     prepareInputDevices: () => voice.prepareInputDevices(),
     setInputVolume: (value) => voice.setInputVolume(value),
+    setAccompanimentVolume: (value) => voice.setAccompanimentVolume(value),
     setNoiseSuppressionEnabled: (enabled) => voice.setNoiseSuppressionEnabled(enabled),
     setEchoCancellationEnabled: (enabled) => voice.setEchoCancellationEnabled(enabled),
     setAutoGainControlEnabled: (enabled) => voice.setAutoGainControlEnabled(enabled),

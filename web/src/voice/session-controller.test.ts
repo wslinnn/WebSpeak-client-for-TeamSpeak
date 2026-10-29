@@ -1439,6 +1439,84 @@ test("disconnect releases pending accompaniment without waiting for constraints"
   assert.equal(V().accompanimentActive, false);
 });
 
+// --- 伴奏增益与削波提示（2026-10-29，伴奏电平从「直连 destination 不受控」收编） ---
+
+test("the accompaniment tap gets its own gain stage and the slider drives it through replacements", async () => {
+  await connectWebRtc();
+  const stream = microphoneStream();
+  devices().getDisplayMedia = async () => stream;
+  await voice.startAccompaniment();
+  voice.setAccompanimentVolume(0.3);
+  const tapGain = AudioContextStub.gains.find(gain => gain.gain.value === 0.3);
+  assert.ok(tapGain, "the slider value lands on the accompaniment gain stage");
+  assert.equal(AudioContextStub.gains.find(gain => gain.gain.value === 0.25), undefined, "the gain must not be applied twice");
+  const replacement = microphoneStream();
+  devices().getDisplayMedia = async () => replacement;
+  await voice.startAccompaniment();
+  assert.equal(tapGain.gain.value, 0.3, "a replacement tap reuses the stage with the current volume");
+  voice.setAccompanimentVolume(2);
+  assert.equal(tapGain.gain.value, 2, "live stages follow later slider changes");
+});
+
+test("a stored accompaniment gain restores into the view and clamps to the slider maximum", async () => {
+  preferenceStore.current = { schemaVersion: 1, accompanimentGain: 0.3 };
+  const soft = createVoiceSessionController();
+  try {
+    soft.connect("voice.example:9987", "", "Visitor");
+    await nextTurn();
+    assert.equal(soft.view().accompanimentVolume, 0.3, "the stored gain restores into the view");
+  } finally { soft.disconnect(); }
+  preferenceStore.current = { schemaVersion: 1, accompanimentGain: 5 };
+  const hard = createVoiceSessionController();
+  try {
+    hard.connect("voice.example:9987", "", "Visitor");
+    await nextTurn();
+    assert.equal(hard.view().accompanimentVolume, 2, "over-range gains clamp to the slider maximum");
+  } finally { hard.disconnect(); }
+});
+
+test("changing the accompaniment volume persists the gain", async () => {
+  await connectWebRtc();
+  voice.setAccompanimentVolume(0.3);
+  await vi.waitFor(() => assert.equal(preferenceStore.current?.accompanimentGain, 0.3), { timeout: 5_000 });
+});
+
+test("the accompaniment clip warning follows the tap peak, holds, clears and stops with the tap", async () => {
+  vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+  try {
+    const analysers: Array<{ fftSize: number; level: number; getFloatTimeDomainData: (samples: Float32Array) => void }> = [];
+    vi.spyOn(AudioContextStub.prototype, "createAnalyser").mockImplementation(() => {
+      const analyser = Object.assign(new AudioNodeStub(), {
+        fftSize: 512,
+        level: 0.1,
+        getFloatTimeDomainData(this: { level: number }, samples: Float32Array) { samples.fill(this.level); },
+      }) as never;
+      analysers.push(analyser);
+      return analyser;
+    });
+    await connectWebRtc();
+    const stream = microphoneStream();
+    devices().getDisplayMedia = async () => stream;
+    await voice.startAccompaniment();
+    const tapMeter = analysers.at(-1)!;
+    tapMeter.level = 1.01;
+    await vi.advanceTimersByTimeAsync(300);
+    assert.equal(V().accompanimentClipping, true);
+    tapMeter.level = 0.1;
+    await vi.advanceTimersByTimeAsync(1_700);
+    assert.equal(V().accompanimentClipping, true, "the warning holds through the 2s window after the last hot sample");
+    await vi.advanceTimersByTimeAsync(600);
+    assert.equal(V().accompanimentClipping, false);
+    tapMeter.level = 1.01;
+    await vi.advanceTimersByTimeAsync(300);
+    assert.equal(V().accompanimentClipping, true);
+    await voice.stopAccompaniment();
+    assert.equal(V().accompanimentClipping, false, "stopping the accompaniment clears the warning immediately");
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 test("a newer accompaniment request immediately releases an older pending candidate", async () => {
   await connectWebRtc();
   const constraints = deferred<void>();

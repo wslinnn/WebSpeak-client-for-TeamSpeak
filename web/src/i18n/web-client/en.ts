@@ -111,6 +111,8 @@ export const en: Record<string, string> = {
     desktopAudioHint: "Hover an icon to adjust volume",
     startAccompaniment: "Share accompaniment",
     stopAccompaniment: "Stop accompaniment",
+    accompanimentVolume: "Accompaniment volume",
+    accompanimentClipping: "The accompaniment level is near full scale and may clip: lower its volume",
     accompanimentStarted: "Accompaniment sharing started",
     accompanimentStopped: "Accompaniment sharing stopped",
     accompanimentActive: "Accompaniment sharing",

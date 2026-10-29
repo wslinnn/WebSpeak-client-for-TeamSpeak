@@ -111,6 +111,8 @@ export const zh: Record<string, string> = {
     desktopAudioHint: "悬停图标调整音量",
     startAccompaniment: "共享伴奏",
     stopAccompaniment: "停止伴奏",
+    accompanimentVolume: "伴奏音量",
+    accompanimentClipping: "伴奏电平贴近满刻度，可能削波：请降低伴奏音量",
     accompanimentStarted: "伴奏共享已开始",
     accompanimentStopped: "伴奏共享已停止",
     accompanimentActive: "伴奏共享中",

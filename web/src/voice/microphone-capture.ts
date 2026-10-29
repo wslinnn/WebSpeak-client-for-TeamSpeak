@@ -18,6 +18,10 @@ export interface MicrophoneCapture {
   /** Mixes application audio into the uplink destination, bypassing the
    *  microphone gain and denoise; null removes a previous accompaniment. */
   setAccompaniment(stream: MediaStream | null): void;
+  /** 伴奏分接专属增益：与麦克风 gain/限幅/降噪正交，默认 1=源电平不动。 */
+  setAccompanimentVolume(value: number): void;
+  /** 伴奏分接的输出峰值（0..1+），null=当前无伴奏分接。供削波提示轮询。 */
+  accompanimentPeak(): number | null;
   stopCapture(): void;
   dispose(): void;
 }
@@ -27,6 +31,7 @@ interface CaptureOptions {
   stream: MediaStream;
   noiseSuppression: boolean;
   volume: number;
+  accompanimentVolume: number;
   signal: AbortSignal;
   assertCurrent(): void;
   onSamples(input: Float32Array, rms?: number): void;
@@ -63,6 +68,12 @@ export function createMicrophoneCaptureFactory() {
     let worklet: AudioWorkletNode | null = null;
     let script: ScriptProcessorNode | null = null;
     let accompanimentSource: MediaStreamAudioSourceNode | null = null;
+    // Lazily created with the first accompaniment tap so graphs without one
+    // stay byte-identical to the plain microphone graph (metering analyser
+    // included only here, never on the microphone path).
+    let accompanimentGain: GainNode | null = null;
+    let accompanimentMeter: AnalyserNode | null = null;
+    let accompanimentVolume = options.accompanimentVolume;
     let active = false;
     let disposed = false;
     const clean = (operation: () => void) => { try { operation(); } catch { /* release the other resources too */ } };
@@ -84,6 +95,8 @@ export function createMicrophoneCaptureFactory() {
       if (source) clean(() => source!.disconnect());
       if (limiter) clean(() => limiter!.disconnect());
       if (accompanimentSource) clean(() => accompanimentSource!.disconnect());
+      if (accompanimentGain) clean(() => accompanimentGain!.disconnect());
+      if (accompanimentMeter) clean(() => accompanimentMeter!.disconnect());
       if (destination) {
         clean(() => destination!.disconnect());
         for (const track of destination.stream.getTracks()) clean(() => track.stop());
@@ -188,17 +201,48 @@ export function createMicrophoneCaptureFactory() {
                 throw new Error("Accompaniment has no live audio track");
               }
               candidate = ctx.createMediaStreamSource(stream);
-              // Application audio retains its source level and bypasses the
-              // microphone gain and denoise; the destination carries the mix.
-              candidate.connect(destination!);
+              // Application audio bypasses the microphone gain and denoise but
+              // gets its own gain stage: an untamed source previously hit the
+              // Opus/int16 path at full scale (clipping) with no user control.
+              if (!accompanimentGain) {
+                accompanimentGain = ctx.createGain();
+                accompanimentGain.gain.value = accompanimentVolume;
+                accompanimentGain.connect(destination!);
+                if (typeof ctx.createAnalyser === "function") {
+                  accompanimentMeter = ctx.createAnalyser();
+                  accompanimentGain.connect(accompanimentMeter);
+                }
+              }
+              candidate.connect(accompanimentGain!);
             }
           } catch (error) {
+            // Only the candidate is torn down: a failed replacement must keep
+            // the previous capture audible, and the shared gain stage stays
+            // for the next tap.
             if (candidate) clean(() => candidate!.disconnect());
             throw error;
           }
           const previous = accompanimentSource;
           accompanimentSource = candidate;
-          if (previous) clean(() => previous.disconnect());
+          if (previous) clean(() => previous!.disconnect());
+        },
+        setAccompanimentVolume(value) {
+          if (!Number.isFinite(value)) return;
+          accompanimentVolume = value;
+          if (accompanimentGain) accompanimentGain.gain.value = value;
+        },
+        accompanimentPeak() {
+          const meter = accompanimentMeter;
+          if (!meter || typeof meter.getFloatTimeDomainData !== "function") return null;
+          const samples = new Float32Array(Number.isFinite(meter.fftSize) && meter.fftSize > 0 ? meter.fftSize : 0);
+          if (!samples.length) return 0;
+          meter.getFloatTimeDomainData(samples);
+          let peak = 0;
+          for (let index = 0; index < samples.length; index++) {
+            const magnitude = Math.abs(samples[index]!);
+            if (magnitude > peak) peak = magnitude;
+          }
+          return peak;
         },
         stopCapture,
         dispose,
