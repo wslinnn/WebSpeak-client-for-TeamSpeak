@@ -253,6 +253,40 @@ test("a late duplicate start acknowledgement never stops the live broadcast", as
   assert.equal(SS().activeStreamId, "live-1");
 });
 
+test("the viewer's share offer declares Opus stereo capability for the owner sender", async () => {
+  Peer.offer = () => Promise.resolve({
+    type: "offer",
+    sdp: "m=audio 9 UDP/TLS/RTP/SAVPF 111\r\na=rtpmap:111 opus/48000/2\r\na=fmtp:111 minptime=10;useinbandfec=1\r\nm=video 9 UDP/TLS/RTP/SAVPF 96\r\na=fmtp:96 apt=111\r\n",
+  });
+  controller.handleMessage({ type: "screenShareJoined", stream: remote } as never);
+  await nextTurn();
+  const peer = Peer.instances[0]!;
+  const sdp = (peer.localDescription as { sdp?: string } | null)?.sdp ?? "";
+  assert.ok(sdp.includes("a=fmtp:111 minptime=10;useinbandfec=1;stereo=1;maxaveragebitrate=510000"), "the opus line gains stereo for the P2P audio");
+  assert.ok(sdp.includes("a=fmtp:96 apt=111\r\n"), "non-opus lines pass through unchanged");
+});
+
+test("the owner pins a music-grade send target on the audio sender", async () => {
+  const videoTrack = new Track();
+  const audioTrack = new Track();
+  audioTrack.kind = "audio";
+  const capture = {
+    getTracks: () => [videoTrack, audioTrack],
+    getVideoTracks: () => [videoTrack],
+    getAudioTracks: () => [audioTrack],
+  };
+  Object.assign(globalThis.navigator as { mediaDevices: { getDisplayMedia: () => Promise<unknown> } }, {
+    mediaDevices: { getDisplayMedia: async () => capture },
+  });
+  await controller.startScreenShare(true);
+  confirmStart("live-1");
+  controller.handleMessage({ type: "screenShareSignal", streamId: "live-1", fromPeerId: "viewer-1", signal: { kind: "offer", sdp: "offer" } } as never);
+  await nextTurn();
+  const peer = Peer.instances.at(-1)!;
+  const encodings = ((peer.parameters ?? { encodings: [] }).encodings?.[0] ?? {}) as { maxBitrate?: number };
+  assert.equal(encodings.maxBitrate, 128_000, "the audio sender carries the music bitrate target");
+});
+
 test("an unrelated error cannot abort a pending start, a start rejection still can", async () => {
   const capture = stream();
   Object.assign(globalThis.navigator as { mediaDevices: { getDisplayMedia: () => Promise<unknown> } }, {

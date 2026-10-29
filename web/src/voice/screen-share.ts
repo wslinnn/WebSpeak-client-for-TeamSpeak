@@ -1,8 +1,13 @@
 import { createStore } from "zustand/vanilla";
 import { parseScreenShareStream, parseScreenShareViewers, type ServerMessage } from "@shared/server-messages";
 import { normalizeScreenShareIceServers, type ScreenShareIceServer, type ScreenShareClientMessage, type ScreenShareStreamDescription as ScreenShareStream, type ScreenSharePeerSignal as ScreenShareSignal } from "@shared/screen-share";
+import { declareStereoOpusOffer } from "./screen-share-sdp";
 
 const SCREEN_SHARE_NEGOTIATION_TIMEOUT_MS = 15_000;
+// Screen audio rides pure P2P (no TeamSpeak budget): a music-grade send
+// target on the owner side. The negotiated fmtp ceiling (our offers declare
+// stereo + 510 kbps receive) remains the harder cap above this target.
+const SCREEN_SHARE_AUDIO_SEND_BITRATE_BPS = 128_000;
 // Each peer gets one ICE-restart retry (slow candidate exchange gets a second
 // gathering window); the budget is consumed by whichever arrives first — the
 // negotiation timer or a `failed` connection state.
@@ -177,6 +182,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
       for (const track of screenShareLocalStream?.getTracks() ?? []) {
         const sender = peer.addTrack(track, screenShareLocalStream!);
         if (track.kind === "video") void configureScreenShareVideoSender(sender, track);
+        else if (track.kind === "audio") void configureScreenShareAudioSender(sender);
       }
     } else {
       peer.addTransceiver("video", { direction: "recvonly" });
@@ -222,6 +228,20 @@ export function createScreenShareController(transport: ScreenShareTransport) {
       if (peer.connectionState === "closed" && screenSharePeers.get(peerId) === peer) closeScreenSharePeer(peerId);
     };
     return peer;
+  }
+
+  async function configureScreenShareAudioSender(sender: RTCRtpSender): Promise<void> {
+    if (!sender.setParameters) return;
+    try {
+      const parameters = sender.getParameters();
+      const encodings = parameters.encodings?.length ? parameters.encodings : [{}];
+      encodings[0] = { ...encodings[0]!, maxBitrate: SCREEN_SHARE_AUDIO_SEND_BITRATE_BPS };
+      parameters.encodings = encodings;
+      await sender.setParameters(parameters);
+    } catch {
+      // Same silent-catch contract as the video sender until the parameter
+      // read-back audit lands (屏幕共享诊断透出 param audit).
+    }
   }
 
   async function configureScreenShareVideoSender(sender: RTCRtpSender, track: MediaStreamTrack): Promise<void> {
@@ -317,7 +337,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     try {
       const offer = await peer.createOffer();
       if (!isCurrentPeer(stream.ownerPeerId, peer)) return;
-      await peer.setLocalDescription(offer);
+      await peer.setLocalDescription({ type: offer.type, sdp: declareStereoOpusOffer(offer.sdp ?? "") });
       if (!isCurrentPeer(stream.ownerPeerId, peer)) return;
       armScreenSharePeerTimer(stream.ownerPeerId);
       sendScreenShareMessage({
@@ -339,7 +359,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     try {
       const offer = await peer.createOffer();
       if (!isCurrentPeer(peerId, peer)) return;
-      await peer.setLocalDescription(offer);
+      await peer.setLocalDescription({ type: offer.type, sdp: declareStereoOpusOffer(offer.sdp ?? "") });
       if (!isCurrentPeer(peerId, peer)) return;
       armScreenSharePeerTimer(peerId);
       sendScreenShareMessage({
@@ -478,7 +498,10 @@ export function createScreenShareController(transport: ScreenShareTransport) {
         // user's desktop or application window is never resized or sampled at
         // the output limit.
         video: true,
-        audio,
+        // Shared audio is MUSIC, not speech: Chromium applies its voice DSP
+        // (EC/NS/AGC) by default on display capture unless every processing
+        // knob is explicitly off — the accompaniment pattern.
+        audio: audio ? { echoCancellation: false, noiseSuppression: false, autoGainControl: false, voiceIsolation: false } : false,
         // These are preferences: when the selected surface is a window, ask
         // for that window's audio; when it is a monitor, allow system audio.
         // The browser/OS may still return no audio or ignore the preference.
@@ -494,6 +517,10 @@ export function createScreenShareController(transport: ScreenShareTransport) {
       if (!videoTrack) throw new Error("NO_VIDEO_TRACK");
       const displaySurface = videoTrack.getSettings().displaySurface;
       if ("contentHint" in videoTrack) videoTrack.contentHint = displaySurface === "browser" ? "detail" : "motion";
+      const audioTrack = stream.getAudioTracks()[0];
+      if (audioTrack && "contentHint" in audioTrack) {
+        try { audioTrack.contentHint = "music"; } catch { /* optional per-track hint */ }
+      }
       screenShareLocalStream = stream;
       screenShareRequestSequence = (screenShareRequestSequence + 1) % 1_000_000;
       screenSharePendingStartId = `screen-start-${screenShareRequestSequence}`;
