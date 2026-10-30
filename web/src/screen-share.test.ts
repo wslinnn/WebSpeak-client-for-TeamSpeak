@@ -69,6 +69,8 @@ class Peer {
   getTransceivers() { return this.transceivers; }
   getStats() { return Peer.stats(); }
   getReceivers() { return this.receivers; }
+  addEventListener() { /* stub: gathering-complete logging is not unit-tested */ }
+  removeEventListener() { /* stub */ }
   restartIce() { this.restartCalls++; }
   close() { this.closed = true; this.connectionState = "closed"; }
 }

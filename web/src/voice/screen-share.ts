@@ -79,6 +79,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
   const screenSharePeerStreams = new Map<string, MediaStream>();
   const screenSharePeerTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const screenSharePeerRetries = new Map<string, number>();
+  const screenShareSentCandidates = new Map<string, number>();
   let screenShareRequestSequence = 0;
   let screenSharePendingStartId = "";
   let screenShareStartCancelled = false;
@@ -191,6 +192,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     screenSharePeers.delete(peerId);
     screenSharePeerRoles.delete(peerId);
     screenSharePeerRetries.delete(peerId);
+    screenShareSentCandidates.delete(peerId);
     screenShareStats.forgetPeer(peerId);
     screenSharePendingIce.delete(peerId);
     screenSharePeerStreams.get(peerId)?.getTracks().forEach(track => track.stop());
@@ -223,6 +225,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
   function failScreenSharePeer(peerId: string, message?: string): void {
     const viewingStream = V().streams.find((stream) => stream.streamId === V().viewingStreamId && stream.ownerPeerId === peerId);
     if (viewingStream) sendScreenShareMessage({ type: "screenShareLeave", streamId: viewingStream.streamId });
+    const sentCandidates = screenShareSentCandidates.get(peerId) ?? 0;
     // collectStats must run before close(): a closed peer rejects getStats.
     const failingPeer = screenSharePeers.get(peerId);
     const failureSummary = viewingStream && failingPeer ? summarizeIceFailure(failingPeer, screenShareIceServers) : Promise.resolve(null);
@@ -241,7 +244,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     // network). The owner still leaves a console trail so its DevTools can
     // answer「共享端到底有没有应答/在哪一步失败」without UI noise.
     if (!viewingStream) {
-      console.info(`[screen-share] 观看者 ${peerId} 连接失败已清理：${message ?? "ICE 失败"}`);
+      console.info(`[screen-share] 观看者 ${peerId} 连接失败已清理：${message ?? "ICE 失败"}（本端已发送 ${sentCandidates} 个候选）`);
     }
   }
 
@@ -271,6 +274,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     preferScreenShareCodecs(peer, role === "owner" ? screenShareOutputSettings?.codecPreference : undefined);
     peer.onicecandidate = (event) => {
       if (!isCurrentPeer(peerId, peer) || !event.candidate) return;
+      screenShareSentCandidates.set(peerId, (screenShareSentCandidates.get(peerId) ?? 0) + 1);
       const candidate = event.candidate;
       sendScreenShareMessage({
         type: "screenShareSignal",
@@ -284,6 +288,10 @@ export function createScreenShareController(transport: ScreenShareTransport) {
         },
       });
     };
+    peer.addEventListener("icegatheringstatechange", () => {
+      if (!isCurrentPeer(peerId, peer) || peer.iceGatheringState !== "complete") return;
+      console.info(`[screen-share] ${role === "owner" ? "共享端" : "观看端"}候选收集完成：已向对端 ${peerId} 发送 ${screenShareSentCandidates.get(peerId) ?? 0} 个候选`);
+    });
     peer.ontrack = (event) => {
       if (!isCurrentPeer(peerId, peer) || role !== "viewer") return;
       // The negotiation deadline stays armed until the connection itself
