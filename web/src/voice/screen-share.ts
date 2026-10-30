@@ -236,7 +236,9 @@ export function createScreenShareController(transport: ScreenShareTransport) {
       setScreenShareP2PError(baseMessage);
       void failureSummary.then((summary) => {
         // Only augment if the failure message is still the one on display.
-        if (summary && V().error === baseMessage) store.setState({ error: `${baseMessage}（诊断：${summary}）` });
+        if (summary && V().error === baseMessage) {
+          store.setState({ error: `${baseMessage}（本端已发送 ${sentCandidates} 个候选；诊断：${summary}）` });
+        }
       });
     }
     // Facet separation: a viewer's failed watch attempt surfaces only on the
