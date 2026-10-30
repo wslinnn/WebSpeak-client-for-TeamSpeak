@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { setImmediate as nextTurn } from "node:timers/promises";
 import { afterEach, beforeEach, test, vi } from "vitest";
 import { createScreenShareController } from "./voice/screen-share";
+import { summarizeIceFailure } from "./voice/screen-share-stats";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -28,6 +29,7 @@ class Peer {
   static stats = () => Promise.resolve(new Map());
   connectionState = "new";
   iceConnectionState = "new";
+  iceGatheringState = "complete";
   localDescription: unknown;
   parameters: { encodings: Array<Record<string, unknown>> } | null = null;
   codecPreferences: Array<{ mimeType: string }> = [];
@@ -374,6 +376,82 @@ test("ontrack no longer disarms the negotiation deadline for a slow-ICE viewer",
     vi.stubGlobal("RTCPeerConnection", Peer);
     vi.stubGlobal("navigator", { mediaDevices: { getDisplayMedia: async () => stream() } });
   }
+});
+
+test("a deadline failure while gathering is still in progress names the gathering stall", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    controller.handleMessage({ type: "screenShareJoined", stream: remote } as never);
+    await nextTurn();
+    await nextTurn();
+    assert.equal(sent.some(message => message.type === "screenShareSignal"), true);
+    const peer = Peer.instances[0]!;
+    peer.iceGatheringState = "gathering";
+    Peer.stats = () => Promise.resolve(new Map());
+    await vi.advanceTimersByTimeAsync(15_000);
+    assert.equal(peer.restartCalls, 1);
+    await vi.advanceTimersByTimeAsync(15_000);
+    assert.equal(SS().error.includes("协商超时"), true);
+    await nextTurn();
+    await nextTurn();
+    assert.equal(SS().error.includes("候选收集未完成且未产出任何候选"), true, "zero candidates mid-gathering is a stall verdict, not silence");
+    assert.equal(SS().error.includes("turn.teamspeak.com"), true, "the attempted discovery services stay visible");
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("a deadline failure with finished gathering and zero candidates stays silent about ICE", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    controller.handleMessage({ type: "screenShareJoined", stream: remote } as never);
+    await nextTurn();
+    await nextTurn();
+    const peer = Peer.instances[0]!;
+    assert.equal(peer.iceGatheringState, "complete");
+    Peer.stats = () => Promise.resolve(new Map());
+    await vi.advanceTimersByTimeAsync(30_000);
+    assert.equal(SS().error.includes("协商超时"), true);
+    await nextTurn();
+    await nextTurn();
+    assert.equal(SS().error.includes("诊断"), false, "completed gathering with zero candidates keeps the legacy silent null");
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
+test("summarizeIceFailure reframes a host-only stall as slow STUN while gathering", async () => {
+  const stats = new Map<string, unknown>([["c1", { type: "local-candidate", candidateType: "host" }]]);
+  const summary = await summarizeIceFailure(
+    { getStats: () => Promise.resolve(stats) } as unknown as RTCPeerConnection,
+    [{ urls: "stun:example.test:3478" }],
+    { gatheringState: "gathering" },
+  );
+  assert.equal(summary?.includes("可能只是响应慢而非不可达"), true);
+  assert.equal(summary?.includes("stun:example.test:3478"), true);
+});
+
+test("summarizeIceFailure keeps the unreachable verdict once gathering completed", async () => {
+  const stats = new Map<string, unknown>([["c1", { type: "local-candidate", candidateType: "host" }]]);
+  const summary = await summarizeIceFailure(
+    { getStats: () => Promise.resolve(stats) } as unknown as RTCPeerConnection,
+    [{ urls: "stun:example.test:3478" }],
+    { gatheringState: "complete" },
+  );
+  assert.equal(summary?.includes("STUN 不可达或被网络拦截"), true);
+});
+
+test("summarizeIceFailure appends the gathering note to a hole-punch failure", async () => {
+  const stats = new Map<string, unknown>([
+    ["c1", { type: "local-candidate", candidateType: "srflx" }],
+    ["c2", { type: "remote-candidate", candidateType: "srflx" }],
+  ]);
+  const summary = await summarizeIceFailure(
+    { getStats: () => Promise.resolve(stats) } as unknown as RTCPeerConnection,
+    [],
+    { gatheringState: "gathering" },
+  );
+  assert.equal(summary?.includes("死线时本端收集尚未完成（已产出 srflx）"), true);
 });
 
 test("the owner's picture preference and codec choice reach the sender and transceiver", async () => {

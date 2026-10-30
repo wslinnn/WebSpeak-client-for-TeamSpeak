@@ -226,9 +226,12 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     const viewingStream = V().streams.find((stream) => stream.streamId === V().viewingStreamId && stream.ownerPeerId === peerId);
     if (viewingStream) sendScreenShareMessage({ type: "screenShareLeave", streamId: viewingStream.streamId });
     const sentCandidates = screenShareSentCandidates.get(peerId) ?? 0;
-    // collectStats must run before close(): a closed peer rejects getStats.
+    // collectStats must run before close(): a closed peer rejects getStats,
+    // and iceGatheringState is a fail-time verdict the stats report cannot
+    // recover afterwards — both are captured pre-close.
     const failingPeer = screenSharePeers.get(peerId);
-    const failureSummary = viewingStream && failingPeer ? summarizeIceFailure(failingPeer, screenShareIceServers) : Promise.resolve(null);
+    const gatheringState = failingPeer?.iceGatheringState ?? "";
+    const failureSummary = viewingStream && failingPeer ? summarizeIceFailure(failingPeer, screenShareIceServers, { gatheringState }) : Promise.resolve(null);
     closeScreenSharePeer(peerId);
     if (viewingStream) {
       store.setState({ viewing: false, viewingStreamId: "", remoteStream: null });
@@ -246,7 +249,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
     // network). The owner still leaves a console trail so its DevTools can
     // answer「共享端到底有没有应答/在哪一步失败」without UI noise.
     if (!viewingStream) {
-      console.info(`[screen-share] 观看者 ${peerId} 连接失败已清理：${message ?? "ICE 失败"}（本端已发送 ${sentCandidates} 个候选）`);
+      console.info(`[screen-share] 观看者 ${peerId} 连接失败已清理：${message ?? "ICE 失败"}（本端已发送 ${sentCandidates} 个候选，收集状态：${gatheringState || "未知"}）`);
     }
   }
 

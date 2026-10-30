@@ -38,14 +38,24 @@ export interface ScreenShareWebRtcStats {
 
 type ScreenShareStatsRecord = Record<string, unknown>;
 
+export interface IceFailureContext {
+  /** Fail-time synchronous snapshot of peer.iceGatheringState. The stats
+   *  report is read after an await, by which time the caller may already have
+   *  closed the peer — the gathering verdict has to be captured before
+   *  cleanup and passed in. Unknown/absent keeps the legacy silent null. */
+  gatheringState?: string;
+}
+
 /** One-line ICE failure diagnosis (zh, matching this module's inline error
  *  style): which candidate types were actually gathered decides whether the
  *  failure is "STUN unreachable" or "NAT unfriendly". The configured
  *  discovery servers are listed in the unreachable case so a wrong advertised
  *  address (proxy/CDN host, internal name) is visible instead of guessed.
- *  Returns null when the report says nothing useful (closed peer,
- *  already-succeeded pair). */
-export async function summarizeIceFailure(peer: RTCPeerConnection, discoveryServers: ScreenShareIceServer[] = []): Promise<string | null> {
+ *  An incomplete gathering state at fail time reframes the verdict — a slow
+ *  STUN answer can stall gathering past the negotiation deadline even though
+ *  it would eventually have succeeded. Returns null when the report says
+ *  nothing useful (closed peer, already-succeeded pair). */
+export async function summarizeIceFailure(peer: RTCPeerConnection, discoveryServers: ScreenShareIceServer[] = [], context: IceFailureContext = {}): Promise<string | null> {
   try {
     const report = await peer.getStats();
     const localTypes = new Set<string>();
@@ -59,14 +69,27 @@ export async function summarizeIceFailure(peer: RTCPeerConnection, discoveryServ
       if (type === "remote-candidate" && candidateType) remoteTypes.add(candidateType);
       if (type === "candidate-pair" && (record.state === "succeeded" || record.selected === true || record.nominated === true)) anyPairSucceeded = true;
     });
-    if (anyPairSucceeded || localTypes.size === 0) return null;
+    if (anyPairSucceeded) return null;
     const discoveryUrls = discoveryServers.flatMap((server) => Array.isArray(server.urls) ? server.urls : [server.urls]);
+    const gatheringState = typeof context.gatheringState === "string" ? context.gatheringState : "";
+    const gatheringIncomplete = Boolean(gatheringState) && gatheringState !== "complete";
+    if (localTypes.size === 0) {
+      // The shape that hid the slow-STUN outage: the deadline fired before a
+      // single candidate existed. That is a gathering-stall verdict, not
+      // silence.
+      if (!gatheringIncomplete) return null;
+      return `协商死线内本端候选收集未完成且未产出任何候选：STUN 无响应或 UDP 出站被拦截会拖住整个收集过程。尝试的发现服务：${discoveryUrls.join("、") || "无"}`;
+    }
     const hasPublicCandidate = localTypes.has("srflx") || localTypes.has("prflx") || localTypes.has("relay");
     if (!hasPublicCandidate) {
-      return `未获取到公网候选（STUN 不可达或被网络拦截）。尝试的发现服务：${discoveryUrls.join("、") || "无"}——请核对该地址从观看端网络可达、网关 UDP 3478 已放行`;
+      const verdict = gatheringIncomplete
+        ? "未获取到公网候选，且死线时收集仍未完成——STUN 可能只是响应慢而非不可达"
+        : "未获取到公网候选（STUN 不可达或被网络拦截）";
+      return `${verdict}。尝试的发现服务：${discoveryUrls.join("、") || "无"}——请核对该地址从观看端网络可达、网关 UDP 3478 已放行`;
     }
-    if (remoteTypes.size === 0) return "已获取公网候选，但对端候选未到达，请检查对端网络或刷新重试";
-    return `已交换候选（本地 ${[...localTypes].join("/")}，对端 ${[...remoteTypes].join("/")}）但未能打洞，常见于双方都在对称 NAT 或运营商大内网之后`;
+    const gatherNote = gatheringIncomplete ? `；死线时本端收集尚未完成（已产出 ${[...localTypes].join("/")}）` : "";
+    if (remoteTypes.size === 0) return `已获取公网候选，但对端候选未到达，请检查对端网络或刷新重试${gatherNote}`;
+    return `已交换候选（本地 ${[...localTypes].join("/")}，对端 ${[...remoteTypes].join("/")}）但未能打洞，常见于双方都在对称 NAT 或运营商大内网之后${gatherNote}`;
   } catch {
     return null;
   }
