@@ -6,7 +6,6 @@ import { useVoiceSession } from "@/hooks/useVoiceSession";
 import { useWebClientMessages } from "@/hooks/use-i18n";
 import { readVoiceSessionIntent } from "@/voice/session-intent";
 import { saveLocalPreferences, saveStoredIdentity, removeStoredIdentity } from "@/services/local-persistence";
-import { combineTeamSpeakTarget } from "@/services/teamspeak-target";
 import { createHomeConnection } from "@/web-client/home-connection";
 import { createHomeFavorites } from "@/web-client/home-favorites";
 import { createHomeIdentity } from "@/web-client/home-identity";
@@ -14,6 +13,7 @@ import { createHomeStore } from "@/web-client/home-store";
 import { createIdentityPersistence } from "@/web-client/identity-persistence";
 import { createPublicConfig } from "@/web-client/public-config";
 import { initialServerTarget } from "@/web-client/initial-target";
+import { readFixedServerPassword, saveFixedServerPassword } from "@/web-client/fixed-server-password";
 import type { createWebClientMessages } from "@/i18n/messages";
 
 // 模块级 live i18n 桥。home-identity 控制器只创建一次（代际纪律的 downloads 表与
@@ -103,17 +103,21 @@ export function useWebClientControllers() {
   useEffect(() => () => connection.dispose(), [connection]);
 
   // 连接成功：连接即收藏 + 通知音（存储的工作密码此刻才入收藏——此前输错的
-  // 密码不得作为「记住的」存留）。
+  // 密码不得作为「记住的」存留）。fixed 模式走独立密码键，不借收藏当键。
   useEffect(() => {
     let lastConnected = voice.store.getState().connected;
     return voice.store.subscribe((snapshot) => {
       if (snapshot.connected && !lastConnected) {
         voice.playNotification("connected");
-        void favorites.syncFavoriteConnection();
+        if (publicConfig.store.getState().accessMode === "fixed") {
+          saveFixedServerPassword(store.getState().serverPassword);
+        } else {
+          void favorites.syncFavoriteConnection();
+        }
       }
       lastConnected = snapshot.connected;
     });
-  }, [voice, favorites]);
+  }, [voice, favorites, publicConfig, store]);
   // 进房可见（含重连/失败横幅态）即同步复位身份操作（旧 flush:sync watch 平价）。
   useEffect(() => {
     let lastVisible = false;
@@ -123,7 +127,7 @@ export function useWebClientControllers() {
       lastVisible = visible;
     });
   }, [voice, identity]);
-  // fixed 模式无服务器页签：管理员目标与收藏就绪后自动补记忆密码，进房保持一键。
+  // fixed 模式无服务器页签：连接前从独立键回填记忆密码，进房保持一键。
   useEffect(() => {
     function prefill(): void {
       // 会话进行中（含刷新恢复）不回填：open+屏蔽预填模式会把 host 清成
@@ -132,12 +136,18 @@ export function useWebClientControllers() {
       if (voiceSnapshot.connected || voiceSnapshot.connecting || voiceSnapshot.reconnecting) return;
       const snapshot = store.getState();
       if (publicConfig.store.getState().accessMode !== "fixed" || snapshot.serverPassword) return;
-      const id = combineTeamSpeakTarget(snapshot.serverHost, snapshot.serverPort).trim().toLocaleLowerCase();
-      const favorite = snapshot.favoriteServers.find((item) => item.id === id);
-      if (favorite?.password) store.setState({ serverPassword: favorite.password });
+      const stored = readFixedServerPassword();
+      if (stored) store.setState({ serverPassword: stored });
     }
     prefill();
-    return store.subscribe(prefill);
+    // publicConfig 也要订阅：fixed+无参数部署的 config 落地不写 home store，
+    // 不订阅则记忆密码要等用户第一次动表单才回填。
+    const unsubscribeHome = store.subscribe(prefill);
+    const unsubscribePublic = publicConfig.store.subscribe(prefill);
+    return () => {
+      unsubscribeHome();
+      unsubscribePublic();
+    };
   }, [store, publicConfig, voice.store]);
 
   return { voice, store, home, publicConfig, favorites, identity, connection, identityPersistence, showToast };

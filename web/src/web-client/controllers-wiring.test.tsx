@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 // 装配层接线集成测试（store slice 级断言，不逐组件单测）：use-web-client-controllers
-// 里两段内联跨 store 订阅——「连接即收藏 + 通知音」与 fixed 模式记忆密码预填。
-// 其余装配（settleSwitchOnConnected 等）已有独立接线测试，见 server-switch.test。
+// 里两段内联跨 store 订阅——「连接即收藏 + 通知音 / fixed 模式写独立密码键」与
+// fixed 模式记忆密码预填。其余装配（settleSwitchOnConnected 等）已有独立接线测
+// 试，见 server-switch.test。
 import { cleanup, renderHook, waitFor, act } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import type { ReactNode } from "react";
@@ -58,8 +59,9 @@ test("连接成功的边沿触发连接即收藏与通知音，断开重连再�
   const { result } = renderControllers();
   const voice = result.current.voice;
   const notify = vi.spyOn(voice, "playNotification").mockImplementation(() => undefined);
-  const { store } = result.current;
+  const { store, publicConfig } = result.current;
   act(() => {
+    publicConfig.store.setState({ accessMode: "open" });
     store.setState({ serverHost: "voice.example.com", serverPort: "9987", nickname: "访客" });
     voice.store.setState({ connected: true });
   });
@@ -79,38 +81,49 @@ test("连接成功的边沿触发连接即收藏与通知音，断开重连再�
   await waitFor(() => expect(notify.mock.calls.length).toBeGreaterThan(edges));
 });
 
-test("fixed 模式自动补记忆密码，连接进行中不回填（不覆盖恢复意图目标）", async () => {
+test("fixed 模式从独立键回填记忆密码，连接进行中不回填", async () => {
+  const { result } = renderControllers();
+  const voice = result.current.voice;
+  const { store, publicConfig } = result.current;
+  act(() => {
+    localStorage.setItem("webspeak:fixed-server-password", "stored-pw");
+    publicConfig.store.setState({ accessMode: "fixed" });
+  });
+  await waitFor(() => expect(store.getState().serverPassword).toBe("stored-pw"));
+  // 连接进行中（含刷新恢复）不回填：open+屏蔽预填模式会把恢复意图带回的真实
+  // 目标清空，覆盖即 member-server-header 裸奔事故的回归。
+  act(() => {
+    voice.store.setState({ connecting: true });
+    store.setState({ serverPassword: "" });
+  });
+  expect(store.getState().serverPassword).toBe("");
+});
+
+test("fixed 连接成功写独立密码键且不建收藏", async () => {
   const { result } = renderControllers();
   const voice = result.current.voice;
   const { store, publicConfig } = result.current;
   act(() => {
     publicConfig.store.setState({ accessMode: "fixed" });
-    store.setState({
-      serverHost: "voice.example.com",
-      serverPort: "9987",
-      favoriteServers: [{
-        id: "voice.example.com:9987",
-        label: "示例服",
-        address: "voice.example.com:9987",
-        password: "stored-pw",
-      }],
-    });
+    store.setState({ serverHost: "voice.example.com", serverPort: "9987", nickname: "访客", serverPassword: "pw-fixed" });
+    voice.store.setState({ connected: true });
   });
-  await waitFor(() => expect(store.getState().serverPassword).toBe("stored-pw"));
-  // 连接进行中（含刷新恢复）不回填：open+屏蔽预填模式会把恢复意图带回的真实
-  // 目标清空，覆盖即 member-server-header 裸奔事故的回归。先置 connecting 再
-  // 动表单与收藏——顺序反了会在 connecting 落地前触发一次合法回填。
+  await waitFor(() => expect(localStorage.getItem("webspeak:fixed-server-password")).toBe("pw-fixed"));
+  expect(savedFavorites.current, "fixed 不再借收藏条目当密码键").toEqual([]);
+});
+
+test("open 模式连接成功仍走连接即收藏，不写独立密码键", async () => {
+  const { result } = renderControllers();
+  const voice = result.current.voice;
+  const { store, publicConfig } = result.current;
   act(() => {
-    voice.store.setState({ connecting: true });
-    store.setState({
-      serverPassword: "",
-      favoriteServers: [{
-        id: "other.example.com:9987",
-        label: "其他服",
-        address: "other.example.com:9987",
-        password: "other-pw",
-      }],
-    });
+    publicConfig.store.setState({ accessMode: "open" });
+    store.setState({ serverHost: "voice.example.com", serverPort: "9987", nickname: "访客", serverPassword: "pw-open" });
+    voice.store.setState({ connected: true });
   });
-  expect(store.getState().serverPassword).toBe("");
+  await waitFor(() => {
+    const favorite = savedFavorites.current.find((item) => (item as { address: string }).address === "voice.example.com:9987");
+    expect(favorite, "连接目标应 upsert 进收藏（连接即收藏）").toBeTruthy();
+  });
+  expect(localStorage.getItem("webspeak:fixed-server-password")).toBeNull();
 });
