@@ -10,11 +10,11 @@
 - 音频处理默认（2026-10-14 拍板）：增加延迟的处理默认关——回声消除默认关（外放用户自行开启防回声）、自动增益默认关，降噪默认开；三开关在桌面音频坞麦克风面板与移动音频设置，经约束重配+偏好持久化（touched 门控），勿静默回退默认值。
 - 上行链形态（2026-10-14 重构）：单层增益 + R/G 模式（raw 直连/处理混音，replaceTrack 切换）——细则与红线（单增益、麦测试增益门控、stopCapture 边界、accompaniment target 稳定身份）钉在 voice.md 回归不变量节。
 - 语音内切换不同服务器=显式离开（内部断开 1000 → 网关 teardown，不进 detached 池），同目标换频道走 switchChannel。
-- 收藏密码只存在于 IndexedDB 收藏记录（切服/回填顺带携带，上游不存密码的模型不采纳）。
+- 收藏密码只存在于 IndexedDB 收藏记录（切服/回填顺带携带，上游不存密码的模型不采纳）。**fixed 模式例外（2026-10-30）**：真实目标不下发、不建收藏，记忆密码走 localStorage 独立键 `webspeak:fixed-server-password`（语义=上一次成功连接所用的密码）。
 - fixed 模式免密直进的唯一密码权威是网关服务端注入（`policy.serverPassword`），客户端不得把本地表单密码上送覆盖。
 - 清除本地数据按 `webspeak:*` 前缀清扫而非枚举清单（新增 storage 键必须带此前缀）。
 - 移动端页签切换依赖 ≤740 固定底部导航（.mobile-nav 的 display:grid+fixed 是覆盖顶层 display:none 的唯一规则，动它必须真机验证页签可达）。
-- 收藏列表桌面=壳层最左列图标 rail（成员侧边栏左侧）、移动=壳层直属顶部 chips（voice-banners 之后的 .app-shell 子元素，channels/more 页签也常驻；≤740 workspace 为 flex 弹性高度，勿改回固定 calc）；列表只显示收藏——连接即收藏、取消收藏即从列表移除，无「最近」概念（2026-10-10 拍板废除，勿回退）；记住服务器密码常开（连接成功即写入收藏记录，无勾选框）。
+- 收藏列表桌面=壳层最左列图标 rail（成员侧边栏左侧）、移动=壳层直属顶部 chips（voice-banners 之后的 .app-shell 子元素，channels/more 页签也常驻；≤740 workspace 为 flex 弹性高度，勿改回固定 calc）；列表只显示收藏——连接即收藏、取消收藏即从列表移除，无「最近」概念（2026-10-10 拍板废除，勿回退）；记住服务器密码常开（连接成功即写入收藏记录，无勾选框）。**fixed 模式（仅限此 TeamSpeak 服务器）下收藏 rail/strip 与添加钮整体不渲染（2026-10-30）**：单服门面不暴露多服务器概念；切服静默拒绝（网关 join 端点本就忽略用户 target，UI 层补诚实性）；频道面板服务器标题用站点名（serverHost 是网关主机回落值）。
 - 模态框只经按钮/Esc 关闭、不响应 backdrop 点击。
 - 带 backdrop-filter/transform 的元素会成为 fixed 后代的包含块，fixed 浮层不得挂其子树内。**浮层挂载点分两代（2026-10-21 radix 迁移起）**：自摆 fixed 浮层 portal 挂 `.web-client` 根；Radix 原语浮层（dropdown/context-menu/popover/tooltip）落 **body**——`#root` 有 `zoom: var(--ui-scale)`，portal 回缩放子树会让 popper 的视觉坐标再乘缩放（旧手摆代码「视觉像素除 scale」的同因），body 层坐标 1:1 正确；radix 时代的令牌（--menu/--tooltip 等与 shadcn 语义令牌）定义在 `:root`，旧「主题作用域在客户端根」的理由已失效。**body 挂载的令牌前提（2026-10-21 实案补钉）**：`--wsd-*` 作用域必须含 `body`（日）与 `.dark body`（夜）（tokens.css）——portal 节点游离于三个路由根之外，令牌缺位时浮层内一切 `var(--wsd-*)` 声明（含 rangeStyle 内联渐变）计算值期整体失效、渲染为透明，同规则里的字面量声明（border-radius）却正常——这个「半条规则活着」的签名易误判成层序被压（曾误记 preflight 压制 ws-menus，证伪）；新浮层若自带组件私有调色板，局部变量必须定义在浮层内容器上而非路由根。代价：`--ui-scale>1`（≥1920 双向视口）时浮层尺寸偏小，随 zoom 体系重审一并处理。
 - 配置弹窗=全量配置面，两端必须一致（2026-10-13 拍板「PC 对齐移动端，不做删减」）：平台差异只允许用快捷面承载（音频坞悬停面板），禁止用 viewport 门控在弹窗里删项；新配置项两端同加。
