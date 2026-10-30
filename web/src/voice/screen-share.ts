@@ -237,9 +237,12 @@ export function createScreenShareController(transport: ScreenShareTransport) {
       });
     }
     // Facet separation: a viewer's failed watch attempt surfaces only on the
-    // viewer. The owner silently retires the peer — the same event used to
-    // paint a fatal P2P banner on the owner's workspace, which read as "the
-    // stream died" and made owners stop a healthy broadcast.
+    // viewer (the owner UI must not paint a fatal banner for one viewer's
+    // network). The owner still leaves a console trail so its DevTools can
+    // answer「共享端到底有没有应答/在哪一步失败」without UI noise.
+    if (!viewingStream) {
+      console.info(`[screen-share] 观看者 ${peerId} 连接失败已清理：${message ?? "ICE 失败"}`);
+    }
   }
 
   function createScreenSharePeer(streamId: string, peerId: string, role: "owner" | "viewer"): RTCPeerConnection {

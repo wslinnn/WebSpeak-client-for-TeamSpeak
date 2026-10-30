@@ -153,6 +153,13 @@ export function relayScreenShareSignal(
     sendJson({ type: "screenShareError", code: "SCREEN_SHARE_PEER_NOT_FOUND", message: "观看者已离开" });
     return;
   }
+  // 候选交换定界仪器（debug 级）：双向计数可直接回答「候选卡在网关哪一侧」。
+  host.logger.debug({
+    from: entry.screenPeerId,
+    to: targetEntry.screenPeerId,
+    kind: signal.kind,
+    streamId: stream.streamId,
+  }, "Screen share signal relayed");
   host.sendToEntry(targetEntry.id, { type: "screenShareSignal", streamId: stream.streamId, fromPeerId: entry.screenPeerId, signal });
 }
 
