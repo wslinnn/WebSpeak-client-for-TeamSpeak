@@ -24,6 +24,9 @@ interface InRoomOptions {
   viewportHeight: number;
   /** 音频设置弹窗开关（根 state；设置请求代际读它判定「还在当前弹窗」）。 */
   getSettingsOpen(): boolean;
+  /** fixed 模式（仅限此 TeamSpeak 服务器）门面：网关 join 端点本就忽略用户
+   *  target，房间内不再暴露多服务器概念——切服入口静默拒绝，防假切换横幅。 */
+  isFixedMode(): boolean;
   /** 用户手动改 away 时回调（根用它让自动 away 控制器放弃自己的标记）。 */
   onManualStatusChange?(): void;
   showToast(message: string, tone?: "info" | "warn"): void;
@@ -196,6 +199,8 @@ export function useInRoomControllers(options: InRoomOptions) {
 
   // —— 进房动作（旧 switchServer/leaveVoiceWorkspace/onServerPasswordCancel 平价） ——
   function switchServer(server: FavoriteServer): void {
+    // fixed 模式下切服必然被网关改道回管理员目标（假切换），直接静默拒绝。
+    if (options.isFixedMode()) return;
     if (serverSwitch.store.getState().pending || voice.store.getState().connecting) return;
     const snapshot = store.getState();
     // 同目标行点击不是切服；换频道走频道树。

@@ -46,6 +46,9 @@ interface VoiceShellProps {
   serverSwitch: VoiceServerSwitch;
   audioControls: AudioControls;
   monitor: PerformanceMonitor;
+  /** accessMode=fixed（仅限此 TeamSpeak 服务器）时收藏 rail/strip 与增改入口整体不渲染；siteName 是 fixed 模式的服务器标题（serverHost 回落值是网关主机，不代表真实目标）。 */
+  accessMode: "fixed" | "open";
+  siteName: string;
   language: Language;
   isMobileViewport: boolean;
   mobileSection: MobileSection;
@@ -192,8 +195,8 @@ export function VoiceShell(props: VoiceShellProps) {
         localizedMicrophoneError={props.localizedMicrophoneError}
       />
 
-      {/* 移动端服务器条：壳级 chrome，页签切换藏不住。 */}
-      {homeState.favoriteServers.length > 0 && (
+      {/* 移动端服务器条：壳级 chrome，页签切换藏不住；fixed 模式不渲染（多服务器概念整体退场）。 */}
+      {props.accessMode === "open" && homeState.favoriteServers.length > 0 && (
         <div className="favorite-server-strip" data-ws-part="voice.favorite-server-strip" role="toolbar" aria-label={t("favoriteServers")}>
           {railServers.map((server) => (
             <Button variant="ghost"
@@ -226,9 +229,9 @@ export function VoiceShell(props: VoiceShellProps) {
         </div>
       )}
 
-      {/* 桌面 rail：open 模式的收藏 + 皮肤/语言/身份位（皮肤/身份随 P4-7/P4-5） */}
+      {/* 桌面 rail：open 模式的收藏 + 语言/主题/身份位；fixed 模式收藏瓦片与添加钮不渲染。 */}
       <aside className="favorite-server-rail" data-ws-part="voice.favorite-server-rail" role="toolbar" aria-label={t("favoriteServers")}>
-        {railServers.map((server) => (
+        {props.accessMode === "open" && railServers.map((server) => (
           <Tooltip key={server.id}>
             <TooltipTrigger asChild>
               <Button variant="ghost"
@@ -254,13 +257,15 @@ export function VoiceShell(props: VoiceShellProps) {
             <TooltipContent className="whitespace-pre-line">{server.address === currentAddress ? `${server.label}\n${server.address}\n${t("currentServerBadge")}` : `${server.label}\n${server.address}`}</TooltipContent>
           </Tooltip>
         ))}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" type="button" className="favorite-server-add" data-ws-part="voice.favorite-server-rail.add" aria-label={t("addFavoriteServer")} onClick={props.onOpenFavoriteDialog}>
-              <Icon name="plus" size={21} /></Button>
-          </TooltipTrigger>
-          <TooltipContent>{t("addFavoriteServer")}</TooltipContent>
-        </Tooltip>
+        {props.accessMode === "open" && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" type="button" className="favorite-server-add" data-ws-part="voice.favorite-server-rail.add" aria-label={t("addFavoriteServer")} onClick={props.onOpenFavoriteDialog}>
+                <Icon name="plus" size={21} /></Button>
+            </TooltipTrigger>
+            <TooltipContent>{t("addFavoriteServer")}</TooltipContent>
+          </Tooltip>
+        )}
         <ThemeToggle dark={props.theme.dark} onToggle={props.theme.onToggle} label={props.theme.label} className="rail-switcher-tile theme-toggle-tile" />
         <LanguageSwitcher language={i18n.language} onChange={i18n.setLanguage} menuLabel={props.t("languageMenu")} className="rail-switcher-tile" tile />
         <Tooltip>
@@ -323,7 +328,8 @@ export function VoiceShell(props: VoiceShellProps) {
 
       <ChannelMemberPanel
         members={membersController}
-        serverLabel={railServers.find((server) => server.address === currentAddress)?.label ?? currentAddress}
+        // fixed 模式 serverHost 是网关主机回落值，不代表真实 TS 目标——标题改用站点名。
+        serverLabel={props.accessMode === "fixed" ? props.siteName : railServers.find((server) => server.address === currentAddress)?.label ?? currentAddress}
         filteredMemberChannels={filteredMemberChannels}
         currentChannelId={currentChannel?.id}
         mobileVisible={props.mobileSection === "channels"}

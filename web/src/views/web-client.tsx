@@ -107,6 +107,7 @@ function WebClientRoot() {
     isMobileViewport,
     viewportHeight: mobileViewport.height,
     getSettingsOpen,
+    isFixedMode: () => publicConfig.store.getState().accessMode === "fixed",
     onManualStatusChange,
     showToast,
     t,
@@ -257,6 +258,9 @@ function WebClientRoot() {
     });
   }
   function saveFavoriteServerDraft(draft: FavoriteServerDraft): void {
+    // fixed 模式下服务器目标由管理员托管：收藏增改入口已随 rail 门控隐藏，此处
+    // 是对话框保存的最后一道防御。
+    if (publicConfig.store.getState().accessMode === "fixed") return;
     void favorites.upsertFavoriteServer(draft);
     // 对话框改的是已存上下文：指向当前表单目标时把草稿采纳进表单，下次连接用
     // 新值，连接后的收藏同步也不会把保存悄悄回退成旧表单值。
@@ -319,6 +323,8 @@ function WebClientRoot() {
           serverSwitch={inRoom.serverSwitch}
           audioControls={inRoom.audioControls}
           monitor={inRoom.monitor}
+          accessMode={config.accessMode}
+          siteName={config.siteName}
           theme={{ dark: themeView.dark, onToggle: () => theme.set(!themeView.dark), label: themeLabel }}
           language={language}
           isMobileViewport={isMobileViewport}
