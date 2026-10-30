@@ -542,6 +542,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
       const peer = screenSharePeers.get(fromPeerId) ?? createScreenSharePeer(streamId, fromPeerId, "owner");
       if (signal.kind !== "offer" || !signal.sdp) return;
       armScreenSharePeerTimer(fromPeerId);
+      console.info(`[screen-share] 收到观看者 ${fromPeerId} 的连接请求，开始应答`);
       try {
         await peer.setRemoteDescription({ type: "offer", sdp: signal.sdp });
         if (!isCurrentPeer(fromPeerId, peer)) return;
@@ -551,6 +552,7 @@ export function createScreenShareController(transport: ScreenShareTransport) {
         if (!isCurrentPeer(fromPeerId, peer)) return;
         await peer.setLocalDescription(answer);
         if (!isCurrentPeer(fromPeerId, peer)) return;
+        console.info(`[screen-share] 已向观看者 ${fromPeerId} 发送应答，等待 ICE 候选交换`);
         sendScreenShareMessage({ type: "screenShareSignal", streamId, targetPeerId: fromPeerId, signal: { kind: "answer", sdp: answer.sdp ?? "" } });
       } catch {
         if (isCurrentPeer(fromPeerId, peer)) failScreenSharePeer(fromPeerId, "共享端无法完成观看者的直连协商");

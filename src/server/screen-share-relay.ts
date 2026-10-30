@@ -31,7 +31,7 @@ export interface ScreenShareRelayHost {
   entries: ReadonlyMap<string, ScreenShareParticipant>;
   screenStreams: Map<string, ScreenStreamRecord>;
   sendToEntry: (entryId: string, message: ServerMessage) => void;
-  logger: Pick<Logger, "debug" | "warn">;
+  logger: Pick<Logger, "debug" | "info" | "warn">;
   viewerCount: (stream: ScreenStreamRecord) => number;
   broadcast: (stream: ScreenStreamRecord, message: ServerMessage, excludeEntryId?: string) => void;
   describe: (stream: ScreenStreamRecord) => ScreenShareStreamDescription;
@@ -153,8 +153,9 @@ export function relayScreenShareSignal(
     sendJson({ type: "screenShareError", code: "SCREEN_SHARE_PEER_NOT_FOUND", message: "观看者已离开" });
     return;
   }
-  // 候选交换定界仪器（debug 级）：双向计数可直接回答「候选卡在网关哪一侧」。
-  host.logger.debug({
+  // 候选交换定界仪器（info 级，量级=每次观看十来条）：双向计数可直接回答
+  // 「候选卡在网关哪一侧」——观看端未发/共享端未发/中继丢失一眼可辨。
+  host.logger.info({
     from: entry.screenPeerId,
     to: targetEntry.screenPeerId,
     kind: signal.kind,
