@@ -2,7 +2,7 @@ import { a as e, i as t, o as n } from "./address-BfmovVpp.js";
 import { C as r, S as i, _ as a, b as o, d as s, g as c, h as l, l as u, o as d, p as f, r as p, u as m, v as h, w as g, x as _, y as v } from "./primitives-DpKiXbMi.js";
 import { t as y } from "./crypto-BtmoNWm8.js";
 import { t as b } from "./resolver-6B8dI9gr.js";
-import { a as x, t as S } from "./handler-DI_abe9c.js";
+import { a as x, t as S } from "./handler-Dbn9KAtB.js";
 import { i as C, n as w, t as T } from "./command-BLe-C2L2.js";
 import { n as ee } from "./crypt-handshake-DziOY4Lq.js";
 import { t as te } from "./crypt-init2-DEykmDHe.js";
@@ -741,21 +741,24 @@ var ye = class {
 			return;
 		}
 		if ((t === 0 || t === 1) && e.data.length > 5) {
-			this.#P(e.data);
+			this.#P(e.data, e.typeFlagged);
 			return;
 		}
 		(t === 2 || t === 3) && e.data.length > 0 && this.#F(Buffer.from(e.data).toString("utf8"));
 	}
-	#P(e) {
+	#P(e, t) {
 		if (this.#x.length === 0) return;
-		let t = new DataView(e.buffer, e.byteOffset, e.byteLength).getUint16(2, !1);
-		if (t === this.clid) return;
-		let n = {
-			clientId: t,
+		let n = new DataView(e.buffer, e.byteOffset, e.byteLength), r = n.getUint16(0, !1), i = n.getUint16(2, !1);
+		if (i === this.clid) return;
+		let a = {
+			clientId: i,
 			codec: e[4],
-			data: e.subarray(5)
+			data: e.subarray(5),
+			vid: r,
+			flags: t & 240,
+			isWhisper: (t & 15) == 1
 		};
-		for (let e of this.#x) setImmediate(() => e(n));
+		for (let e of this.#x) setImmediate(() => e(a));
 	}
 	#F(e) {
 		if (!e) return;

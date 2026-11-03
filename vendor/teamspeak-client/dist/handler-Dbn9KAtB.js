@@ -157,8 +157,33 @@ function g(e) {
 	};
 }
 //#endregion
-//#region src/transport/handler.ts
-var _ = 1024, v = 5e3, y = 6e4, b = 1e3, x = 8, S = 3, C = 5, w = 500, T = 100, E = class {
+//#region src/transport/voice-trailer.ts
+var _ = class {
+	#e = [];
+	add(e) {
+		!Number.isFinite(e) || e < 0 || (this.#e.push(e), this.#e.length > 20 && this.#e.shift());
+	}
+	deviationMs() {
+		let e = this.#e.length;
+		if (e === 0) return null;
+		let t = this.#e.reduce((e, t) => e + t, 0) / e, n = this.#e.reduce((e, n) => e + (n - t) ** 2, 0) / e;
+		return Math.sqrt(n);
+	}
+}, v = 254, y = 5, b = class {
+	stats;
+	#e = 0;
+	constructor(e) {
+		this.stats = e;
+	}
+	next() {
+		if (this.#e >= y) return null;
+		this.#e++;
+		let e = this.stats.deviationMs();
+		if (e === null) return null;
+		let t = e * 3;
+		return t > v ? v : Math.floor(t);
+	}
+}, x = 1024, S = 5e3, C = 6e4, w = 1e3, T = 8, E = 3, D = 5, O = 500, k = 100, A = class {
 	onPacket = null;
 	onClosed = null;
 	#e;
@@ -171,14 +196,17 @@ var _ = 1024, v = 5e3, y = 6e4, b = 1e3, x = 8, S = 3, C = 5, w = 500, T = 100, 
 	#s = Date.now();
 	#c = /* @__PURE__ */ new Uint16Array(9);
 	#l = /* @__PURE__ */ new Uint32Array(9);
-	#u = new p(65536, _);
-	#d = new p(65536, _);
-	#f = new p(65536, _);
-	#p = new p(65536, _);
+	#u = new p(65536, x);
+	#d = new p(65536, x);
+	#f = new p(65536, x);
+	#p = new p(65536, x);
 	#m = /* @__PURE__ */ new Map();
 	#h = /* @__PURE__ */ new Map();
 	#g = /* @__PURE__ */ new Map();
 	#_ = null;
+	#v = new _();
+	#y = new b(this.#v);
+	#b = /* @__PURE__ */ new Map();
 	constructor(t, n = e) {
 		this.#e = t, this.#t = n;
 	}
@@ -197,17 +225,24 @@ var _ = 1024, v = 5e3, y = 6e4, b = 1e3, x = 8, S = 3, C = 5, w = 500, T = 100, 
 	}
 	start(e) {
 		this.#n = e, this.#i = !1, this.#s = Date.now(), e.on("message", (e) => {
-			this.#s = Date.now(), this.#x(new Uint8Array(e.buffer, e.byteOffset, e.byteLength));
+			this.#s = Date.now(), this.#w(new Uint8Array(e.buffer, e.byteOffset, e.byteLength));
 		}), e.on("error", (e) => {
-			this.#t.error("udp error", e), this.#R(e);
-		}), e.on("close", () => this.#R(null)), this.#c[a.Command] = 1, this.#c[a.Init1] = 101;
+			this.#t.error("udp error", e), this.#H(e);
+		}), e.on("close", () => this.#H(null)), this.#c[a.Command] = 1, this.#c[a.Init1] = 101;
 		let t = n(this.#e, null);
-		t && this.#y(a.Init1, t, 0);
+		t && this.#S(a.Init1, t, 0);
 		let r = setInterval(() => {
-			this.#e.cryptoInitComplete && this.sendPacket(a.Ping, /* @__PURE__ */ new Uint8Array(), o.Unencrypted);
-		}, v);
+			if (this.#e.cryptoInitComplete) {
+				let e = this.#c[a.Ping];
+				if (this.#b.set(e, Date.now()), this.#b.size > 32) {
+					let e = this.#b.keys().next().value;
+					e !== void 0 && this.#b.delete(e);
+				}
+				this.sendPacket(a.Ping, /* @__PURE__ */ new Uint8Array(), o.Unencrypted);
+			}
+		}, S);
 		this.#a = () => clearInterval(r);
-		let i = setInterval(() => this.#I(), T);
+		let i = setInterval(() => this.#B(), k);
 		this.#o = () => clearInterval(i);
 	}
 	receivedFinalInitAck() {
@@ -216,25 +251,25 @@ var _ = 1024, v = 5e3, y = 6e4, b = 1e3, x = 8, S = 3, C = 5, w = 500, T = 100, 
 	sendPacket(e, t, n) {
 		let r = !this.#e.cryptoInitComplete;
 		if (t.length > 487 && e !== a.Voice && e !== a.VoiceWhisper) {
-			this.#v(e, t, n, r);
+			this.#x(e, t, n, r);
 			return;
 		}
-		this.#y(e, t, n, r);
+		this.#S(e, t, n, r);
 	}
 	sendVoicePacket(e, t) {
 		let n = this.#c[a.Voice], r = this.#l[a.Voice];
 		this.#c[a.Voice] = n + 1 & 65535, this.#c[a.Voice] === 0 && this.#l[a.Voice]++;
-		let i = S + e.length, s = new Uint8Array(i);
-		new DataView(s.buffer).setUint16(0, n, !1), s[2] = t, s.set(e, S);
-		let c = u({
-			typeFlagged: a.Voice | o.Unencrypted,
+		let i = this.#y.next(), s = E + e.length + (i === null ? 0 : 1), c = new Uint8Array(s);
+		new DataView(c.buffer).setUint16(0, n, !1), c[2] = t, c.set(e, E), i !== null && (c[s - 1] = i);
+		let l = u({
+			typeFlagged: a.Voice | o.Unencrypted | (i === null ? 0 : 64),
 			id: n,
 			clientID: this.#r,
 			generationID: r,
-			data: s,
+			data: c,
 			receivedAt: 0
-		}), l = new Uint8Array(13 + i);
-		l.set(this.#e.fakeSignature, 0), l.set(c, x), l.set(s, 13), this.#b(l);
+		}), d = new Uint8Array(13 + s);
+		d.set(this.#e.fakeSignature, 0), d.set(l, T), d.set(c, 13), this.#C(d);
 	}
 	sendWhisperPacket(e, t, n) {
 		if (t.length === 0) throw Error("whisper requires at least one target");
@@ -242,33 +277,33 @@ var _ = 1024, v = 5e3, y = 6e4, b = 1e3, x = 8, S = 3, C = 5, w = 500, T = 100, 
 		if (t.some((e) => !Number.isInteger(e) || e < 0 || e > 65535)) throw RangeError("invalid whisper target");
 		let r = this.#c[a.VoiceWhisper], i = this.#l[a.VoiceWhisper];
 		this.#c[a.VoiceWhisper] = r + 1 & 65535, this.#c[a.VoiceWhisper] === 0 && (this.#l[a.VoiceWhisper] = i + 1 >>> 0);
-		let s = C + t.length * 2 + e.length, c = new Uint8Array(s), l = new DataView(c.buffer);
-		l.setUint16(0, r, !1), c[2] = n, c[3] = 0, c[4] = t.length;
-		for (let e = 0; e < t.length; e++) l.setUint16(C + e * 2, t[e], !1);
-		c.set(e, C + t.length * 2);
-		let d = u({
-			typeFlagged: a.VoiceWhisper | o.Unencrypted,
+		let s = this.#y.next(), c = D + t.length * 2, l = c + e.length + (s === null ? 0 : 1), d = new Uint8Array(l), f = new DataView(d.buffer);
+		f.setUint16(0, r, !1), d[2] = n, d[3] = 0, d[4] = t.length;
+		for (let e = 0; e < t.length; e++) f.setUint16(D + e * 2, t[e], !1);
+		d.set(e, c), s !== null && (d[l - 1] = s);
+		let p = u({
+			typeFlagged: a.VoiceWhisper | o.NewProtocol | o.Unencrypted | (s === null ? 0 : 64),
 			id: r,
 			clientID: this.#r,
 			generationID: i,
-			data: c,
+			data: d,
 			receivedAt: 0
-		}), f = new Uint8Array(13 + s);
-		f.set(this.#e.fakeSignature, 0), f.set(d, x), f.set(c, 13), this.#b(f);
+		}), m = new Uint8Array(13 + l);
+		m.set(this.#e.fakeSignature, 0), m.set(p, T), m.set(d, 13), this.#C(m);
 	}
 	close() {
 		this.#i || (this.#i = !0, this.#a?.(), this.#o?.(), this.#n?.close());
 	}
-	#v(e, t, n, r) {
+	#x(e, t, n, r) {
 		let i = 0, a = !0;
 		for (; i < t.length;) {
 			let s = Math.min(t.length - i, 487), c = i + s === t.length, l = n;
-			a !== c && (l |= o.Fragmented), this.#y(e, t.slice(i, i + s), l, r), i += s, a = !1;
+			a !== c && (l |= o.Fragmented), this.#S(e, t.slice(i, i + s), l, r), i += s, a = !1;
 		}
 	}
-	#y(e, t, n, r = !this.#e.cryptoInitComplete) {
-		n = D(e, n);
-		let [i, a] = this.#P(e), s = {
+	#S(e, t, n, r = !this.#e.cryptoInitComplete) {
+		n = j(e, n);
+		let [i, a] = this.#R(e), s = {
 			typeFlagged: e | n,
 			id: i,
 			clientID: this.#r,
@@ -276,44 +311,45 @@ var _ = 1024, v = 5e3, y = 6e4, b = 1e3, x = 8, S = 3, C = 5, w = 500, T = 100, 
 			data: t,
 			receivedAt: 0
 		}, c = (n & o.Unencrypted) !== 0, l = u(s), [d, f] = this.#e.encrypt(e, i, a, l, t, r, c), p = new Uint8Array(13 + d.length);
-		p.set(f.slice(0, x), 0), p.set(l, x), p.set(d, 13), this.#b(p);
+		p.set(f.slice(0, T), 0), p.set(l, T), p.set(d, 13), this.#C(p);
 		let m = {
 			packet: s,
 			firstSend: Date.now(),
 			lastSend: Date.now(),
 			retryCount: 0,
-			nextInterval: w
+			nextInterval: O
 		};
-		this.#F(e, s, m);
+		this.#z(e, s, m);
 	}
-	#b(e) {
+	#C(e) {
 		if (this.#n) try {
 			this.#n.send(Buffer.from(e), (e) => {
 				e && this.#t.warn("udp send error", e);
 			});
 		} catch (e) {
 			let t = e instanceof Error ? e : Error(String(e));
-			this.#t.error("udp send failed", t), this.#R(t);
+			this.#t.error("udp send failed", t), this.#H(t);
 		}
 	}
-	#x(e) {
+	#w(e) {
 		if (e.length < 11) return;
-		let t = e.slice(0, x), n = e.slice(x, 11), r = e.slice(11), i = d(n), o = {
+		let t = e.slice(0, T), n = e.slice(T, 11), r = e.slice(11), i = d(n), o = {
 			...i,
 			clientID: 0,
-			generationID: this.#S(i.id, i.typeFlagged & 15),
+			generationID: this.#T(i.id, i.typeFlagged & 15),
 			data: /* @__PURE__ */ new Uint8Array(),
 			receivedAt: Date.now()
-		}, c = this.#C(o, n, r, t);
-		if (c !== null) {
-			if (o.data = c.plaintext, s(o) === a.Ping) {
-				this.#E(o.id, c.dummyUsed);
-				return;
-			}
-			this.#w(o, c.dummyUsed) && (this.#D(o), this.#N(o));
+		}, c = this.#E(o, n, r, t);
+		if (c === null) return;
+		o.data = c.plaintext;
+		let l = s(o);
+		if (l === a.Pong && this.#A(o), l === a.Ping) {
+			this.#k(o.id, c.dummyUsed);
+			return;
 		}
+		this.#D(o, c.dummyUsed) && (this.#j(o), this.#L(o));
 	}
-	#S(e, t) {
+	#T(e, t) {
 		switch (t) {
 			case a.Command: return this.#u.getGeneration(e);
 			case a.CommandLow: return this.#d.getGeneration(e);
@@ -322,7 +358,7 @@ var _ = 1024, v = 5e3, y = 6e4, b = 1e3, x = 8, S = 3, C = 5, w = 500, T = 100, 
 			default: return 0;
 		}
 	}
-	#C(e, t, n, r) {
+	#E(e, t, n, r) {
 		let i = (c(e) & o.Unencrypted) !== 0, l = !this.#e.cryptoInitComplete, u = l, d = s(e), f = e.generationID;
 		try {
 			return {
@@ -348,44 +384,49 @@ var _ = 1024, v = 5e3, y = 6e4, b = 1e3, x = 8, S = 3, C = 5, w = 500, T = 100, 
 			return null;
 		}
 	}
-	#w(e, t) {
+	#D(e, t) {
 		let n = s(e);
 		if (n !== a.Command && n !== a.CommandLow) return !0;
 		let r = n === a.Command ? this.#u : this.#d, i = n === a.Command ? a.Ack : a.AckLow;
-		return r.isInWindow(e.id) ? (this.#T(e.id, i, t), !0) : (r.isOldPacket(e.id) && this.#T(e.id, i, t), !1);
+		return r.isInWindow(e.id) ? (this.#O(e.id, i, t), !0) : (r.isOldPacket(e.id) && this.#O(e.id, i, t), !1);
 	}
-	#T(e, t, n) {
+	#O(e, t, n) {
 		let r = /* @__PURE__ */ new Uint8Array(2);
-		new DataView(r.buffer).setUint16(0, e, !1), this.#y(t, r, 0, n);
+		new DataView(r.buffer).setUint16(0, e, !1), this.#S(t, r, 0, n);
 	}
-	#E(e, t) {
+	#k(e, t) {
 		let n = /* @__PURE__ */ new Uint8Array(2);
-		new DataView(n.buffer).setUint16(0, e, !1), this.#y(a.Pong, n, o.Unencrypted, t);
+		new DataView(n.buffer).setUint16(0, e, !1), this.#S(a.Pong, n, o.Unencrypted, t);
 	}
-	#D(e) {
+	#A(e) {
+		if (e.data.length < 2) return;
+		let t = new DataView(e.data.buffer, e.data.byteOffset, e.data.byteLength).getUint16(0, !1), n = this.#b.get(t);
+		n !== void 0 && (this.#b.delete(t), this.#v.add(Date.now() - n));
+	}
+	#j(e) {
 		let t = s(e);
 		if (t !== a.Command && t !== a.CommandLow) {
 			this.onPacket?.(e);
 			return;
 		}
 		let n = t === a.Command, r = n ? this.#m : this.#h, i = n ? this.#u : this.#d;
-		for (r.set(e.id, e), n ? this.#A(r, i, !0) : this.#A(r, i, !1);;) {
-			let e = n ? this.#O : this.#k, t = r.get(e);
+		for (r.set(e.id, e), n ? this.#P(r, i, !0) : this.#P(r, i, !1);;) {
+			let e = n ? this.#M : this.#N, t = r.get(e);
 			if (t === void 0) break;
-			let a = this.#j(t, r, e, i);
+			let a = this.#F(t, r, e, i);
 			if (!a) break;
 			let [o, s] = a;
-			n ? this.#O = s : this.#k = s, this.#M(o), this.onPacket?.(o);
+			n ? this.#M = s : this.#N = s, this.#I(o), this.onPacket?.(o);
 		}
 	}
-	#O = 0;
-	#k = 0;
-	#A(e, t, n) {
-		let r = n ? this.#O : this.#k;
-		for (; !e.has(r) && O(e, r);) r = r + 1 & 65535, t.advance(1);
-		n ? this.#O = r : this.#k = r;
+	#M = 0;
+	#N = 0;
+	#P(e, t, n) {
+		let r = n ? this.#M : this.#N;
+		for (; !e.has(r) && M(e, r);) r = r + 1 & 65535, t.advance(1);
+		n ? this.#M = r : this.#N = r;
 	}
-	#j(e, t, n, r) {
+	#F(e, t, n, r) {
 		if ((c(e) & o.Fragmented) === 0) return t.delete(n), r.advance(1), [e, n + 1 & 65535];
 		let i = [], a = 0, s = n, l = !1, u = !1;
 		for (;;) {
@@ -409,7 +450,7 @@ var _ = 1024, v = 5e3, y = 6e4, b = 1e3, x = 8, S = 3, C = 5, w = 500, T = 100, 
 		for (let e of i) d.set(e.data, f), f += e.data.length, t.delete(n), r.advance(1), n = n + 1 & 65535;
 		return e.data = d, e.typeFlagged &= ~o.Fragmented, [e, n];
 	}
-	#M(e) {
+	#I(e) {
 		if ((c(e) & o.Compressed) !== 0) try {
 			e.data = new h().decompress(e.data), e.typeFlagged &= ~o.Compressed;
 		} catch (t) {
@@ -419,7 +460,7 @@ var _ = 1024, v = 5e3, y = 6e4, b = 1e3, x = 8, S = 3, C = 5, w = 500, T = 100, 
 			});
 		}
 	}
-	#N(e) {
+	#L(e) {
 		let t = s(e);
 		if (t === a.Init1) {
 			this.#_ = null;
@@ -430,11 +471,11 @@ var _ = 1024, v = 5e3, y = 6e4, b = 1e3, x = 8, S = 3, C = 5, w = 500, T = 100, 
 			this.#g.delete(r);
 		}
 	}
-	#P(e) {
+	#R(e) {
 		let t = this.#c[e], n = this.#l[e];
 		return e === a.Init1 ? [t, n] : (this.#c[e] = t + 1 & 65535, this.#c[e] === 0 && (this.#l[e] = n + 1 >>> 0), e === a.Command ? this.#f.advanceToExcluded(t) : e === a.CommandLow && this.#p.advanceToExcluded(t), [t, n]);
 	}
-	#F(e, t, n) {
+	#z(e, t, n) {
 		if (e === a.Init1) {
 			this.#_ = n;
 			return;
@@ -444,40 +485,40 @@ var _ = 1024, v = 5e3, y = 6e4, b = 1e3, x = 8, S = 3, C = 5, w = 500, T = 100, 
 			this.#g.set(r, n);
 		}
 	}
-	#I() {
+	#B() {
 		let e = Date.now();
-		if (e - this.#s > y) {
-			this.#t.warn("idle timeout"), this.#R(/* @__PURE__ */ Error("idle timeout"));
+		if (e - this.#s > C) {
+			this.#t.warn("idle timeout"), this.#H(/* @__PURE__ */ Error("idle timeout"));
 			return;
 		}
-		this.#_ && this.#L(this.#_, e);
+		this.#_ && this.#V(this.#_, e);
 		for (let [t, n] of this.#g) {
-			if (e - n.firstSend > y) {
-				this.#g.delete(t), this.#R(/* @__PURE__ */ Error("packet ack timeout"));
+			if (e - n.firstSend > C) {
+				this.#g.delete(t), this.#H(/* @__PURE__ */ Error("packet ack timeout"));
 				return;
 			}
-			this.#L(n, e);
+			this.#V(n, e);
 		}
 	}
-	#L(e, t) {
+	#V(e, t) {
 		if (t - e.lastSend < e.nextInterval) return;
-		e.lastSend = t, e.retryCount++, e.nextInterval = Math.min(e.nextInterval * 2, b);
+		e.lastSend = t, e.retryCount++, e.nextInterval = Math.min(e.nextInterval * 2, w);
 		let n = !this.#e.cryptoInitComplete, r = (c(e.packet) & o.Unencrypted) !== 0, i = u(e.packet), a = s(e.packet), [l, d] = this.#e.encrypt(a, e.packet.id, e.packet.generationID, i, e.packet.data, n, r), f = new Uint8Array(13 + l.length);
-		f.set(d.slice(0, x), 0), f.set(i, x), f.set(l, 13), this.#b(f);
+		f.set(d.slice(0, T), 0), f.set(i, T), f.set(l, 13), this.#C(f);
 	}
-	#R(e) {
+	#H(e) {
 		this.#i || (this.close(), this.onClosed?.(e));
 	}
 };
-function D(e, t) {
+function j(e, t) {
 	return e === a.Command || e === a.CommandLow ? t | o.NewProtocol : t;
 }
-function O(e, t) {
+function M(e, t) {
 	let n = Date.now();
 	for (let [r, i] of e) if ((r - t + 65536 & 65535) < 32768 && n - i.receivedAt > 5e3) return !0;
 	return !1;
 }
 //#endregion
-export { a, c, d, o as i, s as l, h as n, u as o, p as r, l as s, E as t, f as u };
+export { a, c, d, o as i, s as l, h as n, u as o, p as r, l as s, A as t, f as u };
 
-//# sourceMappingURL=handler-DI_abe9c.js.map
+//# sourceMappingURL=handler-Dbn9KAtB.js.map
