@@ -120,7 +120,16 @@ export class VoiceBridge {
     this.wss = new WebSocketServer({ server, path: "/ws/voice", maxPayload: 512 * 1024 });
     this.detachedPool.startHeartbeat();
 
-    this.wss.on("connection", this.connectionHandler);
+    this.wss.on("connection", (ws, req) => {
+      // Voice frames are 60-byte writes at 50 fps. Nagle holds such a write
+      // until the ACK of the previous segment lands, so on RTT>20 ms paths
+      // frames leave the gateway in RTT-sized bursts — exactly the clumped
+      // arrival the playback jitter buffer then has to absorb. The ws
+      // library never disables Nagle on its server sockets (only its client
+      // does), so do it here, per connection.
+      req.socket.setNoDelay(true);
+      void this.connectionHandler(ws, req);
+    });
 
     this.wss.on("error", (error) => {
       this.logger.error({ err: error }, "Voice WebSocket server error");
