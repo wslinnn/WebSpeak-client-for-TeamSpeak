@@ -45,7 +45,7 @@
 - **协商完成（answer 应用）前不得向槽位注入 RTP**——Chrome 会把未信令 SSRC 错误关联到已存在 m-section 永久污染。
 - `onSlotActivity` 是**电平语义**：active 期间每次轮询（150ms）都上报，靠消费方的自熄 hold（360ms）续命；只报上升沿会让持续说话的成员在 360ms 后熄灯（兼容路径按帧重 mark 不受影响，WebRTC 路径的轮询是唯一心跳）。槽位换人时必须用**旧** clientId 清灯。
 - WebRTC pacer 空闲 200ms 停表、入帧即恢复（禁止逐帧门控）。
-- **兼容路径播放调度**（2026-11-03 起，`remote-playback.ts`）：溢出=丢新帧（80ms 窗）不整流复位——已调度音频照播、窗口随时间线排空自动重开，溢出丢弃计入 framesDropped；复位兜底只挂 `play()` 入帧层且阈值为 300ms 积压（context 挂起/时间线失步防线，勿再在调度层加复位）；起播预滚 PRIME_MIN_FRAMES=2 / PRIME_MAX_WAIT_MS=60（对齐 TS6），每流首帧挂起待第二帧或预算到期一次性起播；underrun 钳位、解码队列 3 帧、codec 切换重建解码器维持。契约钉在 `remote-playback.test.ts`。
+- **兼容路径播放调度**（2026-11-03 实施 `9723652`；**同日因真机 WS 下行收音卡顿嫌疑已 revert 对照中（8bbe905），对照定论前以代码为准、勿按本条当现行行为**）：溢出=丢新帧（80ms 窗）不整流复位——已调度音频照播、窗口随时间线排空自动重开，溢出丢弃计入 framesDropped；复位兜底只挂 `play()` 入帧层且阈值为 300ms 积压（context 挂起/时间线失步防线，勿再在调度层加复位）；起播预滚 PRIME_MIN_FRAMES=2 / PRIME_MAX_WAIT_MS=60（对齐 TS6），每流首帧挂起待第二帧或预算到期一次性起播；underrun 钳位、解码队列 3 帧、codec 切换重建解码器维持。若对照确认真回归，重设计方向=丢帧听感（规整 20ms 空洞 vs 旧硬切的听感差）；若排除回归重新进入，契约钉回 `remote-playback.test.ts`（该文件随 revert 暂删）。
 - 语音路径禁止逐帧持久日志；音频计数走内存诊断快照。
 - Firefox 的 WebRTC 输出设备选择降级为默认设备，有意取舍。
 
