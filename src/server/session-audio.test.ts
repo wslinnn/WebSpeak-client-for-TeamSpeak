@@ -179,7 +179,7 @@ test("uplink silence gate drops near-silent frames after the release window and 
   const voicePcm = Buffer.from(Int16Array.from({ length: 960 }, () => 3000).buffer);
   const decoder = { decode: (frame: Buffer) => (frame[0] === 1 ? voicePcm : Buffer.alloc(1_920)) };
   const f = fixture(decoder);
-  // 静音帧：释放窗未武装 → 直接拦截。
+  // 静音帧：释放窗未武装 → 直接拦截（门控从未打开，无停止标记）。
   const silence = Buffer.from([2, 9]);
   f.transport.receiveWebRtc(silence, 4);
   assert.equal(f.forwarded.length, 0);
@@ -191,13 +191,33 @@ test("uplink silence gate drops near-silent frames after the release window and 
   f.state.now += 100;
   f.transport.receiveWebRtc(silence, 4);
   assert.equal(f.forwarded.length, 2);
-  // 窗外静音帧拦截；codec 5（伴奏混音）永不门控。
+  // 窗外静音帧拦截，并在此边沿发一帧空 payload 停止标记（官方 D10 行为）。
   f.state.now += 1_000;
   f.transport.receiveWebRtc(silence, 4);
-  assert.equal(f.forwarded.length, 2);
-  assert.equal(f.audio.egressDroppedFrames, 2);
-  f.transport.receiveWebRtc(Buffer.from([5, 9]), 5);
   assert.equal(f.forwarded.length, 3);
+  assert.deepEqual([...f.forwarded[2]!.data], []);
+  assert.equal(f.forwarded[2]!.codec, 4);
+  assert.equal(f.audio.egressDroppedFrames, 2);
+  // 静默期后续帧不再重复发停止标记。
+  f.transport.receiveWebRtc(silence, 4);
+  assert.equal(f.forwarded.length, 3);
+  assert.equal(f.audio.egressDroppedFrames, 3);
+  // codec 5（伴奏混音）永不门控。
+  f.transport.receiveWebRtc(Buffer.from([5, 9]), 5);
+  assert.equal(f.forwarded.length, 4);
+});
+
+test("the stop marker follows the active whisper route", () => {
+  const voicePcm = Buffer.from(Int16Array.from({ length: 960 }, () => 3000).buffer);
+  const decoder = { decode: (frame: Buffer) => (frame[0] === 1 ? voicePcm : Buffer.alloc(1_920)) };
+  const f = fixture(decoder);
+  f.transport.receiveWebRtc(Buffer.from([1, 9]), 4);
+  assert.equal(f.forwarded.length, 1);
+  f.state.targets = [7, 8];
+  f.state.now += 1_000;
+  f.transport.receiveWebRtc(Buffer.from([2, 9]), 4);
+  assert.equal(f.forwarded.length, 2);
+  assert.deepEqual(f.forwarded[1], { data: Buffer.alloc(0), codec: 4, targets: [7, 8] });
 });
 
 test("uplink silence gate fails open when no decoder is wired (legacy construction)", () => {

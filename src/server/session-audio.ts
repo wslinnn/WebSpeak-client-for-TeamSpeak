@@ -206,9 +206,22 @@ export class SessionAudioTransport {
     // TS 转发。伴奏混音（codec 5）不门控；解码失败放行（fail-open）。
     if (codec === 4 && !this.uplinkSpeech(this.clock(), data)) {
       this.options.audio.egressDroppedFrames++;
+      this.sendSilenceMarker(codec);
       return;
     }
+    if (codec === 4) this.uplinkGateOpen = true;
     this.sendVoice(data, codec);
+  }
+
+  private uplinkGateOpen = false;
+
+  /** 官方在 talk→silent 边沿发一帧空 payload 语音包（停止标记，36 号 §3）：
+   *  接收方据此收尾说话态与抖动缓冲。与正常帧同路由（私语期走私语通道），
+   *  只在门控由开到关的边沿发一次；空包本身不经过门控（它是门控的输出）。 */
+  private sendSilenceMarker(codec: number): void {
+    if (!this.uplinkGateOpen) return;
+    this.uplinkGateOpen = false;
+    this.sendVoice(Buffer.alloc(0), codec);
   }
 
   private uplinkVoiceUntil = 0;
