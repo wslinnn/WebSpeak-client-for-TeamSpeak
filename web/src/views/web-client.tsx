@@ -14,7 +14,6 @@ import { useI18n, useWebClientMessages } from "@/hooks/use-i18n";
 import { pendingWebClientMessages } from "@/i18n/messages";
 import { getThemeController } from "@/web-client/theme-controller";
 import { readMobileGateSignals, shouldShowMobileGate, storeMobileGateChoice } from "@/services/mobile-gate";
-import { createMobileAwayController, type MobileAwayController } from "@/services/mobile-away";
 import { createScreenWakeLockController, getScreenWakeLockApi, type ScreenWakeLockSnapshot } from "@/services/screen-wake-lock";
 import { observeMobileViewport, type MobileViewport } from "@/services/mobile-viewport";
 import { useIsMobileViewport } from "@/hooks/use-mobile-viewport";
@@ -43,11 +42,6 @@ export default function WebClient() {  // 控制器随路由组件生灭：离�
     </VoiceSessionProvider>
   );
 }
-
-// 模块级实时桥（use-inroom-controllers liveI18nBox 同款纪律）：WebClient 路由
-// 单实例，移动端判定只在 away 控制器的事件回调里读取，渲染路径不经过；不能进
-// useMemo 工厂闭包读 ref（Compiler 判渲染期 ref 访问）。
-const mobileClientFlagBox: { current: boolean } = { current: false };
 
 function WebClientRoot() {
   const voice = useVoiceSession();
@@ -96,10 +90,6 @@ function WebClientRoot() {
   // 引用必须稳定：进 hook 的 useMemo deps 后，内联箭头会让 audioControls 每渲染
   // 重建，dispose/syncSettingsOpen effect 随之每渲染执行并 setState，成死循环。
   const getSettingsOpen = useCallback(() => settingsOpenRef.current, []);
-  // 自动 away 控制器在 hook 返回后才创建（需要 membersController）；手动状态
-  // 回调经盒晚绑（旧 mobileAwayController?. 平价）。
-  const mobileAwayBox = useRef<MobileAwayController | null>(null);
-  const onManualStatusChange = useCallback(() => mobileAwayBox.current?.preserveManualStatus(), []);
   const inRoom = useInRoomControllers({
     voice,
     store,
@@ -108,12 +98,11 @@ function WebClientRoot() {
     viewportHeight: mobileViewport.height,
     getSettingsOpen,
     isFixedMode: () => publicConfig.store.getState().accessMode === "fixed",
-    onManualStatusChange,
     showToast,
     t,
     localizedMessage,
   });
-  const { switchState, audioControls, membersController } = inRoom;
+  const { switchState, audioControls } = inRoom;
 
   // —— 音频设置弹窗（旧 settingsOpen 根 ref 平价）：首页设备设置按钮与进房
   // dock 的设置按钮共用一个实例；弹窗元素在模板根部两态可达。 ——
@@ -133,25 +122,7 @@ function WebClientRoot() {
     localizedMicrophoneError,
   });
 
-  // —— 移动端服务接线（旧 watch 三件套平价）：屏幕常亮、后台自动 away、
-  // 设备插拔刷新。 ——
-  const isMobileBox = mobileClientFlagBox;
-  useEffect(() => {
-    isMobileBox.current = isMobileViewport;
-  }, [isMobileViewport, isMobileBox]);
-  const mobileAway = useMemo(() => createMobileAwayController(document, window, {
-    isMobileClient: () => isMobileBox.current,
-    isConnected: () => voice.store.getState().connected,
-    isAway: () => membersController.store.getState().away,
-    setAway: (value) => membersController.setAutomaticAway(value),
-  }), [voice, membersController, isMobileBox]);
-  useEffect(() => {
-    mobileAwayBox.current = mobileAway;
-  }, [mobileAway]);
-  useEffect(() => () => mobileAway.dispose(), [mobileAway]);
-  useEffect(() => {
-    mobileAway.sync();
-  }, [mobileAway, voiceView.connected, isMobileViewport]);
+  // —— 移动端服务接线：屏幕常亮、设备插拔刷新。 ——
   const shouldKeepScreenAwake = isMobileViewport && (voiceView.connected || voiceView.connecting || voiceView.reconnecting);
   const [wakeLockState, setWakeLockState] = useState<ScreenWakeLockSnapshot>(
     { supported: false, enabled: false, active: false, requesting: false, unavailable: false },

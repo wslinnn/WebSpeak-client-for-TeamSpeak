@@ -27,8 +27,6 @@ interface InRoomOptions {
   /** fixed 模式（仅限此 TeamSpeak 服务器）门面：网关 join 端点本就忽略用户
    *  target，房间内不再暴露多服务器概念——切服入口静默拒绝，防假切换横幅。 */
   isFixedMode(): boolean;
-  /** 用户手动改 away 时回调（根用它让自动 away 控制器放弃自己的标记）。 */
-  onManualStatusChange?(): void;
   showToast(message: string, tone?: "info" | "warn"): void;
   t(key: string, variables?: Record<string, string | number>): string;
   localizedMessage(message: string): string;
@@ -140,14 +138,13 @@ export function useInRoomControllers(options: InRoomOptions) {
     setWhisperTargets: (clientIds) => voice.setWhisperTargets(clientIds),
     sendPoke: (clientId, message) => voice.sendPoke(clientId, message),
     setAway: (away, message) => voice.setAway(away, message),
-    onManualStatusChange: options.onManualStatusChange,
     // PTT 指针捕获释放随 P4-5 音频控制回归；核心的关耳语在此已平价。
     stopWhisperTalk: () => voice.setWhisperActive(false),
     getWhisperTargetIds: () => voice.store.getState().whisperTargetIds,
     localizedMessage: localizedLive,
     showToast: options.showToast,
     t: tLive,
-  }), [voice, currentChannelOf, localizedLive, tLive, options.showToast, options.onManualStatusChange]);
+  }), [voice, currentChannelOf, localizedLive, tLive, options.showToast]);
 
   const onChatListElement = useCallback((element: ChatScrollerAspect | null) => {
     chatListBox.current = element;

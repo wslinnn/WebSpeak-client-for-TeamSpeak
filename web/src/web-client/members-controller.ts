@@ -36,7 +36,6 @@ interface Options {
   setWhisperTargets(clientIds: number[]): void;
   sendPoke(clientId: number, message: string): Promise<void>;
   setAway(away: boolean, message: string): void;
-  onManualStatusChange?(): void;
   stopWhisperTalk(): void;
   /** 耳语目标集合读取（toggle 需要最新集合）。 */
   getWhisperTargetIds(): ReadonlySet<number>;
@@ -244,7 +243,6 @@ export function createMembersController(options: Options) {
   }
 
   function toggleAway(): void {
-    options.onManualStatusChange?.();
     if (!state().away) {
       // 取消的 prompt 保持现有状态不变；空留言是合法的「离开无备注」。
       const message = prompt(options.t("awayPrompt"), state().awayMessage);
@@ -255,12 +253,6 @@ export function createMembersController(options: Options) {
     }
     patch({ away: false, awayMessage: "" });
     options.setAway(false, "");
-  }
-
-  function setAutomaticAway(value: boolean): void {
-    const message = value ? state().awayMessage : "";
-    patch({ away: value, awayMessage: message });
-    options.setAway(value, message);
   }
 
   function memberDisplayName(member: ChannelMember): string {
@@ -287,7 +279,6 @@ export function createMembersController(options: Options) {
     pokeMember,
     copyMemberName,
     toggleAway,
-    setAutomaticAway,
     memberDisplayName,
   };
 }
