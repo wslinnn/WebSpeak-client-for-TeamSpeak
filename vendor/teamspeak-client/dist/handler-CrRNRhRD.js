@@ -282,7 +282,7 @@ var _ = class {
 		for (let e = 0; e < t.length; e++) f.setUint16(D + e * 2, t[e], !1);
 		d.set(e, c), s !== null && (d[l - 1] = s);
 		let p = u({
-			typeFlagged: a.VoiceWhisper | o.NewProtocol | o.Unencrypted | (s === null ? 0 : 64),
+			typeFlagged: a.VoiceWhisper | o.Unencrypted | (s === null ? 0 : 64),
 			id: r,
 			clientID: this.#r,
 			generationID: i,
@@ -521,4 +521,4 @@ function M(e, t) {
 //#endregion
 export { a, c, d, o as i, s as l, h as n, u as o, p as r, l as s, A as t, f as u };
 
-//# sourceMappingURL=handler-Dbn9KAtB.js.map
+//# sourceMappingURL=handler-CrRNRhRD.js.map

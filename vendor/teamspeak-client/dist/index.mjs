@@ -2,7 +2,7 @@ import { a as e, i as t, o as n } from "./address-BfmovVpp.js";
 import { C as r, S as i, _ as a, b as o, d as s, g as c, h as l, l as u, o as d, p as f, r as p, u as m, v as h, w as g, x as _, y as v } from "./primitives-DpKiXbMi.js";
 import { t as y } from "./crypto-BtmoNWm8.js";
 import { t as b } from "./resolver-6B8dI9gr.js";
-import { a as x, t as S } from "./handler-Dbn9KAtB.js";
+import { a as x, t as S } from "./handler-CrRNRhRD.js";
 import { i as C, n as w, t as T } from "./command-BLe-C2L2.js";
 import { n as ee } from "./crypt-handshake-DziOY4Lq.js";
 import { t as te } from "./crypt-init2-DEykmDHe.js";
