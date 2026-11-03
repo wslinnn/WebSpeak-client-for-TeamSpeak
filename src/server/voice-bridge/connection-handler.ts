@@ -177,6 +177,9 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       isCurrent: () => deps.entries.get(entryId) === entry,
       isReady: () => tsReady && session.state === "connected",
       selfId: () => entry!.events?.selfId ?? 0,
+      // Same predicate as connected.webrtcAvailable: the two ends must agree
+      // on whether WS audio exists for this session at all.
+      webRtcVoice: () => deps.getWebRtcOptions()?.enabled === true,
       peer: () => entry!.webrtc,
       whisperTargets: () => entry!.whisperActive ? [...entry!.whisperTargetIds] : null,
       sendJson: message => sendJson(message),

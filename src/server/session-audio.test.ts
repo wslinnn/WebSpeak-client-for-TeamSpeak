@@ -7,6 +7,7 @@ import type { TSVoiceData } from "./ts-client.js";
 
 function fixture(uplinkDecoder?: { decode(frame: Buffer): Buffer }) {
   const state = { current: true, ready: true, now: 0, targets: null as number[] | null, disposed: 0,
+    webRtcVoice: false,
     peer: null as { pushTeamSpeakVoice(data: TSVoiceData): void } | null };
   const audio = createAudioFlowStats();
   const packets: Buffer[] = [];
@@ -32,7 +33,7 @@ function fixture(uplinkDecoder?: { decode(frame: Buffer): Buffer }) {
   };
   const transport = new SessionAudioTransport({
     audio, socket, client, logger, isCurrent: () => state.current, isReady: () => state.ready,
-    selfId: () => 1, peer: () => state.peer, whisperTargets: () => state.targets,
+    selfId: () => 1, webRtcVoice: () => state.webRtcVoice, peer: () => state.peer, whisperTargets: () => state.targets,
     sendJson: message => { notices.push(message); },
   }, encoder, () => state.now, uplinkDecoder);
   // 载荷取现实尺寸（≥4 字节）：≤3 字节是舒适噪声帧，下行过滤器会拦（见下方专测）。
@@ -313,4 +314,28 @@ test("invalid SDK speaker IDs and codecs cannot throw while packing the header",
   for (const codec of [-1, 256, NaN]) f.transport.receiveTeamSpeak({ ...f.remote(), codec });
   assert.equal(f.audio.egressDroppedFrames, 6);
   assert.equal(f.packets.length, 0);
+});
+
+test("a WebRTC voice session without a live peer drops TS audio instead of leaking onto the WS downlink", () => {
+  const f = fixture();
+  f.state.webRtcVoice = true;
+  f.transport.receiveTeamSpeak(f.remote());
+  assert.equal(f.packets.length, 0);
+  assert.equal(f.audio.egressDroppedFrames, 1);
+  assert.equal(f.audio.egressFrames, 0);
+  // 协商完成（peer 就位）后同一路径立即走 RTP，互斥但不缺流。
+  const pushed: Buffer[] = [];
+  f.state.peer = { pushTeamSpeakVoice: (data: TSVoiceData) => { pushed.push(data.data); } };
+  f.transport.receiveTeamSpeak(f.remote());
+  assert.equal(pushed.length, 1);
+  assert.equal(f.audio.egressFrames, 1);
+});
+
+test("a WebRTC voice session discards WS uplink frames even before its peer exists", () => {
+  const f = fixture();
+  f.state.webRtcVoice = true;
+  f.transport.receivePcm(Buffer.alloc(1_920));
+  assert.equal(f.forwarded.length, 0);
+  assert.equal(f.audio.ingressDroppedFrames, 1);
+  assert.equal(f.audio.ingressFrames, 0);
 });

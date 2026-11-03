@@ -100,8 +100,11 @@ export function createMicrophone(deps: MicrophoneDeps) {
     // 电平显示改由预增益抽头（inputMeter）供给：本 tap 在广播门控（gain 0）
     // 之后，测试/静音期 rms 恒零，声波条会被错误地按满门限清零（2026-10-18）。
     const current = deps.connection.socket();
+    // WebRTC 语音会话上行只走 peer 轨（含协商窗口与失败后）：WS 上行帧一概
+    // 不发，与网关侧丢弃规则对称，避免失败态把上行流量灌进一条必被丢的通道。
     const shouldSend = !V().microphoneMuted
       && !V().microphoneTestActive
+      && !V().webrtcVoiceOnly
       && !deps.webrtc().active
       && current?.readyState === WebSocket.OPEN
       && voxGate(input);

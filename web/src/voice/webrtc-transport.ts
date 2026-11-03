@@ -40,7 +40,9 @@ interface TransportOptions {
   releaseAccompaniment(): void;
   onLevel(rms: number | null, track: MediaStreamTrack): void;
   onReady(): void;
-  onFallback(reason: string, isCurrent: () => boolean): Promise<void>;
+  /** A failed attempt tears the transport down; there is no WS compatibility
+   *  fallback — the consumer surfaces the failure and leaves voice dark. */
+  onFailure(reason: string, isCurrent: () => boolean): Promise<void>;
   /** Fired after every transition of the live attempt's transport state, as a
    *  full snapshot: plain getters cannot drive reactive consumers, so UI that
    *  mirrors the transport must subscribe here instead of polling. */
@@ -132,12 +134,12 @@ export function createWebRtcTransport(options: TransportOptions) {
   async function fail(record: Attempt, reason: string): Promise<void> {
     if (!isCurrent(record)) return;
     // Signaling is best-effort once the transport fails. It cannot prevent
-    // local teardown or compatibility capture when the socket send throws.
+    // local teardown when the socket send throws.
     clean(() => record.connection.send({ type: "webrtcStop" }));
     stop();
-    const fallbackGeneration = generation;
-    const isFallbackCurrent = (): boolean => generation === fallbackGeneration && record.connection.isCurrent();
-    if (isFallbackCurrent()) await options.onFallback(reason, isFallbackCurrent);
+    const failureGeneration = generation;
+    const isFailureCurrent = (): boolean => generation === failureGeneration && record.connection.isCurrent();
+    if (isFailureCurrent()) await options.onFailure(reason, isFailureCurrent);
   }
 
   async function waitForIce(record: Attempt, peer: RTCPeerConnection): Promise<void> {
@@ -277,7 +279,7 @@ export function createWebRtcTransport(options: TransportOptions) {
     start, stop, applyAnswer,
     get generation(): number { return generation; },
     releaseInput(): void { releaseInput(); },
-    async fallback(reason: string): Promise<void> { if (current) await fail(current, reason); },
+    async failCurrent(reason: string): Promise<void> { if (current) await fail(current, reason); },
     get peer(): RTCPeerConnection | null { return current?.peer ?? null; },
     get active(): boolean { return current?.active ?? false; },
     /** Moves the sender between the raw capture track and the processed mix

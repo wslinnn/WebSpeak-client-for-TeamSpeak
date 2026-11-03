@@ -31,7 +31,7 @@ export function createVoiceSessionController() {
     connected: false, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false,
     tsClientId: 0, error: "", errorCode: "", retryNotUntil: 0,
     microphoneError: "", microphoneErrorCode: "", audioNotice: "", audioNoticeCode: "",
-    channelSwitchedChannelId: "", selfMovedChannelId: "", connectionFailureCode: "",
+    channelSwitchedChannelId: "", selfMovedChannelId: "", connectionFailureCode: "", webrtcVoiceOnly: false,
     identityMaterial: "",
     microphoneMuted: false, noiseSuppressionEnabled: true, echoCancellationEnabled: false, autoGainControlEnabled: false,
     inputVolume: 1, outputVolume: 1, outputMuted: false, notificationVolume: 0.5, voxThreshold: 0.008,
@@ -188,19 +188,17 @@ export function createVoiceSessionController() {
 
   /** WebRTC is the primary voice path; a compatibility notice must not survive it. */
   function startWebRtcVoice(): Promise<void> {
-    audioOutput.clearAudioNotice("WEBRTC_DISABLED");
-    audioOutput.clearAudioNotice("WEBRTC_UNSUPPORTED");
+    for (const code of ["WEBRTC_DISABLED", "WEBRTC_UNSUPPORTED", "WEBRTC_UNAVAILABLE"]) audioOutput.clearAudioNotice(code);
     const current = connection.socket();
     return current ? devices.startWebRtcTransport(connection.voiceConnection.generation, current) : Promise.resolve();
   }
 
   /** The WebSocket fallback must never degrade silently: say why voice is on PCM. */
   function startCompatibilityVoice(): Promise<void> {
-    if (typeof RTCPeerConnection === "undefined") {
-      audioOutput.setAudioNotice("WEBRTC_UNSUPPORTED", "此浏览器不支持 WebRTC，语音使用兼容传输（WebSocket）：延迟与音质可能下降");
-    } else {
-      audioOutput.setAudioNotice("WEBRTC_DISABLED", "网关未启用 WebRTC，语音使用兼容传输（WebSocket）：延迟与音质可能下降，可在管理台开启");
-    }
+    const [code, message] = typeof RTCPeerConnection === "undefined"
+      ? ["WEBRTC_UNSUPPORTED", "此浏览器不支持 WebRTC，语音使用兼容传输（WebSocket）：延迟与音质可能下降"]
+      : ["WEBRTC_DISABLED", "网关未启用 WebRTC，语音使用兼容传输（WebSocket）：延迟与音质可能下降，可在管理台开启"];
+    audioOutput.setAudioNotice(code, message);
     return mic.ensureMicrophone();
   }
 
@@ -214,6 +212,7 @@ export function createVoiceSessionController() {
           connected: true, connecting: false, reconnecting: false, reconnectAttempt: 0, reconnectFailed: false,
           error: "", errorCode: "", connectionFailureCode: "", channelSwitchedChannelId: "",
           tsClientId: Number(msg.tsClientId) || 0,
+          webrtcVoiceOnly: msg.webrtcAvailable === true && typeof RTCPeerConnection !== "undefined",
         });
         devices.syncVoiceTransport();
         connection.notifyConnected();
@@ -323,7 +322,7 @@ export function createVoiceSessionController() {
         void devices.webrtc.applyAnswer(msg.payload?.sdp);
         break;
       case "webrtcError":
-        if (connection.socket()) void devices.webrtc.fallback(safeClientErrorCode(msg.code) || "WEBRTC_NEGOTIATION_FAILED");
+        if (connection.socket()) void devices.webrtc.failCurrent(safeClientErrorCode(msg.code) || "WEBRTC_NEGOTIATION_FAILED");
         break;
       case "audioError": {
         // The gateway could not encode our microphone audio (for example its Opus

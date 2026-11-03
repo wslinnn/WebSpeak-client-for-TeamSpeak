@@ -1989,6 +1989,16 @@ test("old socket audio cannot create a decoder in a replacement session", async 
   assert.equal(AudioDecoderStub.instances.length, 1);
 });
 
+test("a WebRTC voice session never plays compatibility audio frames", async () => {
+  const socket = await connect();
+  socket.receive({ type: "connected", tsClientId: 1, webrtcAvailable: true });
+  await nextTurn();
+  assert.equal(V().webrtcVoiceOnly, true, "WebRTC voice mode is recorded for the audio gates");
+  // 协商窗口内的 WS 兼容帧一概不播（网关侧同规则不再发送）：断流走失败横幅。
+  receiveAudio(socket);
+  assert.equal(AudioDecoderStub.instances.length, 0);
+});
+
 // --- Wave 2D: WebRTC negotiation, audio probes, microphone test ---
 
 type MediaElementStub = {
@@ -2073,7 +2083,7 @@ test("a peer close failure cannot prevent microphone and session cleanup", async
   assert.equal(browserTimers.size, 0);
 });
 
-test("a playback setup failure releases its element and restores compatibility audio", async () => {
+test("a playback setup failure releases its element and surfaces the failure without compatibility audio", async () => {
   const { peer, socket } = await connectWebRtc();
   const output = new TestAudioElement();
   let removed = false;
@@ -2084,7 +2094,7 @@ test("a playback setup failure releases its element and restores compatibility a
   await nextTurn();
   assert.equal(removed, true);
   assert.equal(peer.connectionState, "closed");
-  assert.equal(V().audioNoticeCode, "WEBRTC_FALLBACK");
+  assert.equal(V().audioNoticeCode, "WEBRTC_UNAVAILABLE");
   assert.equal(V().microphoneErrorCode, "");
   assert.equal(socket.messages.filter(message => (message as { type: string }).type === "webrtcStop").length, 1);
 });
@@ -2136,7 +2146,7 @@ test("overlapping playback retry gestures share one in-flight play attempt", asy
   assert.equal(V().audioNoticeCode, "");
 });
 
-test("failed fallback signaling still releases WebRTC and resumes compatibility capture", async () => {
+test("failed fallback signaling still releases WebRTC and leaves voice dark with a visible notice", async () => {
   vi.spyOn(TestPeer.prototype, "createOffer").mockImplementation(async () => { throw new Error("Negotiation unavailable"); });
   const send = TestSocket.prototype.send;
   vi.spyOn(TestSocket.prototype, "send").mockImplementation(function (this: TestSocket, raw: string | ArrayBuffer) {
@@ -2148,20 +2158,23 @@ test("failed fallback signaling still releases WebRTC and resumes compatibility 
   await nextTurn();
   assert.equal(TestPeer.instances[0]!.connectionState, "closed");
   assert.equal(V().microphoneErrorCode, "");
-  assert.equal(V().audioNoticeCode, "WEBRTC_FALLBACK");
+  assert.equal(V().audioNoticeCode, "WEBRTC_UNAVAILABLE");
+  // WebRTC 语音会话失败后不再恢复兼容采集：上行帧一概不发。
   (AudioContextStub.processors.at(-1) as unknown as ProcessorStub).onaudioprocess!({ inputBuffer: { getChannelData: () => new Float32Array(960).fill(0.2) } });
-  assert.ok(socket.messages.some(message => message instanceof ArrayBuffer && message.byteLength === 1920));
+  assert.equal(socket.messages.some(message => message instanceof ArrayBuffer && message.byteLength === 1920), false);
 });
 
-test("an old fallback microphone failure cannot report into a replacement connection", async () => {
-  const { peer } = await connectWebRtc();
+test("a stale WebRTC microphone acquisition cannot report into a replacement connection", async () => {
   const permission = deferred<unknown>();
   devices().getUserMedia = () => permission.promise;
-  peer.connectionState = "failed";
-  peer.onconnectionstatechange?.();
+  const first = await connect();
+  first.receive({ type: "connected", tsClientId: 1, webrtcAvailable: true });
   await nextTurn();
+  // 旧会话的采集等待仍悬置；替换会话采集成功后其拒绝必须被代际吞掉。
   devices().getUserMedia = async () => microphoneStream();
-  await connectWebRtc();
+  const current = await connect();
+  current.receive({ type: "connected", tsClientId: 2, webrtcAvailable: true });
+  await nextTurn();
   permission.reject(new DOMException("Old permission rejected", "NotAllowedError"));
   await nextTurn();
   assert.equal(V().microphoneErrorCode, "");
@@ -2322,30 +2335,30 @@ test("disconnect clears the WebRTC answer deadline immediately", async () => {
   assert.equal(browserTimers.size, 0);
 });
 
-test("negotiation failure resumes bounded PCM capture without a false microphone error", async () => {
+test("negotiation failure leaves voice dark without a false microphone error", async () => {
   vi.spyOn(TestPeer.prototype, "createOffer").mockImplementation(async () => { throw new Error("negotiation failed"); });
   const socket = await connect();
   socket.receive({ type: "connected", tsClientId: 1, webrtcAvailable: true });
   await nextTurn();
   assert.equal(TestPeer.instances[0]!.connectionState, "closed");
-  assert.equal(V().audioNoticeCode, "WEBRTC_FALLBACK");
+  assert.equal(V().audioNoticeCode, "WEBRTC_UNAVAILABLE");
   assert.equal(V().microphoneErrorCode, "");
   const capture = AudioContextStub.processors.at(-1) as unknown as ProcessorStub;
   capture.onaudioprocess!({ inputBuffer: { getChannelData: () => new Float32Array(960).fill(0.2) } });
-  assert.ok(socket.messages.some(message => message instanceof ArrayBuffer && message.byteLength === 1920));
+  assert.equal(socket.messages.some(message => message instanceof ArrayBuffer && message.byteLength === 1920), false);
   assert.equal(socket.messages.filter(message => (message as { type: string }).type === "webrtcStop").length, 1);
 });
 
-test("track setup failure also releases the peer and restores compatibility capture", async () => {
+test("track setup failure also releases the peer and leaves voice dark", async () => {
   vi.spyOn(TestPeer.prototype, "addTrack").mockImplementation(() => { throw new Error("track rejected"); });
   const socket = await connect();
   socket.receive({ type: "connected", tsClientId: 1, webrtcAvailable: true });
   await nextTurn();
   assert.equal(TestPeer.instances[0]!.connectionState, "closed");
-  assert.equal(V().audioNoticeCode, "WEBRTC_FALLBACK");
+  assert.equal(V().audioNoticeCode, "WEBRTC_UNAVAILABLE");
   assert.equal(V().microphoneErrorCode, "");
   (AudioContextStub.processors.at(-1) as unknown as ProcessorStub).onaudioprocess!({ inputBuffer: { getChannelData: () => new Float32Array(960).fill(0.2) } });
-  assert.ok(socket.messages.some(message => message instanceof ArrayBuffer && message.byteLength === 1920));
+  assert.equal(socket.messages.some(message => message instanceof ArrayBuffer && message.byteLength === 1920), false);
 });
 
 test("a current answer completes negotiation and removes its timeout", async () => {

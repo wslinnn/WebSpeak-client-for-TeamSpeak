@@ -115,8 +115,8 @@ function localizedAudioNotice(code: string, message: string) {
   if (language === "zh") return message;
   const normalizedCode = visibleErrorCode(code || "AUDIO_NOTICE");
   const messages: Record<string, { en: string }> = {
-    WEBRTC_FALLBACK: {
-      en: `WebRTC realtime voice is unavailable (error code: ${normalizedCode}). Compatibility transport is active; latency and audio quality may be lower`,
+    WEBRTC_UNAVAILABLE: {
+      en: `WebRTC realtime voice is unavailable (error code: ${normalizedCode}). This site carries voice over WebRTC only: reconnect to retry, or check the WebRTC settings in the admin console`,
     },
     WEBRTC_DISABLED: {
       en: "The gateway has WebRTC disabled; voice uses the compatibility transport (WebSocket). Latency and audio quality may be lower — WebRTC can be enabled in the admin console",

@@ -36,6 +36,12 @@ export interface VoiceState {
    *  not land here: the server-switch banner treats this field as "the join
    *  failed", and an unrelated audio/chat error would falsely fail it. */
   connectionFailureCode: string;
+  /** The gateway advertised WebRTC for this session and the browser can do
+   *  it: audio rides WebRTC exclusively, with no WS compatibility fallback in
+   *  either direction (a failed negotiation surfaces as a notice instead of
+   *  silently degrading). False = compatibility voice (WebRTC off at the
+   *  gateway, or the browser cannot do WebRTC at all). */
+  webrtcVoiceOnly: boolean;
 }
 
 export interface AudioInputDevice {

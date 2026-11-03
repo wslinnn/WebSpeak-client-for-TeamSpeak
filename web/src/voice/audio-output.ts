@@ -337,9 +337,11 @@ export function createAudioOutput(deps: AudioOutputDeps) {
     }
   }
 
-  /** WebRTC 在传时忽略在途兼容帧，避免切换期重复/延迟播放。 */
+  /** WebRTC 语音会话不播兼容帧（网关侧同规则不再发送）：协商窗口/协商失败
+   *  期间到达的 WS 帧一律忽略，断流由失败横幅显式呈现，而不是静音降级。
+   *  兼容会话在传时忽略在途帧，避免切换期重复/延迟播放。 */
   function handleAudioFrame(data: Uint8Array): void {
-    if (deps.webrtc().active) return;
+    if (V().webrtcVoiceOnly || deps.webrtc().active) return;
     if (data.length < 4) {
       audioDiagnostics.count("framesDropped");
       return;

@@ -54,6 +54,11 @@ export interface SessionAudioOptions {
   isCurrent(): boolean;
   isReady(): boolean;
   selfId(): number;
+  /** The gateway advertised WebRTC to this session (`connected.webrtcAvailable`).
+   *  Audio rides the peer exclusively: with no live peer there is no WS
+   *  fallback in either direction — the failure surfaces on the browser
+   *  instead of silently degrading to the compatibility transport. */
+  webRtcVoice(): boolean;
   peer(): Pick<WebRtcAudioSession, "pushTeamSpeakVoice"> | null;
   whisperTargets(): readonly number[] | null;
   sendJson(message: ServerMessage): void;
@@ -147,12 +152,14 @@ export class SessionAudioTransport {
     if (!this.consumeFrameBudget()) return;
     const stats = this.options.audio;
     // Resolve the route before judging the frame. A frame that arrives while
-    // the route is down (session not ready, or a WebRTC peer has taken over)
-    // is discarded whatever its size, so calling it malformed misattributes
+    // the route is down (session not ready, a WebRTC peer has taken over, or
+    // the session rides WebRTC voice and must not leak onto the WS uplink —
+    // including the negotiating window and after a failed negotiation) is
+    // discarded whatever its size, so calling it malformed misattributes
     // the drop — and the browser renders that error, which aborts an in-flight
     // quick connect. Late TCP frames from before a WebRTC switch must not
     // duplicate RTP audio either.
-    if (!this.options.isReady() || this.options.peer()) { stats.ingressDroppedFrames++; return; }
+    if (!this.options.isReady() || this.options.peer() || this.options.webRtcVoice()) { stats.ingressDroppedFrames++; return; }
     if (frame.length !== AUDIO_FRAME_BYTES) {
       stats.ingressDroppedFrames++;
       this.invalidFrameStreak++;
@@ -246,6 +253,12 @@ export class SessionAudioTransport {
     }
     // 舒适噪声过滤：不占 egress 记账（转发数/活跃表），WebRTC 与兼容 WS 两路同滤。
     if (data.data.length <= COMFORT_NOISE_FRAME_BYTES) {
+      stats.egressDroppedFrames++;
+      return;
+    }
+    // WebRTC 语音会话没有 WS 音频回退：无 live peer（协商窗口/协商失败/peer 拆除）
+    // 时帧按丢弃记账而不是转投 WS——降级被移除后，断流必须显式可见。
+    if (!this.options.peer() && this.options.webRtcVoice()) {
       stats.egressDroppedFrames++;
       return;
     }

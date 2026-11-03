@@ -118,12 +118,14 @@ export function createAudioDevices(deps: AudioDevicesDeps) {
       // slot assignment so its streams are immediately correctly bound.
       webrtc.setSlotClients(webRtcVoiceRoutes);
     },
-    async onFallback(reason, isCurrent) {
+    async onFailure(reason, isCurrent) {
       if (!isCurrent()) return;
       webRtcVoiceRoutes = [];
-      deps.audioOutput.setAudioNotice("WEBRTC_FALLBACK", `实时语音（WebRTC）不可用（错误代码：${safeClientErrorCode(reason) || "WEBRTC_UNAVAILABLE"}），已切换为兼容传输：延迟与音质可能下降`);
-      try { await deps.mic.startMicrophone(); }
-      catch (error) { if (isCurrent()) deps.audioOutput.setMicrophoneError(error); }
+      // WebRTC voice sessions have no WS compatibility fallback: the gateway
+      // stops streaming WS audio for this session the moment WebRTC is on, so
+      // a failed negotiation leaves voice dark and must say so instead of
+      // pretending a degraded channel is still carrying it.
+      deps.audioOutput.setAudioNotice("WEBRTC_UNAVAILABLE", `实时语音（WebRTC）不可用（错误代码：${safeClientErrorCode(reason) || "WEBRTC_UNAVAILABLE"}），本站点语音仅走 WebRTC：请重连重试，或在管理台检查 WebRTC 配置`);
     },
     playback: {
       volume: deps.audioOutput.effectiveOutputVolume,
