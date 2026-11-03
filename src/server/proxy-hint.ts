@@ -1,14 +1,15 @@
 import { isIP } from "node:net";
 
 /**
- * Misconfiguration signal for the reverse-proxy setup: with
- * `WEBSPEAK_TRUST_PROXY` unset the gateway deliberately ignores forwarded
- * headers — so a proxy on the same host renders every client as 127.0.0.1 in
- * logs and collapses all visitors into one rate-limit bucket. Nothing else
- * surfaces that degradation, hence this one-shot hint.
+ * Misconfiguration signal for the reverse-proxy setup: loopback proxy trust
+ * is on by default, so this only fires after an operator explicitly disabled
+ * it (`WEBSPEAK_TRUST_PROXY=0`) — forwarded headers are then ignored by
+ * design, and a same-host proxy renders every client as 127.0.0.1 in logs and
+ * collapses all visitors into one rate-limit bucket. Nothing else surfaces
+ * that degradation, hence this one-shot hint.
  */
 
-const HINT = "Requests arrive from a loopback peer carrying X-Forwarded-For while WEBSPEAK_TRUST_PROXY is unset: logs and rate limits see the proxy address instead of real clients. Running behind a reverse proxy? Set WEBSPEAK_TRUST_PROXY=1 and make the proxy send X-Forwarded-For.";
+const HINT = "Requests arrive from a loopback peer carrying X-Forwarded-For while WEBSPEAK_TRUST_PROXY is disabled: logs and rate limits see the proxy address instead of real clients. Running behind a same-host reverse proxy? Leave WEBSPEAK_TRUST_PROXY unset (loopback is trusted by default) or remove the explicit disable.";
 
 export function isLoopbackAddress(value: string | undefined): boolean {
   if (!value) return false;

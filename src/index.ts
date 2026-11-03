@@ -59,11 +59,14 @@ async function main() {
   removeObsoleteBootstrapFile();
   const joinTickets = new JoinTicketStore();
   const reconnectTickets = new ReconnectTicketStore();
-  // WEBSPEAK_TRUST_PROXY=1 declares a reverse proxy in front of the gateway:
-  // forwarded headers then identify clients for rate limits and logs, and
-  // proxy-terminated TLS keeps secure cookies and HSTS working.
+  // The same-host loopback reverse proxy is trusted by default: most
+  // deployments front the gateway with nginx/caddy on the same host, and
+  // requiring an env var for that only invited the degraded "every client
+  // looks like 127.0.0.1" posture. Forwarded headers from any other peer stay
+  // ignored unless WEBSPEAK_TRUSTED_PROXIES names it, so a directly exposed
+  // gateway is unaffected (its clients are not loopback). `0` opts out.
   const trustProxyEnv = process.env.WEBSPEAK_TRUST_PROXY?.trim().toLowerCase();
-  const trustProxy = trustProxyEnv === "1" || trustProxyEnv === "true";
+  const trustProxy = !(trustProxyEnv === "0" || trustProxyEnv === "false" || trustProxyEnv === "off" || trustProxyEnv === "no");
   // WEBSPEAK_TRUSTED_PROXIES names proxies other than the same-host one
   // (comma/space separated IPs or CIDRs). Forwarded headers are believed only
   // from a declared peer: anyone can set them on the upgrade request, and the

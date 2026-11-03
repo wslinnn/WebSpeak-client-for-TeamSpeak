@@ -55,9 +55,10 @@ export function createTrustedProxies(entries: readonly string[] | undefined): Bl
 }
 
 /** Operator configuration. `WEBSPEAK_TRUST_PROXY` declares the same-host
- *  reverse proxy (loopback), `WEBSPEAK_TRUSTED_PROXIES` names any other proxy.
- *  Neither means forwarded headers are ignored, which is the documented
- *  default for a directly exposed gateway. */
+ *  reverse proxy (loopback) and is on by default through the entrypoint
+ *  (`WEBSPEAK_TRUST_PROXY=0` opts out); `WEBSPEAK_TRUSTED_PROXIES` names any
+ *  other proxy. With neither set at this layer forwarded headers are ignored
+ *  — the factory default that a directly constructed server keeps. */
 export function createConfiguredTrustedProxies(options: {
   trustProxy?: boolean;
   entries?: readonly string[] | undefined;

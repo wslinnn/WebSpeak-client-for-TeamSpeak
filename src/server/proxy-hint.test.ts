@@ -31,5 +31,5 @@ test("the hint fires once for loopback peers with forwarded headers", () => {
   hint("127.0.0.1", undefined);
   hint("127.0.0.1", "garbage");
   assert.equal(messages.length, 1);
-  assert.match(messages[0]!, /WEBSPEAK_TRUST_PROXY=1/);
+  assert.match(messages[0]!, /WEBSPEAK_TRUST_PROXY is disabled/);
 });

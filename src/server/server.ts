@@ -71,10 +71,11 @@ export function createWebServer(options: WebServerOptions): WebServer {
   if (trustProxy || options.trustedProxies?.length) {
     app.set("trust proxy", (address: string) => isTrustedProxyPeer(address, trustedProxies));
   }
-  // Without a declared trusted proxy, forwarded headers are ignored by design
-  // — which renders a same-host proxy invisible: every client looks like
-  // 127.0.0.1 in logs and shares one rate-limit bucket. Surface that
-  // misconfiguration once instead of letting it degrade silently.
+  // With loopback trust explicitly disabled (and no declared proxies),
+  // forwarded headers are ignored by design — which renders a same-host
+  // proxy invisible: every client looks like 127.0.0.1 in logs and shares one
+  // rate-limit bucket. Surface that misconfiguration once instead of letting
+  // it degrade silently.
   if (!trustProxy && !options.trustedProxies?.length) {
     const hintProxyMisconfigured = createProxyHint((message) => logger.warn(message));
     app.use((request, _response, next) => {
