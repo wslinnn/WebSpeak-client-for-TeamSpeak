@@ -6,7 +6,7 @@
 
 改造于 2026-10-13/14（`b2b9294`+`958f9fc`+`e551a1a`，已推送；原四刀中刀 2/3 因前后端物理不可分割合并为一笔）。用户优先级（勿倒置）：**最佳音质 > 网关性能 > 优先 WebRTC 回退 WS**。
 
-- **上行**：answer fmtp 钉 `maxaveragebitrate=60000;usedtx=0`（60k 在 TS quality 10 的 7.71KiB/s 预算内、64k 会被服务器裁包；fmtp 只是上限，浏览器端 applyAnswer 后对音频 sender `setParameters` maxBitrate=60000 配套才生效；不设 stereo——上行 mono，stereo 声明只会分薄码率）。
+- **上行**：answer fmtp 钉 `maxaveragebitrate=60000;usedtx=0`（60k 是本 fork 的音质/容量折中；官方客户端 q10 voice = 45 kbps（31 号 §5.2），「7.71KiB/s」系人工推算错误、二进制内无此串（36 号 R10），服务器裁包阈值未验证——45/60/64k 三档真服对照待做；fmtp 只是上限，浏览器端 applyAnswer 后对音频 sender `setParameters` maxBitrate=60000 配套才生效；不设 stereo——上行 mono，stereo 声明只会分薄码率）。
 - **下行**：每说话人一条 RTP 流。网关预开 16 条 sendonly 槽轨（浏览器 offer 预开同数 recvonly 免重协商；超出的 m-line answer inactive 防恶意 offer 放大），TS 原始 Opus 包 payload 一字节不动，只重写 seq/timestamp（帧时长经 RFC 6716 TOC 解析，`opus-frame.ts` 覆盖 SILK/hybrid/CELT×code 0-3，已用 @discordjs/opus 60k 全档真实编码包逐帧验证解析正确）、marker 标流首包、随机起点防跨流关联；说话人 LRU 占槽、绑定经 voiceRoute 消息下发。
 - **上行链（2026-10-14 重构，`0583362`；2026-10-17 加限幅器与增益上限）**：采集图单层化 source→[RNNoise]→gain→[限幅器]→destination——gain 全链唯一音量级（兼容 PCM 分接同源，旧双层图曾把音量平方施加），限幅器（DynamicsCompressor 阈值 -1dB/硬拐点/20:1）只防 >100% 增益削波、不施加音量，伴奏分接绕过两者；webrtc-input 已删；**音量上限 200%**（`MAX_INPUT_VOLUME`，>1 脱离 R/G 直连走处理图）；**R/G 模式**：降噪关+音量 100%+无伴奏+无麦测试 → 原始轨 replaceTrack 直连 sender（免疫 context 挂起类故障），否则 processedStream；麦克风测试经增益门控广播（原始轨保持 live 供录制，track.enabled 门控会录到静音）；共享 AudioContext 带 resume 看门狗。回归不变量见下节。
 - **槽位池 12→16**（`4f08c2b`）：`DOWNSTREAM_SLOTS`（前端）/`MAX_DOWNSTREAM_SLOTS`（网关）成对扩容；voiceRoute 校验上限本就 ≤16；新旧混跑时多余 m-line 按 inactive 降级。槽位语义：每听众 16 路并发预算，LRU 淘汰最久未说话者；成员音量是本地渲染参数，不影响他人听感、不影响说话者上行。
@@ -51,7 +51,7 @@
 
 ## TS 语音数据形态（vendored @echosixhiya/teamspeak-client 0.2.4 与 D:\develop\project\tsweb\teamspeak-js 源码钉死，两边语音路径逐字节一致）
 
-S2C 数据报 = 4B EAX tag + 3B 头（packetID u16BE + typeFlagged：低 nibble 0=Voice 1=Whisper，高 nibble 0x10 Fragmented/0x20 NewProtocol/0x40 Compressed/0x80 Unencrypted）+ 密文；语音包体 = VId u16BE（说话人自序号，SDK 解析后丢弃不透传——将来要核对 TS 侧丢包须先让 SDK 带出）+ CId u16BE + codec u8（4=Opus-Voice 单声道 / 5=Opus-Music 可立体声）+ 裸 Opus 帧（TOC+数据，payload 透传合法性的根据）。SDK handler 对语音不重组不解压（重组与 QuickLZ 解压只属于 Command 路径）、一个数据报只解析一个包、包体≤5 字节（burst 空载荷末包）静默丢、clid 自滤自我回声、setImmediate 异步保序分发。三个「发生即静默劣化」边界：① whisper 与普通语音在 VoiceData 合流（无类型字段，whisper 会被当频道语音转发；包体同构性未真机验证）；② 语音包 Compressed 标志不处理（若发生会把 QLZ 数据当 Opus 帧喂 TOC 解析→计入 droppedFrames；「burst 前 5 包压缩」线索未证实，验证需 SDK 暴露 flags）；③ 多包一数据报会被静默丢（当前服务器实测 4 连帧=4 包无碍，属 SDK 假设非协议保证）。TS=SFU 由此字节级坐实（每包自带说话人 CId，MCU 形态不可能有）；旧 WebSpeak 每频道混流才是 MCU 形态且已删。
+S2C 数据报 = 8B EAX tag + 3B 头（packetID u16BE + typeFlagged：低 nibble 0=Voice 1=Whisper；语音/私语上高 nibble 0x10=扩展头字节、0x20=私语置位、0x40=尾字节、0x80=未加密——与命令包的 Fragmented/NewProtocol/Compressed 同 bit 不同义）+ 密文；语音包体 = VId u16BE（说话人自序号，SDK 解析后丢弃不透传——将来要核对 TS 侧丢包须先让 SDK 带出）+ CId u16BE + codec u8（4=Opus-Voice 单声道 / 5=Opus-Music 可立体声）+ 裸 Opus 帧（TOC+数据，payload 透传合法性的根据）。SDK handler 对语音不重组不解压（重组与 QuickLZ 解压只属于 Command 路径）、一个数据报只解析一个包、包体≤5 字节（burst 空载荷末包）静默丢、clid 自滤自我回声、setImmediate 异步保序分发。两个「发生即静默劣化」边界：① whisper 与普通语音在 VoiceData 合流（无类型字段，whisper 会被当频道语音转发；S2C 包体与语音同构已由 36 号 R2 实锤，接收侧安全）；② 语音包 0x10/0x40 可选字节未处理（nvp>1 会喂拼接帧、尾字节混入音频；桌面端 nvp 恒 1、尾字节仅每连接前 5 包）。已关闭：多包一数据报（31 号实锤官方无合装）；「burst 前 5 包压缩」线索（0x40 是 RTT 抖动尾字节，QuickLZ 只属命令路径）。TS=SFU 由此字节级坐实（每包自带说话人 CId，MCU 形态不可能有）；旧 WebSpeak 每频道混流才是 MCU 形态且已删。
 
 ## node-sfu（werift 官方示例，本机 D:\develop\project\tsweb\node-sfu）参考结论
 

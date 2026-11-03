@@ -12,9 +12,11 @@ type NativeCodec = {
 // Generic CTL passthrough ids from opus_defines.h. @discordjs/opus 0.10.0 has
 // no dedicated FEC/loss-rate setters, so the encoder is tuned through these.
 export const OPUS_SET_APPLICATION = 4000;
+export const OPUS_SET_SIGNAL = 4024;
 export const OPUS_SET_INBAND_FEC = 4012;
 export const OPUS_SET_PACKET_LOSS_PERC = 4014;
 export const OPUS_APPLICATION_VOIP = 2048;
+export const OPUS_SIGNAL_VOICE = 3001;
 
 /**
  * Fixed encode-side quality budget for the gateway's two Opus encoders (the
@@ -64,7 +66,11 @@ export class OpusEncoder {
    * silence the encoder by aborting the rest.
    */
   configureVoice(quality: VoiceEncoderQuality): void {
-    const attempts: Array<[number, number]> = [];
+    // SIGNAL=VOICE first: the official client sets it in the encoder
+    // constructor (31 号 §5.1), and libopus defaults to SIGNAL=AUTO. Both
+    // gateway encoders carry speech only — accompaniment bypasses them — so
+    // the value is unconditional.
+    const attempts: Array<[number, number]> = [[OPUS_SET_SIGNAL, OPUS_SIGNAL_VOICE]];
     if (quality.voipApplication) attempts.push([OPUS_SET_APPLICATION, OPUS_APPLICATION_VOIP]);
     attempts.push([OPUS_SET_INBAND_FEC, quality.inbandFec ? 1 : 0]);
     if (quality.inbandFec) attempts.push([OPUS_SET_PACKET_LOSS_PERC, Math.max(0, Math.min(100, Math.round(quality.expectedLossPercent)))]);
