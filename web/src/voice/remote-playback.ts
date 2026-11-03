@@ -24,12 +24,20 @@ interface SpeakerPlayback {
 const CODEC_CHANNELS: Record<number, number> = { 4: 1, 5: 2 };
 
 // Preserve the compatibility path's bounded jitter buffer and decoder queue.
-const MAX_PLAY_AHEAD_SECONDS = 0.08;
+// The window is sized for this path's transport, not for taste: WebSocket
+// audio shares one ordered TCP stream, so a single loss stalls every later
+// frame (head-of-line blocking) and delivers them as 100-300 ms bursts. A
+// shallow window would drop mid-word speech on every stall; the deep one
+// rides the burst out instead. The cap self-drains — steady-state latency
+// tracks the arrival cadence (~20-40 ms) and only post-stall backlog rides
+// the cap until the next talk gap underruns the timeline.
+const MAX_PLAY_AHEAD_SECONDS = 0.25;
 const MAX_DECODE_QUEUE_FRAMES = 3;
 // Overflow drops the late frame instead of resetting the stream, so the burst
 // glitch no longer cuts audio that was already scheduled; only a deep backlog
 // (suspended context, desynced timeline) keeps the reset as a safety net
-// against unbounded decoder state.
+// against unbounded decoder state. Must stay above MAX_PLAY_AHEAD_SECONDS:
+// normal accumulation never exceeds the window, so only a desync trips this.
 const MAX_BACKLOG_SECONDS = 0.3;
 // Talk-spike pre-roll (aligned with the TS6 client): hold a stream's first
 // frames until PRIME_MIN_FRAMES are queued or PRIME_MAX_WAIT_MS elapsed, so

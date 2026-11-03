@@ -73,19 +73,21 @@ test("head jitter is absorbed: frames held apart schedule together at the flushe
 test("overflow drops the late frame and the stream keeps playing without a reset", () => {
   feedFrame();
   const decoder = AudioDecoderStub.instances[0]!;
-  for (let index = 0; index < 6; index++) {
+  for (let index = 0; index < 14; index++) {
     output(decoder);
     feedFrame();
   }
-  // 帧 1-2 预滚起播，帧 3-4 排满 80ms 窗口；帧 5-6 超窗只丢自己。
-  assert.deepEqual(AudioContextStub.sources.map(source => source.startedAt), [0, 0.02, 0.04, 0.06]);
+  // 帧 1-2 预滚起播；帧 3-12 排满 250ms 窗口（12 帧到 0.22）；帧 13-14 超窗只丢自己。
+  const startedAt = AudioContextStub.sources.map(source => source.startedAt);
+  assert.equal(startedAt.length, 12);
+  startedAt.forEach((value, index) => assert.ok(Math.abs(value! - index * 0.02) < 1e-9, `frame ${index} scheduled at ${value}`));
   assert.equal(dropped, 2);
   assert.equal(decodeErrors, 0);
   assert.equal(decoder.closed, 0);
   assert.ok(AudioContextStub.sources.every(source => source.stopped === 0));
-  context.currentTime = 0.08;
+  context.currentTime = 0.24;
   output(decoder);
-  assert.equal(AudioContextStub.sources.at(-1)!.startedAt, 0.08, "the window reopens as the timeline drains");
+  assert.equal(AudioContextStub.sources.at(-1)!.startedAt, 0.24, "the window reopens as the timeline drains");
   assert.equal(AudioDecoderStub.instances.length, 1);
 });
 

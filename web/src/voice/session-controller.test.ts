@@ -1960,20 +1960,22 @@ test("remote playback preserves member volume through output mute and decoder re
   assert.equal(AudioContextStub.gains[1]!.gain.value, 0.5);
 });
 
-test("decoded audio stays within the 80 ms playback window: overflow drops frames without resetting", async () => {
+test("decoded audio stays within the 250 ms playback window: overflow drops frames without resetting", async () => {
   const socket = await connect();
   receiveAudio(socket);
   const decoder = AudioDecoderStub.instances[0]!;
-  const chunks = Array.from({ length: 6 }, decodedChunk);
+  const chunks = Array.from({ length: 14 }, decodedChunk);
   for (const chunk of chunks) (decoder.callbacks as { output: (chunk: unknown) => void }).output(chunk);
-  // 两帧预滚到齐起播，随后窗口排满：超窗的第 5、6 帧只丢自己。
-  assert.deepEqual(AudioContextStub.sources.map(source => source.startedAt), [0, 0.02, 0.04, 0.06]);
+  // 两帧预滚到齐起播，随后排满 250ms 窗口（12 帧到 0.22）：超窗的第 13、14 帧只丢自己。
+  const startedAt = AudioContextStub.sources.map(source => source.startedAt);
+  assert.equal(startedAt.length, 12);
+  startedAt.forEach((value, index) => assert.ok(Math.abs(value! - index * 0.02) < 1e-9));
   assert.equal(decoder.closed, 0, "overflow must not reset the stream");
   assert.ok(AudioContextStub.sources.every(source => source.stopped === 0), "already scheduled audio keeps playing");
   assert.ok(chunks.every(chunk => chunk.closed === 1));
-  (AudioContextStub.instances.at(-1)! as unknown as { currentTime: number }).currentTime = 0.08;
+  (AudioContextStub.instances.at(-1)! as unknown as { currentTime: number }).currentTime = 0.24;
   (decoder.callbacks as { output: (chunk: unknown) => void }).output(decodedChunk());
-  assert.equal(AudioContextStub.sources.at(-1)!.startedAt, 0.08, "the window reopens as the timeline drains");
+  assert.equal(AudioContextStub.sources.at(-1)!.startedAt, 0.24, "the window reopens as the timeline drains");
   assert.equal(AudioDecoderStub.instances.length, 1, "no replacement decoder was created");
 });
 
