@@ -147,6 +147,19 @@ export class SessionAudioTransport {
     } catch { /* the socket may have closed while reporting the failure */ }
   }
 
+  private unsupportedCodecReported = false;
+
+  /** 每会话只报一次：非 Opus 频道在整个会话里都是同一个事实，逐包上报会把
+   *  20ms 的语音流变成错误提示放大器（与坏帧报告同一理由）。 */
+  private reportUnsupportedCodec(codec: number): void {
+    if (this.unsupportedCodecReported) return;
+    this.unsupportedCodecReported = true;
+    this.logger?.warn({ code: "UNSUPPORTED_CHANNEL_CODEC", codec }, "Channel codec is not Opus; incoming voice cannot be relayed");
+    try {
+      this.options.sendJson({ type: "audioError", code: "UNSUPPORTED_CHANNEL_CODEC", detail: "当前频道编码不是 Opus" });
+    } catch { /* the socket may have closed while reporting the failure */ }
+  }
+
   receivePcm(frame: Buffer): void {
     if (!this.isCurrent()) return;
     if (!this.consumeFrameBudget()) return;
@@ -262,6 +275,13 @@ export class SessionAudioTransport {
     if (!Number.isInteger(data.clientId) || data.clientId < 1 || data.clientId > 65_535
       || !Number.isInteger(data.codec) || data.codec < 0 || data.codec > 255 || !Buffer.isBuffer(data.data)) {
       stats.egressDroppedFrames++;
+      return;
+    }
+    // 非 Opus 频道（Speex/CELT）：网关不转码、浏览器也解不了，转发只会得到
+    // 噪声。一次性显式报错（33 号 D12，有意差异），之后同 codec 静默丢弃。
+    if (data.codec !== 4 && data.codec !== 5) {
+      stats.egressDroppedFrames++;
+      this.reportUnsupportedCodec(data.codec);
       return;
     }
     // 舒适噪声过滤：不占 egress 记账（转发数/活跃表），WebRTC 与兼容 WS 两路同滤。

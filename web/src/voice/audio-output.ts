@@ -188,6 +188,11 @@ export function createAudioOutput(deps: AudioOutputDeps) {
     if (code === "AUDIO_ENCODER_UNAVAILABLE") {
       return `麦克风声音未能发送：语音网关的音频编码器不可用（错误代码：${code}）${detailText ? `：${detailText}` : ""}，请联系管理员`;
     }
+    // 非 Opus 频道（Speex/CELT）：网关不转码，频道的语音上下行都不可用。
+    // 这是频道本身的问题，不是麦克风链路，不能落到「麦克风可能没发送」的兜底。
+    if (code === "UNSUPPORTED_CHANNEL_CODEC") {
+      return `当前频道的语音编码不是 Opus，WebSpeak 无法转发该频道的语音，请切换到 Opus 频道（错误代码：${code}）`;
+    }
     return `音频链路异常（错误代码：${code}）${detailText ? `：${detailText}` : ""}，麦克风声音可能没有发送给其他成员`;
   }
 

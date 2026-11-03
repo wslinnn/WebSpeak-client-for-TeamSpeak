@@ -328,6 +328,22 @@ test("codec cleanup is idempotent even if disposal throws", t => {
   assert.equal(f.audio.tsReceiveFrames, 0);
 });
 
+test("non-Opus channel codecs are dropped and reported once per session", () => {
+  const f = fixture();
+  f.transport.receiveTeamSpeak({ clientId: 513, codec: 3, data: Buffer.from([11, 12, 13, 14]) });
+  f.transport.receiveTeamSpeak({ clientId: 513, codec: 0, data: Buffer.from([11, 12, 13, 14]) });
+  assert.equal(f.packets.length, 0);
+  assert.equal(f.audio.egressDroppedFrames, 2);
+  assert.equal(f.notices.length, 1);
+  assert.deepEqual(f.notices[0], { type: "audioError", code: "UNSUPPORTED_CHANNEL_CODEC", detail: "当前频道编码不是 Opus" });
+  assert.deepEqual(f.warnings, [{ code: "UNSUPPORTED_CHANNEL_CODEC", codec: 3 }]);
+  // Opus 语音（4/5）不受影响，后续非 Opus 包也不再上报。
+  f.transport.receiveTeamSpeak(f.remote());
+  assert.equal(f.packets.length, 1);
+  f.transport.receiveTeamSpeak({ clientId: 513, codec: 1, data: Buffer.from([11, 12, 13, 14]) });
+  assert.equal(f.notices.length, 1);
+});
+
 test("invalid SDK speaker IDs and codecs cannot throw while packing the header", () => {
   const f = fixture();
   for (const clientId of [-1, 65_536, NaN]) f.transport.receiveTeamSpeak(f.remote(clientId));
