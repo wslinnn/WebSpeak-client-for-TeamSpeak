@@ -26,6 +26,12 @@ const DEFAULT_WEBRTC_OPUS_PAYLOAD_TYPE = 111;
 // speakers than slots the least recently active voice stream stops.
 const MAX_DOWNSTREAM_SLOTS = 16;
 
+/** RFC 6464 ssrc-audio-level header extension. Configuring the URI (not a
+ *  fixed id) is what matters: werift keeps the remote offer's extension id
+ *  when the URI is configured, so the answer advertises the browser's own
+ *  extmap id and the receiver parses packets with that same id. */
+export const AUDIO_LEVEL_URI = "urn:ietf:params:rtp-hdrext:ssrc-audio-level";
+
 /** Local ICE candidates in an answer SDP. werift fills `media.iceCandidates`
  *  from the gathered transports, so a count of zero means gathering produced
  *  nothing: port-range exhaustion, address filtering or a bind failure — each
@@ -148,6 +154,10 @@ export class WebRtcAudioSession {
       // Both audio routes carry Opus; accepting PCMU would label Opus output
       // as another codec and silently discard the peer's incoming audio.
       codecs: { audio: [useOPUS()] },
+      // RFC 6464 level: werift filters the remote offer's extensions by URI
+      // and keeps their ids, so this only advertises the extension back when
+      // the browser actually offered it.
+      headerExtensions: { audio: [{ id: 0, uri: AUDIO_LEVEL_URI }], video: [] },
       iceServers: options.stunServer ? [{ urls: options.stunServer }] : [],
       iceUseIpv4: true,
       iceUseIpv6: options.ipv6Enabled === true,
@@ -176,7 +186,7 @@ export class WebRtcAudioSession {
       // microphone RTP would arrive with no consumer.
       uplink = this.peer.addTransceiver("audio", { direction: "sendrecv" });
       uplink.onTrack.subscribe((track) => {
-        track.onReceiveRtp.subscribe((rtp) => {
+        track.onReceiveRtp.subscribe((rtp, extensions) => {
           if (this.closed) return;
           const receivedAt = performance.now();
           if (this.lastIngressRtpAt !== null) this.stats.webrtcIngressRtpMaxGapMs = Math.max(this.stats.webrtcIngressRtpMaxGapMs, Math.round(receivedAt - this.lastIngressRtpAt));
@@ -184,6 +194,7 @@ export class WebRtcAudioSession {
           this.stats.webrtcIngressRtpFirstAt ??= Date.now();
           this.stats.webrtcIngressRtpLastAt = Date.now();
           this.stats.webrtcIngressRtpFrames++;
+          this.noteUplinkAudioLevel(extensions);
           if (!this.opusPayloadTypes.has(rtp.header.payloadType)) return;
           // A muted microphone must stop the browser user's TeamSpeak voice
           // packets at the gateway. Browser-side track.enabled/gain changes
@@ -351,6 +362,19 @@ export class WebRtcAudioSession {
     } catch {
       this.stats.webrtcDownlinkDroppedFrames++;
     }
+  }
+
+  private uplinkLevelFrames = 0;
+
+  /** Calibration probe for the D11 gate (WEBSPEAK_RTP_DEBUG=1): one log line
+   *  per second of received RFC 6464 level values. The gate itself stays
+   *  RMS-based until the probe has calibrated thresholds on real browsers. */
+  private noteUplinkAudioLevel(extensions: { [uri: string]: unknown } | undefined): void {
+    const level = extensions?.[AUDIO_LEVEL_URI] as { v?: boolean; level?: number } | undefined;
+    if (!level || typeof level.level !== "number") return;
+    this.uplinkLevelFrames++;
+    if (!this.debugEnabled || this.uplinkLevelFrames % 50 !== 0) return;
+    this.logger.info({ level: level.level, voiced: level.v === true }, "uplink audio level");
   }
 
   /** First 40 frames log in full, then a 1-in-500 sample keeps the channel

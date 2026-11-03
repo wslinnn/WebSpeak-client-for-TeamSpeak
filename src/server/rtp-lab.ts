@@ -6,7 +6,8 @@ import { isAcceptableRemoteIceCandidate } from "./webrtc-config.js";
 import { FixedWindowRateLimiter } from "./fixed-window-rate-limit.js";
 import { NO_TRUSTED_PROXIES, rateLimitPeerKey, resolveClientAddress } from "./client-ip.js";
 import { OpusEncoder } from "./opus-codec.js";
-import type { WebRtcAudioOptions } from "./webrtc-audio.js";
+import { AUDIO_LEVEL_URI, type WebRtcAudioOptions } from "./webrtc-audio.js";
+import { labPage, labScript } from "./rtp-lab-page.js";
 import type { Logger as LoggerType } from "../logger.js";
 
 /**
@@ -112,6 +113,12 @@ export function mountRtpLabIfEnabled(app: express.Express, options: RtpLabOption
     }
   });
 
+  // Read-only calibration probe: per-session audio-level counters for the
+  // uplink m-line. Debug-only (the whole lab is) and exposes numbers only.
+  app.get("/_rtp-lab/level", (_request, response) => {
+    response.json({ sessions: [...sessions].map(session => session.getLevel()) });
+  });
+
   app.post("/_rtp-lab/mode", express.json({ limit: "4kb" }), (request, response) => {
     if (!isSameOrigin(request)) {
       response.status(403).json({ error: "cross-origin rejected" });
@@ -144,6 +151,10 @@ class RtpLabSession {
   private timestamp = (Math.random() * 0x1_0000_0000) >>> 0;
   private framesInPair = 0;
   private pairGapUntil = 0;
+  private uplinkLevelLast: number | null = null;
+  private uplinkLevelVoiced = false;
+  private uplinkLevelFrames = 0;
+  private uplinkLevelParsed = 0;
 
   constructor(logger: LoggerType, webrtc?: WebRtcAudioOptions) {
     this.logger = logger;
@@ -154,6 +165,10 @@ class RtpLabSession {
     this.peer = new RTCPeerConnection({
       iceServers: webrtc?.stunServer ? [{ urls: webrtc.stunServer }] : [],
       codecs: { audio: [useOPUS()] },
+      // RFC 6464 probe: the answer advertises the extension only when the
+      // page's offer carries it (werift matches remote extensions by URI and
+      // keeps their ids).
+      headerExtensions: { audio: [{ id: 0, uri: AUDIO_LEVEL_URI }], video: [] },
       iceUseIpv4: true,
       iceUseIpv6: webrtc?.ipv6Enabled === true,
       iceUseTcp: false,
@@ -168,6 +183,19 @@ class RtpLabSession {
     const downlink = this.peer.addTransceiver("audio", { direction: "sendonly" });
     this.slot = new MediaStreamTrack({ kind: "audio" });
     void downlink.sender.replaceTrack(this.slot).catch(() => undefined);
+    // Uplink probe: the page's microphone feeds this m-line so the RFC 6464
+    // level extension can be calibrated without a TeamSpeak session.
+    const uplink = this.peer.addTransceiver("audio", { direction: "sendrecv" });
+    uplink.onTrack.subscribe((track) => {
+      track.onReceiveRtp.subscribe((_rtp, extensions) => {
+        this.uplinkLevelFrames++;
+        const level = extensions?.[AUDIO_LEVEL_URI] as { v?: boolean; level?: number } | undefined;
+        if (!level || typeof level.level !== "number") return;
+        this.uplinkLevelLast = level.level;
+        this.uplinkLevelVoiced = level.v === true;
+        this.uplinkLevelParsed++;
+      });
+    });
     // `closed` is passive: it resolves when the connection reaches a terminal
     // state, a disconnect outlives the reap window, or close() was called.
     this.closedPromise = new Promise<void>((resolve) => {
@@ -208,6 +236,15 @@ class RtpLabSession {
 
   setMode(mode: LabMode): void {
     this.mode = mode;
+  }
+
+  getLevel(): { level: number | null; voiced: boolean; frames: number; parsed: number } {
+    return {
+      level: this.uplinkLevelLast,
+      voiced: this.uplinkLevelVoiced,
+      frames: this.uplinkLevelFrames,
+      parsed: this.uplinkLevelParsed,
+    };
   }
 
   async accept(offer: { type: "offer"; sdp: string }): Promise<string> {
@@ -278,169 +315,3 @@ class RtpLabSession {
   }
 }
 
-function labPage(iceServers: Array<{ urls: string }>): string {
-  // ICE config rides a data attribute into the external script: the JSON only
-  // ever contains STUN URLs, but escape single quotes defensively anyway.
-  const iceServersAttr = JSON.stringify(iceServers).replaceAll("'", "&#39;");
-  return `<!doctype html>
-<html lang="zh">
-<head><meta charset="utf-8"><title>RTP Lab</title>
-<style>
-body { font: 14px/1.6 system-ui, sans-serif; max-width: 720px; margin: 24px auto; color: #222; }
-fieldset { margin: 12px 0; border: 1px solid #ccc; border-radius: 8px; }
-label { margin-right: 14px; }
-button { padding: 6px 14px; }
-pre { background: #f6f6f6; padding: 10px; border-radius: 8px; min-height: 200px; white-space: pre-wrap; }
-</style></head>
-<body data-ice-servers='${iceServersAttr}'>
-<h1>RTP 隔离实验室</h1>
-<p>本页面与网关直连 WebRTC（不经 TeamSpeak），网关播放可切换特征的测试音。逐个模式切换并听：哪个模式静音，即锁定元凶特征。</p>
-<p><button id="start">开始连接</button> <button id="apply" disabled>应用模式</button> <button id="stop" disabled>停止</button></p>
-<fieldset><legend>声道</legend>
-  <label><input type="radio" name="channels" value="2" checked>立体声</label>
-  <label><input type="radio" name="channels" value="1">单声道</label>
-</fieldset>
-<fieldset><legend>节奏</legend>
-  <label><input type="radio" name="pacing" value="burst" checked>TS 突发（成对帧+间隙）</label>
-  <label><input type="radio" name="pacing" value="even">匀速 20ms</label>
-</fieldset>
-<fieldset><legend>停顿策略（词间静音）</legend>
-  <label><input type="radio" name="silence" value="frames" checked>发 3 字节静音帧</label>
-  <label><input type="radio" name="silence" value="none">完全停发</label>
-</fieldset>
-<fieldset><legend>播放方式（语音房静音判别：切换后需刷新页面）</legend>
-  <label><input type="radio" name="sink" value="element" checked>直连 audio 元素</label>
-  <label><input type="radio" name="sink" value="graph">Web Audio 图（复刻语音房）</label>
-</fieldset>
-<pre id="log"></pre>
-<script src="/_rtp-lab/lab.js"></script>
-</body>
-</html>`;
-}
-
-function labScript(): string {
-  return `const logEl = document.getElementById("log");
-const log = (msg) => { logEl.textContent += msg + "\\n"; };
-// Created inside the click handler so Web Audio has sticky user activation.
-let audioCtx = null;
-let started = false;
-const ICE_SERVERS = JSON.parse(document.body.dataset.iceServers || "[]");
-const peer = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-peer.onconnectionstatechange = () => log("peer: " + peer.connectionState);
-function sinkMode() {
-  const el = document.querySelector('input[name="sink"]:checked');
-  return el ? el.value : "element";
-}
-document.querySelectorAll('input[name="sink"]').forEach(radio => {
-  radio.addEventListener("change", () => { if (started) log("播放方式已选 " + sinkMode() + "（切换需刷新页面）"); });
-});
-peer.ontrack = (event) => {
-  const trackStream = new MediaStream([event.track]);
-  const ctx = audioCtx ?? new AudioContext();
-  const useGraph = sinkMode() === "graph";
-  log("sink: " + (useGraph ? "Web Audio 图（复刻语音房）" : "直连元素") + " ctx=" + ctx.state);
-  let analyser;
-  if (useGraph) {
-    // Replicates the voice room's sink shape: track → source → gain →
-    // analyser → master → MediaStreamDestination → hidden element. If the
-    // context is not rendering, the room-side symptom (buffer never drains,
-    // packetsDiscarded≈packetsReceived) reproduces here.
-    const source = ctx.createMediaStreamSource(trackStream);
-    const gain = ctx.createGain();
-    analyser = ctx.createAnalyser();
-    analyser.fftSize = 2048;
-    const master = ctx.createGain();
-    const destination = ctx.createMediaStreamDestination();
-    source.connect(gain);
-    gain.connect(analyser);
-    gain.connect(master);
-    master.connect(destination);
-    const hidden = document.createElement("audio");
-    hidden.autoplay = true;
-    hidden.muted = false;
-    hidden.setAttribute("playsinline", "");
-    hidden.setAttribute("aria-hidden", "true");
-    hidden.tabIndex = -1;
-    hidden.style.position = "fixed";
-    hidden.style.width = "1px";
-    hidden.style.height = "1px";
-    hidden.style.opacity = "0";
-    hidden.style.pointerEvents = "none";
-    hidden.srcObject = destination.stream;
-    document.body.append(hidden);
-    hidden.play().then(() => log("graph element playing")).catch(e => log("graph play blocked: " + e.message));
-    window.__labGraph = { ctx, source, gain, master, destination, analyser };
-  } else {
-    const audio = document.createElement("audio");
-    audio.autoplay = true;
-    audio.srcObject = trackStream;
-    document.body.append(audio);
-    audio.play().catch(e => log("play blocked: " + e.message));
-    analyser = ctx.createAnalyser();
-    analyser.fftSize = 1024;
-    ctx.createMediaStreamSource(trackStream).connect(analyser);
-  }
-  const samples = new Float32Array(analyser.fftSize);
-  setInterval(() => {
-    analyser.getFloatTimeDomainData(samples);
-    let sum = 0;
-    for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
-    log("analyserRMS=" + Math.sqrt(sum / samples.length).toFixed(5) + " ctx=" + ctx.state);
-  }, 1500);
-  setInterval(async () => {
-    const report = await peer.getStats();
-    report.forEach(s => {
-      if (s.type === "inbound-rtp" && s.kind === "audio") {
-        log(\`inbound: packets=\${s.packetsReceived} discarded=\${s.packetsDiscarded ?? 0} lost=\${s.packetsLost} audioLevel=\${s.audioLevel} totalSamples=\${s.totalSamplesReceived}\`);
-      }
-    });
-  }, 3000);
-};
-async function start() {
-  // Downlink only: one recvonly m-line for the gateway's sendonly track.
-  peer.addTransceiver("audio", { direction: "recvonly" });
-  const offer = await peer.createOffer();
-  await peer.setLocalDescription(offer);
-  await new Promise(resolve => {
-    if (peer.iceGatheringState === "complete") return resolve();
-    peer.addEventListener("icegatheringstatechange", () => { if (peer.iceGatheringState === "complete") resolve(); });
-    setTimeout(resolve, 4000);
-  });
-  const response = await fetch("/_rtp-lab/offer", {
-    method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify(peer.localDescription),
-  });
-  if (!response.ok) { log("offer failed: " + response.status); return; }
-  const answer = await response.json();
-  await peer.setRemoteDescription(answer);
-  log("negotiated — tone should be audible");
-}
-document.getElementById("start").addEventListener("click", async () => {
-  if (started) return;
-  started = true;
-  document.getElementById("apply").disabled = false;
-  document.getElementById("stop").disabled = false;
-  try { audioCtx = new AudioContext(); await audioCtx.resume(); } catch (e) { log("audioCtx: " + e.message); }
-  start().catch(e => log("error: " + (e.message ?? e)));
-});
-function readMode() {
-  const value = (name) => document.querySelector(\`input[name=\${name}]:checked\`).value;
-  return { channels: Number(value("channels")), pacing: value("pacing"), silence: value("silence") };
-}
-document.getElementById("apply").addEventListener("click", async () => {
-  const mode = readMode();
-  const response = await fetch("/_rtp-lab/mode", {
-    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(mode),
-  });
-  log("mode → " + JSON.stringify((await response.json()).mode));
-});
-document.getElementById("stop").addEventListener("click", async () => {
-  await fetch("/_rtp-lab/mode", { method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ pacing: "stopped", channels: 1, silence: "frames" }) });
-  log("stopped");
-});
-window.__lab = {
-  get peer() { return peer; },
-  get audioCtx() { return audioCtx; },
-};`;
-}
