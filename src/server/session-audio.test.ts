@@ -174,6 +174,48 @@ test("comfort noise frames (≤3 bytes) are not forwarded to either downlink", (
   assert.deepEqual([...pushed[0]!.data], [11, 12, 13, 14]);
 });
 
+test("the trailer byte is stripped before the comfort-noise filter", () => {
+  const pushed: TSVoiceData[] = [];
+  const f = fixture();
+  f.state.peer = { pushTeamSpeakVoice: (data: TSVoiceData) => { pushed.push(data); } };
+  // 3 字节舒适噪声 + 尾字节：不剥离会以 4 字节逃逸 ≤3 字节过滤。
+  f.transport.receiveTeamSpeak({ clientId: 513, codec: 4, data: Buffer.from([252, 3, 7, 30]), flags: 0x40 });
+  assert.equal(pushed.length, 0);
+  assert.equal(f.audio.egressDroppedFrames, 1);
+  // 真实帧 + 尾字节：尾字节不进入转发载荷。
+  f.transport.receiveTeamSpeak({ clientId: 513, codec: 4, data: Buffer.from([11, 12, 13, 14, 30]), flags: 0x40 });
+  assert.equal(pushed.length, 1);
+  assert.deepEqual([...pushed[0]!.data], [11, 12, 13, 14]);
+});
+
+test("nvp frames split into independent downlink packets", () => {
+  const f = fixture();
+  f.transport.receiveTeamSpeak({
+    clientId: 513, codec: 4, data: Buffer.from([2, 11, 12, 13, 14, 15, 21, 22, 23, 24, 25]), flags: 0x10,
+  });
+  assert.equal(f.packets.length, 2);
+  assert.deepEqual([...f.packets[0]!], [4, 2, 1, 11, 12, 13, 14, 15]);
+  assert.deepEqual([...f.packets[1]!], [4, 2, 1, 21, 22, 23, 24, 25]);
+  assert.equal(f.audio.egressFrames, 2);
+  assert.deepEqual(f.audio.egressFramesByClient, { "513": 2 });
+  // WebRTC 路径同样逐帧推送；扩展字节与尾字节组合时先剥尾字节再拆帧。
+  const pushed: TSVoiceData[] = [];
+  f.state.peer = { pushTeamSpeakVoice: (data: TSVoiceData) => { pushed.push(data); } };
+  f.transport.receiveTeamSpeak({
+    clientId: 513, codec: 4, data: Buffer.from([2, 31, 32, 33, 34, 35, 41, 42, 43, 44, 45, 30]), flags: 0x10 | 0x40,
+  });
+  assert.deepEqual(pushed.map(item => [...item.data]), [[31, 32, 33, 34, 35], [41, 42, 43, 44, 45]]);
+  assert.equal(f.audio.egressFrames, 4);
+});
+
+test("malformed nvp payloads are dropped without forwarding", () => {
+  const f = fixture();
+  f.transport.receiveTeamSpeak({ clientId: 513, codec: 4, data: Buffer.from([0, 11, 12]), flags: 0x10 });
+  f.transport.receiveTeamSpeak({ clientId: 513, codec: 4, data: Buffer.from([3, 11, 12, 13, 14]), flags: 0x10 });
+  assert.equal(f.packets.length, 0);
+  assert.equal(f.audio.egressDroppedFrames, 2);
+});
+
 test("uplink silence gate drops near-silent frames after the release window and passes speech", () => {
   // 解码桩：帧首字节 1 = 语音（rms≈0.09），否则为数字静音（rms=0）。
   const voicePcm = Buffer.from(Int16Array.from({ length: 960 }, () => 3000).buffer);

@@ -4,6 +4,7 @@ import type { ServerMessage } from "../shared/server-messages.js";
 import type { AudioFlowStats } from "./audio-stats.js";
 import type { TSClient, TSVoiceData } from "./ts-client.js";
 import type { WebRtcAudioSession } from "./webrtc-audio.js";
+import { splitVoicePayload } from "./voice-payload.js";
 
 const AUDIO_FRAME_BYTES = 1_920; // 20 ms of 48 kHz mono Int16 PCM.
 // Keep the established byte guard; the browser also bounds playback by time.
@@ -284,45 +285,57 @@ export class SessionAudioTransport {
       this.reportUnsupportedCodec(data.codec);
       return;
     }
-    // 舒适噪声过滤：不占 egress 记账（转发数/活跃表），WebRTC 与兼容 WS 两路同滤。
-    if (data.data.length <= COMFORT_NOISE_FRAME_BYTES) {
+    // 可选字节（33 号 D3/D14）：0x40 尾字节是发送方 RTT 抖动、0x10 扩展字节
+    // 是 nvp（Opus 帧数）。必须先剥离/拆帧再做 ≤3 字节舒适噪声过滤——否则
+    // 「3 字节帧 + 尾字节」会以 4 字节逃逸过滤。拆出的每帧独立走 peer/WS 路由。
+    const split = splitVoicePayload(data.data, data.flags ?? 0);
+    if (!split) {
       stats.egressDroppedFrames++;
       return;
     }
+    const frames = split.frames.filter(frame => frame.length > COMFORT_NOISE_FRAME_BYTES);
+    stats.egressDroppedFrames += split.frames.length - frames.length;
+    if (frames.length === 0) return;
     // WebRTC 语音会话没有 WS 音频回退：无 live peer（协商窗口/协商失败/peer 拆除）
     // 时帧按丢弃记账而不是转投 WS——降级被移除后，断流必须显式可见。
     if (!this.options.peer() && this.options.webRtcVoice()) {
-      stats.egressDroppedFrames++;
+      stats.egressDroppedFrames += frames.length;
       return;
     }
     if (stats.egressLastAt !== null) stats.egressMaxGapMs = Math.max(stats.egressMaxGapMs, now - stats.egressLastAt);
     stats.egressFirstAt ??= now;
     stats.egressLastAt = now;
     const key = String(data.clientId);
-    stats.egressFramesByClient[key] = (stats.egressFramesByClient[key] ?? 0) + 1;
+    stats.egressFramesByClient[key] = (stats.egressFramesByClient[key] ?? 0) + frames.length;
     this.egressClientLastSeen.set(key, now);
     if (this.egressClientLastSeen.size > EGRESS_CLIENT_PRUNE_THRESHOLD) this.pruneEgressClients(now);
     const peer = this.options.peer();
     if (peer) {
-      try { peer.pushTeamSpeakVoice(data); stats.egressFrames++; }
-      catch { stats.egressDroppedFrames++; }
+      for (const frame of frames) {
+        try {
+          peer.pushTeamSpeakVoice(frame === data.data ? data : { ...data, data: frame });
+          stats.egressFrames++;
+        } catch { stats.egressDroppedFrames++; }
+      }
       return;
     }
-    const bufferedBytes = this.options.socket.bufferedAmount;
-    stats.egressPeakBufferedBytes = Math.max(stats.egressPeakBufferedBytes, bufferedBytes);
-    if (bufferedBytes > MAX_BUFFERED_BYTES) { stats.egressDroppedFrames++; return; }
-    const packet = Buffer.allocUnsafe(3 + data.data.length);
-    packet[0] = data.codec;
-    packet.writeUInt16BE(data.clientId, 1);
-    data.data.copy(packet, 3);
-    try {
-      this.options.socket.send(packet);
-      stats.egressFrames++;
-      const sentAt = this.clock();
-      if (stats.egressSentLastAt !== null) stats.egressSentMaxGapMs = Math.max(stats.egressSentMaxGapMs, sentAt - stats.egressSentLastAt);
-      stats.egressSentFirstAt ??= sentAt;
-      stats.egressSentLastAt = sentAt;
-    } catch { stats.egressDroppedFrames++; }
+    for (const frame of frames) {
+      const bufferedBytes = this.options.socket.bufferedAmount;
+      stats.egressPeakBufferedBytes = Math.max(stats.egressPeakBufferedBytes, bufferedBytes);
+      if (bufferedBytes > MAX_BUFFERED_BYTES) { stats.egressDroppedFrames++; continue; }
+      const packet = Buffer.allocUnsafe(3 + frame.length);
+      packet[0] = data.codec;
+      packet.writeUInt16BE(data.clientId, 1);
+      frame.copy(packet, 3);
+      try {
+        this.options.socket.send(packet);
+        stats.egressFrames++;
+        const sentAt = this.clock();
+        if (stats.egressSentLastAt !== null) stats.egressSentMaxGapMs = Math.max(stats.egressSentMaxGapMs, sentAt - stats.egressSentLastAt);
+        stats.egressSentFirstAt ??= sentAt;
+        stats.egressSentLastAt = sentAt;
+      } catch { stats.egressDroppedFrames++; }
+    }
   }
 
   private pruneEgressClients(now: number): void {

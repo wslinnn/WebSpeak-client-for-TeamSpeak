@@ -36,6 +36,12 @@ export interface TSVoiceData {
   clientId: number;
   codec: number; // 4 = voice, 5 = music
   data: Buffer;
+  /** S2C packet flags (high nibble): 0x10 extension byte, 0x40 trailer. */
+  flags?: number;
+  /** Sender voice sequence (VId). */
+  vid?: number;
+  /** True when the packet arrived as a VoiceWhisper. */
+  isWhisper?: boolean;
 }
 
 export interface TSClientAvatar {
@@ -219,6 +225,9 @@ export class TSClient extends EventEmitter {
         clientId: data.clientId,
         codec: data.codec,
         data: Buffer.from(data.data),
+        flags: data.flags,
+        vid: data.vid,
+        isWhisper: data.isWhisper,
       } as TSVoiceData);
     });
 
