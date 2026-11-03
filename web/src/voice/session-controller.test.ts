@@ -1855,10 +1855,8 @@ test("an old source ending cannot hide replacement playback from session cleanup
   const socket = await connect();
   receiveAudio(socket);
   const first = AudioDecoderStub.instances.at(-1)!;
-  const output = (first.callbacks as { output: (chunk: unknown) => void }).output;
-  output(decodedChunk());
-  output(decodedChunk()); // the pre-roll flushes once two frames are queued
-  const oldSource = AudioContextStub.sources[0]!;
+  (first.callbacks as { output: (chunk: unknown) => void }).output(decodedChunk());
+  const oldSource = AudioContextStub.sources.at(-1)!;
   first.decodeQueueSize = 3;
   receiveAudio(socket);
   (AudioDecoderStub.instances.at(-1)!.callbacks as { output: (chunk: unknown) => void }).output(decodedChunk());
@@ -1874,11 +1872,9 @@ test("decoder failure releases the speaker's queued sources and gain immediately
   const decoder = AudioDecoderStub.instances.at(-1)!;
   const callbacks = decoder.callbacks as { output: (chunk: unknown) => void; error: (error: unknown) => void };
   callbacks.output(decodedChunk());
-  callbacks.output(decodedChunk()); // the pre-roll flushes once two frames are queued
   const source = AudioContextStub.sources.at(-1)!;
   const gain = AudioContextStub.gains.at(-1)!;
   callbacks.error(new Error("Decode failed"));
-  assert.ok(AudioContextStub.sources.every(candidate => candidate.stopped === 1));
   assert.equal(source.stopped, 1);
   assert.equal(gain.disconnects, 1);
 });
@@ -1898,10 +1894,8 @@ test("a failed audio source start does not retain a connected playback node", as
   const socket = await connect();
   receiveAudio(socket);
   AudioSourceStub.failStart = true;
-  const callbacks = AudioDecoderStub.instances.at(-1)!.callbacks as { output: (chunk: unknown) => void };
   const chunk = decodedChunk();
-  callbacks.output(chunk);
-  callbacks.output(decodedChunk()); // the pre-roll flush starts the held frame, which fails
+  (AudioDecoderStub.instances.at(-1)!.callbacks as { output: (chunk: unknown) => void }).output(chunk);
   assert.ok(AudioContextStub.sources.at(-1)!.disconnects > 0);
   assert.equal(chunk.closed, 1);
 });
@@ -1924,19 +1918,15 @@ test("a departing speaker releases only its own playback", async () => {
   receiveAudio(socket, 7);
   receiveAudio(socket, 8);
   const [leaving, staying] = AudioDecoderStub.instances;
-  for (const decoder of [leaving, staying]) {
-    const output = (decoder!.callbacks as { output: (chunk: unknown) => void }).output;
-    output(decodedChunk());
-    output(decodedChunk()); // the pre-roll flushes once two frames are queued
-  }
-  const leavingSources = AudioContextStub.sources.slice(0, 2);
-  const stayingSources = AudioContextStub.sources.slice(2);
+  (leaving!.callbacks as { output: (chunk: unknown) => void }).output(decodedChunk());
+  (staying!.callbacks as { output: (chunk: unknown) => void }).output(decodedChunk());
+  const [oldSource, currentSource] = AudioContextStub.sources;
   socket.receive({ type: "memberLeave", id: 7 });
   assert.deepEqual(S().members.map(member => member.id), [8]);
   assert.equal(leaving!.closed, 1);
-  assert.ok(leavingSources.every(source => source.stopped === 1));
+  assert.equal(oldSource!.stopped, 1);
   assert.equal(staying!.closed, 0);
-  assert.ok(stayingSources.every(source => source.stopped === 0));
+  assert.equal(currentSource!.stopped, 0);
 });
 
 test("remote playback preserves member volume through output mute and decoder reset", async () => {
@@ -1960,21 +1950,21 @@ test("remote playback preserves member volume through output mute and decoder re
   assert.equal(AudioContextStub.gains[1]!.gain.value, 0.5);
 });
 
-test("decoded audio stays within the 80 ms playback window: overflow drops frames without resetting", async () => {
+test("decoded audio stays within the 80 ms playback window and recovers after overflow", async () => {
   const socket = await connect();
   receiveAudio(socket);
   const decoder = AudioDecoderStub.instances[0]!;
-  const chunks = Array.from({ length: 6 }, decodedChunk);
+  const chunks = Array.from({ length: 5 }, decodedChunk);
   for (const chunk of chunks) (decoder.callbacks as { output: (chunk: unknown) => void }).output(chunk);
-  // 两帧预滚到齐起播，随后窗口排满：超窗的第 5、6 帧只丢自己。
   assert.deepEqual(AudioContextStub.sources.map(source => source.startedAt), [0, 0.02, 0.04, 0.06]);
-  assert.equal(decoder.closed, 0, "overflow must not reset the stream");
-  assert.ok(AudioContextStub.sources.every(source => source.stopped === 0), "already scheduled audio keeps playing");
+  assert.equal(decoder.closed, 1);
+  assert.ok(AudioContextStub.sources.every(source => source.stopped === 1));
   assert.ok(chunks.every(chunk => chunk.closed === 1));
-  (AudioContextStub.instances.at(-1)! as unknown as { currentTime: number }).currentTime = 0.08;
-  (decoder.callbacks as { output: (chunk: unknown) => void }).output(decodedChunk());
-  assert.equal(AudioContextStub.sources.at(-1)!.startedAt, 0.08, "the window reopens as the timeline drains");
-  assert.equal(AudioDecoderStub.instances.length, 1, "no replacement decoder was created");
+  receiveAudio(socket);
+  const replacement = AudioDecoderStub.instances.at(-1)!;
+  (replacement.callbacks as { output: (chunk: unknown) => void }).output(decodedChunk());
+  assert.notEqual(replacement, decoder);
+  assert.equal(AudioContextStub.sources.at(-1)!.startedAt, 0);
 });
 
 test("old socket audio cannot create a decoder in a replacement session", async () => {
