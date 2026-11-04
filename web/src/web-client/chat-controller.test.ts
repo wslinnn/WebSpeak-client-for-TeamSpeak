@@ -222,6 +222,54 @@ describe("chat controller（提交与代际）", () => {
     session.setState({ members: [{ id: 7, nickname: "New legacy member" }] });
     controller.openPrivateChat(7);
     expect(controller.visibleMessages()).toHaveLength(0);
-    expect(controller.conversations()[0]?.name).toBe("Unknown old sender");
+    // 身份分离的意图断言：旧匿名发送者的会话保留原名并按离线排尾；新成员的
+    // seed 会话（成员键）独立成条，两者不得合并或互相顶替。
+    const list = controller.conversations();
+    const legacy = list.find((conversation) => conversation.name === "Unknown old sender");
+    expect(legacy?.offline).toBe(true);
+    expect(list.some((conversation) => conversation.key === `client:${JSON.stringify([7, "New legacy member"])}`)).toBe(true);
   });
+});
+
+describe("chat controller（私聊 seed）", () => {
+  const peerMember = { id: 7, uid: "peer", nickname: "Peer" };
+  const peerMessage = (id: string, timestamp: number): ChatMessage => ({
+    id, scope: "private", senderId: 7, senderUid: "peer", invokerName: "Peer", message: `Hello ${id}`, timestamp, conversationId: "7",
+  });
+
+  it("an initiated private chat shows up before any messages exist", () => {
+    const { controller, session } = harness();
+    session.setState({ members: [peerMember] });
+    controller.openPrivateChat(7);
+    expect(controller.conversations()).toEqual([{ id: 7, key: "uid:peer", name: "Peer", lastMessage: 0, offline: false }]);
+    expect(controller.visibleMessages()).toHaveLength(0);
+  });
+
+  it("the seeded conversation merges into the message-derived entry instead of duplicating", () => {
+    const { controller, session } = harness();
+    session.setState({ members: [peerMember] });
+    controller.openPrivateChat(7);
+    session.setState({ chatMessages: [peerMessage("m1", 5)] });
+    const list = controller.conversations();
+    expect(list).toHaveLength(1);
+    expect(list[0]).toMatchObject({ key: "uid:peer", name: "Peer", lastMessage: 5, offline: false });
+  });
+
+  it("a seeded conversation whose peer left the channel is marked offline", () => {
+    const { controller, session } = harness();
+    session.setState({ members: [peerMember] });
+    controller.openPrivateChat(7);
+    session.setState({ members: [] });
+    expect(controller.conversations()[0]?.offline).toBe(true);
+  });
+
+
+
+
+
+
+
+
+
+
 });

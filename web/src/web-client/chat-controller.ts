@@ -79,6 +79,10 @@ export function createChatController(options: Options) {
   const pending = new Map<string, object>();
   const errors = new Map<string, string>();
   const persistedMessageIds = new Set<string>();
+  /** 主动发起的会话（成员菜单选私聊）：零消息时消息派生不会产出会话条目，
+   *  页签与 composer 因此整体消失（radix Tabs 无匹配 value 渲染空）——登记
+   *  seed 让会话立即可见，首条消息后由消息派生接管（同 key 去重）。 */
+  const seededConversations = new Map<string, PrivateConversation>();
   let disposed = false;
   let followingLatest = true;
   let scrollGeneration = 0;
@@ -124,6 +128,13 @@ export function createChatController(options: Options) {
         offline: !member,
       });
     }
+    // seed 合并（零消息的主动发起会话）：消息派生优先，seed 补位；对端仍在
+    // 频道时刷新昵称与在线态，离开后按既有离线语义排尾。
+    for (const seed of seededConversations.values()) {
+      if (byConversation.has(seed.key)) continue;
+      const member = members.find((candidate) => memberKey(candidate) === seed.key);
+      byConversation.set(seed.key, { ...seed, name: member?.nickname ?? seed.name, offline: !member });
+    }
     // 在册会话按最近消息排前，过期（对端不在频道）会话排尾，各自组内仍按时间降序。
     return [...byConversation.values()].sort((left, right) =>
       left.offline !== right.offline ? (left.offline ? 1 : -1) : right.lastMessage - left.lastMessage);
@@ -136,6 +147,7 @@ export function createChatController(options: Options) {
     const channelId = options.getCurrentChannel()?.id;
     return messages.filter((message) => message.scope === "channel" && (!message.targetId || message.targetId === "0" || !channelId || message.targetId === channelId));
   }
+
 
   // 渲染期取值与 status/placeholder 同法：t 由组件传入活体翻译。控制器捕获的
   // tLive 首帧是身份回退（直连恢复/早进房时即停留该态），tabLabel 曾把裸键名
@@ -193,7 +205,9 @@ export function createChatController(options: Options) {
   function openPrivateChat(targetClientId: number): void {
     const member = options.session.getState().members.find((candidate) => candidate.id === targetClientId);
     if (!member || targetClientId === options.getClientId()) return;
-    openConversation({ id: targetClientId, key: memberKey(member), name: member.nickname, lastMessage: 0, offline: false });
+    const conversation: PrivateConversation = { id: targetClientId, key: memberKey(member), name: member.nickname, lastMessage: 0, offline: false };
+    seededConversations.set(conversation.key, conversation);
+    openConversation(conversation);
   }
 
   function openConversation(conversation: PrivateConversation): void {
@@ -266,18 +280,20 @@ export function createChatController(options: Options) {
       drafts.clear();
       pending.clear();
       errors.clear();
+      seededConversations.clear();
       patch({ privateClientId: 0, privateConversationKey: "", messageDraft: "", sending: false, sendError: "" });
       setTab("channel");
       lastDestination = destination();
     }
     void loadHistory();
   });
-  // 消息增量：历史持久化 + 私聊到达通知 + 自消息回底 + 未读跟随。
+  // 消息增量：历史持久化 + 私聊到达通知/未读累计 + 自消息回底 + 未读跟随。
   let lastMessageCount = options.session.getState().chatMessages.length;
   const unsubscribeSessionMessages = options.session.subscribe((snapshot) => {
     const messages = snapshot.chatMessages;
     if (messages.length === lastMessageCount) return;
     const grew = messages.length > lastMessageCount;
+    const additions = grew ? messages.slice(lastMessageCount) : [];
     lastMessageCount = messages.length;
     persistNewMessages(messages);
     if (grew) {
@@ -334,6 +350,7 @@ export function createChatController(options: Options) {
     drafts.clear();
     pending.clear();
     errors.clear();
+    seededConversations.clear();
     patch({ sending: false });
     unsubscribeHome();
     unsubscribeSession();
