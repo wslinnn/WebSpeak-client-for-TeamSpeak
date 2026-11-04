@@ -82,7 +82,12 @@ export function createMicrophone(deps: MicrophoneDeps) {
       sampleRate: { ideal: 48000 },
       channelCount: { ideal: 1 },
       echoCancellation: V().echoCancellationEnabled,
-      noiseSuppression: V().noiseSuppressionEnabled,
+      // Browser NS is permanently off (2026-11-04 拍板): denoising is our own
+      // GTCRN worklet alone — browser NS varies per engine and stacking it on
+      // the DNN denoiser muddies voice ("双重降噪"). AEC+NS both off may disable
+      // the whole browser chain on Chromium (old-era behavior), which is fine:
+      // the GTCRN graph does not depend on any browser processing.
+      noiseSuppression: false,
       // Off by default on purpose: browser AGC pumps volume as background
       // noise changes, and the manual input gain is the loudness control.
       autoGainControl: V().autoGainControlEnabled,

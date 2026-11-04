@@ -24,7 +24,7 @@ async function availablePort(): Promise<number> {
 }
 
 // The CSP whitelist is load-bearing for shipped features: the microphone test
-// plays back a blob: clip and the optional RNNoise denoiser compiles WASM. A
+// plays back a blob: clip and the optional GTCRN denoiser compiles WASM. A
 // hardening pass that drops either silently breaks those features (regression
 // 2026-10-10), so pin them. The skin-era blob:/data: channels on img-src and
 // font-src were removed after an inventory showed zero consumers (2026-10-19);

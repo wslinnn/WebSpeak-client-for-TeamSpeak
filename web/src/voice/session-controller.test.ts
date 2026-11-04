@@ -984,7 +984,7 @@ test("echo cancellation defaults on and auto gain off, constraints re-apply and 
   await connectWebRtc();
   assert.equal(requested.at(-1)!.echoCancellation, true, "echo cancellation must default on (2026-11-04 拍板)");
   assert.equal(requested.at(-1)!.autoGainControl, false, "auto gain must default off");
-  assert.equal(requested.at(-1)!.noiseSuppression, true, "noise suppression keeps its opt-out default");
+  assert.equal(requested.at(-1)!.noiseSuppression, false, "browser NS is permanently off; denoising is the GTCRN worklet alone");
   await voice.setEchoCancellationEnabled(false);
   await voice.setAutoGainControlEnabled(true);
   assert.equal(requested.at(-1)!.echoCancellation, false);

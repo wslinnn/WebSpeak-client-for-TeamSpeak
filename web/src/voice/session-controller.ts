@@ -43,7 +43,7 @@ export function createVoiceSessionController() {
     selectedOutputDeviceId: typeof localStorage !== "undefined" ? localStorage.getItem("webspeak:output-device") ?? "" : "",
     outputDeviceSupported: false,
     audioPermission: "unknown",
-    microphoneProcessing: { echoCancellation: null, noiseSuppression: null, autoGainControl: null, rnnoise: null },
+    microphoneProcessing: { echoCancellation: null, noiseSuppression: null, autoGainControl: null, denoiser: null },
     audioContextState: "unknown",
     micLevel: 0, microphoneTestActive: false, microphoneTestPlaybackActive: false, testAudioUrl: "",
     whisperTargetIds: new Set<number>(), whisperActive: false,

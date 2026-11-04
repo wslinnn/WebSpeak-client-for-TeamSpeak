@@ -1,13 +1,12 @@
-import { RnnoiseWorkletNode, loadRnnoise } from "@sapphi-red/web-noise-suppressor";
-import rnnoiseSimdWasmUrl from "@sapphi-red/web-noise-suppressor/rnnoise_simd.wasm?url";
-import rnnoiseWasmUrl from "@sapphi-red/web-noise-suppressor/rnnoise.wasm?url";
-import rnnoiseWorkletUrl from "@sapphi-red/web-noise-suppressor/rnnoiseWorklet.js?url";
+import { GtcrnWorkletNode, loadGtcrn } from "@sapphi-red/web-noise-suppressor";
+import gtcrnWasmUrl from "@sapphi-red/web-noise-suppressor/gtcrn.wasm?url";
+import gtcrnWorkletUrl from "@sapphi-red/web-noise-suppressor/gtcrnWorklet.js?url";
 
 export interface MicrophoneProcessingSettings {
   echoCancellation: boolean | null;
   noiseSuppression: boolean | null;
   autoGainControl: boolean | null;
-  rnnoise: boolean | null;
+  denoiser: boolean | null;
 }
 
 export interface MicrophoneCapture {
@@ -60,7 +59,7 @@ export function createMicrophoneCaptureFactory() {
   async function prepare(options: CaptureOptions): Promise<MicrophoneCapture> {
     const { context: ctx, stream, assertCurrent } = options;
     let source: MediaStreamAudioSourceNode | null = null;
-    let denoiser: RnnoiseWorkletNode | null = null;
+    let denoiser: GtcrnWorkletNode | null = null;
     let destination: MediaStreamAudioDestinationNode | null = null;
     let gain: GainNode | null = null;
     let limiter: DynamicsCompressorNode | null = null;
@@ -116,15 +115,18 @@ export function createMicrophoneCaptureFactory() {
       const supportsWorklet = typeof AudioWorkletNode !== "undefined" && Boolean(ctx.audioWorklet);
       if (options.noiseSuppression && supportsWorklet) {
         try {
-          if (!wasmPromise) wasmPromise = loadRnnoise({ url: rnnoiseWasmUrl, simdUrl: rnnoiseSimdWasmUrl }).catch(error => {
+          if (!wasmPromise) wasmPromise = loadGtcrn({ url: gtcrnWasmUrl }).catch(error => {
             wasmPromise = null;
             throw error;
           });
-          const [wasmBinary] = await Promise.all([wasmPromise, loadModule(ctx, rnnoiseWorkletUrl)]);
+          const [wasmBinary] = await Promise.all([wasmPromise, loadModule(ctx, gtcrnWorkletUrl)]);
           assertCurrent();
-          denoiser = new RnnoiseWorkletNode(ctx, { maxChannels: 1, wasmBinary });
+          // GTCRN（ICASSP 2024，~24K 参数）：48kHz 全频带 16ms 帧，质量大幅优于
+          // RNNoise 且算力同量级（2026-11-04 拍板，换装自 RNNoise）。仅支持
+          // 16k/48k 上下文，其余采样率走 fail-soft（denoiser 保持 null）。
+          denoiser = new GtcrnWorkletNode(ctx, { maxChannels: 1, wasmBinary });
         } catch {
-          assertCurrent(); // RNNoise is optional; cancellation is not a fallback.
+          assertCurrent(); // GTCRN is optional; cancellation is not a fallback.
         }
       }
       const processedSource = denoiser ?? source;
@@ -185,7 +187,7 @@ export function createMicrophoneCaptureFactory() {
           echoCancellation: typeof settings.echoCancellation === "boolean" ? settings.echoCancellation : null,
           noiseSuppression: typeof settings.noiseSuppression === "boolean" ? settings.noiseSuppression : null,
           autoGainControl: typeof settings.autoGainControl === "boolean" ? settings.autoGainControl : null,
-          rnnoise: Boolean(denoiser),
+          denoiser: Boolean(denoiser),
         },
         activate() { if (!disposed && (worklet || script)) active = true; },
         setVolume(value) { if (gain) gain.gain.value = value; },

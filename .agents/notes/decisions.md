@@ -40,6 +40,8 @@
 - **WS 兼容路径继续深度优化（2026-11-03 拍板封盘）**：标准打法（jitter buffer/双向 bufferedAmount 限流/pacing/TCP_NODELAY/per-stage 指标/wss）已全部落地，剩余卡顿是 TCP 队头阻塞的物理属性——业界一致结论实时语音的正解是 UDP（WebRTC），与本仓「WebRTC 主路径」架构一致。已落两笔修复保留：播放窗口 250ms（f58a05e）+ TCP_NODELAY（21bf6fd）。部署生效条件：网关重建+重启（服务端改动）、反代 nginx 加 `tcp_nodelay on`。**同日二次拍板：兼容路径不再自动降级**——WebRTC 启用即纯 WebRTC（协商窗口/失败一律不发不播 WS 音频，失败显式可见），WS 音频仅在管理台显式关闭 WebRTC 时承载；兼容播放代码保留（开关两态都活着），主路径定位由此坐实（T10 compatRatio 触发器相应失效，compat 语义=显式关闭而非回退）。
 - **WS 兼容路径外部优化建议对照审计（2026-11-03，用户转两轮 AI 建议逐项核对，缺口仅两处已实施）**：否决面——①**信令/音频双 WS 分线**：250ms 播放窗已吸收信令 HOL 深度，回退链路双端点+双生命周期重构不值；②**AudioWorklet+SharedArrayBuffer 解码重排**：WebCodecs 解码已在独立线程、BufferSource 播放在音频线程，主线程仅轻量入队，深窗吸收主线程阻塞期；③**帧时间戳/版本号包头**：TCP 有序+固定 20ms 帧长使其冗余，动共享协议不值；④**underrun CNG 静音填充**：网关已滤 CNG 帧、短洞可接受；⑤**±1-2% 时钟拉伸**：晶体容差量级下窗口+钳位自愈（±100ppm 约 38 分钟才多损一帧）；⑥**采集侧平滑缓冲+pacer**：上行已有采集时钟节奏+bufferedAmount 纪律+接收窗兜底；⑦**动态码率/帧长/FEC**：既有拍板维持 24k/20ms 容量优先（见报告 29 §3.1）。已实施缺口：TCP_NODELAY（21bf6fd）+ 播放窗口 250ms（f58a05e），排查全记录见 history 同日条目。
 
+- **DTLN 上行降噪（2026-11-04 选型否决）**：16kHz 模型带限 8kHz（「voices sound muffled」，WorkAdventure 基准）+ 实测 48ms 延迟 + PESQ-WB 2.31 弱于 GTCRN 的候选 DFN3——延迟与带宽双输，对 48k 全频带语音通话是硬伤。勿再以「低延迟降噪首选」立项。
+
 ## 条件重开项及触发器
 
 - 屏幕共享信令内容校验（报告 21 S4，2026-10-17 评估后暂不实施）：授权与对端定向已有，剩余暴露是「授权发布者让观看端浏览器向其发布者指定地址发 STUN」——观看端本就与发布者做 ICE 连通性检查（P2P 语义），浏览器侧无放大风险；网关侧 SDP candidate 改写成本中等且有破坏 ICE 语义之险。触发器：屏共需要支持跨信任域观看（如公开直播形态）时重评。
@@ -48,7 +50,7 @@
 - WS 兼容路径双 WS 分线（信令/音频独立连接）：触发器=部署复测后 `egressMaxGapMs` 仍与大信令包时点强相关（信令 HOL 实测成坨主因时重评）。
 - WS 兼容路径 WebTransport 升级（QUIC 不可靠数据报替代 TCP WS，「丢过期包」模式天然适合语音；2026-11-03 起 Safari 支持后已全主流浏览器 baseline）：触发器=compatRatio 持续 >5%（与 T10 同源）或 WebRTC 不可达场景成为常态。前置条件=网关需 HTTP/3 边缘（Node 不原生支持 QUIC，须 nginx 1.25+/Caddy/Cloudflare 类终结）。
 - 头像换新检测（cacheKey 失效）：成员换头像后旧图残留到网关重启/LRU 淘汰。URL 化后检测路径已明确且廉价——`fileTransferInitDownload` 一次命令往返返回 size/mtime，按 uid 比对元数据即可发现变化（重下→内容 hash 翻新→新 URL 增量推送，浏览器自动拉新）；等真实场景反馈再立项。
-- 更强上行降噪模型（DeepFilterNet/DTLN 等，形态参考本机 tsweb/Newt-Desktop 的模型选择+强度记忆）：CPU 换音质，契合「最佳音质」优先级；当前 RNNoise 够用时不动。
+- 更强上行降噪模型（DeepFilterNet3，形态参考本机 tsweb/Newt-Desktop 的模型选择+强度记忆）：48kHz 全频带、质量上限最高（PESQ-WB 2.97），但实测 +51-71ms 延迟（WorkAdventure 基准；其 `_ll` 低延迟版被官方弃用：同质量 3×CPU、35MB），与极低延迟目标冲突。当前 GTCRN（2026-11-04 换装）够用时不动；触发 = 嘈杂场景实测 GTCRN 不够且用户接受延迟代价。DTLN 已否决（见否决项）。
 - T10 Opus-over-WS：诊断 `voiceTransports.compatRatio` 持续 >5%（2026-11-03 自动降级移除后重定义：compat 会话=管理台显式关闭 WebRTC，正常部署应趋零；持续 >0 即复核显式关闭是否为有意配置）。
 - Opus DTX：实测 WebRTC 出向码率在语音活跃期逼近 3Mbps 上限时。
 - worker_threads：100 会话上限内不需要——基准 100 会话×4 说话人编解码地板 ≈1.3 核。

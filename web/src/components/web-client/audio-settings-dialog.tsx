@@ -33,7 +33,7 @@ export interface AudioSettingsModel {
   testAudioUrl: string;
   /** 浏览器轨道的实际生效状态（track.getSettings()，null=未应用）：约束开关
    *  与实际生效可能不一致——设备/浏览器会忽略约束，回声排查以此为准。 */
-  microphoneProcessing: { echoCancellation: boolean | null; noiseSuppression: boolean | null; autoGainControl: boolean | null; rnnoise: boolean | null };
+  microphoneProcessing: { echoCancellation: boolean | null; noiseSuppression: boolean | null; autoGainControl: boolean | null; denoiser: boolean | null };
   microphoneError: string;
   microphoneErrorCode: string;
 }

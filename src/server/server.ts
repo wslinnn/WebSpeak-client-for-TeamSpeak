@@ -103,7 +103,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
   // media-src blob: serves the microphone-test playback element (the only
   // client-generated resource URL in the app; backup/identity downloads are
   // anchor downloads, not media). script-src 'wasm-unsafe-eval' is required by
-  // the optional RNNoise denoiser WASM module. connect-src is deliberately
+  // the optional GTCRN denoiser WASM module. connect-src is deliberately
   // narrowed to 'self': the voice WebSocket is always same-origin
   // (location.host) and the browser floor (WebCodecs-capable) postdates the
   // Safari 15.4 fix for 'self' matching websocket schemes.
