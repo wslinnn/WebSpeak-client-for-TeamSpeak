@@ -46,6 +46,7 @@
 - **协商完成（answer 应用）前不得向槽位注入 RTP**——Chrome 会把未信令 SSRC 错误关联到已存在 m-section 永久污染。
 - `onSlotActivity` 是**电平语义**：active 期间每次轮询（150ms）都上报，靠消费方的自熄 hold（360ms）续命；只报上升沿会让持续说话的成员在 360ms 后熄灯（兼容路径按帧重 mark 不受影响，WebRTC 路径的轮询是唯一心跳）。槽位换人时必须用**旧** clientId 清灯。
 - WebRTC pacer 空闲 200ms 停表、入帧即恢复（禁止逐帧门控）。
+- **媒体层静默死亡自愈（2026-11-04 拍板，洞 2 收账）**：ICE `connectionState failed` 只死媒体不死 WS——掉线恢复机器（票据/重连）全程无触发条件，旧设计在 fail 后「语音熄灭等手动重连」，即「突然没声音、刷新恢复」的根因。现由 audio-devices **自动重建预算**接管：2s/8s/30s 退避，重建=与重连链路同一路径（新 peer + re-offer + 槽位重绑）；仅会话在联（`V().connected`）时触发，WS 掉线场景静默让位给既有恢复链路；烧尽才落 `WEBRTC_UNAVAILABLE`；传输成功建联（onReady）清预算并撤陈旧定时器。`connectionState` 全迁移打 console 点，与网关侧同名字段日志（webrtc-audio.ts 只记日志）成对——「环境性 UDP 断流」的证据链。语音与屏共是**独立 RTCPeerConnection**（语音单 STUN / 屏共独立 ICE 配置），不共享 ICE 传输；唯一耦合是同一条 NAT 出口（屏共同断即环境实锤）。
 - **上行门控停止标记（2026-11-03，D10）**：静音门控由开转关的边沿发一帧空 payload 语音包（官方停止标记语义），只发一次；与正常帧同路由（私语期走 whisper）。浏览器 VOX 在静默期已停发 PCM，兼容路径无同款边沿。
 - **非 Opus 频道（2026-11-03，D12）**：下行 codec∉{4,5} 每会话一次性 `audioError(UNSUPPORTED_CHANNEL_CODEC)` + 告警日志，随后静默丢弃；网关不转码。
 - **兼容路径播放调度**（2026-11-03 定稿，`9723652`/`f58a05e`/`21bf6fd`）：溢出=丢新帧（**250ms 窗**，按 WS/TCP 队头阻塞帧坨深度定档）不整流复位——已调度音频照播、窗口自排空（稳态延迟只跟到达节奏 ~20-40ms 走，风暴期 ride out、话轮间隙 underrun 钳位拉回），溢出丢弃计入 framesDropped；复位兜底只挂 `play()` 入帧层且阈值为 300ms 积压（防时间线失步，须保持高于窗口）；起播预滚 PRIME_MIN_FRAMES=2 / PRIME_MAX_WAIT_MS=60（对齐 TS6）；underrun 钳位、解码队列 3 帧、codec 切换重建解码器维持。**网关侧配套**：语音 WS 连接逐连接 `setNoDelay(true)`（ws 库服务端从不关 Nagle，60B@50fps 小包被扣到前段 ACK，RTT>20ms 链路必然 RTT 级攒包——成坨直接机制）。时钟漂移由窗口+钳位在晶体容差量级自愈（±100ppm 下 250ms 窗约 38 分钟才多损一帧），无需时间拉伸。契约钉在 `remote-playback.test.ts`。

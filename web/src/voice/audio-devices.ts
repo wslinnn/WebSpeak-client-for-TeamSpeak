@@ -37,6 +37,36 @@ export function createAudioDevices(deps: AudioDevicesDeps) {
   // whenever a downstream slot assignment changes. The multi-track playback
   // binds its per-slot streams through this table.
   let webRtcVoiceRoutes: number[] = [];
+  // 媒体层静默死亡自愈（2026-11-04 拍板）：ICE connectionState failed 只死媒体
+  // 不死 WS，掉线恢复机器全程无触发条件——失败即自动重开一次完整传输（与重连
+  // 链路同一成熟路径：新 peer + re-offer + 槽位重绑），2s/8s/30s 退避预算；
+  // 烧完才落 WEBRTC_UNAVAILABLE（原「语音熄灭等手动重连」仅作兜底）。
+  const WEBRTC_REBUILD_DELAYS_MS = [2_000, 8_000, 30_000];
+  let webRtcRebuildTimer: number | null = null;
+  let webRtcRebuildAttempts = 0;
+
+  function cancelWebRtcRebuild(): void {
+    if (webRtcRebuildTimer !== null) window.clearTimeout(webRtcRebuildTimer);
+    webRtcRebuildTimer = null;
+    webRtcRebuildAttempts = 0;
+  }
+
+  function scheduleWebRtcRebuild(): void {
+    if (webRtcRebuildTimer !== null) return;
+    if (webRtcRebuildAttempts >= WEBRTC_REBUILD_DELAYS_MS.length) {
+      deps.audioOutput.setAudioNotice("WEBRTC_UNAVAILABLE", `实时语音（WebRTC）不可用（错误代码：WEBRTC_CONNECTION_FAILED），本站点语音仅走 WebRTC：请重连重试，或在管理台检查 WebRTC 配置`);
+      return;
+    }
+    const delay = WEBRTC_REBUILD_DELAYS_MS[webRtcRebuildAttempts]!;
+    webRtcRebuildAttempts += 1;
+    webRtcRebuildTimer = window.setTimeout(() => {
+      webRtcRebuildTimer = null;
+      const current = deps.connection.socket();
+      // 会话已随 WS 掉线结束：静默放弃——WS 掉线有自己的恢复链路，重建不越界。
+      if (!current || current.readyState !== WebSocket.OPEN || !V().connected) return;
+      void startWebRtcTransport(deps.connection.voiceConnection.generation, current);
+    }, delay);
+  }
 
   // One stable accompaniment target for the whole voice instance: the
   // accompaniment module compares getTarget() === target to tell its own
@@ -114,6 +144,9 @@ export function createAudioDevices(deps: AudioDevicesDeps) {
       else if (V().tsClientId) deps.clearSpeaking(V().tsClientId);
     },
     onReady() {
+      // 传输成功建联（任何来源的重建/重连）：失败已解决，清退避预算并撤掉
+      // 可能还在排队的陈旧重建定时器。
+      cancelWebRtcRebuild();
       // A renegotiated peer starts with unbound slots; replay the last known
       // slot assignment so its streams are immediately correctly bound.
       webrtc.setSlotClients(webRtcVoiceRoutes);
@@ -121,10 +154,12 @@ export function createAudioDevices(deps: AudioDevicesDeps) {
     async onFailure(reason, isCurrent) {
       if (!isCurrent()) return;
       webRtcVoiceRoutes = [];
+      // 会话仍在（WS 活着）时先走自动重建预算；烧完才落不可用提示（原行为兜底）。
       // WebRTC voice sessions have no WS compatibility fallback: the gateway
       // stops streaming WS audio for this session the moment WebRTC is on, so
       // a failed negotiation leaves voice dark and must say so instead of
       // pretending a degraded channel is still carrying it.
+      if (V().connected) { scheduleWebRtcRebuild(); return; }
       deps.audioOutput.setAudioNotice("WEBRTC_UNAVAILABLE", `实时语音（WebRTC）不可用（错误代码：${safeClientErrorCode(reason) || "WEBRTC_UNAVAILABLE"}），本站点语音仅走 WebRTC：请重连重试，或在管理台检查 WebRTC 配置`);
     },
     playback: {

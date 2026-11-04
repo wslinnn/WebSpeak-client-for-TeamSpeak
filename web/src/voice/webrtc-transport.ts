@@ -220,6 +220,9 @@ export function createWebRtcTransport(options: TransportOptions) {
       };
       record.meter = createMicrophoneMeter(context, stream, rms => options.onLevel(rms, track));
       peer.onconnectionstatechange = () => {
+        // 状态迁移打点（稀有事件）：disconnected→failed 的间隔是判「环境性
+        // UDP 断流」与自愈预算烧穿的证据链（网关侧同名字段只记日志）。
+        console.info(`[voice-transport] connectionState: ${peer.connectionState}`);
         if (isCurrent(record) && peer.connectionState === "failed") void fail(record, "WEBRTC_CONNECTION_FAILED");
       };
 

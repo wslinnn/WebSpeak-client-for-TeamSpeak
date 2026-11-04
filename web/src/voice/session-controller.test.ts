@@ -739,6 +739,68 @@ async function connectWebRtc() {
   return { socket, peer: TestPeer.instances.at(-1)! };
 }
 
+function failIce(peer: TestPeer): void {
+  const handler = (peer as unknown as { onconnectionstatechange: ((event: unknown) => void) | null }).onconnectionstatechange;
+  peer.connectionState = "failed";
+  handler?.(new Event("connectionstatechange"));
+}
+
+test("a mid-session ICE failure rebuilds the transport within its budget", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    const { peer } = await connectWebRtc();
+    const afterJoin = TestPeer.instances.length;
+    failIce(peer);
+    // 首档 2s：未到期不重建，到点重建（新 peer + re-offer）
+    vi.advanceTimersByTime(1_999);
+    await nextTurn();
+    assert.equal(TestPeer.instances.length, afterJoin);
+    vi.advanceTimersByTime(1);
+    await nextTurn();
+    assert.equal(TestPeer.instances.length, afterJoin + 1);
+    // 重建 peer 正常应答 → onReady 清退避预算：再次失败仍从首档开始
+    TestPeer.instances.at(-1)!.connectionState = "connected";
+    const rebuiltSocket = TestSocket.instances.at(-1)!;
+    rebuiltSocket.receive({ type: "webrtcAnswer", payload: { sdp: { type: "answer", sdp: "v=0\r\n" } } });
+    await nextTurn();
+    failIce(TestPeer.instances.at(-1)!);
+    vi.advanceTimersByTime(2_000);
+    await nextTurn();
+    assert.equal(TestPeer.instances.length, afterJoin + 2, "a post-success failure restarts from the first budget tier");
+  } finally {
+    vi.useRealTimers();
+    voice.disconnect();
+  }
+  void AudioContextStub;
+});
+
+test("rebuild budget exhaustion falls back to the unavailable notice", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    const { peer } = await connectWebRtc();
+    const afterJoin = TestPeer.instances.length;
+    // 连续失败：重建 peer 无应答即撞 8s answer timeout → 下一档，直至烧穿。
+    // 一口气推进 2 分钟覆盖 2s/8s/30s 三档与各自的 answer 超时。
+    failIce(peer);
+    // 分段推进：重建链是异步落地的，单次大步进会把后续档位的定时器错过。
+    for (let round = 0; round < 6; round++) {
+      vi.advanceTimersByTime(40_000);
+      await nextTurn();
+    }
+    assert.equal(V().audioNoticeCode, "WEBRTC_UNAVAILABLE");
+    assert.equal(TestPeer.instances.length, afterJoin + 3, "exactly one rebuild per budget tier");
+    // 烧穿后再失败不再加开传输
+    failIce(TestPeer.instances.at(-1)!);
+    vi.advanceTimersByTime(120_000);
+    await nextTurn();
+    assert.equal(TestPeer.instances.length, afterJoin + 3);
+  } finally {
+    vi.useRealTimers();
+    voice.disconnect();
+  }
+  void AudioContextStub;
+});
+
 const audioFrames = (socket: TestSocket) => socket.messages.filter(message => message instanceof ArrayBuffer).length;
 type ProcessorStub = { onaudioprocess?: (event: { inputBuffer: { getChannelData: () => Float32Array } }) => void };
 
@@ -2123,7 +2185,9 @@ test("a playback setup failure releases its element and surfaces the failure wit
   await nextTurn();
   assert.equal(removed, true);
   assert.equal(peer.connectionState, "closed");
-  assert.equal(V().audioNoticeCode, "WEBRTC_UNAVAILABLE");
+  // 失败不再立即落不可用提示：会话在联时自动重建预算接管（2s/8s/30s），
+  // 烧尽后才落 WEBRTC_UNAVAILABLE（由烧穿专门用例钉住）。
+  assert.equal(V().audioNoticeCode, "");
   assert.equal(V().microphoneErrorCode, "");
   assert.equal(socket.messages.filter(message => (message as { type: string }).type === "webrtcStop").length, 1);
 });
@@ -2187,7 +2251,8 @@ test("failed fallback signaling still releases WebRTC and leaves voice dark with
   await nextTurn();
   assert.equal(TestPeer.instances[0]!.connectionState, "closed");
   assert.equal(V().microphoneErrorCode, "");
-  assert.equal(V().audioNoticeCode, "WEBRTC_UNAVAILABLE");
+  // 失败不再立即落不可用提示：自动重建预算接管（烧穿提示由专门用例钉住）。
+  assert.equal(V().audioNoticeCode, "");
   // WebRTC 语音会话失败后不再恢复兼容采集：上行帧一概不发。
   (AudioContextStub.processors.at(-1) as unknown as ProcessorStub).onaudioprocess!({ inputBuffer: { getChannelData: () => new Float32Array(960).fill(0.2) } });
   assert.equal(socket.messages.some(message => message instanceof ArrayBuffer && message.byteLength === 1920), false);
@@ -2370,7 +2435,8 @@ test("negotiation failure leaves voice dark without a false microphone error", a
   socket.receive({ type: "connected", tsClientId: 1, webrtcAvailable: true });
   await nextTurn();
   assert.equal(TestPeer.instances[0]!.connectionState, "closed");
-  assert.equal(V().audioNoticeCode, "WEBRTC_UNAVAILABLE");
+  // 失败不再立即落不可用提示：自动重建预算接管（烧穿提示由专门用例钉住）。
+  assert.equal(V().audioNoticeCode, "");
   assert.equal(V().microphoneErrorCode, "");
   const capture = AudioContextStub.processors.at(-1) as unknown as ProcessorStub;
   capture.onaudioprocess!({ inputBuffer: { getChannelData: () => new Float32Array(960).fill(0.2) } });
@@ -2384,7 +2450,8 @@ test("track setup failure also releases the peer and leaves voice dark", async (
   socket.receive({ type: "connected", tsClientId: 1, webrtcAvailable: true });
   await nextTurn();
   assert.equal(TestPeer.instances[0]!.connectionState, "closed");
-  assert.equal(V().audioNoticeCode, "WEBRTC_UNAVAILABLE");
+  // 失败不再立即落不可用提示：自动重建预算接管（烧穿提示由专门用例钉住）。
+  assert.equal(V().audioNoticeCode, "");
   assert.equal(V().microphoneErrorCode, "");
   (AudioContextStub.processors.at(-1) as unknown as ProcessorStub).onaudioprocess!({ inputBuffer: { getChannelData: () => new Float32Array(960).fill(0.2) } });
   assert.equal(socket.messages.some(message => message instanceof ArrayBuffer && message.byteLength === 1920), false);
