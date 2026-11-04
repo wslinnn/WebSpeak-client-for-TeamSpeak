@@ -571,7 +571,7 @@ test("screen permission resolved after socket closure releases the late stream",
   assert.equal(socket.messages.some(message => (message as { type: string }).type === "screenShareStart"), false);
 });
 
-test("browser reconnect budget exhaustion raises the failure banner and drops the resume intent", async () => {
+test("browser reconnect budget exhaustion raises the failure banner but keeps the resume intent", async () => {
   const sessionStore = fakeStorage();
   vi.stubGlobal("sessionStorage", sessionStore);
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
@@ -593,7 +593,36 @@ test("browser reconnect budget exhaustion raises the failure banner and drops th
     assert.equal(V().reconnectFailed, true);
     assert.equal(V().errorCode, "GATEWAY_NETWORK_LOST");
     assert.equal(V().connectionFailureCode, "GATEWAY_NETWORK_LOST");
-    assert.equal(sessionStore.getItem("webspeak:voice-session"), null, "an abandoned resume must not linger for the next page load");
+    // 预算耗尽≠网关遗忘：服务端票据随会话心跳续期、detached 宽限保活 TS，
+    // 意图必须保留让稍后的刷新/手动重连走 resume（挂机掉线案洞 1）。
+    assert.ok(sessionStore.getItem("webspeak:voice-session"), "budget exhaustion keeps the intent for a later resume");
+    // 手动重连按钮走票据优先路径：不重建 join 载荷直接 resume。
+    vi.stubGlobal("fetch", async () => ({ ok: true, json: async () => ({ ticket: "resumed-ticket" }) }));
+    voice.reconnectNow();
+    await nextTurn();
+    // 假时钟同步推进的 artifact（20s advance 会误触发 attempt 内新武装的 15s 请求
+    // deadline）使预算消耗不按纯 socket 计数——resume 断言只看「票据重连开新 socket」。
+    assert.equal(TestSocket.instances.length, 3, "the manual reconnect resumes via the kept ticket");
+  } finally {
+    vi.useRealTimers();
+  }
+  void AudioContextStub;
+});
+
+test("a gateway-forgotten token drops the resume intent for good", async () => {
+  const sessionStore = fakeStorage();
+  vi.stubGlobal("sessionStorage", sessionStore);
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  try {
+    const socket = await connect();
+    socket.receive({ type: "connected", tsClientId: 1, reconnectTicket: "ticket-1" });
+    socket.close(1006);
+    vi.stubGlobal("fetch", async () => ({ ok: false, status: 400, json: async () => ({ ok: false, code: "RECONNECT_INVALID" }) }));
+    vi.advanceTimersByTime(20_000);
+    await nextTurn();
+    assert.equal(V().reconnectFailed, true);
+    assert.equal(V().errorCode, "GATEWAY_NETWORK_LOST");
+    assert.equal(sessionStore.getItem("webspeak:voice-session"), null, "a token the gateway forgot must not linger");
   } finally {
     vi.useRealTimers();
   }

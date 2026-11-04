@@ -226,7 +226,7 @@ export function createConnectionLifecycle(deps: ConnectionLifecycleDeps) {
     const attempt = throttled ? Math.max(1, V().reconnectAttempt) : V().reconnectAttempt + 1;
     patch({ reconnecting: true, connecting: false, reconnectAttempt: attempt });
     if (attempt > BROWSER_RECONNECT_DELAYS_MS.length) {
-      abandonBrowserReconnect();
+      abandonBrowserReconnect({ keepResumeTicket: true });
       return;
     }
     // 限流档以 Retry-After 为准（仍加抖动：同一限流窗口的客户端别同拍再来）。
@@ -253,9 +253,15 @@ export function createConnectionLifecycle(deps: ConnectionLifecycleDeps) {
   /** Budget exhausted or the gateway forgot the session. A page that never
    *  connected this load (reload resume with a stale token) falls back to the
    *  join form silently; an established session shows the failure banner. */
-  function abandonBrowserReconnect(): void {
+  function abandonBrowserReconnect(options: { keepResumeTicket?: boolean } = {}): void {
     cancelBrowserReconnect();
-    dropReconnectTicket();
+    // Budget exhaustion keeps the intent: server-side nothing is lost (the
+    // heartbeat renews the token while the session lives, the detached grace
+    // holds the TeamSpeak connection), so a later refresh or the manual
+    // reconnect button resumes instead of landing on the join form. Only a
+    // gateway-forgotten token (RECONNECT_INVALID) can never succeed again and
+    // must be dropped.（挂机掉线案洞 1，2026-11-04）
+    if (options.keepResumeTicket !== true) dropReconnectTicket();
     if (!connectedThisLoad) {
       patch({ connecting: false, reconnecting: false, reconnectAttempt: 0, error: "", errorCode: "" });
       return;
