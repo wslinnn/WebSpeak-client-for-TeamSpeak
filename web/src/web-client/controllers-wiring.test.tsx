@@ -23,10 +23,10 @@ vi.mock("../services/local-persistence", async (importOriginal) => {
     async saveFavorite(favorite: unknown) { savedFavorites.current.push(favorite); },
     async loadStoredIdentity() { return null; },
     async loadLocalPreferences(): Promise<Preferences> {
-      return preferenceStore.current ?? { schemaVersion: 1, volumesByUid: {} };
+      return preferenceStore.current ?? { schemaVersion: 2, volumesByUid: {} };
     },
     async saveLocalPreferences(preferences: Preferences): Promise<void> {
-      preferenceStore.current = { ...(preferenceStore.current ?? { schemaVersion: 1, volumesByUid: {} }), ...preferences };
+      preferenceStore.current = { ...(preferenceStore.current ?? { schemaVersion: 2, volumesByUid: {} }), ...preferences };
     },
   };
 });

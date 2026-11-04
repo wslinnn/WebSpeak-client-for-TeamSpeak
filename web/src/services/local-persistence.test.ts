@@ -52,10 +52,10 @@ after(() => {
 
 test("a successful request is not reported as durable until its transaction commits", async () => {
   let settled = false;
-  const pending = saveLocalPreferences({ schemaVersion: 1 }).then(() => { settled = true; });
+  const pending = saveLocalPreferences({ schemaVersion: 2 }).then(() => { settled = true; });
   await nextTurn(); const tx = transactions[0]!;
   // 偏好保存是同事务 get→put：先完成读取，putRequest 才存在。
-  tx.read({ schemaVersion: 1 });
+  tx.read({ schemaVersion: 2 });
   tx.writtenSuccessfully(); await nextTurn();
   assert.equal(settled, false);
   tx.commit(); await pending;
@@ -63,7 +63,7 @@ test("a successful request is not reported as durable until its transaction comm
 });
 test("cancelling a pending preference merge aborts it without blocking the caller", async () => {
   const owner = new AbortController();
-  const pending = saveLocalPreferences({ schemaVersion: 1, language: "en" }, owner.signal);
+  const pending = saveLocalPreferences({ schemaVersion: 2, language: "en" }, owner.signal);
   await nextTurn(); const tx = transactions[0]!;
   owner.abort(); await pending;
   assert.equal(tx.aborted, true);
@@ -72,8 +72,19 @@ test("cancelling a pending preference merge aborts it without blocking the calle
 test("storage read success still returns its original data after transaction completion", async () => {
   const pending = loadLocalPreferences();
   await nextTurn(); const tx = transactions[0]!;
-  tx.read({ schemaVersion: 1, language: "en" }); tx.commit();
-  assert.deepEqual(await pending, { schemaVersion: 1, language: "en", volumesByUid: {} });
+  tx.read({ schemaVersion: 2, language: "en" }); tx.commit();
+  assert.deepEqual(await pending, { schemaVersion: 2, language: "en", volumesByUid: {} });
+});
+test("v1 preferences migrate to v2 and drop the stale echo-cancellation default", async () => {
+  const pending = loadLocalPreferences();
+  await nextTurn(); const tx = transactions[0]!;
+  // v1 记录的 echoCancellationEnabled 是旧默认 false（save() 从不省略字段），
+  // 迁移必须丢弃让它回落新默认 true；其余偏好原样继承。
+  tx.read({ schemaVersion: 1, language: "en", noiseSuppressionEnabled: true, echoCancellationEnabled: false, inputGain: 1.2 });
+  tx.commit();
+  assert.deepEqual(await pending, {
+    schemaVersion: 2, language: "en", noiseSuppressionEnabled: true, inputGain: 1.2, volumesByUid: {},
+  });
 });
 
 function createFakeStorage(entries: Record<string, string> = {}): Storage {

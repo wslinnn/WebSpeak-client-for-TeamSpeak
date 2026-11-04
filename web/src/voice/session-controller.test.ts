@@ -46,10 +46,10 @@ vi.mock("../services/local-persistence", async (importOriginal) => {
   return {
     ...actual,
     async loadLocalPreferences(): Promise<Preferences> {
-      return preferenceStore.current ?? { schemaVersion: 1, volumesByUid: {} };
+      return preferenceStore.current ?? { schemaVersion: 2, volumesByUid: {} };
     },
     async saveLocalPreferences(preferences: Preferences): Promise<void> {
-      const base = preferenceStore.current ?? { schemaVersion: 1, volumesByUid: {} };
+      const base = preferenceStore.current ?? { schemaVersion: 2, volumesByUid: {} };
       preferenceStore.current = { ...base, ...preferences, volumesByUid: { ...base.volumesByUid, ...preferences.volumesByUid } };
     },
   };
@@ -120,7 +120,7 @@ test("member-enter preserves status fields and updates an already listed member"
 });
 
 test("a restored member volume reaches already-live playback, not just the state map", async () => {
-  preferenceStore.current = { schemaVersion: 1, volumesByUid: { "stable-peer": 0.25 } };
+  preferenceStore.current = { schemaVersion: 2, volumesByUid: { "stable-peer": 0.25 } };
   const scoped = createVoiceSessionController();
   try {
     scoped.connect("voice.example:9987", "", "Visitor");
@@ -145,7 +145,7 @@ test("a restored member volume reaches already-live playback, not just the state
 });
 
 test("a corrupt stored member volume is ignored instead of poisoning the mix", async () => {
-  preferenceStore.current = { schemaVersion: 1, volumesByUid: { "bad-peer": Number.NaN } };
+  preferenceStore.current = { schemaVersion: 2, volumesByUid: { "bad-peer": Number.NaN } };
   const scoped = createVoiceSessionController();
   try {
     scoped.connect("voice.example:9987", "", "Visitor");
@@ -977,22 +977,22 @@ test("a failed noise suppression change restores its setting and preserves WebRT
   assert.notEqual(V().microphoneErrorCode, "");
 });
 
-test("echo cancellation and auto gain default off, re-apply constraints and roll back on failure", async () => {
+test("echo cancellation defaults on and auto gain off, constraints re-apply and roll back on failure", async () => {
   const requested: Array<Record<string, unknown>> = [];
   devices().enumerateDevices = async () => availableDevices;
   devices().getUserMedia = async options => { requested.push(options!.audio as unknown as Record<string, unknown>); return microphoneStream(); };
   await connectWebRtc();
-  assert.equal(requested.at(-1)!.echoCancellation, false, "echo cancellation must default off");
+  assert.equal(requested.at(-1)!.echoCancellation, true, "echo cancellation must default on (2026-11-04 拍板)");
   assert.equal(requested.at(-1)!.autoGainControl, false, "auto gain must default off");
   assert.equal(requested.at(-1)!.noiseSuppression, true, "noise suppression keeps its opt-out default");
-  await voice.setEchoCancellationEnabled(true);
+  await voice.setEchoCancellationEnabled(false);
   await voice.setAutoGainControlEnabled(true);
-  assert.equal(requested.at(-1)!.echoCancellation, true);
+  assert.equal(requested.at(-1)!.echoCancellation, false);
   assert.equal(requested.at(-1)!.autoGainControl, true);
   const livePeer = TestPeer.instances.at(-1)!;
   devices().getUserMedia = async () => { throw new Error("Capture reconfiguration failed"); };
-  await voice.setEchoCancellationEnabled(false);
-  assert.equal(V().echoCancellationEnabled, true, "a failed change restores the committed value");
+  await voice.setEchoCancellationEnabled(true);
+  assert.equal(V().echoCancellationEnabled, false, "a failed change restores the committed value");
   assert.notEqual(livePeer.connectionState, "closed");
   voice.disconnect();
 });
@@ -1459,14 +1459,14 @@ test("the accompaniment tap gets its own gain stage and the slider drives it thr
 });
 
 test("a stored accompaniment gain restores into the view and clamps to the slider maximum", async () => {
-  preferenceStore.current = { schemaVersion: 1, accompanimentGain: 0.3 };
+  preferenceStore.current = { schemaVersion: 2, accompanimentGain: 0.3 };
   const soft = createVoiceSessionController();
   try {
     soft.connect("voice.example:9987", "", "Visitor");
     await nextTurn();
     assert.equal(soft.view().accompanimentVolume, 0.3, "the stored gain restores into the view");
   } finally { soft.disconnect(); }
-  preferenceStore.current = { schemaVersion: 1, accompanimentGain: 5 };
+  preferenceStore.current = { schemaVersion: 2, accompanimentGain: 5 };
   const hard = createVoiceSessionController();
   try {
     hard.connect("voice.example:9987", "", "Visitor");

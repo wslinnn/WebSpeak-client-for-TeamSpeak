@@ -105,7 +105,7 @@ export function createAudioPreferences(deps: AudioPreferencesDeps) {
 
   async function save(): Promise<void> {
     await saveLocalPreferences({
-      schemaVersion: 1,
+      schemaVersion: 2,
       preferredInputDeviceId: committedInputDeviceId,
       inputDeviceId: committedInputDeviceId,
       microphoneMuted: V().microphoneMuted,

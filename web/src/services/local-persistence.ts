@@ -39,7 +39,7 @@ export interface FavoriteServer {
 }
 
 export interface LocalPreferences {
-  schemaVersion: 1;
+  schemaVersion: 2;
   locale?: "auto" | "zh-CN" | "en";
   theme?: "system" | "light" | "dark";
   microphoneMuted?: boolean;
@@ -158,15 +158,23 @@ export async function removeStoredIdentity(): Promise<void> {
 }
 
 export async function loadLocalPreferences(): Promise<LocalPreferences> {
-  const defaults: LocalPreferences = { schemaVersion: 1, volumesByUid: {} };
+  const defaults: LocalPreferences = { schemaVersion: 2, volumesByUid: {} };
   try {
     const value = await request<(LocalPreferences & { id: string }) | null>("preferences", "readonly", (store, resolve, reject) => {
       const get = store.get(PREFERENCES_KEY);
       get.onsuccess = () => resolve((get.result as (LocalPreferences & { id: string }) | undefined) ?? null);
       get.onerror = () => reject(get.error);
     });
-    if (!value || value.schemaVersion !== 1) return defaults;
-    return { ...defaults, ...value, volumesByUid: { ...defaults.volumesByUid, ...value.volumesByUid } };
+    if (!value) return defaults;
+    if (value.schemaVersion === 2) return { ...defaults, ...value, volumesByUid: { ...defaults.volumesByUid, ...value.volumesByUid } };
+    // v1→v2 迁移（2026-11-04 拍板：回声消除默认翻转为开）：v1 记录里的
+    // echoCancellationEnabled 携带的是旧默认 false（save() 从不省略字段），
+    // 不是用户的显式选择——丢弃让它回落新默认；其余偏好原样继承。
+    if (value.schemaVersion === 1) {
+      const { echoCancellationEnabled: _staleDefault, ...inherited } = value;
+      return { ...defaults, ...inherited, schemaVersion: 2, volumesByUid: { ...defaults.volumesByUid, ...value.volumesByUid } };
+    }
+    return defaults;
   } catch {
     return defaults;
   }
@@ -179,7 +187,9 @@ export async function saveLocalPreferences(preferences: LocalPreferences, signal
       const get = store.get(PREFERENCES_KEY);
       get.onerror = () => reject(get.error);
       get.onsuccess = () => {
-        const existing = get.result?.schemaVersion === 1 ? get.result as LocalPreferences : {} as Partial<LocalPreferences>;
+        const existing = get.result?.schemaVersion === 1 || get.result?.schemaVersion === 2
+        ? get.result as LocalPreferences
+        : {} as Partial<LocalPreferences>;
         const put = store.put({ ...existing, ...preferences,
           volumesByUid: { ...existing.volumesByUid, ...preferences.volumesByUid }, id: PREFERENCES_KEY });
         put.onsuccess = () => resolve(undefined);

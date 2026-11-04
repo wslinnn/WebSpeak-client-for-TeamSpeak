@@ -86,7 +86,7 @@ export function useWebClientControllers() {
       getClientId: () => voice.store.getState().tsClientId,
       saveNickname: (value) => {
         localStorage.setItem("webspeak:nickname", value);
-        void saveLocalPreferences({ schemaVersion: 1, lastNickname: value });
+        void saveLocalPreferences({ schemaVersion: 2, lastNickname: value });
       },
       showToast,
       localizedMessage: (message) => liveMessages?.localizedMessage(message) ?? message,

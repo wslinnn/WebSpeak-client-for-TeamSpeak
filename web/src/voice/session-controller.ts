@@ -33,7 +33,10 @@ export function createVoiceSessionController() {
     microphoneError: "", microphoneErrorCode: "", audioNotice: "", audioNoticeCode: "",
     channelSwitchedChannelId: "", selfMovedChannelId: "", connectionFailureCode: "", webrtcVoiceOnly: false,
     identityMaterial: "",
-    microphoneMuted: false, noiseSuppressionEnabled: true, echoCancellationEnabled: false, autoGainControlEnabled: false,
+    // 回声消除默认开（2026-11-04 拍板，翻转 2026-10-14 旧默认）：Chromium 内置
+    // AEC3（2026-10 起叠加神经残余回声估计）由浏览器维护播放参考信号，自建
+    // WASM AEC 拿不到 ref 不可行；外放用户开箱防回声，耳机用户可关省延迟。
+    microphoneMuted: false, noiseSuppressionEnabled: true, echoCancellationEnabled: true, autoGainControlEnabled: false,
     inputVolume: 1, outputVolume: 1, outputMuted: false, notificationVolume: 0.5, voxThreshold: 0.008,
     inputDevices: [], outputDevices: [],
     selectedInputDeviceId: typeof localStorage !== "undefined" ? localStorage.getItem("webspeak:input-device") ?? "" : "",

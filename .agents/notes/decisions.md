@@ -7,7 +7,7 @@
 
 - 自动恢复有终态拒绝（封禁/密码错/昵称占用/身份冲突）即清意图；显式加入导航（URL 带 server/tsHost/target 等）优先于自动恢复。
 - 头像交付=无账本的 URL 快照（2026-10-14 URL 化改造，终结三轮推送漏发返工）：视图（重）附着一律走 attachAvatars（snapshot() 全集 + retryFailedDownloads + 下载排期），**禁止引入「谁已见过哪些字节」的记账状态**——推送字节+视图记账是已被证伪的模型；字节经 `GET /avatars/:aid?v=<内容hash>` 由浏览器 HTTP 缓存吸收（404 不入前端状态，保持首字母回落）。URL 稳定性是缓存命中的前提：aid 是 HMAC capability（URL 即凭证、无时效），勿加时效签名或把签名放进 query；缓存只存正项，failure 记 view-local absent/error。loader 语义有单测、resume 接线有集成测试、端点响应头有独立测试钉住。
-- 音频处理默认（2026-10-14 拍板）：增加延迟的处理默认关——回声消除默认关（外放用户自行开启防回声）、自动增益默认关，降噪默认开；三开关在桌面音频坞麦克风面板与移动音频设置，经约束重配+偏好持久化（touched 门控），勿静默回退默认值。
+- 音频处理默认（2026-11-04 拍板，**翻转 2026-10-14 旧默认**；证据与选型对比见 voice.md「音频链路选型取证」）：**回声消除默认开**——Chromium AEC3（2026-10 起叠加神经残余回声估计）由浏览器维护播放参考信号，自建 WASM AEC 拿不到 ref 不可行；**降噪 = GTCRN 单级**（`@sapphi-red/web-noise-suppressor` 自带节点换装自 RNNoise；`noiseSuppression` 约束恒关，避免双重降噪糊人声且跨浏览器行为一致）；自动增益维持默认关（手动手 gain + 限幅器）。旧默认期已存的 EC 偏好经**偏好 schema v2 迁移**丢弃（携带的是旧默认而非用户选择），回落新默认；后续显式改动照常持久化。三开关在桌面音频坞麦克风面板与移动音频设置，经约束重配+偏好持久化（touched 门控），勿静默回退默认值。
 - 上行链形态（2026-10-14 重构）：单层增益 + R/G 模式（raw 直连/处理混音，replaceTrack 切换）——细则与红线（单增益、麦测试增益门控、stopCapture 边界、accompaniment target 稳定身份）钉在 voice.md 回归不变量节。
 - 语音内切换不同服务器=显式离开（内部断开 1000 → 网关 teardown，不进 detached 池），同目标换频道走 switchChannel。
 - 收藏密码只存在于 IndexedDB 收藏记录（切服/回填顺带携带，上游不存密码的模型不采纳）。**fixed 模式例外（2026-10-30）**：真实目标不下发、不建收藏，记忆密码走 localStorage 独立键 `webspeak:fixed-server-password`（语义=上一次成功连接所用的密码）。
