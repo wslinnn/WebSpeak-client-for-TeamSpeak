@@ -231,7 +231,7 @@ describe("chat controller（提交与代际）", () => {
   });
 });
 
-describe("chat controller（私聊 seed）", () => {
+describe("chat controller（私聊 seed 与未读）", () => {
   const peerMember = { id: 7, uid: "peer", nickname: "Peer" };
   const peerMessage = (id: string, timestamp: number): ChatMessage => ({
     id, scope: "private", senderId: 7, senderUid: "peer", invokerName: "Peer", message: `Hello ${id}`, timestamp, conversationId: "7",
@@ -263,13 +263,60 @@ describe("chat controller（私聊 seed）", () => {
     expect(controller.conversations()[0]?.offline).toBe(true);
   });
 
+  it("a session epoch reset clears seeded conversations and unread counters", () => {
+    const { controller, home, session, store } = harness();
+    session.setState({ members: [peerMember] });
+    controller.openPrivateChat(7);
+    store.setState({ unreadPrivate: { "uid:peer": 3 } });
+    session.setState({ epoch: 1 });
+    expect(controller.conversations()).toHaveLength(0);
+    expect(store.getState().unreadPrivate).toEqual({});
+    expect(home.getState().chatTab).toBe("channel");
+  });
 
+  it("incoming private messages accumulate unread while not actively viewed", async () => {
+    const { controller, session, store } = harness();
+    session.setState({ members: [peerMember] });
+    session.setState({ chatMessages: [peerMessage("m1", 1)] });
+    await tick();
+    // 默认在频道页签：会话未激活，未读累计
+    expect(store.getState().unreadPrivate["uid:peer"]).toBe(1);
+    session.setState({ chatMessages: [peerMessage("m1", 1), peerMessage("m2", 2)] });
+    await tick();
+    expect(store.getState().unreadPrivate["uid:peer"]).toBe(2);
+    // 激活该会话（面板可见）后新消息不再累计
+    controller.openPrivateChat(7);
+    session.setState({ chatMessages: [peerMessage("m1", 1), peerMessage("m2", 2), peerMessage("m3", 3)] });
+    await tick();
+    expect(store.getState().unreadPrivate["uid:peer"]).toBe(2);
+    expect(store.getState().unreadPrivate).toEqual({ "uid:peer": 2 });
+  });
 
+  it("a folded chat column still accumulates unread for the active conversation", async () => {
+    const { controller, session, store } = harness();
+    controller.setDesktopCollapsed(true);
+    session.setState({ members: [peerMember] });
+    controller.openPrivateChat(7);
+    session.setState({ chatMessages: [peerMessage("m1", 1)] });
+    await tick();
+    expect(store.getState().unreadPrivate["uid:peer"]).toBe(1);
+  });
 
+  it("markPrivateRead clears the counter and tolerates repeated calls", () => {
+    const { controller, store } = harness();
+    store.setState({ unreadPrivate: { "uid:peer": 3, "uid:other": 1 } });
+    controller.markPrivateRead("uid:peer");
+    expect(store.getState().unreadPrivate).toEqual({ "uid:other": 1 });
+    controller.markPrivateRead("uid:peer");
+    expect(store.getState().unreadPrivate).toEqual({ "uid:other": 1 });
+  });
 
-
-
-
-
-
+  it("a single batch landing for two conversations counts each key separately", async () => {
+    const { session, store } = harness();
+    session.setState({ chatMessages: [peerMessage("m1", 1)] });
+    await tick();
+    session.setState({ chatMessages: [peerMessage("m1", 1), { ...peerMessage("m2", 2), senderId: 8, senderUid: "other", conversationId: "8" }] });
+    await tick();
+    expect(store.getState().unreadPrivate).toEqual({ "uid:peer": 1, "uid:other": 1 });
+  });
 });

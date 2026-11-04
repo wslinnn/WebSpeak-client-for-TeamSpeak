@@ -961,6 +961,19 @@
   font-weight: 700;
 }
 
+/* 私聊页签未读徽标（2026-11-04）：accent 填充 + 对比字形令牌；数量 >99 显示
+ * 99+（渲染层已截断）。位置就近 chat-tabs 触发器规则，同族不跨文件。 */
+.chat-tabs .chat-unread {
+  margin-inline-start: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--wsd-accent);
+  color: var(--wsd-accent-contrast);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 /* Tabs 迁移后消息列表/作曲器住进 TabsContent：列布局的 flex 链（列表撑满、
  * 作曲器常驻底部）必须穿过 tabs 根与活动页签面板，否则作曲器悬在列中部、
  * 列表不再撑满（2026-10-21 用户报告「输入框没有常显」的根因）。

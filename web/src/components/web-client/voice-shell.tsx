@@ -6,6 +6,7 @@ import type { StoreApi } from "zustand";
 import { ChannelMemberPanel } from "./channel-member-panel";
 import { ChatPanel } from "./chat-panel";
 import { AudioDock } from "./audio-dock";
+import { useChatCollapsed } from "@/hooks/use-chat-collapsed";
 import { Icon } from "./icon";
 import { MemberActionsMenu } from "./member-actions-menu";
 import { ServerContextMenu } from "./server-context-menu";
@@ -95,11 +96,7 @@ export function VoiceShell(props: VoiceShellProps) {
   const screenShare = useScreenShareUi(voice);
 
   const chatTab = homeState.chatTab;
-  const [chatCollapsed, setChatCollapsed] = useState(() => localStorage.getItem("webspeak:chat-collapsed") === "1");
-  useEffect(() => {
-    if (chatCollapsed) localStorage.setItem("webspeak:chat-collapsed", "1");
-    else localStorage.removeItem("webspeak:chat-collapsed");
-  }, [chatCollapsed]);
+  const [chatCollapsed, setChatCollapsed] = useChatCollapsed(chat);
   const dockedChatQuery = useMemo(() => window.matchMedia("(min-width: 981px)"), []);
   const [chatColumnActive, setChatColumnActive] = useState(dockedChatQuery.matches);
   useEffect(() => {
@@ -317,6 +314,7 @@ export function VoiceShell(props: VoiceShellProps) {
           language={props.language}
           currentChannelName={currentChannelName}
           mobileHidden={false}
+          desktopHidden={chatCollapsed}
           collapsible
           serverEvents={session.serverEvents}
           members={session.members}

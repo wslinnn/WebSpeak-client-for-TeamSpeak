@@ -157,3 +157,36 @@ test("页签切换把激活页签滚入视野（移动端横滑容器）", () =>
     delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView;
   }
 });
+
+test("a private conversation tab shows the unread badge and clears it once viewed", async () => {
+  const members: ChannelMember[] = [{ id: 9, uid: "u9", nickname: "Peer" }];
+  const messages = [
+    { id: "p1", scope: "private", senderId: 9, senderUid: "u9", invokerName: "Peer", message: "Hello", timestamp: 1, conversationId: "9" } as ChatMessage,
+  ];
+  const { chat } = harness(messages, members);
+  chat.store.setState({ unreadPrivate: { "uid:u9": 2 } });
+  const view = renderPanel(chat, members);
+  // 非激活页签上徽标可见（频道页签下渲染私聊 tab 角标）
+  expect(view.container.querySelector(".chat-unread")?.textContent).toBe("2");
+  // 激活该会话：openConversation 写 store（key 激活）；面板的 tab prop 由父级
+  // 订阅 home store 传入——测试用 rerender 模拟父级反应。
+  chat.openConversation({ id: 9, key: "uid:u9", name: "Peer", lastMessage: 0, offline: false });
+  view.rerender(
+    <TooltipProvider>
+      <ChatPanel
+        chat={chat}
+        tab="private"
+        language="zh"
+        currentChannelName="Lobby"
+        mobileHidden={false}
+        serverEvents={[]}
+        members={members}
+        onListElement={() => {}}
+        onCollapse={() => {}}
+        t={(key) => key}
+      />
+    </TooltipProvider>,
+  );
+  await waitFor(() => expect(view.container.querySelector(".chat-unread")).toBeNull());
+  expect(chat.store.getState().unreadPrivate).toEqual({});
+});

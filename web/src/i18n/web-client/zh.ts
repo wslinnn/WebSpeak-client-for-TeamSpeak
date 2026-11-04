@@ -210,6 +210,7 @@ export const zh: Record<string, string> = {
     channelPasswordRetry: "密码不正确，请重试。",
     privateChatStart: "这是私聊的开始",
     privateChatStartLead: "发送一条私聊消息。",
+    unreadPrivateMessages: "{{count}} 条未读",
     eventLog: "事件日志",
     eventCount: "{{count}} 条事件",
     noEvents: "暂无服务器事件",

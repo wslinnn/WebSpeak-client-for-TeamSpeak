@@ -210,6 +210,7 @@ export const en: Record<string, string> = {
     channelPasswordRetry: "That password was not accepted. Try again.",
     privateChatStart: "This is the beginning of the private chat",
     privateChatStartLead: "Send a private message.",
+    unreadPrivateMessages: "{{count}} unread",
     eventLog: "Event log",
     eventCount: "{{count}} events",
     noEvents: "No server events yet",

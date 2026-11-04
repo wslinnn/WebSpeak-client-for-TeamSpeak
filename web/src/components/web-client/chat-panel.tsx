@@ -21,6 +21,9 @@ interface ChatPanelProps {
   language: Language;
   currentChannelName: string;
   mobileHidden: boolean;
+  /** 桌面聊天列折叠（列宽 0 + visibility hidden，组件仍挂载）：未读清零的
+   *  可见性门控必须含它，否则折叠期间的新消息被静默豁免。 */
+  desktopHidden?: boolean;
   collapsible?: boolean;
   serverEvents: readonly ServerEvent[];
   members: ChannelMember[];
@@ -92,7 +95,7 @@ const ChatMessageList = memo(ChatMessageListImpl);
 
 /** 聊天面板（旧 ChatPanel.vue 平价）：页签行/标题/消息列表/输入区。控制器状态经
  *  store 订阅；草稿与提交纪律在 chat-controller。 */
-export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidden, collapsible, serverEvents, members, onListElement, onCollapse, t }: ChatPanelProps) {
+export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidden, desktopHidden, collapsible, serverEvents, members, onListElement, onCollapse, t }: ChatPanelProps) {
   // 草稿/发送态用窄选择器：整店订阅会让 chat store 的任何变化都重渲面板；sending/
   // sendError 不直接读，留在选择器里只为驱动 canSend/status 的重算。
   const chatUi = useStore(chat.store, useShallow((state) => ({
@@ -100,6 +103,7 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
     sending: state.sending,
     sendError: state.sendError,
     privateConversationKey: state.privateConversationKey,
+    unreadPrivate: state.unreadPrivate,
   })));
   // title/conversations/visibleMessages/canSend/status 跨读 session/voice store，
   // 但那些变化不动本组件任何 prop——必须显式订阅两个 store 的相关切片。
@@ -164,6 +168,13 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
     }
     chat.setTab(value as WebClientChatTab);
   }
+
+  // 未读清零：面板可见且该会话正激活时清掉（折叠/移动端隐藏时不豁免，徽标保留）。
+  const panelVisible = !mobileHidden && !desktopHidden;
+  useEffect(() => {
+    if (!panelVisible || tab !== "private" || !chatUi.privateConversationKey) return;
+    chat.markPrivateRead(chatUi.privateConversationKey);
+  }, [chat, panelVisible, tab, chatUi.privateConversationKey, chatUi.unreadPrivate]);
 
   // 消息面板被多个页签值复用（channel/server/私聊共用同一布局）；惰性渲染下同时
   // 只有一份挂载，共享同一 JSX 不会双挂。
@@ -263,20 +274,28 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
             {" "}
             {t("serverChat")}
           </TabsTrigger>
-          {conversations.map((conversation) => (
-            <TabsTrigger
-              key={conversation.key}
-              value={`private:${conversation.key}`}
-              data-ws-part="voice.chat.tab"
-              data-ws-state={tab === "private" && chatUi.privateConversationKey === conversation.key ? "active" : "idle"}
-              data-offline={conversation.offline ? "true" : undefined}
-              title={conversation.offline ? t("offlineConversationTab") : undefined}
-            >
-              <Icon name="message" size={15} />
-              {" "}
-              {conversation.name}
-            </TabsTrigger>
-          ))}
+          {conversations.map((conversation) => {
+            const unread = chatUi.unreadPrivate[conversation.key] ?? 0;
+            return (
+              <TabsTrigger
+                key={conversation.key}
+                value={`private:${conversation.key}`}
+                data-ws-part="voice.chat.tab"
+                data-ws-state={tab === "private" && chatUi.privateConversationKey === conversation.key ? "active" : "idle"}
+                data-offline={conversation.offline ? "true" : undefined}
+                title={conversation.offline ? t("offlineConversationTab") : undefined}
+              >
+                <Icon name="message" size={15} />
+                {" "}
+                {conversation.name}
+                {unread > 0 && (
+                  <span className="chat-unread" title={t("unreadPrivateMessages", { count: unread })} aria-label={t("unreadPrivateMessages", { count: unread })}>
+                    {unread > 99 ? "99+" : unread}
+                  </span>
+                )}
+              </TabsTrigger>
+            );
+          })}
           <TabsTrigger value="events" data-ws-part="voice.chat.tab" data-ws-state={tab === "events" ? "active" : "idle"}>
             <Icon name="bell" size={15} />
             {" "}

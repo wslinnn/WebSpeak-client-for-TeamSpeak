@@ -24,6 +24,8 @@ export interface ChatStore {
   messageDraft: string;
   sending: boolean;
   sendError: string;
+  /** 每个私聊会话的未读数（仅面板不可见或会话非激活时累计；可见即清零）。 */
+  unreadPrivate: Record<string, number>;
 }
 
 /** 滚动容器切面（旧 listElement ref）：视图传 HTMLElement，测试传桩。 */
@@ -71,6 +73,7 @@ export function createChatController(options: Options) {
     messageDraft: "",
     sending: false,
     sendError: "",
+    unreadPrivate: {},
   }));
   const state = () => store.getState();
   const patch = (partial: Partial<ChatStore>) => store.setState(partial);
@@ -87,6 +90,9 @@ export function createChatController(options: Options) {
   let followingLatest = true;
   let scrollGeneration = 0;
   let historyGeneration = 0;
+  /** 桌面聊天列折叠态（视图经 setDesktopCollapsed 接线）：折叠时面板不可见，
+   *  激活会话的新消息也要计未读。 */
+  let desktopCollapsed = false;
 
   const tab = () => options.home.getState().chatTab;
   const setTab = (value: WebClientChatTab) => options.home.setState({ chatTab: value });
@@ -148,6 +154,8 @@ export function createChatController(options: Options) {
     return messages.filter((message) => message.scope === "channel" && (!message.targetId || message.targetId === "0" || !channelId || message.targetId === channelId));
   }
 
+  /** 面板当前是否真的看得见（桌面折叠/移动端不在聊天段都算不可见）。 */
+  const panelShows = (): boolean => !desktopCollapsed && (!options.isMobileViewport() || options.getMobileSection() === "chat");
 
   // 渲染期取值与 status/placeholder 同法：t 由组件传入活体翻译。控制器捕获的
   // tLive 首帧是身份回退（直连恢复/早进房时即停留该态），tabLabel 曾把裸键名
@@ -281,7 +289,7 @@ export function createChatController(options: Options) {
       pending.clear();
       errors.clear();
       seededConversations.clear();
-      patch({ privateClientId: 0, privateConversationKey: "", messageDraft: "", sending: false, sendError: "" });
+      patch({ privateClientId: 0, privateConversationKey: "", messageDraft: "", sending: false, sendError: "", unreadPrivate: {} });
       setTab("channel");
       lastDestination = destination();
     }
@@ -296,9 +304,19 @@ export function createChatController(options: Options) {
     const additions = grew ? messages.slice(lastMessageCount) : [];
     lastMessageCount = messages.length;
     persistNewMessages(messages);
-    if (grew) {
-      const latest = messages[messages.length - 1];
-      if (latest && latest.scope === "private" && !latest.isSelf) options.notifyPrivateMessage();
+    if (additions.length) {
+      // 私聊到达：声音一响（每批至多一次），未读按会话累计——仅当面板可见
+      // 且该会话正激活时豁免（看得见就不算未读）。
+      let notified = false;
+      for (const message of additions) {
+        if (message.scope !== "private" || message.isSelf) continue;
+        if (!notified) { options.notifyPrivateMessage(); notified = true; }
+        const key = messageKey(message);
+        const activelyViewed = tab() === "private" && state().privateConversationKey === key && panelShows();
+        if (activelyViewed) continue;
+        const current = state().unreadPrivate;
+        patch({ unreadPrivate: { ...current, [key]: (current[key] ?? 0) + 1 } });
+      }
     }
     const lastVisible = visibleMessages().at(-1);
     if (lastVisible?.isSelf) followingLatest = true;
@@ -345,6 +363,20 @@ export function createChatController(options: Options) {
     }
   }
 
+  /** 面板重新可见且该会话正激活时由视图调用：清零未读。 */
+  function markPrivateRead(key: string): void {
+    const current = state().unreadPrivate;
+    if (!current[key]) return;
+    const next = { ...current };
+    delete next[key];
+    patch({ unreadPrivate: next });
+  }
+
+  /** 桌面聊天列折叠态接线（voice-shell effect）。 */
+  function setDesktopCollapsed(collapsed: boolean): void {
+    desktopCollapsed = collapsed;
+  }
+
   function dispose(): void {
     disposed = true;
     drafts.clear();
@@ -386,6 +418,8 @@ export function createChatController(options: Options) {
     openPrivateChat,
     openConversation,
     submitMessage,
+    markPrivateRead,
+    setDesktopCollapsed,
     scrollToEnd,
     onScroll,
     scrollIfFollowing,
