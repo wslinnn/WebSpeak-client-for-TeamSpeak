@@ -25,9 +25,11 @@ import type { VoiceBridgeDependencies, VoiceBridgeOptions } from "./voice-bridge
 // Detached sessions hold a live TeamSpeak connection, so the window must
 // cover the realistic resume paths — a page reload re-establishes the socket
 // in seconds even on slow mobile networks — while a departed visitor's slot
-// and identity lease are released promptly. Outages longer than the browser's
-// own ~30s retry budget fall back to a manual rejoin.
-const RESUME_GRACE_MS = 30_000;
+// and identity lease are released promptly. 5 minutes (2026-11-04 拍板，原
+// 30s)：挂机中的瞬时掉线（网络毛刺/休眠唤醒）在原地重连预算耗尽后仍应能在
+// 下一次刷新时零 TS 重连接管，代价是断链用户在宽限期内多占一个 TS 槽位
+// （自用部署人数少，可忽略）。
+const RESUME_GRACE_MS = 5 * 60_000;
 // Avatars are rare downloads for a self-hosted deployment; the cap bounds
 // worst-case memory (cap × 256KB SDK transfer ceiling) well below concern.
 const AVATAR_CACHE_CAPACITY = 128;
@@ -83,6 +85,7 @@ export class VoiceBridge {
       teardown: (entryId, reason) => this.teardown(entryId, reason),
       stopWebRtc: entry => this.stopWebRtc(entry),
       removeScreenPeer: entryId => this.screenShares.removePeer(entryId),
+      renewReconnectTicket: entryId => this.options.reconnectTickets?.renew(entryId),
     });
     this.voiceRtc = createVoiceRtc({
       entries: this.entries,

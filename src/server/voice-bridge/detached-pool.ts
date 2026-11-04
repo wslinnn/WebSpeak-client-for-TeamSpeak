@@ -12,6 +12,9 @@ export interface DetachedPoolDeps {
   teardown: (entryId: string, reason: SessionTeardownReason) => Promise<void>;
   stopWebRtc: (entry: WebClientEntry) => Promise<void>;
   removeScreenPeer: (entryId: string) => void;
+  /** Slides the resume-token expiry forward for a live attached session: the
+   *  token must not expire underneath a session that is merely idle. */
+  renewReconnectTicket: (entryId: string) => void;
 }
 
 /** Detached-session lifecycle: a browser that dropped with a healthy
@@ -86,6 +89,11 @@ export class DetachedSessionPool {
       }
       entry.isAlive = false;
       entry.ws.ping();
+      // A healthy attached session keeps its resume token fresh: expiry is
+      // what turned a long idle stretch into an unrecoverable drop (the
+      // browser's next reconnect hit RECONNECT_INVALID and cleared its
+      // intent, sending a reload to the join form).
+      if (entry.reconnectTicketToken) this.deps.renewReconnectTicket(entry.id);
     }
   }
 

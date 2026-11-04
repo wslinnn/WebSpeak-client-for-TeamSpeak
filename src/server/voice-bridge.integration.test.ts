@@ -565,7 +565,8 @@ test("a detached session past its grace window releases the kept TeamSpeak conne
   await waitFor(() => entry.detached === true);
   assert.equal(f.sdk.disconnected, false);
 
-  (f.bridge as unknown as { sweepDetachedSessions(now: number): void }).sweepDetachedSessions(Date.now() + 120_000);
+  // 默认宽限 5 分钟（2026-11-04 起）：推到宽限之外触发清扫释放。
+  (f.bridge as unknown as { sweepDetachedSessions(now: number): void }).sweepDetachedSessions(Date.now() + 6 * 60_000);
   await nextTurn();
   assert.equal(f.sdk.disconnected, true);
   assert.equal(f.bridge.getActiveCount(), 0);

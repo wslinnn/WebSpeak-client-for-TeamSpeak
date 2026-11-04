@@ -12,6 +12,7 @@
 - **槽位池 12→16**（`4f08c2b`）：`DOWNSTREAM_SLOTS`（前端）/`MAX_DOWNSTREAM_SLOTS`（网关）成对扩容；voiceRoute 校验上限本就 ≤16；新旧混跑时多余 m-line 按 inactive 降级。槽位语义：每听众 16 路并发预算，LRU 淘汰最久未说话者；成员音量是本地渲染参数，不影响他人听感、不影响说话者上行。
 - **网关 mixer 全套已删**：音频 CPU 趋零，`setMemberVolume` 网关命令与 `voiceActivity` 事件随删。
 - **voice-bridge 已拆分**：DetachedSessionPool / createVoiceRtc / createVoiceConnectionHandler 三模块（拆分记录见 `.agents/notes/history.md`）。
+- **会话恢复生命周期（2026-11-04 修订，挂机掉线案收账）**：浏览器 WS 断开（非 1000）且持有 reconnect 票据 → detached 池保活 TS 连接 **5 分钟**（原 30s）等刷新/重连续接；心跳 tick（30s）对每个存活 attached 会话**滑动续期** resume token（`ReconnectTicketStore.renew`）。案底：原 token TTL 10 分钟且会话期零续期（仅建连与 resume 接管两处 issue），挂机超过 10 分钟后任何掉线都换来 RECONNECT_INVALID → 前端按设计丢弃恢复意图（sessionStorage）→ 刷新直接回首页。恢复路径分级：宽限内 adopt（零 TS 重连）→ 宽限外但 token 有效则 evict 前任重建全新会话 → token 也过期才落回 join 表单。恢复相关日志锚点：`WebSocket closed {code}` / `Voice session detached` / `Resume grace window elapsed` / `heartbeat-timeout`。
 - **浏览器播放（`webrtc-playback.ts` 元素池，现行）**：每槽隐藏 `<audio>` 元素直连远端流；master 音量 ≤0 → muted；成员+总音量 ≤100% 走 `element.volume`；>100% 走惰性增益管道（ampContext + GainNode，flowed 门控，失败自动钳回 100%）；说话指示 = `receiver.getStats()` 的 packetsReceived 增量（150ms 轮询 + 1.2s hangover）；扬声器选择经 `setSinkDevice` 统一路由（"" 归一化 "default"，失败聚合传播供 `setOutputDevice` 回滚）。ontrack 一律 `new MediaStream([event.track])` 逐轨自建流（铁律，见三层坑③）。立体声伴奏（codec 5）顺带修复。
 - 初版播放图（每槽 MediaStreamSource→GainNode（成员音量本地化）→AnalyserNode（说话指示 RMS≥0.01）→汇总 MediaStreamDestination→单个 audio element 出声，保 setSinkId 路由/iOS 解锁/retry 语义）已被元素池取代，仅存档。
 

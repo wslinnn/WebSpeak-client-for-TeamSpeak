@@ -47,3 +47,22 @@ test("issuing beyond the cap evicts the oldest live ticket", () => {
   assert.notEqual(store.consume(second, 1), null);
   assert.notEqual(store.consume(third, 1), null);
 });
+
+test("renew slides the expiry forward for the owning entry only", () => {
+  const store = new ReconnectTicketStore(5_000);
+  const renewed = store.issue(payload, "w-1", 0);
+  const untouched = store.issue(payload, "w-2", 0);
+  store.renew("w-1", 4_000);
+  // Past the original TTL the renewed ticket is still alive; the untouched one is gone.
+  assert.notEqual(store.consume(renewed, 6_000), null);
+  assert.equal(store.consume(untouched, 6_000), null);
+});
+
+test("renew ignores expired tickets and unknown entries", () => {
+  const store = new ReconnectTicketStore(5_000);
+  const token = store.issue(payload, "w-1", 0);
+  // An expired ticket must not be resurrected by a late tick.
+  store.renew("w-1", 6_000);
+  assert.equal(store.consume(token, 6_001), null);
+  store.renew("w-404", 1);
+});

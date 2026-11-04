@@ -49,6 +49,19 @@ export class ReconnectTicketStore {
     }
   }
 
+  /** Slide the expiry forward for the live session's ticket. The token must
+   *  stay valid for as long as its session is healthy, not just the first
+   *  TTL window: a session older than the TTL used to make every later drop
+   *  unrecoverable (the exchange answered RECONNECT_INVALID and the browser
+   *  dropped its resume intent, so a reload landed on the join form). The
+   *  gateway heartbeat renews attached sessions each tick. */
+  renew(entryId: string, now = Date.now()): void {
+    for (const stored of this.tickets.values()) {
+      if (stored.entryId !== entryId || stored.expiresAt <= now) continue;
+      stored.expiresAt = now + this.ttlMs;
+    }
+  }
+
   get size(): number {
     return this.tickets.size;
   }
