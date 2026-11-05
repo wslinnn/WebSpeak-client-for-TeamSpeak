@@ -1,6 +1,7 @@
-import type { DirectoryClientInfo, TextMessage } from "@echosixhiya/teamspeak-client";
-import { Client as TS3FullClient } from "@echosixhiya/teamspeak-client";
+import type { TextMessageEvent } from "@honeybbq/teamspeak";
+import type { Client as TSFullClient } from "@honeybbq/teamspeak/client";
 import { parseChannelPasswordProtections } from "./channel-flags.js";
+import type { TSDirectoryChannel, TSDirectoryClient } from "./ts-client-directory.js";
 
 export interface TSChatMessage {
   invokerName: string;
@@ -16,26 +17,26 @@ export interface TSChatMessage {
  * Private-message events include a bigint targetID; dropping it makes the
  * bridge dereference undefined while echoing the message to the browser.
  */
-export function toTSChatMessage(msg: TextMessage): TSChatMessage {
+export function toTSChatMessage(msg: TextMessageEvent): TSChatMessage {
   return {
     invokerName: msg.invokerName,
     invokerId: msg.invokerID,
     invokerUid: msg.invokerUID,
     message: msg.message,
     targetMode: msg.targetMode,
-    targetId: msg.targetID,
+    targetId: BigInt(msg.targetID),
   };
 }
 
 /**
- * The vendored SDK's listClients requests `-away -voice` but its parser keeps
- * only identity fields, so every member row arrived without away/mute flags
- * and the web client rendered "status unknown" until a notification happened
- * to carry them (never for the gateway's own client). Parse the same command
- * here so status flags survive; drop this once the SDK keeps them.
+ * Keep member status flags the gateway cares about by reading clientlist
+ * directly: the SDK's listClients keeps identity fields only, so rows read
+ * through it arrive without away/mute flags and the web client would render
+ * "status unknown" until a notification happened to carry them (never for the
+ * gateway's own client).
  */
-export async function tsListClientsFull(client: TS3FullClient): Promise<DirectoryClientInfo[]> {
-  const rows = await client.execCommandWithResponse("clientlist -uid -away -voice -groups", 5_000);
+export async function tsListClientsFull(client: TSFullClient): Promise<TSDirectoryClient[]> {
+  const rows = await client.exec("clientlist -uid -away -voice -groups", { timeoutMs: 5_000 });
   return rows.map(row => ({
     id: Number.parseInt(row.clid ?? "0", 10),
     nickname: row.client_nickname ?? "",
@@ -51,13 +52,26 @@ export async function tsListClientsFull(client: TS3FullClient): Promise<Director
   }));
 }
 
+export interface TSChannelListing {
+  channels: TSDirectoryChannel[];
+  flags: Map<bigint, boolean>;
+}
+
 /**
- * TeamSpeak only includes channel flag fields (including the public
- * password-required bit) when the client asks for flags explicitly, and the
- * vendored SDK's listChannels never asks. Read the same command here so the
- * channel tree can mark locked channels; drop this once the SDK keeps flags.
+ * The channel tree in one authoritative request. The SDK's listChannels omits
+ * the description (bandwidth) and reads no password flag, while TeamSpeak
+ * returns both on a plain `channellist -flags` row — the same command the
+ * gateway already parsed for lock flags — so one request rebuilds tree and
+ * flags together and keeps a single row→directory mapping path.
  */
-export async function tsListChannelFlags(client: TS3FullClient): Promise<Map<bigint, boolean>> {
-  const rows = await client.execCommandWithResponse("channellist -flags", 5_000);
-  return parseChannelPasswordProtections(rows);
+export async function tsListChannelsFull(client: TSFullClient): Promise<TSChannelListing> {
+  const rows = await client.exec("channellist -flags", { timeoutMs: 5_000 });
+  const channels: TSDirectoryChannel[] = rows.map(row => ({
+    id: BigInt(row.cid ?? "0"),
+    parentID: BigInt(row.pid ?? "0"),
+    order: BigInt(row.channel_order ?? "0"),
+    name: row.channel_name ?? "",
+    description: row.channel_description ?? "",
+  }));
+  return { channels, flags: parseChannelPasswordProtections(rows) };
 }

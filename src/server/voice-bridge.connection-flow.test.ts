@@ -5,7 +5,7 @@ import { createServer } from "node:http";
 import { setImmediate as nextTurn } from "node:timers/promises";
 import { WebSocket } from "ws";
 import pino from "pino";
-import { generateIdentity } from "@echosixhiya/teamspeak-client";
+import { generateIdentitySync } from "@honeybbq/teamspeak/client";
 import { VoiceBridge } from "./voice-bridge.js";
 import { JoinTicketStore } from "./join-ticket.js";
 import { normalizeTeamSpeakKickedReason } from "../errors.js";
@@ -150,9 +150,10 @@ test("同对端第 11 条并发会话被 4006 PEER_SESSION_LIMIT 拒绝", { time
 });
 
 test("同记忆身份的第二条连接逐出第一条（切服跟随连接成败）", { timeout: 10_000 }, async t => {
-  // generateIdentity(1)：级别 1 一次研磨即达——不传参会在 SDK 的研磨循环里
+  // generateIdentitySync(1)：级别 1 一次研磨即达——不传参会在 SDK 的研磨循环里
   // 以 undefined 目标级纯 CPU 打转（本文件曾因此整体挂死）。
-  const identity = String(generateIdentity(1));
+  // export()：上游 toString() 是不含私钥的安全描述，parseIdentity 解析不了。
+  const identity = generateIdentitySync(1).export();
   const h = await startBridge(t);
   t.after(() => h.close());
   const first = await join(h, { identity, rememberIdentity: true });

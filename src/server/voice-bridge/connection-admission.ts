@@ -1,7 +1,7 @@
 import { WebSocket } from "ws";
 import type { BlockList } from "node:net";
 import type { IncomingMessage } from "node:http";
-import { identityFromString } from "@echosixhiya/teamspeak-client";
+import { parseIdentity, type Identity } from "@honeybbq/teamspeak/client";
 import { MAX_SESSIONS_PER_PEER } from "../../constants.js";
 import { formatTeamSpeakTarget, teamSpeakTargetKey } from "../../domain/teamspeak-target.js";
 import type { Logger as LoggerType } from "../../logger.js";
@@ -22,7 +22,7 @@ export type AdmissionOutcome =
     session: NonNullable<ReturnType<SessionManager["admit"]>>;
     clientIp: string;
     webrtcPublicHost: string | undefined;
-    identity: ReturnType<typeof identityFromString> | undefined;
+    identity: Identity | undefined;
     identityLeaseKey: string;
   }
   | { ok: false };
@@ -59,7 +59,7 @@ export async function admitConnection(
   const webrtcPublicHost = resolveWebRtcPublicHost(req, deps.trustedProxies);
   let identity;
   try {
-    identity = connection.identity ? identityFromString(connection.identity) : undefined;
+    identity = connection.identity ? parseIdentity(connection.identity) : undefined;
   } catch {
     // Send a structured failure before the close so the browser can tell
     // an invalid remembered identity apart from a real connection failure.

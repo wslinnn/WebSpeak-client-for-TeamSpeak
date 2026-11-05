@@ -13,20 +13,30 @@ function deferred<T>() {
 }
 
 const rows = [{ client_unique_identifier: "member", client_flag_avatar: "marker", client_base64HashClientUID: "abcdefgh" }];
-const transfer = { size: 6n };
+/** ftinitdownload 应答行：键名按上游 initFileDownload 的解析约定（TS3 线名）。 */
+const transferRow = { ftkey: "transfer-key", port: "30033", size: "6", serverftfid: "1" };
 
 class SdkStub extends EventEmitter {
   inputCommands: string[] = [];
   commandTimeouts: Array<number | undefined> = [];
   inputUpdate = async (_command: string): Promise<void> => {};
-  async execCommand(command: string, timeoutMs?: number) { this.inputCommands.push(command); this.commandTimeouts.push(timeoutMs); await this.inputUpdate(command); }
+  async exec(command: string, options?: { timeoutMs?: number }) {
+    this.inputCommands.push(command);
+    this.commandTimeouts.push(options?.timeoutMs);
+    await this.inputUpdate(command);
+    return this.metadata();
+  }
+  /** initFileDownload 经 CommandExecutor.send 走 ftinitdownload。 */
+  sendRequests: string[] = [];
   initialized = 0;
   downloaded = 0;
   metadata = async () => rows;
-  transfer = async () => transfer;
+  async send(request: { command: string }) {
+    this.sendRequests.push(request.command);
+    if (request.command === "ftinitdownload") { this.initialized++; return [transferRow]; }
+    return [];
+  }
   download = async (destination: Writable) => { destination.write(Buffer.from("GIF89a")); };
-  execCommandWithResponse() { return this.metadata(); }
-  async fileTransferInitDownload() { this.initialized++; return this.transfer(); }
   async downloadFileData(_host: string, _transfer: unknown, destination: Writable) { this.downloaded++; await this.download(destination); }
 }
 
@@ -223,13 +233,12 @@ test("an old avatar metadata response cannot start a transfer on a replacement S
 
 test("disconnect during avatar transfer initialization prevents the subsequent download", async () => {
   const f = fixture();
-  const pending = deferred<typeof transfer>();
-  f.sdk.transfer = () => pending.promise;
+  const pending = deferred<typeof rows>();
+  f.sdk.metadata = () => pending.promise;
   const result = f.client.getClientAvatar(2, "member");
   await nextTurn();
-  assert.equal(f.sdk.initialized, 1);
   await f.client.disconnect();
-  pending.resolve(transfer);
+  pending.resolve(rows);
   assert.equal(await result, null);
   assert.equal(f.sdk.downloaded, 0);
 });
@@ -251,7 +260,7 @@ test("reusing the SDK client after interruption cannot revive an earlier avatar 
   const pending = deferred<typeof rows>();
   f.sdk.metadata = () => pending.promise;
   const result = f.client.getClientAvatar(2, "member");
-  f.sdk.emit("disconnected");
+  f.sdk.emit("disconnected", { error: undefined, willReconnect: false });
   f.state.connected = true;
   pending.resolve(rows);
   assert.equal(await result, null);
@@ -274,7 +283,7 @@ test("a retired SDK client's disconnect cannot invalidate a current avatar reque
   f.state.client = replacement;
   f.state.attachClientListeners(replacement);
   const result = f.client.getClientAvatar(2, "member");
-  f.sdk.emit("disconnected");
+  f.sdk.emit("disconnected", { error: undefined, willReconnect: false });
   assert.equal(f.client.isConnected(), true);
   pending.resolve(rows);
   assert.deepEqual(await result, { cacheKey: "marker", data: Buffer.from("GIF89a") });
@@ -282,17 +291,29 @@ test("a retired SDK client's disconnect cannot invalidate a current avatar reque
 });
 
 const retiredEvents: Array<[string, unknown]> = [
-  ["voiceData", { clientId: 2, codec: 4, data: Buffer.from([1]) }],
-  ["directorySnapshot", { channels: [], clients: [] }],
-  ["rawNotification", { name: "notification", params: {} }],
-  ["textMessage", { invokerName: "Member", invokerID: 2, invokerUID: "uid", targetMode: 2, targetID: 1n, message: "Message" }],
+  ["voiceData", { session: 1, clientID: 2, whisper: false, seq: 7, receivedAt: 0, codec: 4, data: Buffer.from([1]) }],
+  ["textMessage", { invokerName: "Member", invokerID: 2, invokerUID: "uid", targetMode: 2, targetID: 1, message: "Message" }],
   ["poked", { invokerName: "Member", invokerID: 2, invokerUID: "uid", message: "Poke" }],
   ["clientEnter", { id: 2, nickname: "Member", uid: "uid", channelID: 1n, type: 1, serverGroups: [] }],
-  ["clientLeave", { id: 2, reasonID: 4 }],
-  ["clientMoved", { id: 2, targetChannelID: 2n }],
-  ["clientUpdated", { info: { id: 2, inputMuted: true } }],
-  ["kicked", "Removed"],
+  ["clientLeave", { clientID: 2, reason: 4, reasonMessage: "" }],
+  ["clientMoved", { clientID: 2, targetChannelID: 2n }],
+  ["clientUpdated", { clientID: 2, changes: { inputMuted: true } }],
+  ["kicked", { reasonMessage: "Removed", reason: 4 }],
 ];
+
+test("a retired SDK client's notification event cannot reach its replacement session", () => {
+  // 上游事件名 notification，网关再抛名 rawNotification，收发两侧名字不同。
+  const f = fixture();
+  const replacement = new SdkStub();
+  f.state.client = replacement;
+  f.state.attachClientListeners(replacement);
+  const observed: unknown[] = [];
+  f.client.on("rawNotification", data => observed.push(data));
+  f.sdk.emit("notification", { name: "notifyservergrouplist", params: {} });
+  assert.equal(observed.length, 0);
+  replacement.emit("notification", { name: "notifyservergrouplist", params: {} });
+  assert.equal(observed.length, 1);
+});
 
 for (const [name, payload] of retiredEvents) {
   test(`a retired SDK client's ${name} event cannot reach its replacement session`, () => {

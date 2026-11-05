@@ -1,4 +1,3 @@
-import type { ClientInfo } from "@echosixhiya/teamspeak-client";
 import type { EventEmitter } from "node:events";
 import type { WebSpeakError } from "../errors.js";
 import type { ChannelInfo, ChannelMember } from "../shared/voice-models.js";
@@ -24,10 +23,10 @@ export interface SessionDirectoryState {
 
 interface SdkEvents {
   directorySnapshot: TSDirectorySnapshot;
-  clientEnter: ClientInfo;
+  clientEnter: TSDirectoryClient;
   clientLeave: { id: number };
   clientMoved: { id: number; targetChannelID?: bigint };
-  clientUpdated: TSDirectoryClient;
+  clientUpdated: Partial<TSDirectoryClient> & { id: number };
   directoryClientsSnapshot: TSDirectoryClient[];
   channelPasswordProtectionChanged: { channelId: bigint; passwordProtected: boolean };
   rawNotification: TSRawNotification;
@@ -155,13 +154,14 @@ export class SessionEventCoordinator {
     this.listenDirectory("clientUpdated", info => {
       // 注意：这里不 flush 挂起窗口——连续 update 就该并入同一窗口；其他目录
       // 事件的 flush-at-top 已保证跨事件类型的 delta 次序。
-      const { merged, channelChanged } = this.directory.applyClientUpdated(info);
+      const { merged, channelChanged } = this.directory.applyClientUpdated(info.id, info);
       const member = this.options.state.members.get(info.id);
-      // 二级：成员已知、频道未变、且没有挂起的重建窗口 → 字段级增量直接改视图
-      // 并下发 memberUpdated，不再全量 clientlist/重建。窗口挂起期间一律入窗：
-      // 视图尚未反映前序变化时打补丁会发出与 flush 重复的 delta。频道变更
-      // （走 clientMoved 权威路径）或成员未知 → 一级合并窗口内做一次本地重建。
-      if (member && !channelChanged && !this.directoryRefreshTimer) {
+      // 二级：成员已知（目录视图可合并出完整 merged）、频道未变、且没有挂起
+      // 的重建窗口 → 字段级增量直接改视图并下发 memberUpdated，不再全量
+      // clientlist/重建。窗口挂起期间一律入窗：视图尚未反映前序变化时打补丁
+      // 会发出与 flush 重复的 delta。频道变更（走 clientMoved 权威路径）、
+      // 成员未知（merged 为 null）→ 一级合并窗口内做一次本地重建。
+      if (member && merged && !channelChanged && !this.directoryRefreshTimer) {
         this.applyMemberUpdatePatch(member, merged);
         this.incrementalPatchCount++;
         if (this.incrementalPatchCount % UPDATE_PATCH_CALIBRATION_INTERVAL === 0) {
@@ -169,6 +169,15 @@ export class SessionEventCoordinator {
           // directoryClientsSnapshot 自愈并以修正 delta 呈现。
           void this.options.client.refreshDirectoryClients?.();
         }
+        return;
+      }
+      // 上游 clientUpdated 只携带变化键：目录里尚不存在的成员无法本地物化
+      // （旧 SDK 事件带全量 info 可以直接落表）。改走权威 clientlist 拉取补漏
+      // ——directoryClientsSnapshot 的发布路径先 flush 挂起合并窗口，delta
+      // 次序与窗口语义一致；拉取失败时由后续 enter/校准路径自愈。welcome 期
+      // （快照未就绪）的更新走既有入队路径，成员由首个快照本身覆盖。
+      if (!member && this.directory.ready) {
+        void this.options.client.refreshDirectoryClients?.();
         return;
       }
       this.deferFullDirectoryRefresh();
@@ -232,7 +241,7 @@ export class SessionEventCoordinator {
     if (channelId !== 0n) this.channelId = channelId;
     this.refresh();
     if (this.clientId > 0 && !this.options.state.members.has(this.clientId)) {
-      this.directory.applyClientEnter({ id: this.clientId, nickname: this.options.nickname, channelID: this.channelId, uid: "", type: 1, serverGroups: [] });
+      this.directory.applyClientEnter({ id: this.clientId, nickname: this.options.nickname, uid: "", channelID: this.channelId, type: 1, serverGroups: [] });
       this.refresh();
     }
   }

@@ -1,9 +1,5 @@
-import {
-  Client as TeamSpeakClient,
-  generateIdentity,
-  type ClientOptions,
-  type Identity,
-} from "@echosixhiya/teamspeak-client";
+import type { ClientOptions, Identity } from "@honeybbq/teamspeak/client";
+import { Client as TeamSpeakClient, generateIdentitySync } from "@honeybbq/teamspeak/client";
 import { WebSpeakTeamSpeakResolver } from "./teamspeak-resolver.js";
 import type { Logger } from "../logger.js";
 import { normalizeTeamSpeakError } from "../errors.js";
@@ -84,7 +80,7 @@ export class TeamSpeakAdapter {
     private readonly logger: Logger,
     private readonly protocolCache: EndpointProtocolCache = endpointProtocolCache,
   ) {
-    this.identity = options.identity ?? generateIdentity(8);
+    this.identity = options.identity ?? generateIdentitySync(8);
     // SDK debug output is raw protocol chatter that can embed credentials and
     // arrives at voice-message rate. It stays off unless explicitly requested
     // with WEBSPEAK_SDK_DEBUG=1; info/warn/error always pass through.
@@ -116,8 +112,10 @@ export class TeamSpeakAdapter {
     const cachedProtocol = this.protocolCache.get(this.target);
     this.logger.info({ target: formatTeamSpeakTarget(this.target), cachedProtocol }, "Connecting through TeamSpeak adapter");
     try {
-      await this.client.connect();
-      await this.client.waitConnected(AbortSignal.timeout(TEAM_SPEAK_CONNECT_TIMEOUT_MS));
+      // The SDK's connect() now resolves only after the welcome sequence, and
+      // takes the whole attempt's abort signal — resolution, handshake and
+      // version negotiation — replacing the old connect()+waitConnected pair.
+      await this.client.connect({ signal: AbortSignal.timeout(TEAM_SPEAK_CONNECT_TIMEOUT_MS) });
     } catch (error: unknown) {
       await this.client.disconnect().catch(() => undefined);
       throw normalizeTeamSpeakError(error);
@@ -142,7 +140,7 @@ export class TeamSpeakAdapter {
 
   private async detectProtocol(): Promise<TeamSpeakProtocol | null> {
     try {
-      const rows = await this.client.execCommandWithResponse("version", 3000);
+      const rows = await this.client.exec("version", { timeoutMs: 3000 });
       // Prefer the field the protocol names: the detector reads only the leading
       // version, so a server that reports its fields in another order would
       // otherwise lose detection even though the value is right there.

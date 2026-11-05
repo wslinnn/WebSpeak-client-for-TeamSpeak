@@ -1,12 +1,11 @@
-import type { ClientInfo, DirectoryClientInfo } from "@echosixhiya/teamspeak-client";
-import type { TSDirectorySnapshot } from "./ts-client.js";
+import type { TSDirectoryClient, TSDirectorySnapshot } from "./ts-client.js";
 
 type DirectoryDelta =
-  | { type: "clientEnter"; info: ClientInfo }
+  | { type: "clientEnter"; info: TSDirectoryClient }
   | { type: "clientLeave"; id: number }
   | { type: "clientMoved"; id: number; channelID: bigint }
-  | { type: "clientUpdated"; info: DirectoryClientInfo }
-  | { type: "clientListSnapshot"; clients: DirectoryClientInfo[] };
+  | { type: "clientUpdated"; id: number; changes: Partial<TSDirectoryClient> }
+  | { type: "clientListSnapshot"; clients: TSDirectoryClient[] };
 
 /**
  * Merges staged welcome snapshots with events received while the snapshot is
@@ -16,7 +15,7 @@ type DirectoryDelta =
  */
 export class DirectorySynchronizer {
   private snapshot: TSDirectorySnapshot | null = null;
-  private clients = new Map<number, DirectoryClientInfo>();
+  private clients = new Map<number, TSDirectoryClient>();
   // A delayed welcome snapshot or update must not undo an explicit leave.
   // Client IDs can be reused, so a new enter event releases the tombstone.
   private departedClientIds = new Set<number>();
@@ -37,7 +36,7 @@ export class DirectorySynchronizer {
     for (const delta of pending) this.applyDelta(delta);
   }
 
-  applyClientEnter(info: ClientInfo): void {
+  applyClientEnter(info: TSDirectoryClient): void {
     this.applyOrQueue({ type: "clientEnter", info });
   }
 
@@ -49,23 +48,28 @@ export class DirectorySynchronizer {
     this.applyOrQueue({ type: "clientMoved", id, channelID });
   }
 
-  /** Merges the update into the directory and reports whether the client's
-   *  channel changed (报告 21 F3 二级：频道未变时调用方可走字段级增量，频道
-   *  变更仍走 clientMoved 权威路径的全量重建）。快照未就绪（事件入队）时
-   *  无视图可增量，按未变化返回。 */
-  applyClientUpdated(info: DirectoryClientInfo): { merged: DirectoryClientInfo; channelChanged: boolean } {
-    if (!this.snapshot || this.departedClientIds.has(info.id)) {
-      this.applyOrQueue({ type: "clientUpdated", info });
-      return { merged: info, channelChanged: false };
+  /**
+   * Merges one notifyclientupdated diff (only the keys the notification
+   * carried) into the directory and reports whether the client's channel
+   * changed (报告 21 F3 二级：频道未变时调用方可走字段级增量，频道变更仍走
+   * clientMoved 权威路径的全量重建）。快照未就绪（事件入队）时无视图可增量，
+   * 按未变化返回且 merged 为 null——成员此时必然同样未知，调用方走全量刷新。
+   * 返回的 merged 是合并后的完整成员，供字段级增量直接消费。
+   */
+  applyClientUpdated(id: number, changes: Partial<TSDirectoryClient>): { merged: TSDirectoryClient | null; channelChanged: boolean } {
+    if (!this.snapshot || this.departedClientIds.has(id)) {
+      this.applyOrQueue({ type: "clientUpdated", id, changes });
+      return { merged: null, channelChanged: false };
     }
-    const current = this.clients.get(info.id);
-    const channelChanged = current !== undefined && info.channelID !== undefined && info.channelID !== current.channelID;
-    const merged: DirectoryClientInfo = current ? { ...current, ...info } : info;
-    this.clients.set(info.id, merged);
+    const current = this.clients.get(id);
+    if (!current) return { merged: null, channelChanged: false };
+    const channelChanged = changes.channelID !== undefined && changes.channelID !== current.channelID;
+    const merged: TSDirectoryClient = { ...current, ...changes };
+    this.clients.set(id, merged);
     return { merged, channelChanged };
   }
 
-  applyClientListSnapshot(clients: DirectoryClientInfo[]): void {
+  applyClientListSnapshot(clients: TSDirectoryClient[]): void {
     this.applyOrQueue({ type: "clientListSnapshot", clients });
   }
 
@@ -104,17 +108,21 @@ export class DirectorySynchronizer {
       return;
     }
     if (delta.type === "clientUpdated") {
-      if (this.departedClientIds.has(delta.info.id)) return;
-      const current = this.clients.get(delta.info.id);
-      this.clients.set(delta.info.id, current ? { ...current, ...delta.info } : delta.info);
+      if (this.departedClientIds.has(delta.id)) return;
+      const current = this.clients.get(delta.id);
+      // A present key carries the new value — including an undefined one,
+      // which the server sent to clear the property.
+      if (current) this.clients.set(delta.id, { ...current, ...delta.changes });
       return;
     }
     if (delta.type === "clientListSnapshot") {
       for (const info of delta.clients) {
+        // An authoritative pull adds members the event stream missed, enriches
+        // known ones, and must not resurrect someone who left while the
+        // asynchronous list request was in flight.
+        if (this.departedClientIds.has(info.id)) continue;
         const current = this.clients.get(info.id);
-        // A refresh enriches known members; it must not resurrect someone who
-        // left while the asynchronous list request was in flight.
-        if (current && !this.departedClientIds.has(info.id)) this.clients.set(info.id, { ...current, ...info });
+        this.clients.set(info.id, current ? { ...current, ...info } : info);
       }
       return;
     }

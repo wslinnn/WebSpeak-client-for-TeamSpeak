@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
 import { EventEmitter } from "node:events";
-import type { ClientInfo } from "@echosixhiya/teamspeak-client";
+
 import type { ServerMessage } from "../shared/server-messages.js";
 import { SessionEventCoordinator, type SessionDirectoryState } from "./session-events.js";
-import type { TSDirectorySnapshot } from "./ts-client.js";
+import type { TSDirectoryClient, TSDirectorySnapshot } from "./ts-client.js";
 
-const member = (id: number, channelID = 1n): ClientInfo => ({ id, channelID, nickname: `Member ${id}`, uid: `uid-${id}`, type: 1, serverGroups: [] });
+const member = (id: number, channelID = 1n): TSDirectoryClient => ({ id, channelID, nickname: `Member ${id}`, uid: `uid-${id}`, type: 1, serverGroups: [] });
 const channel = (id: bigint, name: string) => ({ id, parentID: 0n, order: 0n, name, description: "" });
-const snapshot = (...clients: ClientInfo[]): TSDirectorySnapshot => ({ channels: [channel(1n, "Lobby"), channel(2n, "Room")], clients });
+const snapshot = (...clients: TSDirectoryClient[]): TSDirectorySnapshot => ({ channels: [channel(1n, "Lobby"), channel(2n, "Room")], clients });
 
 function fixture(t: TestContext) {
   const phase = { current: true, accepting: true, published: false, connected: false, selfId: 1, channelId: 1n };
@@ -18,10 +18,15 @@ function fixture(t: TestContext) {
   const events: Array<{ kind: string; message: string }> = [];
   const callbacks: Array<{ kind: string; value?: unknown }> = [];
   const pulls = { count: 0 };
+  /** refreshDirectoryClients 的权威 clientlist 内容；空数组只计数不投递。 */
+  const clientList: TSDirectoryClient[] = [];
   const client = Object.assign(new EventEmitter(), {
     getClientId: () => phase.selfId, getChannelId: () => phase.channelId,
     getClientAvatar: async () => null,
-    refreshDirectoryClients: async () => { pulls.count++; },
+    refreshDirectoryClients: async () => {
+      pulls.count++;
+      if (clientList.length) client.emit("directoryClientsSnapshot", [...clientList]);
+    },
   });
   const coordinator = new SessionEventCoordinator({
     state, client, avatars: {
@@ -41,7 +46,7 @@ function fixture(t: TestContext) {
     onAvatarError: (_id, _uid, value) => callbacks.push({ kind: "avatar-error", value }),
   });
   t.after(() => coordinator.close());
-  return { phase, state, avatarUrls, messages, events, callbacks, client, coordinator, pulls };
+  return { phase, state, avatarUrls, messages, events, callbacks, client, coordinator, pulls, clientList };
 }
 
 test("welcome events reconcile before publication and self follows the connected SDK channel", t => {
@@ -153,17 +158,24 @@ test("F3 一级：走不了增量的更新在 200ms 窗口内合并为一次重�
     [{ type: "memberUpdated", id: 2, away: true, inputMuted: true }]);
 });
 
-test("F3：未知成员的更新走合并窗口，flush 后只出一条 memberEnter", t => {
+test("F3：未知成员的更新触发权威拉取，成员恰好出现一次且后续更新走字段级补丁", t => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
   const f = fixture(t);
   f.client.emit("directorySnapshot", snapshot(member(1)));
   f.coordinator.syncSelf(); f.phase.published = true;
   f.messages.length = 0;
-  f.client.emit("clientUpdated", member(9, 2n));
-  f.client.emit("clientUpdated", member(9, 2n));
-  t.mock.timers.tick(200);
+  // 上游 clientUpdated 只携带变化键：目录未知的成员无法本地物化，网关拉
+  // 权威 clientlist 补漏，成员经 directoryClientsSnapshot 恰好出现一次。
+  f.clientList.push(member(9, 2n));
+  f.client.emit("clientUpdated", { id: 9, channelID: 2n });
+  assert.equal(f.pulls.count, 1, "未知成员更新触发一次权威拉取");
+  // 成员经拉取出现后，同批第二条更新已是已知成员，走字段级补丁不再拉取。
+  f.client.emit("clientUpdated", { id: 9, inputMuted: true });
+  assert.equal(f.pulls.count, 1, "成员治愈后的更新不再拉取");
   const enters = f.messages.filter(message => message.type === "memberEnter");
-  assert.equal(enters.length, 1, "窗口内两条未知成员更新只重建一次");
+  assert.equal(enters.length, 1, "成员恰好出现一次 memberEnter");
+  assert.deepEqual(f.messages.filter(message => message.type === "memberUpdated"),
+    [{ type: "memberUpdated", id: 9, inputMuted: true }]);
 });
 
 test("F3：增量补丁每 50 次触发一次全量校准，无漂移时不出修正 delta", t => {

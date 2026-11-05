@@ -1,7 +1,7 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { Resolver as TeamSpeakResolver } from "@echosixhiya/teamspeak-client/discovery";
-import type { AddrResolver, ResolvedAddr } from "@echosixhiya/teamspeak-client";
+import type { AddrResolver, ResolvedAddr } from "@honeybbq/teamspeak/client";
+import { Resolver as TeamSpeakResolver } from "@honeybbq/teamspeak/client";
 import { formatTeamSpeakTarget, parseTeamSpeakTarget } from "../domain/teamspeak-target.js";
 
 const LOCAL_ALIAS_LOOKUP_TIMEOUT_MS = 1_000;
@@ -36,7 +36,8 @@ export class WebSpeakTeamSpeakResolver implements AddrResolver {
     this.nicknameLookupTimeoutMs = options.nicknameLookupTimeoutMs ?? NICKNAME_LOOKUP_TIMEOUT_MS;
   }
 
-  async resolve(address: string, signal?: AbortSignal): Promise<ResolvedAddr[]> {
+  async resolve(address: string, options?: { signal?: AbortSignal }): Promise<readonly ResolvedAddr[]> {
+    const signal = options?.signal;
     if (signal?.aborted) throw signal.reason ?? new Error("TeamSpeak address resolution was aborted");
 
     let target;
@@ -62,16 +63,16 @@ export class WebSpeakTeamSpeakResolver implements AddrResolver {
     return baseResults?.length ? baseResults : [directAddress(host, port)];
   }
 
-  private resolveBase(address: string, signal?: AbortSignal): Promise<ResolvedAddr[]> {
-    return this.baseResolver.resolve(address, signal);
+  private resolveBase(address: string, signal?: AbortSignal): Promise<readonly ResolvedAddr[]> {
+    return this.baseResolver.resolve(address, signal === undefined ? {} : { signal });
   }
 
-  private async resolveBaseWithTimeout(address: string, signal?: AbortSignal): Promise<ResolvedAddr[] | null> {
+  private async resolveBaseWithTimeout(address: string, signal?: AbortSignal): Promise<readonly ResolvedAddr[] | null> {
     const timeoutController = new AbortController();
     const combinedSignal = signal ? AbortSignal.any([signal, timeoutController.signal]) : timeoutController.signal;
     try {
       return await raceWithTimeout(
-        Promise.resolve().then(() => this.baseResolver.resolve(address, combinedSignal)),
+        Promise.resolve().then(() => this.baseResolver.resolve(address, { signal: combinedSignal })),
         this.nicknameLookupTimeoutMs,
         signal,
       );

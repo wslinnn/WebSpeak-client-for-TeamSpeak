@@ -1,5 +1,7 @@
 import { Writable } from "node:stream";
-import { Client as TS3FullClient } from "@echosixhiya/teamspeak-client";
+import { asChannelID } from "@honeybbq/teamspeak";
+import { initFileDownload } from "@honeybbq/teamspeak";
+import type { Client as TSFullClient } from "@honeybbq/teamspeak/client";
 import type { TSClientAvatar } from "./ts-client.js";
 
 // Keep enough room for avatars produced by the native client. The previous
@@ -22,13 +24,15 @@ const MAX_CLIENT_AVATAR_BYTES = 256 * 1024;
  * re-checks it so a superseded connection never emits stale avatar bytes.
  */
 export async function fetchTeamSpeakClientAvatar(
-  client: TS3FullClient,
+  client: TSFullClient,
   host: string,
   clientId: number,
   expectedUid: string,
   isCurrent: () => boolean,
 ): Promise<TSClientAvatar | null> {
-  const rows = await client.execCommandWithResponse(`clientinfo clid=${clientId}`, 5_000);
+  // clientId is validated integer (1..65535) by TSClient.getClientAvatar, so
+  // the raw command interpolation cannot inject parameters.
+  const rows = await client.exec(`clientinfo clid=${clientId}`, { timeoutMs: 5_000 });
   if (!isCurrent()) return null;
   const info = rows.find((row) => {
     if (expectedUid && row.client_unique_identifier !== expectedUid) return false;
@@ -39,7 +43,7 @@ export async function fetchTeamSpeakClientAvatar(
   const avatarFileKey = info.client_base64HashClientUID?.trim() ?? "";
   if (!cacheKey || !/^[A-Za-z0-9+/=_-]{8,256}$/.test(avatarFileKey)) return null;
 
-  const transfer = await client.fileTransferInitDownload(0n, `/avatar_${avatarFileKey}`, "");
+  const transfer = await initFileDownload(client, asChannelID(0n), `/avatar_${avatarFileKey}`);
   if (!isCurrent()) return null;
   const size = Number(transfer.size);
   if (!Number.isSafeInteger(size) || size <= 0 || size > MAX_CLIENT_AVATAR_BYTES) return null;

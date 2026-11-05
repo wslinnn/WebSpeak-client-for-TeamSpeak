@@ -16,7 +16,7 @@ import type { AdminService } from "../admin/admin-service.js";
 import { AdminSessionStore } from "../admin/admin-session.js";
 import { isSafeOpenTargetForPrefill, resolveSafeOpenTarget } from "../security/open-target-policy.js";
 import { isSameOrigin } from "../security/same-origin.js";
-import { identityFromString } from "@echosixhiya/teamspeak-client";
+import { parseIdentity } from "@honeybbq/teamspeak/client";
 import { JoinRateLimiter } from "./join-rate-limit.js";
 import { FixedWindowRateLimiter } from "./fixed-window-rate-limit.js";
 import { createConfiguredTrustedProxies, isTrustedProxyPeer, rateLimitPeerKey, resolveClientAddress } from "./client-ip.js";
@@ -287,7 +287,7 @@ export function createWebServer(options: WebServerOptions): WebServer {
     let identity: string | undefined;
     if (requestedIdentity) {
       try {
-        identityFromString(requestedIdentity);
+        parseIdentity(requestedIdentity);
         identity = requestedIdentity;
       } catch {
         // A stale/corrupt local identity must not block a normal ephemeral join.

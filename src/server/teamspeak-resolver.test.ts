@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { AddrResolver, ResolvedAddr } from "@echosixhiya/teamspeak-client";
+import type { AddrResolver, ResolvedAddr } from "@honeybbq/teamspeak/client";
 import { WebSpeakTeamSpeakResolver } from "./teamspeak-resolver.js";
 
 function fixedResolver(result: ResolvedAddr[], onResolve?: (signal?: AbortSignal) => void): AddrResolver {
   return {
-    resolve: async (_address, signal) => {
-      onResolve?.(signal);
+    resolve: async (_address, options) => {
+      onResolve?.(options?.signal);
       return result;
     },
   };
@@ -38,8 +38,8 @@ test("undotted nickname discovery is bounded and falls back to the direct host",
   const resolver = new WebSpeakTeamSpeakResolver({
     localLookup: async () => [],
     baseResolver: {
-      resolve: async (_address, signal) => {
-        baseSignal = signal;
+      resolve: async (_address, options) => {
+        baseSignal = options?.signal;
         return new Promise<ResolvedAddr[]>(() => undefined);
       },
     },

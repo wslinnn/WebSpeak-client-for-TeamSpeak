@@ -1,27 +1,18 @@
 import { EventEmitter } from "node:events";
-import {
-  Client as TS3FullClient,
-  clientMove as tsClientMove,
-  listChannels as tsListChannels,
-  poke as tsPoke,
-  sendTextMessage as tsSendTextMessage,
-  generateIdentity,
-  type Identity,
-  type VoiceData,
-  type DirectoryClientInfo,
-  type DirectorySnapshot,
-  type RawNotification,
-} from "@echosixhiya/teamspeak-client";
+import { asChannelID, asClientID, moveClient, pokeClient, sendChannelMessage, sendPrivateMessage, sendServerMessage, type ClientEnterEvent, type ClientLeaveEvent, type ClientMovedEvent, type ClientUpdatedEvent, type Codec, type DisconnectedEvent, type KickedEvent, type NotificationEvent, type PokeEvent, type TextMessageEvent, type VoiceDataEvent } from "@honeybbq/teamspeak";
+import { Client as TSFullClient, generateIdentitySync, subscribeAllChannels, type Identity } from "@honeybbq/teamspeak/client";
 import type { Logger } from "../logger.js";
 import { describeTeamSpeakError, normalizeTeamSpeakError, normalizeTeamSpeakKickedReason } from "../errors.js";
 import { escapeTeamSpeakValue } from "../security/ts-escaping.js";
 import { TeamSpeakAdapter, type TeamSpeakProtocol } from "./teamspeak-adapter.js";
 import type { TeamSpeakTarget } from "../domain/teamspeak-target.js";
-import { toTSChatMessage, tsListClientsFull, tsListChannelFlags } from "./ts-client-protocol.js";
+import { toTSChatMessage, tsListChannelsFull, tsListClientsFull, type TSChannelListing } from "./ts-client-protocol.js";
+import { ChannelTreeStore, toDirectoryClientChanges, toTSDirectoryClient } from "./ts-client-directory.js";
 import { applyChannelPasswordFlagNotification } from "./channel-flags.js";
 import { fetchTeamSpeakClientAvatar } from "./ts-client-avatar.js";
 
 export type { TSChatMessage } from "./ts-client-protocol.js";
+export type { TSDirectoryChannel, TSDirectoryClient, TSDirectorySnapshot } from "./ts-client-directory.js";
 
 export interface TSClientOptions {
   target: TeamSpeakTarget;
@@ -36,9 +27,14 @@ export interface TSVoiceData {
   clientId: number;
   codec: number; // 4 = voice, 5 = music
   data: Buffer;
-  /** S2C packet flags (high nibble): 0x10 extension byte, 0x40 trailer. */
+  /**
+   * S2C packet flags (high nibble): 0x10 extension byte, 0x40 trailer.
+   * 上游 VoiceDataEvent 已不透出包头 flags（拍板 2026-11-05，vendor/teamspeak/
+   * VENDOR.md 在案）：置值恒为 undefined，下游 splitVoicePayload 按无可选字节
+   * 处理——官方桌面端每连接前 5 包的尾字节不再剥离，0x10 桌面端 nvp 恒 1 不出现。
+   */
   flags?: number;
-  /** Sender voice sequence (VId). */
+  /** Sender voice sequence (VId; upstream `seq`). */
   vid?: number;
   /** True when the packet arrived as a VoiceWhisper. */
   isWhisper?: boolean;
@@ -50,15 +46,12 @@ export interface TSClientAvatar {
   data: Buffer;
 }
 
-export type TSDirectoryChannel = DirectorySnapshot["channels"][number] & { passwordProtected?: boolean };
-export type TSDirectorySnapshot = Omit<DirectorySnapshot, "channels"> & { channels: TSDirectoryChannel[] };
-export type TSDirectoryClient = DirectoryClientInfo;
-export type TSRawNotification = RawNotification;
+export type TSRawNotification = NotificationEvent;
 
 export type TSChatScope = "channel" | "server" | "private";
 
 export class TSClient extends EventEmitter {
-  private client: TS3FullClient | null = null;
+  private client: TSFullClient | null = null;
   private adapter: TeamSpeakAdapter | null = null;
   private logger: Logger;
   private readonly identity: Identity;
@@ -71,16 +64,32 @@ export class TSClient extends EventEmitter {
   /** Public password flags by channel id; reset per connection, updated by
    *  channel create/edit/delete notifications. */
   private readonly channelPasswordProtection = new Map<bigint, boolean>();
+  private readonly channelTree: ChannelTreeStore;
   private preferredChannelId = 0n;
-  // Reason id of the most recent self leave, kept so the SDK `kicked` event can
-  // tell a plain kick (4) from a kick with ban (5). The SDK only forwards the
-  // reason message to its `kicked` handler, not the reason id.
-  private selfLeaveReasonId: number | null = null;
 
   constructor(private options: TSClientOptions, logger: Logger) {
     super();
     this.logger = logger.child({ nickname: options.nickname });
-    this.identity = options.identity ?? generateIdentity(8);
+    this.identity = options.identity ?? generateIdentitySync(8);
+    this.channelTree = new ChannelTreeStore(
+      () => this.channelPasswordProtection,
+      () => {
+        const client = this.client;
+        if (!client) throw new Error("TeamSpeak session is not ready");
+        return tsListChannelsFull(client);
+      },
+      () => this.client !== null && this.connected,
+      () => this.connectionGeneration,
+      (channels) => {
+        // clients: [] — the directory synchronizer merges clients into its
+        // current member view; a channel refresh must not resurrect or drop
+        // members the event stream already tracks.
+        this.emit("directorySnapshot", { channels, clients: [] });
+      },
+      (error: unknown) => {
+        this.logger.warn({ err: error instanceof Error ? error.message : String(error) }, "Could not refresh the TeamSpeak channel tree");
+      },
+    );
   }
 
   async connect(): Promise<void> {
@@ -88,7 +97,7 @@ export class TSClient extends EventEmitter {
     this.inputState = { muted: false, accompaniment: false };
     this.syncedInputMuted = null;
     this.inputStateQueue = Promise.resolve();
-    this.selfLeaveReasonId = null;
+    this.channelTree.clear();
     if (!this.adapter || !this.client) {
       this.adapter = new TeamSpeakAdapter({
         target: this.options.target,
@@ -106,23 +115,18 @@ export class TSClient extends EventEmitter {
 
     await adapter.connect();
 
-    this.clientId = client.clientID();
+    this.clientId = client.clientID;
     try {
       // A native TeamSpeak client subscribes to the complete channel tree
       // after the welcome sequence. Without this command the server only
       // exposes members in the current channel, so users disappear as soon as
       // they move elsewhere even though both clients are on the same server.
-      await client.execCommand("channelsubscribeall", 5000);
+      await subscribeAllChannels(client);
     } catch (error: unknown) {
       this.logger.warn({
         err: error instanceof Error ? error.message : String(error),
       }, "Could not subscribe to all TeamSpeak channels");
     }
-    // Directory snapshots are dispatched through two setImmediate layers in
-    // the SDK. Let both flush before reconciling with a direct client-protocol
-    // snapshot so the gateway's first connected state contains every member.
-    await new Promise<void>((resolve) => setImmediate(resolve));
-    await new Promise<void>((resolve) => setImmediate(resolve));
 
     // TS6 can finish the welcome event stream before it has exposed every
     // existing client to a newly connected session. Pull one authoritative
@@ -130,17 +134,14 @@ export class TSClient extends EventEmitter {
     // earlier are visible immediately as well. Realtime events continue to
     // keep the snapshot current after this reconciliation.
     try {
-      const [channels, clients, flags] = await Promise.all([
-        tsListChannels(client),
+      const [listing, clients] = await Promise.all([
+        tsListChannelsFull(client),
         tsListClientsFull(client),
-        // Flag 读取失败只损失锁标记，不影响目录本体。
-        tsListChannelFlags(client).catch((flagError: unknown) => {
-          this.logger.warn({ err: flagError instanceof Error ? flagError.message : String(flagError) }, "Could not read TeamSpeak channel flags");
-          return null;
-        }),
       ]);
-      if (flags) for (const [id, passwordProtected] of flags) this.channelPasswordProtection.set(id, passwordProtected);
-      this.emit("directorySnapshot", { channels: this.applyChannelFlags(channels), clients });
+      this.channelTree.applyListing(listing);
+      // 锁标记随同一条 channellist 读出；失败只损失锁标记，不影响目录本体。
+      for (const [id, passwordProtected] of listing.flags) this.channelPasswordProtection.set(id, passwordProtected);
+      this.emit("directorySnapshot", { channels: this.channelTree.decorated(), clients });
     } catch (error: unknown) {
       this.logger.warn({
         failureCode: "DIRECTORY_SNAPSHOT_UNAVAILABLE",
@@ -148,12 +149,12 @@ export class TSClient extends EventEmitter {
       }, "TeamSpeak directory snapshot unavailable");
     }
 
-    const connectedChannelId = client.channelID();
+    const connectedChannelId = client.channelID;
     if (this.preferredChannelId === 0n) {
       this.preferredChannelId = connectedChannelId;
     } else if (connectedChannelId !== this.preferredChannelId) {
       try {
-        await tsClientMove(client, this.clientId, this.preferredChannelId);
+        await moveClient(client, asClientID(this.clientId), asChannelID(this.preferredChannelId));
       } catch (error: unknown) {
         // The old channel may have been deleted or become inaccessible. The
         // SDK has already left us in the server/default channel, which is the
@@ -162,22 +163,13 @@ export class TSClient extends EventEmitter {
           channelId: this.preferredChannelId.toString(),
           err: error instanceof Error ? error.message : String(error),
         }, "Previous TeamSpeak channel could not be restored");
-        this.preferredChannelId = client.channelID();
+        this.preferredChannelId = client.channelID;
       }
     }
     this.connected = true;
 
     this.logger.info({ clientId: this.clientId }, "Connected to TeamSpeak");
     this.emit("connected", this.clientId);
-  }
-
-  /** 授权读取的频道锁标记挂到目录频道上；无标记的频道保持原样。 */
-  private applyChannelFlags(channels: DirectorySnapshot["channels"]): TSDirectoryChannel[] {
-    if (!this.channelPasswordProtection.size) return channels;
-    return channels.map((channel) => {
-      const passwordProtected = this.channelPasswordProtection.get(channel.id);
-      return passwordProtected === undefined ? channel : { ...channel, passwordProtected };
-    });
   }
 
   /** Refresh optional member status fields omitted by some client-enter events. */
@@ -218,31 +210,19 @@ export class TSClient extends EventEmitter {
     );
   }
 
-  private attachClientListeners(client: TS3FullClient): void {
-    client.on("voiceData", (data: VoiceData) => {
+  private attachClientListeners(client: TSFullClient): void {
+    client.on("voiceData", (event: VoiceDataEvent) => {
       if (this.client !== client) return;
       this.emit("voiceData", {
-        clientId: data.clientId,
-        codec: data.codec,
-        data: Buffer.from(data.data),
-        flags: data.flags,
-        vid: data.vid,
-        isWhisper: data.isWhisper,
+        clientId: event.clientID,
+        codec: event.codec,
+        data: Buffer.from(event.data),
+        vid: event.seq,
+        isWhisper: event.whisper,
       } as TSVoiceData);
     });
 
-    // The SDK exposes the directory that TeamSpeak sends during the normal
-    // client welcome sequence. The connect path also reconciles this event
-    // stream with a complete client-protocol snapshot.
-    client.on("directorySnapshot", (snapshot) => {
-      if (this.client !== client) return;
-      this.emit("directorySnapshot", {
-        channels: this.applyChannelFlags(snapshot.channels.slice()),
-        clients: snapshot.clients.slice(),
-      });
-    });
-
-    client.on("rawNotification", (notification: RawNotification) => {
+    client.on("notification", (notification: NotificationEvent) => {
       if (this.client !== client) return;
       const flagChange = applyChannelPasswordFlagNotification(notification.name, notification.params, this.channelPasswordProtection);
       if (flagChange) this.emit("channelPasswordProtectionChanged", flagChange);
@@ -252,21 +232,21 @@ export class TSClient extends EventEmitter {
       } satisfies TSRawNotification);
     });
 
-    client.on("textMessage", (msg) => {
+    client.on("textMessage", (msg: TextMessageEvent) => {
       if (this.client !== client) return;
       this.emit("textMessage", toTSChatMessage(msg));
     });
 
-    client.on("poked", (event) => {
+    client.on("poked", (event: PokeEvent) => {
       if (this.client !== client) return;
       this.emit("poked", event);
     });
 
-    client.on("disconnected", (err) => {
+    client.on("disconnected", (event: DisconnectedEvent) => {
       if (this.client !== client) return;
       this.connectionGeneration++;
-      if (err) {
-        const normalized = normalizeTeamSpeakError(err);
+      if (event.error) {
+        const normalized = normalizeTeamSpeakError(event.error);
         this.logger.warn({
           failureCode: normalized.code.toUpperCase(),
           failureDetail: describeTeamSpeakError(normalized),
@@ -277,73 +257,81 @@ export class TSClient extends EventEmitter {
       this.connected = false;
       this.clientId = 0;
       this.channelPasswordProtection.clear();
-      this.emit("disconnected", err);
+      this.channelTree.clear();
+      this.emit("disconnected", event.error);
     });
 
-    client.on("clientEnter", (info) => {
+    client.on("clientEnter", (event: ClientEnterEvent) => {
       if (this.client !== client) return;
-      this.emit("clientEnter", info);
+      this.emit("clientEnter", toTSDirectoryClient(event));
     });
 
-    client.on("clientLeave", (info) => {
+    client.on("clientLeave", (event: ClientLeaveEvent) => {
       if (this.client !== client) return;
-      // 仅记录本客户端的踢出(4)/踢出并封禁(5)退出原因，供 kicked 事件区分普通踢出与封禁
-      if (info.id === this.clientId && (info.reasonID === 4 || info.reasonID === 5)) this.selfLeaveReasonId = info.reasonID;
-      this.emit("clientLeave", info);
+      this.emit("clientLeave", { id: event.clientID });
     });
 
-    // 转发 SDK 的 kicked 事件：不转发的话管理员填写的踢出原因会被丢弃，浏览器
-    // 只能看到笼统的「连接失败」。这里把原因连同 reason id 一起归一化后向上抛。
-    // The SDK emits `kicked` only for a self leave with reason 4 (kick) or 5
-    // (kick with ban) and hands over the admin written reason message. Without
-    // this listener the reason was dropped, so the browser degraded to a generic
-    // "connection failed" right after the transport went away.
-    client.on("kicked", (reasonMsg) => {
+    // 上游 kicked 事件直接携带 reason id（4=踢出，5=踢出并封禁），不再需要
+    // 从 clientLeave 侧跟踪 selfLeaveReasonId——原因连同 reason id 一起归一化上抛。
+    client.on("kicked", (event: KickedEvent) => {
       if (this.client !== client) return;
-      const reasonId = this.selfLeaveReasonId;
-      this.selfLeaveReasonId = null;
-      this.emit("kicked", normalizeTeamSpeakKickedReason(reasonMsg, reasonId));
+      this.emit("kicked", normalizeTeamSpeakKickedReason(event.reasonMessage, event.reason));
     });
 
-    client.on("clientMoved", (info) => {
+    client.on("clientMoved", (event: ClientMovedEvent) => {
       if (this.client !== client) return;
-      if (info.id === this.clientId && info.targetChannelID !== 0n) this.preferredChannelId = info.targetChannelID;
-      this.emit("clientMoved", info);
+      const targetChannelID = BigInt(event.targetChannelID);
+      if (event.clientID === this.clientId && targetChannelID !== 0n) this.preferredChannelId = targetChannelID;
+      this.emit("clientMoved", { id: event.clientID, targetChannelID });
     });
 
-    client.on("clientUpdated", (event) => {
+    client.on("clientUpdated", (event: ClientUpdatedEvent) => {
       if (this.client !== client) return;
-      this.emit("clientUpdated", event.info);
+      this.emit("clientUpdated", toDirectoryClientChanges(event));
     });
+
+    // 频道树事件：上游已删除 directorySnapshot，改由 typed 事件触发权威
+    // channellist 重拉（ChannelTreeStore 去抖合并突发）。
+    for (const event of ["channelCreated", "channelEdited", "channelMoved", "channelDeleted", "channelPasswordChanged"] as const) {
+      client.on(event, () => {
+        if (this.client !== client) return;
+        this.channelTree.scheduleRefresh();
+      });
+    }
   }
 
   sendVoice(data: Buffer, codec: number = 4): void {
     if (!this.client || !this.connected) return;
-    this.client.sendVoice(data, codec);
+    this.client.sendVoice(data, codec as Codec);
   }
 
   sendWhisper(data: Buffer, clientIds: number[], codec: number = 4): void {
     if (!this.client || !this.connected) return;
     const targets = [...new Set(clientIds)].filter((clientId) => Number.isInteger(clientId) && clientId > 0 && clientId <= 65535 && clientId !== this.getClientId());
     if (!targets.length) throw new Error("Whisper requires at least one valid target");
-    this.client.sendWhisper(data, targets, codec);
+    this.client.sendWhisper(data, { clients: targets.map(asClientID) }, codec as Codec);
   }
 
   async sendTextMessage(scope: TSChatScope, message: string, targetId = 0n): Promise<void> {
     if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
-    const targetMode = scope === "private" ? 1 : scope === "server" ? 3 : 2;
-    await tsSendTextMessage(this.client, targetMode, targetId, message);
+    if (scope === "private") {
+      if (targetId <= 0n) throw new Error("A private TeamSpeak message requires a target client");
+      await sendPrivateMessage(this.client, asClientID(Number(targetId)), message);
+      return;
+    }
+    if (scope === "server") await sendServerMessage(this.client, message);
+    else await sendChannelMessage(this.client, message);
   }
 
   async poke(clientId: number, message: string): Promise<void> {
     if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
-    await tsPoke(this.client, clientId, message);
+    await pokeClient(this.client, asClientID(clientId), message);
   }
 
   async setAway(away: boolean, message = ""): Promise<void> {
     if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
     const escaped = escapeTeamSpeakValue(message);
-    await this.client.execCommand(`clientupdate client_away=${away ? 1 : 0} client_away_message=${escaped}`);
+    await this.client.exec(`clientupdate client_away=${away ? 1 : 0} client_away_message=${escaped}`);
   }
 
   async setInputMuted(muted: boolean): Promise<void> {
@@ -368,7 +356,7 @@ export class TSClient extends EventEmitter {
         for (let attempt = 0; ; attempt++) {
           if (!isCurrent()) throw new Error("TeamSpeak session is not ready");
           try {
-            await client!.execCommand(`clientupdate client_input_muted=${muted ? 1 : 0}`);
+            await client!.exec(`clientupdate client_input_muted=${muted ? 1 : 0}`);
             break;
           } catch (error: unknown) {
             // A failed acknowledgement cannot justify skipping a later update.
@@ -390,7 +378,7 @@ export class TSClient extends EventEmitter {
 
   async switchChannel(channelId: bigint, password?: string): Promise<void> {
     if (!this.client || !this.connected) return;
-    await tsClientMove(this.client, this.clientId, channelId, password);
+    await moveClient(this.client, asClientID(this.clientId), asChannelID(channelId), password ? { password } : undefined);
     this.preferredChannelId = channelId;
   }
 
@@ -398,14 +386,14 @@ export class TSClient extends EventEmitter {
   async moveClient(clientId: number, channelId: bigint, password?: string): Promise<void> {
     if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
     if (!Number.isInteger(clientId) || clientId <= 0 || clientId > 65535) throw new Error("Invalid TeamSpeak client id");
-    await tsClientMove(this.client, clientId, channelId, password);
+    await moveClient(this.client, asClientID(clientId), asChannelID(channelId), password ? { password } : undefined);
   }
 
   getClientId(): number {
     // The SDK learns the real client id during the welcome sequence, before
     // TSClient.connect() resumes. Reading it from the SDK prevents the first
     // directory snapshot from being built without the web client itself.
-    return this.client?.clientID() ?? this.clientId;
+    return this.client?.clientID ?? this.clientId;
   }
 
   getProtocol(): TeamSpeakProtocol | null {
@@ -414,7 +402,7 @@ export class TSClient extends EventEmitter {
 
   async execCommandWithResponse(command: string, timeoutMs = 3000): Promise<Record<string, string>[]> {
     if (!this.client || !this.connected) throw new Error("TeamSpeak session is not ready");
-    return this.client.execCommandWithResponse(command, timeoutMs);
+    return this.client.exec(command, { timeoutMs });
   }
 
   /**
@@ -435,7 +423,7 @@ export class TSClient extends EventEmitter {
       try {
         // Stream lifecycle callers need the server's acknowledgement, not
         // merely confirmation that the command was handed to the transport.
-        await client!.execCommand(command, timeoutMs);
+        await client!.exec(command, timeoutMs === undefined ? undefined : { timeoutMs });
         if (!isCurrent()) throw new Error("TeamSpeak session changed while sending stream command");
         return;
       } catch (error: unknown) {
@@ -447,14 +435,19 @@ export class TSClient extends EventEmitter {
     }
   }
 
+  /**
+   * The identity in its secret export form (`parseIdentity` reads it back).
+   * The upstream `Identity.toString()` is a safe description without the
+   * private key and must never reach persistence.
+   */
   getIdentityString(): string {
-    return this.identity.toString();
+    return this.identity.export();
   }
 
   getChannelId(): bigint {
     if (!this.client) return 0n;
-    const sdkClient = this.client as unknown as { channelID?: () => bigint };
-    return sdkClient.channelID?.() ?? 0n;
+    const channelId = this.client.channelID;
+    return typeof channelId === "bigint" ? channelId : 0n;
   }
 
   isConnected(): boolean {
@@ -464,7 +457,7 @@ export class TSClient extends EventEmitter {
   async disconnect(): Promise<void> {
     this.connectionGeneration++;
     this.connected = false;
-    this.selfLeaveReasonId = null;
+    this.channelTree.clear();
     try {
       if (this.adapter) await this.adapter.disconnect();
     } finally {
@@ -474,3 +467,5 @@ export class TSClient extends EventEmitter {
     }
   }
 }
+
+export type { TSChannelListing };
