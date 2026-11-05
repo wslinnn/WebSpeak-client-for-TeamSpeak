@@ -1,0 +1,53 @@
+{
+  "name": "@honeybbq/teamspeak",
+  "version": "1.0.0-beta.26+webspeak.1",
+  "description": "TeamSpeak SDK for TypeScript: an independent voice client for Node.js — vendored build output",
+  "keywords": [
+    "client",
+    "sdk",
+    "teamspeak",
+    "ts3",
+    "ts6",
+    "voip"
+  ],
+  "license": "MIT",
+  "author": "honeybbq",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HoneyBBQ/teamspeak-js.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/core/index.d.ts",
+      "default": "./dist/core/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "default": "./dist/client/index.js"
+    },
+    "./query": {
+      "types": "./dist/query/index.d.ts",
+      "default": "./dist/query/index.js"
+    },
+    "./stream": {
+      "types": "./dist/stream/index.d.ts",
+      "default": "./dist/stream/index.js"
+    },
+    "./versions": {
+      "types": "./dist/versions/index.d.ts",
+      "default": "./dist/versions/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.0.1"
+  },
+  "engines": {
+    "node": ">=22.12"
+  }
+}
