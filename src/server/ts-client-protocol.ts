@@ -1,7 +1,7 @@
 import type { TextMessageEvent } from "@honeybbq/teamspeak";
 import type { Client as TSFullClient } from "@honeybbq/teamspeak/client";
 import { parseChannelPasswordProtections } from "./channel-flags.js";
-import type { TSDirectoryChannel, TSDirectoryClient } from "./ts-client-directory.js";
+import { toTSDirectoryClient, type TSDirectoryChannel, type TSDirectoryClient } from "./ts-client-directory.js";
 
 export interface TSChatMessage {
   invokerName: string;
@@ -74,4 +74,39 @@ export async function tsListChannelsFull(client: TSFullClient): Promise<TSChanne
     description: row.channel_description ?? "",
   }));
   return { channels, flags: parseChannelPasswordProtections(rows) };
+}
+
+/**
+ * Directory data from the SDK's own server view, built from the welcome
+ * sequence and pushed events — no `b_virtualserver_channel_list` /
+ * `b_virtualserver_client_list` permission involved. This is the fallback for
+ * servers that deny the raw listings (权限 id 27/29，ts.lwair.cn 实测): the old
+ * SDK's welcome directorySnapshot covered exactly this case, and the upstream
+ * view is its supported equivalent. The view is live as soon as `connect()`
+ * resolves, and `hasPassword` doubles as the lock flag source.
+ */
+export function viewDirectoryClients(client: TSFullClient): TSDirectoryClient[] {
+  return [...client.view.clients.values()].map(toTSDirectoryClient);
+}
+
+export function viewChannelListing(client: TSFullClient): TSChannelListing {
+  const channels: TSDirectoryChannel[] = [];
+  const flags = new Map<bigint, boolean>();
+  for (const channel of client.view.channels.values()) {
+    channels.push({
+      id: channel.id,
+      parentID: channel.parentID,
+      order: channel.order,
+      name: channel.name,
+      description: channel.description ?? "",
+    });
+    flags.set(channel.id, channel.hasPassword);
+  }
+  return { channels, flags };
+}
+
+/** Pull the failed-permission id out of an SDK ServerError for diagnostics. */
+export function describeSdkPermission(error: unknown): { code?: number | string; failedPermissionID?: number | string } {
+  const e = error as { code?: number | string; failedPermissionID?: number | string };
+  return { code: e?.code, failedPermissionID: e?.failedPermissionID };
 }

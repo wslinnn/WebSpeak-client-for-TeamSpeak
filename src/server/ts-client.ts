@@ -6,8 +6,8 @@ import { describeTeamSpeakError, normalizeTeamSpeakError, normalizeTeamSpeakKick
 import { escapeTeamSpeakValue } from "../security/ts-escaping.js";
 import { TeamSpeakAdapter, type TeamSpeakProtocol } from "./teamspeak-adapter.js";
 import type { TeamSpeakTarget } from "../domain/teamspeak-target.js";
-import { toTSChatMessage, tsListChannelsFull, tsListClientsFull, type TSChannelListing } from "./ts-client-protocol.js";
-import { ChannelTreeStore, toDirectoryClientChanges, toTSDirectoryClient } from "./ts-client-directory.js";
+import { describeSdkPermission, toTSChatMessage, tsListChannelsFull, tsListClientsFull, viewChannelListing, viewDirectoryClients, type TSChannelListing } from "./ts-client-protocol.js";
+import { ChannelTreeStore, toDirectoryClientChanges, toTSDirectoryClient, type TSDirectoryClient } from "./ts-client-directory.js";
 import { applyChannelPasswordFlagNotification } from "./channel-flags.js";
 import { fetchTeamSpeakClientAvatar } from "./ts-client-avatar.js";
 
@@ -73,10 +73,18 @@ export class TSClient extends EventEmitter {
     this.identity = options.identity ?? generateIdentitySync(8);
     this.channelTree = new ChannelTreeStore(
       () => this.channelPasswordProtection,
-      () => {
+      async () => {
         const client = this.client;
         if (!client) throw new Error("TeamSpeak session is not ready");
-        return tsListChannelsFull(client);
+        try {
+          return await tsListChannelsFull(client);
+        } catch (error: unknown) {
+          this.logger.warn({
+            err: error instanceof Error ? error.message : String(error),
+            ...describeSdkPermission(error),
+          }, "channellist denied by server permissions; refreshing the channel tree from the SDK view");
+          return viewChannelListing(client);
+        }
       },
       () => this.client !== null && this.connected,
       () => this.connectionGeneration,
@@ -132,22 +140,19 @@ export class TSClient extends EventEmitter {
     // existing client to a newly connected session. Pull one authoritative
     // snapshot through this same client protocol session so users who joined
     // earlier are visible immediately as well. Realtime events continue to
-    // keep the snapshot current after this reconciliation.
-    try {
-      const [listing, clients] = await Promise.all([
-        tsListChannelsFull(client),
-        tsListClientsFull(client),
-      ]);
-      this.channelTree.applyListing(listing);
-      // 锁标记随同一条 channellist 读出；失败只损失锁标记，不影响目录本体。
-      for (const [id, passwordProtected] of listing.flags) this.channelPasswordProtection.set(id, passwordProtected);
-      this.emit("directorySnapshot", { channels: this.channelTree.decorated(), clients });
-    } catch (error: unknown) {
-      this.logger.warn({
-        failureCode: "DIRECTORY_SNAPSHOT_UNAVAILABLE",
-        failureDetail: error instanceof Error ? error.message : String(error),
-      }, "TeamSpeak directory snapshot unavailable");
-    }
+    // keep the snapshot current after this reconciliation. Each side falls
+    // back to the SDK's own server view when the server denies the raw
+    // listing: the view is maintained by the welcome sequence and pushed
+    // events and needs no b_virtualserver_channel_list(27) /
+    // b_virtualserver_client_list(29) permission — exactly what the old
+    // SDK's welcome directorySnapshot used to cover.
+    const [listing, clients] = await Promise.all([
+      this.pullChannelListing(client),
+      this.pullDirectoryClients(client),
+    ]);
+    this.channelTree.applyListing(listing);
+    for (const [id, passwordProtected] of listing.flags) this.channelPasswordProtection.set(id, passwordProtected);
+    this.emit("directorySnapshot", { channels: this.channelTree.decorated(), clients });
 
     const connectedChannelId = client.channelID;
     if (this.preferredChannelId === 0n) {
@@ -172,13 +177,42 @@ export class TSClient extends EventEmitter {
     this.emit("connected", this.clientId);
   }
 
+  /** Pull the channel tree listing; falls back to the SDK view when the
+   *  server denies the raw listing (权限 id 27/29，ts.lwair.cn 实测）。 */
+  private async pullChannelListing(client: TSFullClient): Promise<TSChannelListing> {
+    try {
+      return await tsListChannelsFull(client);
+    } catch (error: unknown) {
+      this.logger.warn({
+        err: error instanceof Error ? error.message : String(error),
+        ...describeSdkPermission(error),
+      }, "channellist denied by server permissions; building the channel tree from the SDK view");
+      return viewChannelListing(client);
+    }
+  }
+
+  /** Pull the member directory; falls back to the SDK view likewise. The
+   *  view is live as soon as connect() resolves, so the fallback needs no
+   *  extra wait. */
+  private async pullDirectoryClients(client: TSFullClient): Promise<TSDirectoryClient[]> {
+    try {
+      return await tsListClientsFull(client);
+    } catch (error: unknown) {
+      this.logger.warn({
+        err: error instanceof Error ? error.message : String(error),
+        ...describeSdkPermission(error),
+      }, "clientlist denied by server permissions; building the directory from the SDK view");
+      return viewDirectoryClients(client);
+    }
+  }
+
   /** Refresh optional member status fields omitted by some client-enter events. */
   async refreshDirectoryClients(): Promise<void> {
     const client = this.client;
     const generation = this.connectionGeneration;
     if (!client || !this.connected) return;
     try {
-      const clients = await tsListClientsFull(client);
+      const clients = await this.pullDirectoryClients(client);
       if (this.client === client && this.connected && this.connectionGeneration === generation) {
         this.emit("directoryClientsSnapshot", clients);
       }
