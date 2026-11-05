@@ -28,7 +28,6 @@
   "prepare": "husky",
   "dependencies": {
     "@discordjs/opus": "^0.10.0",
-    "@echosixhiya/teamspeak-client": "file:vendor/teamspeak-client",
     "@honeybbq/teamspeak": "file:vendor/teamspeak",
     "compression": "^1.8.2",
     "express": "^5.2.1",
