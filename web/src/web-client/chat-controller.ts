@@ -306,10 +306,12 @@ export function createChatController(options: Options) {
     persistNewMessages(messages);
     if (additions.length) {
       // 私聊到达：声音一响（每批至多一次），未读按会话累计——仅当面板可见
-      // 且该会话正激活时豁免（看得见就不算未读）。
+      // 且该会话正激活时豁免（看得见就不算未读）。历史装载重放的旧消息
+      // （isHistory，loadHistory/mergeChatHistory 通道）不算到达：刷新会整段
+      // 重放持久化历史，不豁免就是「刷新后未读角标复活」（2026-11-05 用户报告）。
       let notified = false;
       for (const message of additions) {
-        if (message.scope !== "private" || message.isSelf) continue;
+        if (message.isHistory || message.scope !== "private" || message.isSelf) continue;
         if (!notified) { options.notifyPrivateMessage(); notified = true; }
         const key = messageKey(message);
         const activelyViewed = tab() === "private" && state().privateConversationKey === key && panelShows();

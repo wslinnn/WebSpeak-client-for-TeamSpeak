@@ -319,4 +319,31 @@ describe("chat controller（私聊 seed 与未读）", () => {
     await tick();
     expect(store.getState().unreadPrivate).toEqual({ "uid:peer": 1, "uid:other": 1 });
   });
+
+  it("history replay on refresh neither counts unread nor rings the arrival sound", async () => {
+    const notify = vi.fn();
+    const { session, store } = harness({ notifyPrivateMessage: notify });
+    // 刷新后 loadHistory 经 mergeChatHistory 整段重放持久化历史（isHistory: true）：
+    // 旧消息不是「到达」，不响提示音也不复活未读角标（2026-11-05 用户报告）。
+    session.setState({
+      chatMessages: [
+        { ...peerMessage("h1", 1), isHistory: true },
+        { ...peerMessage("h2", 2), isHistory: true },
+      ],
+    });
+    await tick();
+    expect(store.getState().unreadPrivate).toEqual({});
+    expect(notify).not.toHaveBeenCalled();
+    // 历史重放之后，真正的新到达照常累计并响铃。
+    session.setState({
+      chatMessages: [
+        { ...peerMessage("h1", 1), isHistory: true },
+        { ...peerMessage("h2", 2), isHistory: true },
+        peerMessage("m3", 3),
+      ],
+    });
+    await tick();
+    expect(store.getState().unreadPrivate).toEqual({ "uid:peer": 1 });
+    expect(notify).toHaveBeenCalledTimes(1);
+  });
 });
