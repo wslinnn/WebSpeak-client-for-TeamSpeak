@@ -53,9 +53,9 @@
 - 语音路径禁止逐帧持久日志；音频计数走内存诊断快照。
 - Firefox 的 WebRTC 输出设备选择降级为默认设备，有意取舍。
 
-## TS 语音数据形态（vendored @echosixhiya/teamspeak-client 0.2.4 与 D:\develop\project\tsweb\teamspeak-js 源码钉死，两边语音路径逐字节一致）
+## TS 语音数据形态（wire 布局由 31/33/36/37 号抓包钉死；vendor 已换 @honeybbq/teamspeak 1.0.0-beta.26 纯净产物，2026-11-05）
 
-S2C 数据报 = 8B EAX tag + 3B 头（packetID u16BE + typeFlagged：低 nibble 0=Voice 1=Whisper；语音/私语上高 nibble 0x10=扩展头字节、0x20=组私语格式（直接客户端/频道目标必须不置位，否则服务器按 `[TY][TA][U u64]` 解析）、0x40=尾字节、0x80=未加密——与命令包的 Fragmented/NewProtocol/Compressed 同 bit 不同义）+ 密文；语音包体 = VId u16BE（说话人自序号，SDK 解析后丢弃不透传——将来要核对 TS 侧丢包须先让 SDK 带出）+ CId u16BE + codec u8（4=Opus-Voice 单声道 / 5=Opus-Music 可立体声）+ 裸 Opus 帧（TOC+数据，payload 透传合法性的根据）。SDK handler 对语音不重组不解压（重组与 QuickLZ 解压只属于 Command 路径）、一个数据报只解析一个包、包体≤5 字节（burst 空载荷末包）静默丢、clid 自滤自我回声、setImmediate 异步保序分发。两个「发生即静默劣化」边界：① whisper 与普通语音在 VoiceData 合流（无类型字段，whisper 会被当频道语音转发；S2C 包体与语音同构已由 36 号 R2 实锤，接收侧安全）；② 语音包 0x10/0x40 可选字节由网关处理（`voice-payload.ts`：尾字节先剥离再做 ≤3 字节 CN 过滤、按 nvp 等长拆帧后逐帧路由；桌面端 nvp 恒 1、尾字节仅每连接前 5 包）。已关闭：多包一数据报（31 号实锤官方无合装）；「burst 前 5 包压缩」线索（0x40 是 RTT 抖动尾字节，QuickLZ 只属命令路径）。TS=SFU 由此字节级坐实（每包自带说话人 CId，MCU 形态不可能有）；旧 WebSpeak 每频道混流才是 MCU 形态且已删。
+S2C 数据报 = 8B EAX tag + 3B 头（packetID u16BE + typeFlagged：低 nibble 0=Voice 1=Whisper；语音/私语上高 nibble 0x10=扩展头字节、0x20=组私语格式（直接客户端/频道目标必须不置位，否则服务器按 `[TY][TA][U u64]` 解析——上游 `sendWhisper` 直接目标已正确不置位，wire behaviours 实测钉住）、0x40=尾字节、0x80=未加密——与命令包的 Fragmented/NewProtocol/Compressed 同 bit 不同义）+ 密文；语音包体 = VId u16BE + CId u16BE + codec u8（4=Opus-Voice 单声道 / 5=Opus-Music 可立体声）+ 裸 Opus 帧（TOC+数据，payload 透传合法性的根据）。**上游 VoiceDataEvent 现透出**（2026-11-05 起）：session（连接会话号，变化即须重置每说话人状态）、clientID、whisper（私语布尔——旧「whisper 与普通语音合流无类型字段」边界已解）、seq（=VId 说话人自序号，带符号 16 位差比较）、receivedAt（socket 读取时刻 performance.now()）、codec、data（**已复制**，包缓冲复用安全）；空载荷（burst 末包）不再静默丢，作为「说话结束」事件上抛（网关 ≤3 字节 CN 过滤自然吞掉）。**暴露面缺口（拍板接受，2026-11-05，vendor/teamspeak/VENDOR.md 在案）**：包头高 nibble flags 不再透出——①官方桌面端每连接前 5 包的 0x40 尾字节不再由网关剥离（首 5 帧多 1 字节转发给浏览器，Opus 解码器容忍尾部多余字节，真机待复测）；②0x10 扩展字节同理不出现（桌面端 nvp 恒 1）。`voice-payload.ts` 的 splitVoicePayload 保持原样（wire 语义正确），flags 传 0 即单帧透传。SDK 语音路径行为：不重组不解压（重组与 QuickLZ 只属 Command 路径）、一数据报一包、clid 自滤自我回声、异步保序分发。已关闭：多包一数据报（31 号实锤官方无合装）；「burst 前 5 包压缩」线索（0x40 是 RTT 抖动尾字节，QuickLZ 只属命令路径）。TS=SFU 由此字节级坐实（每包自带说话人 CId，MCU 形态不可能有）；旧 WebSpeak 每频道混流才是 MCU 形态且已删。
 
 ## node-sfu（werift 官方示例，本机 D:\develop\project\tsweb\node-sfu）参考结论
 

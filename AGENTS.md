@@ -1,6 +1,6 @@
 # WebSpeak Client for TeamSpeak — 工作区指引
 
-自托管 Node.js 网关，把浏览器用户接入 TeamSpeak 3/6；每个浏览器会话对应一个独立 TS 客户端。TeamSpeak 协议 SDK 以构建产物形式 vendored 在仓库内（`vendor/teamspeak-client/`）。
+自托管 Node.js 网关，把浏览器用户接入 TeamSpeak 3/6；每个浏览器会话对应一个独立 TS 客户端。TeamSpeak 协议 SDK 以构建产物形式 vendored 在仓库内（`vendor/teamspeak/`）。
 
 **定位与约束（做取舍时先读）**：这是上游的裁剪 fork，供自用；性能优先（延迟、通话质量、资源占用），**服务器上行仅 3Mbps** 是决定性约束——带宽相关的方案按 09 号报告 §1 的容量模型评估。已删除：加速中继、Android 端、DemoView、访客计数、皮肤系统（2026-10-18 下架，勿从 upstream 合并回归）。
 
@@ -18,7 +18,7 @@
 ## 结构
 
 - `src/` — 后端（Express + ws + TeamSpeak SDK + Opus + werift + SQLite）：`server/` 网关核心，`shared/` 前后端共享的线上协议类型与运行时校验，`admin/` `security/` `persistence/`
-- `vendor/teamspeak-client/` — vendored 的 `@echosixhiya/teamspeak-client` 构建产物（MIT）；升级步骤见 `VENDOR.md`，含一处本地修复（同昵称自我识别，VENDOR.md 在案）。**upstream 服务端代码按 `@honeybbq/teamspeak` beta.19 API 编写（其 `/query` 子模块 0.2.4 没有）——从 upstream 合并 `src/server` 相关前先核对 SDK API 漂移**
+- `vendor/teamspeak/` — vendored 的 `@honeybbq/teamspeak` 1.0.0-beta.26 构建产物（MIT，**纯净无本地补丁**）；升级步骤见 `vendor/teamspeak/VENDOR.md`（含 2026-11-05 从旧线 `@echosixhiya/teamspeak-client` 0.2.4 迁移的拍板记录：三处旧补丁处置与接收侧 flags 暴露缺口）。**upstream WebSpeak 服务端代码按 `@honeybbq/teamspeak` beta.19 API 编写——从 upstream 合并 `src/server` 相关前仍需核对 beta.19→beta.26 的 API 漂移**
 - `web/` — React 19 + Vite 前端（前端依赖独立安装，`web/package-lock.json`）：
   - `web/src/voice/` — 语音核心（framework-free，ESLint zone 禁反向依赖 UI）：`session-controller.ts` 门面 + 八个纯移动拆分模块（audio-preferences / chat-send / connection-lifecycle / audio-output / microphone / audio-devices / session-model / error-messages），133 节点门面测试只打公共契约
   - `web/src/web-client/` — 控制器层（chat-controller / channel-tree / members-controller / audio-controls 等页面自有控制器）

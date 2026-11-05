@@ -7,7 +7,7 @@
 - 内容：fork `dist/` 构建产物 + LICENSE（MIT）+ 上游 README；`package.json` 仅保留运行所需字段
 - vendoring 日期：2026-11-05
 
-历史备注：2026-10-09 至 2026-11-03 期间 vendor 的是旧线 `@echosixhiya/teamspeak-client` 0.2.4（EchoSixHIYA 中间游，见本仓库 `backup/echosix-line-0.2.4` 分支保存的 fork 构建来源），带三处本地补丁（自我识别 / 私语标志 / RTT 尾字节）。2026-11-05 对齐到 HoneyBBQ 上游 main 后改为纯净产物：
+历史备注：2026-10-09 至 2026-11-03 期间 vendor 的是旧线 `@echosixhiya/teamspeak-client` 0.2.4（EchoSixHIYA 中间上游，fork 构建来源保存在 wslinnn/teamspeak-js 的 `backup/echosix-line-0.2.4` 分支），带三处本地补丁（自我识别 / 私语标志 / RTT 尾字节）。2026-11-05 fork main 对齐到 HoneyBBQ 上游 main 后改为纯净产物：
 
 1. 自我识别：上游 client.ts 已按 `initserver`/`aclid` 处理自我识别（含 aclid 缺失的握手窗口兜底），旧补丁等价已吸收；
 2. 直接私语帧格式：上游 `sendWhisper` 直接客户端/频道目标不置 `0x20` 组私语位（有 wire behaviours 实测钉住），旧补丁等价已吸收；
