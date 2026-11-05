@@ -260,8 +260,16 @@ export async function loadChatHistory(serverKey: string): Promise<ChatMessage[]>
       get.onsuccess = () => resolve(get.result as ChatHistoryRecord[]);
       get.onerror = () => reject(get.error);
     });
-    return records.flatMap(record => record.messages).sort((left, right) => left.timestamp - right.timestamp)
-      .map(message => ({ ...message, isHistory: true }));
+    // 恢复时把记录的 uid 形态分组键写回消息：消息体可能没有 conversationKey
+    // （旧版数据），丢了它 messageKey 会落到 clid 锚兜底——对方退出重进
+    // （clid 必变）后同一会话分裂成两个页签（2026-11-05 用户报告）。
+    return records.flatMap(record => record.messages.map(message => ({
+      ...message,
+      isHistory: true,
+      ...(record.conversationKey.startsWith("private:uid:") && !message.conversationKey
+        ? { conversationKey: record.conversationKey.slice("private:".length) }
+        : {}),
+    }))).sort((left, right) => left.timestamp - right.timestamp);
   } catch {
     return [];
   }

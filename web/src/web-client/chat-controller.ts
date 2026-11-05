@@ -102,9 +102,15 @@ export function createChatController(options: Options) {
     if (message.scope !== "private") return `legacy:${message.id}`;
     if (message.conversationKey?.startsWith("uid:")) return message.conversationKey;
     if (message.senderUid && !message.isSelf) return `uid:${message.senderUid}`;
-    const id = Number(message.conversationId) || message.senderId || 0;
+    // uid 锚兜底：conversationId 是对方的连接级 clid（退出重进必变），直接当
+    // 锚会把同一会话分裂成两个页签（2026-11-05 用户报告）。优先按 clid 反查
+    // 在册成员的 uid；查不到（对方离线且消息无 uid 锚，旧版持久化数据）才落
+    // 到 client 锚——该形态只剩「离线旧会话」语义。
+    const clid = Number(message.conversationId) || message.senderId || 0;
+    const member = clid ? options.session.getState().members.find((candidate) => candidate.id === clid) : undefined;
+    if (member?.uid) return `uid:${member.uid}`;
     const name = message.conversationName || (message.isSelf ? "" : message.invokerName);
-    return id ? `client:${JSON.stringify([id, name])}` : `legacy:${message.id}`;
+    return clid ? `client:${JSON.stringify([clid, name])}` : `legacy:${message.id}`;
   };
   const recipient = () => options.session.getState().members.find((member) => member.id === state().privateClientId && memberKey(member) === state().privateConversationKey);
   const destination = () =>

@@ -320,6 +320,25 @@ describe("chat controller（私聊 seed 与未读）", () => {
     expect(store.getState().unreadPrivate).toEqual({ "uid:peer": 1, "uid:other": 1 });
   });
 
+  it("self-sent history without a stored key resolves the peer uid so the tab stays merged", async () => {
+    const { controller, session } = harness();
+    session.setState({ members: [peerMember] });
+    // 对方旧 clid=7 的自发历史消息（无 conversationKey，旧版持久化数据形态）：
+    // key 必须反查在册成员 uid 归并进 uid 锚会话，而不是分裂成 client:[7,""]。
+    session.setState({
+      chatMessages: [
+        { ...peerMessage("s1", 1), isSelf: true, senderId: 1, message: "Sent old" },
+        peerMessage("r1", 2),
+      ],
+    });
+    await tick();
+    const conversations = controller.conversations();
+    expect(conversations).toHaveLength(1);
+    expect(conversations[0]?.key).toBe("uid:peer");
+    controller.openPrivateChat(7);
+    expect(controller.visibleMessages()).toHaveLength(2);
+  });
+
   it("history replay on refresh neither counts unread nor rings the arrival sound", async () => {
     const notify = vi.fn();
     const { session, store } = harness({ notifyPrivateMessage: notify });
