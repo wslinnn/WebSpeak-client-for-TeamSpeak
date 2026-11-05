@@ -311,7 +311,7 @@
  },
  "voice.content": {
   "w": 385,
-  "h": 1029,
+  "h": 1036,
   "display": "block",
   "position": "relative",
   "flexDirection": "",
@@ -838,7 +838,7 @@
  },
  "voice.chat": {
   "w": 385,
-  "h": 388,
+  "h": 395,
   "display": "block",
   "position": "static",
   "flexDirection": "",
@@ -885,7 +885,7 @@
   "borderBottomWidth": "",
   "borderLeftWidth": "",
   "padding": "0px",
-  "margin": "18px 0px 0px",
+  "margin": "25px 0px 0px",
   "fontSize": "",
   "fontWeight": "",
   "lineHeight": "",

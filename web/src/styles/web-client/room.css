@@ -916,7 +916,9 @@
  * 药片、active 钴蓝高亮（accent 20% 底 + 32% 描边 + 700 字重，旧皮平价）。 */
 .chat-tabs {
   max-width: 100%;
-  margin-top: 18px;
+  /* 上方 25px 与页签行下方 .chat-heading 的 padding-top 对称（面板顶
+   * border → 页签行 → 计数器行，上下等距，2026-11-05 用户反馈）。 */
+  margin-top: 25px;
   gap: 6px;
   height: auto;
   overflow-x: auto;
