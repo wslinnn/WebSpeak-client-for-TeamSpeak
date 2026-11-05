@@ -1,0 +1,393 @@
+/**
+ * File transfer data.
+ *
+ * Negotiating a transfer is a command (`initFileUpload`, `initFileDownload`);
+ * the bytes then go over a separate TCP connection to the server's file
+ * transfer port, opened with the key the negotiation returned.
+ */
+import { connect } from "node:net";
+import { pipeline } from "node:stream/promises";
+import { Transform, Writable } from "node:stream";
+import { FileTransferError } from "./errors.js";
+import { callHook } from "./hooks.js";
+import { joinHostPort } from "./address.js";
+import { abortable } from "./abort.js";
+/** How long dialing may take before it fails, unless a signal says otherwise. */
+const DIAL_TIMEOUT_MS = 10_000;
+/** How long a transfer may go without moving a byte, unless `idleTimeoutMs` says otherwise. */
+const DEFAULT_IDLE_TIMEOUT_MS = 30_000;
+/** How many bytes move between two calls of the `progress` hook, at least. */
+const PROGRESS_STEP_BYTES = 64 * 1024;
+/** The file transfer ports a connection can be made to. */
+const MAX_PORT = 65535;
+/**
+ * The errors of dials that failed before the connection opened. Nothing has
+ * reached the server then: not the key, and no byte of the file.
+ */
+const failedBeforeConnect = new WeakSet();
+/**
+ * Whether `error` is a dial that never got a connection: refused, unreachable,
+ * or timed out while connecting. Not one the caller's signal or the idle limit
+ * ended, nor one after the connection opened, where the key may have been
+ * written and the server may hold or have dropped the transfer.
+ */
+export function failedToConnect(error) {
+    return typeof error === "object" && error !== null && failedBeforeConnect.has(error);
+}
+/** The values of the table below, before freezing. */
+const fileTransferStageValues = {
+    /** Reaching the transfer port, before the key is written. */
+    Dial: "dial",
+    /** After the connection opened, while the key or the file moved. */
+    Transfer: "transfer",
+};
+/** Where a failed transfer failed. */
+export const FileTransferStage = 
+/* @__PURE__ */ Object.freeze(fileTransferStageValues);
+function newIdleGuard(options) {
+    const limitMs = options.idleTimeoutMs ?? DEFAULT_IDLE_TIMEOUT_MS;
+    if (!Number.isFinite(limitMs) || limitMs < 0) {
+        throw new RangeError("idleTimeoutMs must be a finite number of milliseconds, 0 or more");
+    }
+    const controller = new AbortController();
+    if (limitMs === 0) {
+        return { signal: controller.signal, limitMs, touch() { }, stop() { } };
+    }
+    const timer = setTimeout(() => controller.abort(new DOMException(`no data moved for ${limitMs} ms`, "TimeoutError")), limitMs);
+    return {
+        signal: controller.signal,
+        limitMs,
+        touch: () => timer.refresh(),
+        stop: () => clearTimeout(timer),
+    };
+}
+/** The error a transfer fails with when `idle` expired, else `error` as it is. */
+function idleOr(idle, error) {
+    if (!idle.signal.aborted)
+        return error;
+    return new FileTransferError(`file transfer stalled: no data moved for ${idle.limitMs} ms`, {
+        cause: idle.signal.reason,
+    });
+}
+function newTransferTrace(options) {
+    return {
+        trace: options.trace === undefined ? undefined : { ...options.trace },
+        startedAt: performance.now(),
+        bytes: 0,
+    };
+}
+function reportFailed(t, error, stage) {
+    callHook(t.trace?.failed, t.trace, () => ({
+        error,
+        bytes: t.bytes,
+        durationMs: performance.now() - t.startedAt,
+        stage,
+    }));
+}
+/**
+ * Open a connection to the file transfer port and send the transfer key.
+ * The caller owns the returned stream and must end or destroy it.
+ */
+export async function dialFileTransfer(host, port, key, options = {}) {
+    const t = newTransferTrace(options);
+    const idle = newIdleGuard(options);
+    try {
+        return await dial(host, port, key, options, t, idle);
+    }
+    catch (error) {
+        const failure = idleOr(idle, error);
+        reportFailed(t, failure, "dial");
+        throw failure;
+    }
+    finally {
+        idle.stop();
+    }
+}
+async function dial(host, port, key, options, t, idle) {
+    const { signal, socketFactory } = options;
+    if (!Number.isInteger(port) || port < 1 || port > MAX_PORT) {
+        throw new FileTransferError(`the file transfer port is ${String(port)}, not 1 to ${MAX_PORT}`);
+    }
+    // One budget for the connection and the key write: a peer that accepts the
+    // connection and never reads would otherwise hold the write forever.
+    const timeout = AbortSignal.timeout(DIAL_TIMEOUT_MS);
+    const dialSignal = AbortSignal.any(signal ? [signal, timeout, idle.signal] : [timeout, idle.signal]);
+    const addr = joinHostPort(host, String(port));
+    callHook(t.trace?.dialStart, t.trace, () => ({ addr }));
+    signal?.throwIfAborted();
+    const socket = socketFactory ? socketFactory(host, port) : connect({ host, port });
+    // Until the caller takes the stream over, its errors are this function's to
+    // report: a stream's unhandled `error` event takes the process down.
+    const swallow = () => { };
+    socket.on("error", swallow);
+    let open = false;
+    try {
+        await abortable(connected(socket), dialSignal);
+        open = true;
+        idle.touch();
+        await abortable(new Promise((resolve, reject) => {
+            socket.write(key, (err) => err
+                ? reject(new FileTransferError(`failed to send transfer key: ${err.message}`, {
+                    cause: err,
+                }))
+                : resolve());
+        }), dialSignal);
+        idle.touch();
+    }
+    catch (error) {
+        socket.destroy();
+        if (timeout.aborted && error === timeout.reason) {
+            const timedOut = new FileTransferError("file transfer connection timed out", {
+                cause: error,
+            });
+            if (!open)
+                failedBeforeConnect.add(timedOut);
+            throw timedOut;
+        }
+        throw error;
+    }
+    finally {
+        socket.off("error", swallow);
+    }
+    callHook(t.trace?.dialDone, t.trace, () => {
+        let localAddr = "";
+        const local = socket;
+        if (typeof local.localAddress === "string" && typeof local.localPort === "number") {
+            localAddr = joinHostPort(local.localAddress, String(local.localPort));
+        }
+        return { addr, localAddr, durationMs: performance.now() - t.startedAt };
+    });
+    return socket;
+}
+/**
+ * A pass-through that counts what moves and reports it to `progress`. It never
+ * fails the pipeline: a hook's error is reported, not thrown.
+ */
+function countingStream(t, total, idle) {
+    let reported = 0;
+    return new Transform({
+        transform(chunk, _encoding, callback) {
+            t.bytes += typeof chunk === "string" ? Buffer.byteLength(chunk) : chunk.length;
+            idle.touch();
+            if (t.bytes - reported >= PROGRESS_STEP_BYTES) {
+                reported = t.bytes;
+                const bytes = t.bytes;
+                callHook(t.trace?.progress, t.trace, () => ({ bytes, total }));
+            }
+            callback(null, chunk);
+        },
+    });
+}
+/**
+ * Passes exactly `expected` bytes. One more byte fails the transfer, and is
+ * not passed on; a stream that ends before `expected` fails it too. `what`
+ * says who fixed the size, for the message.
+ */
+function exactSize(expected, what) {
+    let received = 0;
+    return new Transform({
+        transform(chunk, _encoding, callback) {
+            const room = expected - received;
+            if (chunk.length > room) {
+                this.push(chunk.subarray(0, room));
+                received = expected;
+                callback(new FileTransferError(`file transfer sent more than the ${what} ${expected} bytes`));
+                return;
+            }
+            received += chunk.length;
+            callback(null, chunk);
+        },
+        flush(callback) {
+            callback(received === expected
+                ? null
+                : new FileTransferError(`file transfer ended after ${received} of the ${what} ${expected} bytes`));
+        },
+    });
+}
+/** Run a transfer's data phase, and report how the whole call ended. */
+async function transfer(host, port, key, total, options, move) {
+    const t = newTransferTrace(options);
+    const idle = newIdleGuard(options);
+    try {
+        let socket;
+        try {
+            socket = await dial(host, port, key, options, t, idle);
+        }
+        catch (error) {
+            const failure = idleOr(idle, error);
+            reportFailed(t, failure, "dial");
+            throw failure;
+        }
+        try {
+            const signal = options.signal ? AbortSignal.any([options.signal, idle.signal]) : idle.signal;
+            await move(socket, countingStream(t, total, idle), { signal });
+        }
+        catch (error) {
+            // A pipeline aborted by the caller's signal rejects as the signal says;
+            // one aborted by the idle limit is the transfer's own failure.
+            const failure = idleOr(idle, error);
+            reportFailed(t, failure, "transfer");
+            throw failure;
+        }
+        finally {
+            // The server ends a transfer it has finished, and a failed one is
+            // abandoned here; either way nothing is left to keep the socket for.
+            socket.destroy();
+        }
+    }
+    finally {
+        idle.stop();
+    }
+    const bytes = t.bytes;
+    callHook(t.trace?.progress, t.trace, () => ({ bytes, total }));
+    callHook(t.trace?.done, t.trace, () => ({
+        bytes,
+        durationMs: performance.now() - t.startedAt,
+    }));
+}
+/**
+ * Wait for a stream to be connected. A `node:net` socket says so with
+ * `connect`; a stream from elsewhere that is already writable is taken as
+ * connected.
+ */
+function connected(socket) {
+    const pending = socket.pending;
+    if (pending === false || (pending === undefined && socket.writable))
+        return Promise.resolve();
+    return new Promise((resolve, reject) => {
+        const done = (error) => {
+            socket.off("connect", onConnect);
+            socket.off("ready", onConnect);
+            socket.off("error", onError);
+            if (error === undefined)
+                resolve();
+            else
+                reject(error);
+        };
+        const onConnect = () => done();
+        const onError = (error) => {
+            const failure = new FileTransferError(`file transfer connection failed: ${error.message}`, {
+                cause: error,
+            });
+            failedBeforeConnect.add(failure);
+            done(failure);
+        };
+        socket.once("connect", onConnect);
+        socket.once("ready", onConnect);
+        socket.once("error", onError);
+    });
+}
+/**
+ * How many bytes a negotiated transfer moves: the file's size less the
+ * position it starts from.
+ */
+function bytesToMove(size, seekPosition) {
+    if (seekPosition < 0n || seekPosition > size) {
+        throw new FileTransferError(`the transfer starts at ${seekPosition}, outside a file of ${size} bytes`);
+    }
+    return Number(size - seekPosition);
+}
+/**
+ * A sink that hands what it is given to `dest`, one write at a time, without
+ * ever ending it: the stream is the caller's, and may take more transfers.
+ * `dest`'s errors fail the sink, so the pipeline sees them.
+ */
+function intoStream(dest) {
+    const sink = new Writable({
+        write(chunk, _encoding, callback) {
+            dest.write(chunk, callback);
+        },
+    });
+    const onError = (error) => {
+        sink.destroy(error);
+    };
+    dest.on("error", onError);
+    // A failed `dest` reports its error a tick after the write that failed, by
+    // which time this sink is closed: keep listening until that has been said.
+    sink.on("close", () => setImmediate(() => dest.off("error", onError)));
+    return sink;
+}
+/**
+ * The same for a socket that is not to be ended: an upload is over when the
+ * server says so, not when the last byte has left.
+ */
+function intoSocket(socket) {
+    // A write after the server closed the connection fails with the socket's own
+    // error (EPIPE, or "ended by the other party"): the transfer's failure.
+    const failure = (error) => new FileTransferError(`file transfer connection failed: ${error.message}`, {
+        cause: error,
+    });
+    const sink = new Writable({
+        write(chunk, _encoding, callback) {
+            socket.write(chunk, (error) => callback(error ? failure(error) : null));
+        },
+    });
+    socket.on("error", (error) => {
+        sink.destroy(failure(error));
+    });
+    return sink;
+}
+/** Resolves once the server has closed the transfer connection. */
+function serverClosed(socket, signal) {
+    if (socket.readableEnded || socket.destroyed)
+        return Promise.resolve();
+    const closed = new Promise((resolve, reject) => {
+        const done = (error) => {
+            socket.off("end", onEnd);
+            socket.off("close", onEnd);
+            socket.off("error", done);
+            if (error === undefined)
+                resolve();
+            else
+                reject(error);
+        };
+        const onEnd = () => done();
+        socket.once("end", onEnd);
+        socket.once("close", onEnd);
+        socket.once("error", done);
+    });
+    // Nothing is sent back, but the end of the stream is only seen by reading.
+    socket.resume();
+    return abortable(closed, signal);
+}
+/**
+ * Upload `data` over a negotiated transfer. `data` is the file from
+ * `info.seekPosition` on, and must give exactly the bytes left of
+ * `info.size`: a stream that gives fewer or more fails the transfer.
+ *
+ * Resolves once the server has closed the transfer connection, which it does
+ * when it has the file. Measured on TeamSpeak 3 3.13.8 and TeamSpeak 6 6.0.0:
+ * the server closes about 200 ms after the last byte of a 100 000-byte file,
+ * and at once after the declared size when more is sent. A connection that
+ * closes before every byte is written, or that stays open for the idle limit,
+ * fails the transfer.
+ *
+ * A close after the last byte is not proof that the file is stored: the server
+ * sends nothing on the transfer connection, and over the voice protocol its
+ * `notifystatusfiletransfer` comes only for a failure (2066 canceled, 2063
+ * lost connection, 2052 more than declared), after the close, never for
+ * success; over ServerQuery nothing comes. `uploadFile` therefore asks the
+ * server for the file's size with `ftgetfileinfo` before it resolves.
+ */
+export async function uploadFileData(host, info, data, options = {}) {
+    const expected = bytesToMove(info.size, info.seekPosition);
+    await transfer(host, info.port, info.fileTransferKey, expected, options, async (socket, counter, pipeOptions) => {
+        await pipeline(data, exactSize(expected, "declared"), counter, intoSocket(socket), pipeOptions);
+        await serverClosed(socket, pipeOptions.signal);
+    });
+}
+/**
+ * Download a negotiated transfer into `dest`. Resolves once the file is
+ * written; `dest` is not ended, so it may take another download.
+ *
+ * A download from `info.seekPosition` brings the bytes from there to the end
+ * of the file: measured on TeamSpeak 3 3.13.8 and TeamSpeak 6 6.0.0, a
+ * `seekpos` of 40 000 on a 100 000-byte file is answered with the whole size
+ * and then 60 000 bytes.
+ */
+export async function downloadFileData(host, info, dest, options = {}) {
+    const expected = bytesToMove(info.size, info.seekPosition);
+    await transfer(host, info.port, info.fileTransferKey, expected, options, (socket, counter, pipeOptions) => pipeline(socket, exactSize(expected, "announced"), counter, intoStream(dest), pipeOptions));
+}
+export { FileTransferError };
+//# sourceMappingURL=transfer.js.map

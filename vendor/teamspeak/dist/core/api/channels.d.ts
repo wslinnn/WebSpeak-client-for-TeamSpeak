@@ -1,0 +1,250 @@
+/**
+ * Channel commands.
+ *
+ * Channel settings are a wide, mostly-optional set. The options objects name
+ * them in camelCase without the `channel_` prefix (`codecQuality` for
+ * `channel_codec_quality`), and each options type has a table naming every
+ * field's wire parameter, so the mapping is written down once and a key the
+ * table does not know is never sent.
+ */
+import type { BatchOptions, Channel, PermissionEntry, PermissionValue } from "./command.js";
+import type { CommandExecutor, CommandOptions } from "../command/request.js";
+import type { ChannelID, ClientDBID } from "../command/ids.js";
+import type { BannerMode, Codec } from "../enums.js";
+import type { Permission } from "../permission.js";
+/**
+ * Channel settings, as `channelcreate` and `channeledit` take them.
+ *
+ * Only the fields you set are sent. An unset (undefined) field is omitted and
+ * leaves the setting alone; any other value is sent, so `""` sends an empty
+ * value — `password: ""` clears a channel's password, while leaving `password`
+ * unset keeps it.
+ */
+export interface ChannelSettings {
+    /** The topic shown under the name (`channel_topic`). */
+    readonly topic?: string | undefined;
+    /** The description (`channel_description`). */
+    readonly description?: string | undefined;
+    /**
+     * The channel password (`channel_password`), in cleartext: the voice client
+     * hashes it on the wire and ServerQuery sends it as is. `""` removes it.
+     */
+    readonly password?: string | undefined;
+    /**
+     * Whether the channel is password-protected (`channel_flag_password`). The
+     * server sets this itself when a password is set.
+     */
+    readonly hasPassword?: boolean | undefined;
+    /** The voice codec (`channel_codec`). */
+    readonly codec?: Codec | undefined;
+    /** The codec's quality, 0 to 10 (`channel_codec_quality`). */
+    readonly codecQuality?: number | undefined;
+    /** How many packets of voice to send at once, 1 to 10 (`channel_codec_latency_factor`). */
+    readonly codecLatencyFactor?: number | undefined;
+    /** Whether voice in the channel travels unencrypted (`channel_codec_is_unencrypted`). */
+    readonly isUnencrypted?: boolean | undefined;
+    /** How many clients may be in the channel (`channel_maxclients`). */
+    readonly maxClients?: number | undefined;
+    /**
+     * How many clients may be in the channel and those under it
+     * (`channel_maxfamilyclients`).
+     */
+    readonly maxFamilyClients?: number | undefined;
+    /** Whether `maxClients` is ignored (`channel_flag_maxclients_unlimited`). */
+    readonly isMaxClientsUnlimited?: boolean | undefined;
+    /** Whether `maxFamilyClients` is ignored (`channel_flag_maxfamilyclients_unlimited`). */
+    readonly isMaxFamilyClientsUnlimited?: boolean | undefined;
+    /**
+     * Whether the family limit is taken from the parent
+     * (`channel_flag_maxfamilyclients_inherited`).
+     */
+    readonly isMaxFamilyClientsInherited?: boolean | undefined;
+    /**
+     * The channel to sort this one after among its siblings; 0 sorts it first
+     * (`channel_order`).
+     */
+    readonly order?: ChannelID | undefined;
+    /** The talk power a client needs to speak here (`channel_needed_talk_power`). */
+    readonly neededTalkPower?: number | undefined;
+    /** Whether the channel survives a server restart (`channel_flag_permanent`). */
+    readonly isPermanent?: boolean | undefined;
+    /**
+     * Whether the channel survives its last client leaving, but not a restart
+     * (`channel_flag_semi_permanent`).
+     */
+    readonly isSemiPermanent?: boolean | undefined;
+    /** Whether new clients land here (`channel_flag_default`). */
+    readonly isDefault?: boolean | undefined;
+    /**
+     * How long a temporary channel survives its last client leaving, in
+     * milliseconds (`channel_delete_delay`). Sent in whole seconds.
+     */
+    readonly deleteDelayMs?: number | undefined;
+    /** How the name is pronounced, for text-to-speech (`channel_name_phonetic`). */
+    readonly namePhonetic?: string | undefined;
+    /** The URL of the channel's banner image (`channel_banner_gfx_url`); needs `b_channel_modify_banner`. */
+    readonly bannerURL?: string | undefined;
+    /** How the banner is fitted to the channel (`channel_banner_mode`); needs `b_channel_modify_banner`. */
+    readonly bannerMode?: BannerMode | undefined;
+}
+/** A new channel's settings. Only `name` is required; see {@link ChannelSettings}. */
+export interface ChannelCreateOptions extends ChannelSettings {
+    /** The channel's name (`channel_name`). */
+    readonly name: string;
+    /**
+     * The channel to create the new one under; unset or 0 is the top level, and
+     * either omits the parameter (`cpid`).
+     */
+    readonly parentID?: ChannelID | undefined;
+}
+/**
+ * Create a channel and return the id the server assigned.
+ *
+ * Over the voice protocol the server also moves the creator into the new
+ * channel.
+ *
+ * TeamSpeak 6 6.0.0-beta13.1 over WebQuery answers a `channelcreate` without
+ * its `cid`, in a share of the creates, while a Server Admin voice client is
+ * connected: the server writes the id after its status, so the HTTP answer has
+ * none. The channel exists then, and a retry would fail with a duplicate name.
+ * When the answer lacks the `cid`, the channel is looked up by its exact name
+ * under the same parent (`channellist`), which is exact, since the server
+ * keeps names unique among siblings. The one gap is another client renaming or
+ * deleting the channel between the create and the lookup. A NoDataError is
+ * thrown only when none matches. See "Server behaviour the SDK works around"
+ * in `docs/serverquery-responses.md`.
+ *
+ * `channel` is what to send; the command's `signal` and `timeoutMs` go in
+ * `options`, a separate last argument — set among the fields, they are not
+ * read.
+ */
+export declare function createChannel(client: CommandExecutor, channel: ChannelCreateOptions, options?: CommandOptions): Promise<ChannelID>;
+/** A channel's changed settings; see {@link ChannelSettings}. */
+export interface ChannelEditOptions extends ChannelSettings {
+    /** The channel's new name (`channel_name`). */
+    readonly name?: string | undefined;
+}
+/**
+ * Change a channel's settings. Only the fields you set are sent.
+ *
+ * `settings` is what to send; the command's `signal` and `timeoutMs` go in
+ * `options`, a separate last argument — set among the fields, they are not
+ * read.
+ */
+export declare function editChannel(client: CommandExecutor, cid: ChannelID, settings: ChannelEditOptions, options?: CommandOptions): Promise<void>;
+/** How {@link deleteChannel} deletes. */
+export interface ChannelDeleteOptions extends CommandOptions {
+    /**
+     * Delete the channel even while clients are in it, moving them out; false
+     * by default, which the server then refuses for an occupied channel
+     * (`force`, always sent).
+     */
+    readonly force?: boolean | undefined;
+}
+/** Delete a channel. */
+export declare function deleteChannel(client: CommandExecutor, cid: ChannelID, options?: ChannelDeleteOptions): Promise<void>;
+/**
+ * All channels on the server, in the server's own sort order.
+ *
+ * Always asks for the topic, flags, voice, limits, icon, seconds empty and
+ * banners, which a bare `channellist` leaves out. `description`, `uid` and
+ * `filePath` are not part of `channellist` and stay empty or undefined;
+ * `getChannelInfo` has them.
+ */
+export declare function listChannels(client: CommandExecutor, options?: CommandOptions): Promise<Channel[]>;
+/**
+ * One channel's full settings.
+ *
+ * `totalClients`, `totalFamilyClients` and `neededSubscribePower` are left
+ * undefined: `channelinfo` does not carry them. `listChannels` does.
+ *
+ * `channelinfo` answers with `pid` and the settings but no `cid` — the channel
+ * is whatever was asked for — so the id is taken from the argument rather than
+ * read from the row, where it would come back 0.
+ */
+export declare function getChannelInfo(client: CommandExecutor, cid: ChannelID, options?: CommandOptions): Promise<Channel>;
+/** A channel whose name matched a search. */
+export interface ChannelMatch {
+    /** The channel's id. */
+    readonly id: ChannelID;
+    /** The channel's name. */
+    readonly name: string;
+}
+/**
+ * Channels whose name contains `pattern`; none is an empty list. The server
+ * reports finding none as error 768 (invalid channelID), which this answers
+ * as `[]`.
+ */
+export declare function findChannels(client: CommandExecutor, pattern: string, options?: CommandOptions): Promise<ChannelMatch[]>;
+/** Where {@link moveChannel} sorts the channel among its new siblings. */
+export interface ChannelMoveOptions extends CommandOptions {
+    /** The sibling to sort after, 0 for first; unset leaves it to the server (`order`). */
+    readonly order?: ChannelID | undefined;
+}
+/** Move a channel under a new parent. */
+export declare function moveChannel(client: CommandExecutor, cid: ChannelID, parentID: ChannelID, options?: ChannelMoveOptions): Promise<void>;
+/** Set a permission on a channel. */
+export declare function addChannelPermission(client: CommandExecutor, cid: ChannelID, permission: Permission, value: number, options?: CommandOptions): Promise<void>;
+/**
+ * Set several permissions on a channel, in one command: each permission is a
+ * row (`permsid=…  permvalue=…|permsid=…  permvalue=…`). With none, nothing is
+ * sent.
+ *
+ * The server checks every row before it applies any: a permission it does not
+ * know (2562) or a value it cannot read (1540) refuses the call, and none is
+ * set, with or without `continueOnError`. Measured on TeamSpeak 3 3.13.8 and
+ * TeamSpeak 6 beta13.1, over raw ServerQuery, SSH, WebQuery and the voice
+ * protocol alike. Resolves to nothing: the server never reports an answer per
+ * row.
+ *
+ * A permission the caller has too little modify power for (2570, or 2568 where
+ * the group power is short) is another matter: the rows are applied in order.
+ * Without `continueOnError` the first row that fails ends the call, so the rows
+ * before it are set and the rows after it are not; with it the rows that fail
+ * are skipped and the others set. The error is the failing row's, and which row
+ * is not reported; with several failing rows which error comes back was not
+ * measured. Measured on TeamSpeak 3 3.13.8 and TeamSpeak 6 beta13.1, over raw
+ * ServerQuery (TeamSpeak 3), SSH, WebQuery and the voice protocol, in both
+ * orders of a free and a locked permission.
+ */
+export declare function addChannelPermissions(client: CommandExecutor, cid: ChannelID, permissions: readonly PermissionValue[], options?: BatchOptions): Promise<void>;
+/**
+ * Remove several permissions from a channel, in one command: each permission is
+ * a row (`permsid=…|permsid=…`). With none, nothing is sent.
+ *
+ * The server checks every row first, and an unknown permission (2562) refuses
+ * the call with none removed. Removing a permission the channel does not have
+ * succeeds. A permission the caller has too little modify power for (2570) ends
+ * the call at that row: the rows before it are removed and the rows after it
+ * are not, measured on TeamSpeak 3 3.13.8 and TeamSpeak 6 beta13.1 over every
+ * query transport and the voice protocol. The server documents no
+ * `-continueonerror` for this command, so none is offered, and sent anyway it
+ * changed nothing.
+ */
+export declare function deleteChannelPermissions(client: CommandExecutor, cid: ChannelID, permissions: readonly Permission[], options?: CommandOptions): Promise<void>;
+/** Remove a permission from a channel. */
+export declare function deleteChannelPermission(client: CommandExecutor, cid: ChannelID, permission: Permission, options?: CommandOptions): Promise<void>;
+/** Permissions set directly on a channel. */
+export declare function listChannelPermissions(client: CommandExecutor, cid: ChannelID, options?: CommandOptions): Promise<PermissionEntry[]>;
+/** Permissions granted to one client within one channel. */
+export declare function listChannelClientPermissions(client: CommandExecutor, cid: ChannelID, cldbid: ClientDBID, options?: CommandOptions): Promise<PermissionEntry[]>;
+/** Set a permission on one client within one channel. */
+export declare function addChannelClientPermission(client: CommandExecutor, cid: ChannelID, cldbid: ClientDBID, permission: Permission, value: number, options?: CommandOptions): Promise<void>;
+/**
+ * Set several permissions on one client within one channel, in one command:
+ * each permission is a row. With none, nothing is sent. The server's answer
+ * is as for {@link addChannelPermissions}: an unknown permission or a value it
+ * cannot read refuses the call with none set, and a row the caller lacks the
+ * power for ends it there, or is skipped with `continueOnError`.
+ */
+export declare function addChannelClientPermissions(client: CommandExecutor, cid: ChannelID, cldbid: ClientDBID, permissions: readonly PermissionValue[], options?: BatchOptions): Promise<void>;
+/**
+ * Remove several permissions from one client within one channel, in one
+ * command. With none, nothing is sent. The server's answer is as for
+ * {@link deleteChannelPermissions}, and it documents no `-continueonerror` for
+ * this command either.
+ */
+export declare function deleteChannelClientPermissions(client: CommandExecutor, cid: ChannelID, cldbid: ClientDBID, permissions: readonly Permission[], options?: CommandOptions): Promise<void>;
+/** Remove a permission from one client within one channel. */
+export declare function deleteChannelClientPermission(client: CommandExecutor, cid: ChannelID, cldbid: ClientDBID, permission: Permission, options?: CommandOptions): Promise<void>;
+//# sourceMappingURL=channels.d.ts.map

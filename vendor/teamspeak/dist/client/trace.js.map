@@ -1,0 +1,1 @@
+{"version":3,"file":"trace.js","sourceRoot":"","sources":["../../src/client/trace.ts"],"names":[],"mappings":"AAIA,sDAAsD;AACtD,MAAM,kBAAkB,GAAG;IACzB,uEAAuE;IACvE,IAAI,EAAE,MAAM;IACZ,2EAA2E;IAC3E,SAAS,EAAE,WAAW;IACtB,iIAAiI;IACjI,IAAI,EAAE,MAAM;CACJ,CAAC;AACX,0EAA0E;AAC1E,MAAM,CAAC,MAAM,YAAY;AACvB,eAAe,CAAC,MAAM,CAAC,MAAM,CAAC,kBAAkB,CAAC,CAAC"}

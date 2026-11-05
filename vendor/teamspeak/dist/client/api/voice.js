@@ -1,0 +1,144 @@
+/**
+ * Commands only the voice protocol has.
+ *
+ * ServerQuery has no subscriptions — a query client hears every channel's
+ * events once it registers for them — and no `channelgetdescription`, since its
+ * `channelinfo` already carries the description. These run on the voice
+ * client alone, which is why they take one rather than any CommandExecutor.
+ */
+import { ErrorCode, NoDataError, ServerError } from "@honeybbq/teamspeak";
+/**
+ * The channel's description, which `listChannels` omits for bandwidth. The
+ * server answers with a `notifychanneledited` that the client does not report as
+ * a `channelEdited` event, since it is no edit. Rejects with a NoDataError if
+ * the server sends no such answer.
+ */
+export async function getChannelDescription(client, cid, options) {
+    const rows = await client.send({ command: "channelgetdescription", params: [["cid", cid]] }, options);
+    // The answer is the row that holds the text. Another `notifychanneledited`
+    // can arrive while the command waits, a real edit with other properties,
+    // and the first row is then not the answer.
+    const answer = rows.find((row) => row["cid"] === String(cid) && "channel_description" in row);
+    // A missing answer is not an empty description.
+    if (answer === undefined)
+        throw new NoDataError("channelgetdescription");
+    return answer["channel_description"] ?? "";
+}
+/**
+ * The virtual server's properties as the server sends them on request, which
+ * is a different set from `getServerInfo`'s: it has the settings, limits and
+ * counters (clients online, uptime, traffic) and lacks the identity ones such as
+ * the unique identifier. It is the whole row, counters included.
+ *
+ * The client's `view.server` takes every answer in, whoever asked, less the
+ * counters, so this is also how to bring it up to date after an edit the
+ * server did not spell out. The answer goes to the asker alone.
+ *
+ * @experimental New in 1.x and may change in a minor release.
+ */
+export async function getServerVariables(client, options) {
+    const rows = await client.send({ command: "servergetvariables" }, options);
+    const answer = rows.find((row) => Object.keys(row).some((key) => key.startsWith("virtualserver_")));
+    if (answer === undefined)
+        throw new NoDataError("servergetvariables");
+    return answer;
+}
+/**
+ * Subscribe to a channel: see its clients and their changes without joining
+ * it. It does not bring the channel's voice, which only reaches the clients
+ * in it. The server answers with `channelSubscribed`.
+ *
+ * The channel this client joins, and every channel it moves into, is
+ * subscribed without being asked and without a `channelSubscribed`, and
+ * leaving a channel keeps the subscription. Measured on TeamSpeak 3 3.13.8 and
+ * TeamSpeak 6 6.0.0-beta13.1.
+ */
+export async function subscribeChannel(client, cid, options) {
+    await client.send({ command: "channelsubscribe", params: [["cid", cid]] }, options);
+}
+/**
+ * Stop seeing a subscribed channel's clients: the server answers with
+ * `channelUnsubscribed`, and sends no `clientLeftView` for them. The channel
+ * this client is in cannot be unsubscribed from: the command succeeds and
+ * changes nothing.
+ */
+export async function unsubscribeChannel(client, cid, options) {
+    await client.send({ command: "channelunsubscribe", params: [["cid", cid]] }, options);
+}
+/** Subscribe to every channel on the server; the server answers with a `channelSubscribed` per channel it subscribes. */
+export async function subscribeAllChannels(client, options) {
+    await client.send({ command: "channelsubscribeall" }, options);
+}
+/** Unsubscribe from every channel but the one this client is in: a `channelUnsubscribed` for each. */
+export async function unsubscribeAllChannels(client, options) {
+    await client.send({ command: "channelunsubscribeall" }, options);
+}
+/** Answers a password check: true for a match, false for the mismatch error, any other error rethrown. */
+async function passwordMatches(run, mismatch) {
+    try {
+        await run();
+        return true;
+    }
+    catch (error) {
+        if (error instanceof ServerError && error.code === mismatch)
+            return false;
+        throw error;
+    }
+}
+/**
+ * Whether `password` is the server's password (`verifyserverpassword`),
+ * without joining. The password is given in cleartext; the client hashes it
+ * on the wire. The server answers a match with plain success and a mismatch
+ * with error 1028 (`ErrorCode.ServerInvalidPassword`), which this turns into
+ * `false`; any other error is thrown. Measured on TeamSpeak 3 and 6.
+ */
+export function verifyServerPassword(client, password, options) {
+    return passwordMatches(() => client.send({
+        command: "verifyserverpassword",
+        params: [["password", password]],
+        passwords: ["password"],
+    }, options), ErrorCode.ServerInvalidPassword);
+}
+/**
+ * Whether `password` is channel `cid`'s password (`verifychannelpassword`),
+ * without moving. The password is given in cleartext; the client hashes it
+ * on the wire, as `moveClient` does. A mismatch is error 781
+ * (`ErrorCode.ChannelInvalidPassword`) and answers `false`; a channel without
+ * a password accepts any value and answers `true`; an unknown channel is
+ * error 768, thrown. Measured on TeamSpeak 3 and 6.
+ */
+export function verifyChannelPassword(client, cid, password, options) {
+    return passwordMatches(() => client.send({
+        command: "verifychannelpassword",
+        params: [
+            ["cid", cid],
+            ["password", password],
+        ],
+        passwords: ["password"],
+    }, options), ErrorCode.ChannelInvalidPassword);
+}
+/** The clients of a mute, one `clid` row each; an empty list sends nothing. */
+async function sendMute(client, command, clientIDs, options) {
+    if (clientIDs.length === 0)
+        return;
+    await client.send({ command, rows: clientIDs.map((clid) => [["clid", clid]]) }, options);
+}
+/**
+ * Stop hearing the given clients (`clientmute`): the server no longer forwards
+ * their voice to this client. It is per listener, so everyone else still hears
+ * them, and it sends no notification and changes no client property. Several
+ * clients go in one command. The server accepts this client's own id and ids
+ * of clients that are not connected without an error. Undo it with
+ * `unmuteClients`. Measured on TeamSpeak 3 and 6.
+ */
+export function muteClients(client, clientIDs, options) {
+    return sendMute(client, "clientmute", clientIDs, options);
+}
+/**
+ * Hear the given clients again (`clientunmute`): the server resumes forwarding
+ * their voice to this client after `muteClients`. Measured on TeamSpeak 3 and 6.
+ */
+export function unmuteClients(client, clientIDs, options) {
+    return sendMute(client, "clientunmute", clientIDs, options);
+}
+//# sourceMappingURL=voice.js.map

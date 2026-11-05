@@ -1,0 +1,26 @@
+/**
+ * TeamSpeak 6 streams, the screen share: finding the streams of the clients in
+ * view, publishing one, and watching one.
+ *
+ * TeamSpeak does not document the protocol. It was verified against the
+ * TeamSpeak 6 server 6.0.0-beta13.1 and the TeamSpeak 6 client 6.0.0-beta5, and
+ * a TeamSpeak update may break it.
+ *
+ * Only the signalling is in this package. The video itself travels over WebRTC
+ * between the publisher and each viewer, which the application brings: SDP and
+ * ICE candidates are strings here, handed to and taken from any WebRTC stack.
+ * There is no WebRTC dependency.
+ *
+ * ```ts
+ * import { Streams } from "@honeybbq/teamspeak/stream";
+ *
+ * const streams = new Streams(client);
+ * const view = await streams.watch(streamId);
+ * ```
+ *
+ * @module @honeybbq/teamspeak/stream
+ */
+export { Streams } from "./streams.js";
+export { StreamEndedError, StreamJoinDeniedError, StreamPayloadTooLargeError, StreamsUnsupportedError, StreamTransportUnsupportedError, } from "./errors.js";
+export { JoinRequestCloseCause, JoinRequestEventName, JoinRequestState, PeerCloseCause, PeerEventName, PublishedStreamEventName, StreamAccessibility, StreamEndCause, StreamsEventName, StreamSource, StreamTransport, StreamWarningCode, } from "./types.js";
+//# sourceMappingURL=index.js.map

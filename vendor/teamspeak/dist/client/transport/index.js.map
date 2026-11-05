@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../src/client/transport/index.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,aAAa,EAAE,MAAM,cAAc,CAAC;AAC7C,OAAO,EACL,UAAU,EACV,WAAW,EACX,UAAU,EACV,WAAW,EACX,aAAa,EACb,cAAc,EACd,cAAc,EACd,cAAc,GACf,MAAM,aAAa,CAAC;AAErB,OAAO,EAAE,gBAAgB,EAAE,MAAM,wBAAwB,CAAC;AAC1D,OAAO,EAAE,GAAG,EAAE,MAAM,cAAc,CAAC"}

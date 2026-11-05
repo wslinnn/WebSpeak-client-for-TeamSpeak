@@ -1,0 +1,333 @@
+/**
+ * The notifications a server pushes, read as the events every client
+ * delivers.
+ *
+ * The voice protocol and ServerQuery carry the same notifications — a move is
+ * `notifyclientmoved` on both — and only their framing differs, which each
+ * client's own reader takes care of. So the parsing lives here, and both
+ * clients call it rather than keeping a copy each.
+ *
+ * A result is one notification's worth: the event it makes, plus what only the
+ * client can decide, such as whether a client that left view was itself.
+ */
+import { asChannelGroupID, asChannelID, asClientID, asServerGroupID, asUID, } from "./command/ids.js";
+import { parseClient, parseClientChanges } from "./api/parse.js";
+import { parseChannelChanges } from "./api/command.js";
+import { Reason } from "./reason.js";
+import { applyClientChanges } from "./api/clients.js";
+import { parseInt10, parseUint16, parseUint64 } from "./helpers.js";
+/**
+ * Read a notification. `cmd` is the parsed notification line, `selfCLID` this
+ * client's own id (0 when it is not known yet), and `clients` the clients the
+ * caller knows, which the enter, leave, move, update and channel group
+ * notifications keep current and the others read: a text message carries no
+ * groups, and a move carries no `cfid` on TS3. An entry is
+ * replaced, never edited, so an event that holds one stays as it was.
+ *
+ * The server-group notifications leave the clients alone: the update that
+ * accompanies them carries the whole new list, in either order, and is the
+ * only writer of it.
+ */
+export function handleNotification(cmd, selfCLID, clients) {
+    switch (cmd.name) {
+        case "notifycliententerview":
+            return handleClientEnterView(cmd, clients);
+        case "notifyclientleftview":
+            return handleClientLeftView(cmd, selfCLID, clients);
+        case "notifyclientmoved":
+            return handleClientMoved(cmd, clients);
+        case "notifytextmessage":
+            return handleTextMessage(cmd, clients);
+        case "notifyclientpoke":
+            return handleClientPoked(cmd);
+        case "notifyclientupdated":
+            return handleClientUpdated(cmd, clients);
+        case "notifyservergroupclientadded":
+            return handleServerGroupMember(cmd, "clientServerGroupAdded");
+        case "notifyservergroupclientdeleted":
+            return handleServerGroupMember(cmd, "clientServerGroupRemoved");
+        case "notifyclientchannelgroupchanged":
+            return handleClientChannelGroupChanged(cmd, clients);
+        case "notifychannelcreated":
+            return handleChannelCreated(cmd);
+        case "notifychanneledited":
+            return handleChannelEdited(cmd);
+        case "notifychannelmoved":
+            return handleChannelMoved(cmd);
+        case "notifychanneldeleted":
+            return channelNotification(cmd, "channelDeleted", invoked(cmd.params));
+        case "notifychanneldescriptionchanged":
+            return channelNotification(cmd, "channelDescriptionChanged", {});
+        case "notifychannelpasswordchanged":
+            return channelNotification(cmd, "channelPasswordChanged", {});
+        case "notifyserveredited":
+            return handleServerEdited(cmd);
+        case "notifychannelsubscribed":
+            return channelNotification(cmd, "channelSubscribed", {});
+        case "notifychannelunsubscribed":
+            return channelNotification(cmd, "channelUnsubscribed", {});
+        case "notifyplugincmd":
+            return {
+                kind: "pluginCommand",
+                event: {
+                    name: cmd.params["name"] ?? "",
+                    data: cmd.params["data"] ?? "",
+                    ...invoked(cmd.params),
+                },
+            };
+        case "notifyclientchatcomposing":
+            return handleChatComposing(cmd);
+        case "notifyclientchatclosed":
+            return handleChatClosed(cmd);
+        default:
+            return { kind: "unknown" };
+    }
+}
+function handleClientEnterView(cmd, clients) {
+    const info = parseClient(cmd.params);
+    // No client has id 0: a row without one describes nobody.
+    if (info.id === 0)
+        return { kind: "unknown" };
+    // The roster keeps the record alone; the event adds where it came from and why.
+    clients.set(info.id, info);
+    return {
+        kind: "clientEnter",
+        info: {
+            ...info,
+            ...channelOf(cmd.params, "cfid", "fromChannelID"),
+            ...(cmd.params["reasonid"] === undefined
+                ? {}
+                : { reason: parseInt10(cmd.params["reasonid"]) }),
+        },
+    };
+}
+/** A channel id the row names under `key`, as `{ [name]: id }`; nothing when the row lacks the key. */
+function channelOf(params, key, name) {
+    const raw = params[key];
+    return raw === undefined
+        ? {}
+        : { [name]: asChannelID(parseUint64(raw)) };
+}
+function handleClientLeftView(cmd, selfCLID, clients) {
+    const clid = asClientID(parseUint16(cmd.params["clid"] ?? ""));
+    if (clid === 0)
+        return { kind: "unknown" };
+    const isSelf = clid === selfCLID;
+    clients.delete(clid);
+    return {
+        kind: "clientLeave",
+        event: {
+            clientID: clid,
+            ...channelOf(cmd.params, "cfid", "fromChannelID"),
+            ...channelOf(cmd.params, "ctid", "targetChannelID"),
+            reason: parseInt10(cmd.params["reasonid"] ?? ""),
+            reasonMessage: cmd.params["reasonmsg"] ?? "",
+            invokerID: asClientID(parseUint16(cmd.params["invokerid"] ?? "")),
+            invokerName: cmd.params["invokername"] ?? "",
+            invokerUID: asUID(cmd.params["invokeruid"] ?? ""),
+        },
+        isSelf,
+    };
+}
+function handleClientMoved(cmd, clients) {
+    const clid = asClientID(parseUint16(cmd.params["clid"] ?? ""));
+    const ctid = asChannelID(parseUint64(cmd.params["ctid"] ?? ""));
+    if (clid === 0)
+        return { kind: "unknown" };
+    const existing = clients.get(clid);
+    if (existing)
+        clients.set(clid, { ...existing, channelID: ctid });
+    // Where the client came from: `cfid` when the server sends it, and when it
+    // does not (TS3 sends none on a move) the channel the roster had it in,
+    // which this notification is about to replace.
+    const from = cmd.params["cfid"] === undefined ? existing?.channelID : undefined;
+    // A move the client made itself (reason 0) names no invoker, and the fields
+    // are left empty: it is not filled in from the roster.
+    return {
+        kind: "clientMoved",
+        event: {
+            clientID: clid,
+            targetChannelID: ctid,
+            ...channelOf(cmd.params, "cfid", "fromChannelID"),
+            ...(from === undefined ? {} : { fromChannelID: from }),
+            reason: parseInt10(cmd.params["reasonid"] ?? ""),
+            reasonMessage: cmd.params["reasonmsg"] ?? "",
+            ...invoked(cmd.params),
+        },
+    };
+}
+function handleTextMessage(cmd, clients) {
+    const invokerID = asClientID(parseUint16(cmd.params["invokerid"] ?? ""));
+    const invokerInfo = clients.get(invokerID);
+    const message = {
+        targetMode: parseInt10(cmd.params["targetmode"] ?? ""),
+        targetID: asClientID(parseUint16(cmd.params["target"] ?? "")),
+        invokerID,
+        invokerName: cmd.params["invokername"] ?? "",
+        invokerUID: asUID(cmd.params["invokeruid"] ?? invokerInfo?.uid ?? ""),
+        message: cmd.params["msg"] ?? "",
+        invokerGroups: invokerInfo?.serverGroups,
+    };
+    return { kind: "textMessage", message };
+}
+function handleClientPoked(cmd) {
+    return {
+        kind: "poked",
+        event: {
+            invokerID: asClientID(parseUint16(cmd.params["invokerid"] ?? "")),
+            invokerName: cmd.params["invokername"] ?? "",
+            invokerUID: asUID(cmd.params["invokeruid"] ?? ""),
+            message: cmd.params["msg"] ?? "",
+        },
+    };
+}
+function invoked(params) {
+    return {
+        invokerID: asClientID(parseUint16(params["invokerid"] ?? "")),
+        invokerName: params["invokername"] ?? "",
+        invokerUID: asUID(params["invokeruid"] ?? ""),
+    };
+}
+function handleClientUpdated(cmd, clients) {
+    const clid = asClientID(parseUint16(cmd.params["clid"] ?? ""));
+    if (clid === 0)
+        return { kind: "unknown" };
+    const changes = parseClientChanges(cmd.params);
+    // A client that is not known gets no entry: one needs a uid and a channel,
+    // which an update does not carry. The event is still delivered.
+    const existing = clients.get(clid);
+    if (existing)
+        clients.set(clid, applyClientChanges(existing, changes));
+    return { kind: "clientUpdated", event: { clientID: clid, changes, ...invoked(cmd.params) } };
+}
+function handleServerGroupMember(cmd, kind) {
+    const clid = asClientID(parseUint16(cmd.params["clid"] ?? ""));
+    if (clid === 0)
+        return { kind: "unknown" };
+    return {
+        kind,
+        event: {
+            groupID: asServerGroupID(parseUint64(cmd.params["sgid"] ?? "")),
+            clientID: clid,
+            nickname: cmd.params["name"] ?? "",
+            uid: asUID(cmd.params["cluid"] ?? ""),
+            ...invoked(cmd.params),
+        },
+    };
+}
+function handleClientChannelGroupChanged(cmd, clients) {
+    const clid = asClientID(parseUint16(cmd.params["clid"] ?? ""));
+    if (clid === 0)
+        return { kind: "unknown" };
+    const channelID = asChannelID(parseUint64(cmd.params["cid"] ?? ""));
+    const channelGroupID = asChannelGroupID(parseUint64(cmd.params["cgid"] ?? ""));
+    const inherited = asChannelID(parseUint64(cmd.params["cgi"] ?? ""));
+    // The group is per channel: only the channel the client is in is the one
+    // its record describes.
+    const existing = clients.get(clid);
+    if (existing && existing.channelID === channelID) {
+        clients.set(clid, {
+            ...existing,
+            channelGroupID,
+            channelGroupInheritedChannelID: inherited,
+        });
+    }
+    return {
+        kind: "clientChannelGroupChanged",
+        event: {
+            clientID: clid,
+            channelID,
+            channelGroupID,
+            channelGroupInheritedChannelID: inherited,
+            ...invoked(cmd.params),
+        },
+    };
+}
+/** A channel id from a notification; 0 for a row that has none, which no channel has. */
+function channelIDOf(params, key = "cid") {
+    return asChannelID(parseUint64(params[key] ?? ""));
+}
+/**
+ * A notification that names a channel and nothing else of note: `fields` is
+ * what else its event holds. A row without a channel describes nothing.
+ */
+function channelNotification(cmd, kind, fields) {
+    const channelID = channelIDOf(cmd.params);
+    if (channelID === 0n)
+        return { kind: "unknown" };
+    return { kind, event: { channelID, ...fields } };
+}
+function handleChannelCreated(cmd) {
+    const channelID = channelIDOf(cmd.params);
+    if (channelID === 0n)
+        return { kind: "unknown" };
+    return {
+        kind: "channelCreated",
+        event: {
+            channelID,
+            parentID: channelIDOf(cmd.params, "cpid"),
+            changes: parseChannelChanges(cmd.params),
+            ...invoked(cmd.params),
+        },
+    };
+}
+function handleChannelEdited(cmd) {
+    const channelID = channelIDOf(cmd.params);
+    if (channelID === 0n)
+        return { kind: "unknown" };
+    const reason = parseInt10(cmd.params["reasonid"] ?? "");
+    // The server answers `channelgetdescription` with an edit of this kind that
+    // names no invoker: the description it was asked for, not a change. Told
+    // apart by what it holds, not by whether a command is waiting, so a real
+    // edit that arrives meanwhile is not swallowed. It still reaches the
+    // catch-all, and the command's answer.
+    if (reason === Reason.ChannelUpdate && cmd.params["invokerid"] === undefined) {
+        return { kind: "unknown" };
+    }
+    return {
+        kind: "channelEdited",
+        event: { channelID, reason, changes: parseChannelChanges(cmd.params), ...invoked(cmd.params) },
+    };
+}
+function handleChannelMoved(cmd) {
+    const channelID = channelIDOf(cmd.params);
+    if (channelID === 0n)
+        return { kind: "unknown" };
+    return {
+        kind: "channelMoved",
+        event: {
+            channelID,
+            parentID: channelIDOf(cmd.params, "cpid"),
+            order: channelIDOf(cmd.params, "order"),
+            reason: parseInt10(cmd.params["reasonid"] ?? ""),
+            ...invoked(cmd.params),
+        },
+    };
+}
+function handleServerEdited(cmd) {
+    const changes = {};
+    for (const [key, value] of Object.entries(cmd.params)) {
+        if (key.startsWith("virtualserver_"))
+            changes[key] = value;
+    }
+    return { kind: "serverEdited", event: { changes, ...invoked(cmd.params) } };
+}
+function handleChatComposing(cmd) {
+    const clid = asClientID(parseUint16(cmd.params["clid"] ?? ""));
+    if (clid === 0)
+        return { kind: "unknown" };
+    return {
+        kind: "clientChatComposing",
+        event: { clientID: clid, uid: asUID(cmd.params["cluid"] ?? "") },
+    };
+}
+function handleChatClosed(cmd) {
+    const clid = asClientID(parseUint16(cmd.params["clid"] ?? ""));
+    if (clid === 0)
+        return { kind: "unknown" };
+    return {
+        kind: "clientChatClosed",
+        event: { clientID: clid, uid: asUID(cmd.params["cluid"] ?? "") },
+    };
+}
+//# sourceMappingURL=notifications.js.map

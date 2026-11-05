@@ -1,0 +1,124 @@
+import { createCipheriv, timingSafeEqual } from "node:crypto";
+import { EAXTagMismatchError } from "../errors.js";
+const EAX_TAG_SIZE = 8;
+const EAX_BLOCK_SIZE = 16;
+/**
+ * AES-EAX AEAD implementation for TS3 (64-bit tag, AES-128).
+ * Uses AES-CMAC for authentication and AES-CTR for encryption.
+ */
+export class EAX {
+    #key;
+    constructor(key) {
+        if (key.length !== 16)
+            throw new Error("EAX requires a 16-byte key");
+        this.#key = key;
+    }
+    encrypt(nonce, header, plaintext) {
+        const nStar = this.#cmac(0, nonce);
+        const hStar = this.#cmac(1, header);
+        const ciphertext = aesCtr(this.#key, nStar, plaintext);
+        const cStar = this.#cmac(2, ciphertext);
+        const tag = new Uint8Array(EAX_TAG_SIZE);
+        for (let i = 0; i < EAX_TAG_SIZE; i++) {
+            tag[i] = nStar[i] ^ hStar[i] ^ cStar[i];
+        }
+        return [ciphertext, tag];
+    }
+    decrypt(nonce, header, ciphertext, tag) {
+        const nStar = this.#cmac(0, nonce);
+        const hStar = this.#cmac(1, header);
+        const cStar = this.#cmac(2, ciphertext);
+        const expected = new Uint8Array(EAX_TAG_SIZE);
+        for (let i = 0; i < EAX_TAG_SIZE; i++) {
+            expected[i] = nStar[i] ^ hStar[i] ^ cStar[i];
+        }
+        if (!timingSafeEqual(Buffer.from(expected), Buffer.from(tag.slice(0, EAX_TAG_SIZE)))) {
+            throw new EAXTagMismatchError();
+        }
+        return aesCtr(this.#key, nStar, ciphertext);
+    }
+    /**
+     * AES-CMAC per RFC 4493:
+     *   input = [0…0 tag] ++ data   (one block prefix)
+     */
+    #cmac(tagByte, data) {
+        const input = new Uint8Array(EAX_BLOCK_SIZE + data.length);
+        // first block: zeros then tag byte at the last position
+        input[EAX_BLOCK_SIZE - 1] = tagByte;
+        input.set(data, EAX_BLOCK_SIZE);
+        return aesCmac(this.#key, input);
+    }
+}
+// ---- AES-CTR ----------------------------------------------------------------
+function aesCtr(key, iv, data) {
+    const cipher = createCipheriv("aes-128-ctr", Buffer.from(key), Buffer.from(iv));
+    return Buffer.concat([cipher.update(Buffer.from(data)), cipher.final()]);
+}
+// ---- AES-CMAC (RFC 4493) ----------------------------------------------------
+/**
+ * The CMAC subkeys of each key, derived once: a session uses one key for every
+ * packet, and deriving them costs a cipher of its own.
+ */
+const subkeyCache = new WeakMap();
+function aesEcb(key, block) {
+    const cipher = createCipheriv("aes-128-ecb", Buffer.from(key), null);
+    cipher.setAutoPadding(false);
+    return Buffer.concat([cipher.update(Buffer.from(block)), cipher.final()]);
+}
+function xorBlock(a, b) {
+    const out = new Uint8Array(EAX_BLOCK_SIZE);
+    for (let i = 0; i < EAX_BLOCK_SIZE; i++)
+        out[i] = a[i] ^ b[i];
+    return out;
+}
+function shiftLeft1(b) {
+    const out = new Uint8Array(EAX_BLOCK_SIZE);
+    let carry = 0;
+    for (let i = EAX_BLOCK_SIZE - 1; i >= 0; i--) {
+        const shifted = ((b[i] << 1) | carry) & 0xff;
+        carry = b[i] >> 7;
+        out[i] = shifted;
+    }
+    return out;
+}
+const RB = new Uint8Array(EAX_BLOCK_SIZE);
+RB[EAX_BLOCK_SIZE - 1] = 0x87;
+function generateSubkeys(key) {
+    const cached = subkeyCache.get(key);
+    if (cached !== undefined)
+        return cached;
+    const zero = new Uint8Array(EAX_BLOCK_SIZE);
+    const L = aesEcb(key, zero);
+    let K1 = shiftLeft1(L);
+    if ((L[0] & 0x80) !== 0)
+        K1 = xorBlock(K1, RB);
+    let K2 = shiftLeft1(K1);
+    if ((K1[0] & 0x80) !== 0)
+        K2 = xorBlock(K2, RB);
+    const subkeys = [K1, K2];
+    subkeyCache.set(key, subkeys);
+    return subkeys;
+}
+const ZERO_IV = Buffer.alloc(EAX_BLOCK_SIZE);
+/**
+ * AES-CMAC: the last block of AES-CBC with a zero IV over the message, its last
+ * block padded and XORed with a subkey. One cipher for the whole message.
+ */
+export function aesCmac(key, message) {
+    const [K1, K2] = generateSubkeys(key);
+    const n = Math.max(1, Math.ceil(message.length / EAX_BLOCK_SIZE));
+    const lastBlockComplete = message.length > 0 && message.length % EAX_BLOCK_SIZE === 0;
+    const padded = Buffer.alloc(n * EAX_BLOCK_SIZE);
+    padded.set(message);
+    const lastStart = (n - 1) * EAX_BLOCK_SIZE;
+    if (!lastBlockComplete)
+        padded[message.length] = 0x80;
+    const subkey = lastBlockComplete ? K1 : K2;
+    for (let i = 0; i < EAX_BLOCK_SIZE; i++)
+        padded[lastStart + i] = padded[lastStart + i] ^ subkey[i];
+    const cipher = createCipheriv("aes-128-cbc", Buffer.from(key), ZERO_IV);
+    cipher.setAutoPadding(false);
+    const out = cipher.update(padded);
+    return Uint8Array.from(out.subarray(out.length - EAX_BLOCK_SIZE));
+}
+//# sourceMappingURL=eax.js.map

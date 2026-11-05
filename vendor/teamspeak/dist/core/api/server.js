@@ -1,0 +1,432 @@
+/**
+ * Server and instance commands.
+ *
+ * "Server" here means the virtual server a client is connected to; "instance"
+ * means the process hosting it. The distinction matters because the setting
+ * names differ (`virtualserver_*` versus `serverinstance_*`) and the two are
+ * easy to mix up.
+ */
+import { nonEmpty, uint, U16, firstRow, exec, execRows, continueOnErrorParams, query, list, encodeFields, inSeconds, parsePermission, permissionParam, rawProperties, recoveredGroupID, str, big, num, date, durationMs, SECOND, } from "./command.js";
+import { asChannelID, asClientDBID, asClientID, asServerGroupID, asServerID, asUID, } from "../command/ids.js";
+import { parseServerGroup } from "./group-rows.js";
+/** Every server group. */
+export async function listServerGroups(client, options) {
+    return (await list(client, "servergrouplist", [], options)).map(parseServerGroup);
+}
+/**
+ * The virtual server's settings, as `serverinfo` reports them.
+ *
+ * Raw rather than parsed: `serverinfo` carries well over a hundred
+ * `virtualserver_*` fields, which ones appear depends on the server version and
+ * on the caller's permissions, and a typed subset would drop the rest. The
+ * keys are named in `PropertyName`.
+ */
+export async function getServerInfo(client, options) {
+    return firstRow(await query(client, "serverinfo", [], options), "serverinfo");
+}
+/**
+ * Change the virtual server's settings. Only the properties you pass are sent.
+ *
+ * Unlike every other options object, these are the raw `virtualserver_*`
+ * wire properties from `serverinfo`, passed through as given rather than
+ * enumerated: there are well over a hundred, they are version-dependent, and a
+ * value read back from {@link getServerInfo} should be writable straight back.
+ * A value may also be a number or a boolean; see {@link PropertyValue}. The
+ * editable keys are marked in `PropertyName`.
+ */
+export async function editServer(client, settings, options) {
+    await exec(client, "serveredit", rawProperties(settings), options);
+}
+/**
+ * The host process's settings, as `hostinfo` reports them, raw.
+ *
+ * Needs an instance-level permission (`b_serverinstance_*`), which not even the
+ * Server Admin group holds by default — expect error 2568 until it is granted.
+ * Granted, it works over the voice protocol like any other query. The keys are
+ * named in `PropertyName`.
+ */
+export async function getHostInfo(client, options) {
+    return firstRow(await query(client, "hostinfo", [], options), "hostinfo");
+}
+/**
+ * The server instance's settings, as `instanceinfo` reports them, raw.
+ *
+ * Needs an instance-level permission (`b_serverinstance_*`), which not even the
+ * Server Admin group holds by default — expect error 2568 until it is granted.
+ * Granted, it works over the voice protocol like any other query. The keys are
+ * named in `PropertyName`.
+ */
+export async function getInstanceInfo(client, options) {
+    return firstRow(await query(client, "instanceinfo", [], options), "instanceinfo");
+}
+/**
+ * Change the server instance's settings: raw `serverinstance_*` properties,
+ * passed through as given, for the same reasons as {@link editServer}. The
+ * editable keys are marked in `PropertyName`.
+ */
+export async function editInstance(client, settings, options) {
+    await exec(client, "instanceedit", rawProperties(settings), options);
+}
+/**
+ * Active IP bindings, when the instance is multi-homed.
+ *
+ * Needs an instance-level permission (`b_serverinstance_*`), which not even the
+ * Server Admin group holds by default — expect error 2568 until it is granted.
+ * Granted, it works over the voice protocol like any other query.
+ */
+export async function listBindings(client, options = {}) {
+    const subsystem = options.subsystem || "voice";
+    const rows = await list(client, "bindinglist", [["subsystem", nonEmpty(options.subsystem ?? "")]], options);
+    return rows.map((row) => ({
+        subsystem: str(row, "subsystem") || subsystem,
+        ip: str(row, "ip"),
+        port: row["port"] === undefined ? undefined : num(row, "port"),
+    }));
+}
+/** The server's build version. */
+export async function getVersion(client, options) {
+    const row = firstRow(await query(client, "version", [], options), "version");
+    return { version: str(row, "version"), build: num(row, "build"), platform: str(row, "platform") };
+}
+/** Which server and client this connection is, as the server sees it. */
+export async function whoAmI(client, options) {
+    const row = firstRow(await query(client, "whoami", [], options), "whoami");
+    return {
+        serverStatus: str(row, "virtualserver_status"),
+        serverID: asServerID(big(row, "virtualserver_id")),
+        serverUID: str(row, "virtualserver_unique_identifier"),
+        serverPort: num(row, "virtualserver_port"),
+        clientID: asClientID(uint(row, "client_id", U16)),
+        channelID: asChannelID(big(row, "client_channel_id")),
+        nickname: str(row, "client_nickname"),
+        databaseID: asClientDBID(big(row, "client_database_id")),
+        loginName: str(row, "client_login_name"),
+        uid: asUID(str(row, "client_unique_identifier")),
+        serverUUID: row["virtualserver_uuid"],
+        originServerID: asServerID(big(row, "client_origin_server_id")),
+    };
+}
+/**
+ * The virtual server's traffic statistics — not this connection's, as the
+ * command's name suggests.
+ */
+export async function getConnectionInfo(client, options) {
+    const row = firstRow(await query(client, "serverrequestconnectioninfo", [], options), "serverrequestconnectioninfo");
+    return {
+        fileTransferBandwidthSent: num(row, "connection_filetransfer_bandwidth_sent"),
+        fileTransferBandwidthReceived: num(row, "connection_filetransfer_bandwidth_received"),
+        fileTransferBytesSent: num(row, "connection_filetransfer_bytes_sent_total"),
+        fileTransferBytesReceived: num(row, "connection_filetransfer_bytes_received_total"),
+        packetsSent: num(row, "connection_packets_sent_total"),
+        bytesSent: num(row, "connection_bytes_sent_total"),
+        packetsReceived: num(row, "connection_packets_received_total"),
+        bytesReceived: num(row, "connection_bytes_received_total"),
+        bandwidthSentLastSecond: num(row, "connection_bandwidth_sent_last_second_total"),
+        bandwidthSentLastMinute: num(row, "connection_bandwidth_sent_last_minute_total"),
+        bandwidthReceivedLastSecond: num(row, "connection_bandwidth_received_last_second_total"),
+        bandwidthReceivedLastMinute: num(row, "connection_bandwidth_received_last_minute_total"),
+        connectedTimeMs: durationMs(row, "connection_connected_time", SECOND),
+        packetLoss: num(row, "connection_packetloss_total"),
+        pingMs: num(row, "connection_ping"),
+    };
+}
+/**
+ * The numeric id of the virtual server listening on `port`.
+ *
+ * Needs an instance-level permission (`b_serverinstance_*`), which not even the
+ * Server Admin group holds by default — expect error 2568 until it is granted.
+ * Granted, it works over the voice protocol like any other query.
+ */
+export async function getServerIDByPort(client, port, options) {
+    const rows = await query(client, "serveridgetbyport", [["virtualserver_port", port]], options);
+    return asServerID(big(firstRow(rows, "serveridgetbyport", "server_id"), "server_id"));
+}
+// ---- Server groups ----------------------------------------------------------
+/**
+ * Create a server group.
+ *
+ * `type` is required, and always sent: the server's own default is
+ * `GroupType.Regular`, while the type's first value is `Template`, so leaving
+ * it to a default on either side is a trap.
+ *
+ * TeamSpeak 6 6.0.0-beta13.1 over WebQuery answers a create without its id,
+ * in a share of the creates, while a Server Admin voice client is connected:
+ * the server writes the id after its status, so the HTTP answer has none. The
+ * group exists then. When the answer lacks the id, the group is looked up by
+ * name and type ({@link listServerGroups}), which is exact, since the server keeps a
+ * group's name and type unique. The one gap is another client renaming or
+ * deleting the group between the create and the lookup. A NoDataError is
+ * thrown only when none matches. See "Server behaviour the SDK works around"
+ * in `docs/serverquery-responses.md`.
+ */
+export async function createServerGroup(client, name, type, options) {
+    const rows = await query(client, "servergroupadd", [
+        ["name", name],
+        ["type", type],
+    ], options);
+    return asServerGroupID(await recoveredGroupID(rows, "sgid", name, type, "servergroupadd", () => listServerGroups(client, options)));
+}
+/** Delete a server group. */
+export async function deleteServerGroup(client, sgid, options = {}) {
+    await exec(client, "servergroupdel", [
+        ["sgid", sgid],
+        ["force", options.force ?? false],
+    ], options);
+}
+/** Rename a server group. */
+export async function renameServerGroup(client, sgid, name, options) {
+    await exec(client, "servergrouprename", [
+        ["sgid", sgid],
+        ["name", name],
+    ], options);
+}
+/**
+ * Copy a server group's permissions onto another; a `targetGroupID` of 0 makes
+ * the server create a new group named `name`, of `type`.
+ *
+ * TeamSpeak 6 6.0.0-beta13.1 over WebQuery answers a create without its id,
+ * in a share of the creates, while a Server Admin voice client is connected:
+ * the server writes the id after its status, so the HTTP answer has none. The
+ * group exists then. When the answer lacks the id, the group is looked up by
+ * name and type ({@link listServerGroups}), which is exact, since the server keeps a
+ * group's name and type unique. The one gap is another client renaming or
+ * deleting the group between the create and the lookup. A NoDataError is
+ * thrown only when none matches. See "Server behaviour the SDK works around"
+ * in `docs/serverquery-responses.md`.
+ */
+export async function copyServerGroup(client, sourceGroupID, targetGroupID, name, type, options) {
+    const rows = await query(client, "servergroupcopy", [
+        ["ssgid", sourceGroupID],
+        ["tsgid", targetGroupID],
+        ["name", name],
+        ["type", type],
+    ], options);
+    // Copying onto an existing group keeps that group's id.
+    if (targetGroupID !== 0n)
+        return targetGroupID;
+    return asServerGroupID(await recoveredGroupID(rows, "sgid", name, type, "servergroupcopy", () => listServerGroups(client, options)));
+}
+/** Add a client to a server group. */
+export async function addClientToServerGroup(client, sgid, cldbid, options) {
+    await exec(client, "servergroupaddclient", [
+        ["sgid", sgid],
+        ["cldbid", cldbid],
+    ], options);
+}
+/** Remove a client from a server group. */
+export async function removeClientFromServerGroup(client, sgid, cldbid, options) {
+    await exec(client, "servergroupdelclient", [
+        ["sgid", sgid],
+        ["cldbid", cldbid],
+    ], options);
+}
+const memberFlags = { names: "-names" };
+/** Members of a server group, optionally with their nicknames and unique identifiers. */
+export async function listServerGroupClients(client, sgid, options = {}) {
+    const rows = await list(client, "servergroupclientlist", [["sgid", sgid], ...encodeFields(options, memberFlags)], options);
+    return rows.map((row) => ({
+        databaseID: asClientDBID(big(row, "cldbid")),
+        nickname: str(row, "client_nickname"),
+        uid: asUID(str(row, "client_unique_identifier")),
+    }));
+}
+/** Server groups a client belongs to. */
+export async function getServerGroupsByClient(client, cldbid, options) {
+    const rows = await list(client, "servergroupsbyclientid", [["cldbid", cldbid]], options);
+    return rows.map((row) => ({ id: asServerGroupID(big(row, "sgid")), name: str(row, "name") }));
+}
+/**
+ * Add several clients to a server group, in one command, such as
+ * `servergroupaddclient sgid=9 cldbid=3|cldbid=4`. With no ids nothing is sent.
+ *
+ * The server reports one answer for the whole call, never one per client.
+ * Measured on TeamSpeak 3 3.13.8 and TeamSpeak 6 beta13.1, over raw
+ * ServerQuery, SSH, WebQuery and the voice protocol alike, so this resolves to
+ * nothing and a failure says only what the server said:
+ *
+ * - Without `continueOnError`, the clients are added in the order given and
+ *   the call stops at the first one that fails (an unknown database id, 512;
+ *   a client already in the group, 2561): the clients before it are in the
+ *   group, the ones after it are not, and the error is that client's.
+ * - With it (`-continueonerror`), every client is tried and each one that can
+ *   be added is. The answer is success only if none failed; otherwise it is
+ *   the error of the last one that failed, so two different failures show
+ *   only the later. Read the members, as `listServerGroupClients` reports
+ *   them, to know who was added.
+ */
+export async function addClientsToServerGroup(client, sgid, databaseIDs, options = {}) {
+    await execRows(client, "servergroupaddclient", [...continueOnErrorParams(options), ["sgid", sgid]], databaseIDs.map((cldbid) => [["cldbid", cldbid]]), options);
+}
+/**
+ * Remove several clients from a server group, in one command
+ * (`servergroupdelclient sgid=9 cldbid=3|cldbid=4`). With no ids nothing is
+ * sent.
+ *
+ * As for {@link addClientsToServerGroup}, the server reports one answer for
+ * the call. Without `continueOnError` the call stops at the first client that
+ * fails, with earlier clients removed and later ones not; with it, every client
+ * is tried and the answer is the error of the last that failed. A client that
+ * is not in the group fails with 2563 (empty result set), as does an unknown
+ * database id.
+ */
+export async function removeClientsFromServerGroup(client, sgid, databaseIDs, options = {}) {
+    await execRows(client, "servergroupdelclient", [...continueOnErrorParams(options), ["sgid", sgid]], databaseIDs.map((cldbid) => [["cldbid", cldbid]]), options);
+}
+/** Permissions set on a server group. */
+export async function listServerGroupPermissions(client, sgid, options) {
+    return (await list(client, "servergrouppermlist", [["sgid", sgid]], options)).map(parsePermission);
+}
+/** Set a permission on a server group. */
+export async function addServerGroupPermission(client, sgid, permission, value, options = {}) {
+    await exec(client, "servergroupaddperm", [
+        ["sgid", sgid],
+        permissionParam(permission),
+        ["permvalue", value],
+        ["permnegated", options.negated ?? false],
+        ["permskip", options.skip ?? false],
+    ], options);
+}
+/**
+ * Set several permissions on a server group, in one command: each permission
+ * is a row of its own, with all its parameters. With none, nothing is sent.
+ *
+ * The server checks every row before it applies any: a permission it does not
+ * know (2562), a value it cannot read (1540) or a row missing a parameter
+ * (1539) refuses the call, and none is set, with or without `continueOnError`.
+ * Measured on TeamSpeak 3 3.13.8 and TeamSpeak 6 beta13.1, over raw
+ * ServerQuery, SSH, WebQuery and the voice protocol alike. Resolves to
+ * nothing: the server never reports an answer per row.
+ *
+ * A permission the caller has too little modify power for (2570, or 2568 where
+ * the group power is short) is another matter: the rows are applied in order.
+ * Without `continueOnError` the first row that fails ends the call, so the rows
+ * before it are set and the rows after it are not; with it the rows that fail
+ * are skipped and the others set. The error is the failing row's, and which row
+ * is not reported; with several failing rows which error comes back was not
+ * measured. Measured on TeamSpeak 3 3.13.8 and TeamSpeak 6 beta13.1, over raw
+ * ServerQuery (TeamSpeak 3), SSH, WebQuery and the voice protocol, in both
+ * orders of a free and a locked permission.
+ */
+export async function addServerGroupPermissions(client, sgid, permissions, options = {}) {
+    await execRows(client, "servergroupaddperm", [...continueOnErrorParams(options), ["sgid", sgid]], permissions.map(serverGroupPermissionRow), options);
+}
+const serverGroupPermissionRow = (entry) => [
+    permissionParam(entry.permission),
+    ["permvalue", entry.value],
+    ["permnegated", entry.negated ?? false],
+    ["permskip", entry.skip ?? false],
+];
+/**
+ * Remove several permissions from a server group, in one command: each
+ * permission is a row (`permsid=…|permsid=…`). With none, nothing is sent.
+ *
+ * As for {@link addServerGroupPermissions}, the server checks every row first
+ * and a permission it does not know (2562) refuses the call with none removed,
+ * with or without `continueOnError`. Removing a permission the group does not
+ * have succeeds. A permission the caller has too little modify power for
+ * (2570) ends the call at that row, so the rows before it are removed and the
+ * rows after it are not; with `continueOnError` that row is skipped and the
+ * others removed.
+ */
+export async function deleteServerGroupPermissions(client, sgid, permissions, options = {}) {
+    await execRows(client, "servergroupdelperm", [...continueOnErrorParams(options), ["sgid", sgid]], permissions.map((permission) => [permissionParam(permission)]), options);
+}
+/** Remove a permission from a server group. */
+export async function deleteServerGroupPermission(client, sgid, permission, options) {
+    await exec(client, "servergroupdelperm", [["sgid", sgid], permissionParam(permission)], options);
+}
+/**
+ * Set a permission on every regular server group of a type, on every virtual
+ * server of the instance: the groups whose `i_group_auto_update_type` is
+ * `type`.
+ *
+ * Instance-wide, so it needs `b_permission_modify_power_ignore`, which a
+ * virtual server's Server Admin does not hold: a voice client gets error 2568.
+ *
+ * The server requires `permnegated` and `permskip`, so both are always sent:
+ * `options.negated` and `options.skip`, each false when unset.
+ */
+export async function addServerGroupPermissionByType(client, type, permission, value, options = {}) {
+    await exec(client, "servergroupautoaddperm", [
+        ["sgtype", type],
+        permissionParam(permission),
+        ["permvalue", value],
+        ["permnegated", options.negated ?? false],
+        ["permskip", options.skip ?? false],
+    ], options);
+}
+/**
+ * Set several permissions on every regular server group of a type, on every
+ * virtual server of the instance, in one command; see
+ * {@link addServerGroupPermissionByType} for what the type selects and what it
+ * needs. Each permission is a row of its own. With none, nothing is sent.
+ *
+ * The server documents no `-continueonerror` for this command, so none is
+ * offered. A permission it does not know (2562) refuses the call before any is
+ * set; a voice client gets error 2568, as for the single form.
+ */
+export async function addServerGroupPermissionsByType(client, type, permissions, options) {
+    await execRows(client, "servergroupautoaddperm", [["sgtype", type]], permissions.map(serverGroupPermissionRow), options);
+}
+/**
+ * Remove several permissions from every regular server group of a type, in one
+ * command; see {@link addServerGroupPermissionsByType}. With none, nothing is
+ * sent. Needs `b_permission_modify_power_ignore`: a voice client gets error
+ * 2568.
+ */
+export async function deleteServerGroupPermissionsByType(client, type, permissions, options) {
+    await execRows(client, "servergroupautodelperm", [["sgtype", type]], permissions.map((permission) => [permissionParam(permission)]), options);
+}
+/**
+ * Remove a permission from every regular server group of a type, on every
+ * virtual server of the instance; see {@link addServerGroupPermissionByType}.
+ * Needs `b_permission_modify_power_ignore`: a voice client gets error 2568.
+ */
+export async function deleteServerGroupPermissionByType(client, type, permission, options) {
+    await exec(client, "servergroupautodelperm", [["sgtype", type], permissionParam(permission)], options);
+}
+/** The server's temporary passwords. */
+export async function listTempPasswords(client, options) {
+    const rows = await list(client, "servertemppasswordlist", [], options);
+    return rows.map((row) => ({
+        password: str(row, "pw_clear"),
+        description: str(row, "desc"),
+        creatorNickname: str(row, "nickname"),
+        creatorUID: asUID(str(row, "uid")),
+        startsAt: date(row, "start"),
+        endsAt: date(row, "end"),
+        targetChannelID: asChannelID(big(row, "tcid")),
+        targetChannelPassword: str(row, "tcpw"),
+    }));
+}
+const tempPasswordNames = {
+    password: "pw",
+    description: "desc",
+    durationMs: ["duration", inSeconds],
+    targetChannelID: "tcid",
+    targetChannelPassword: "tcpw",
+};
+/**
+ * Create a temporary server password.
+ *
+ * The server reports nothing back — the password is the one passed in.
+ */
+export async function addTempPassword(client, temp, options) {
+    if (typeof temp.password !== "string" || temp.password === "") {
+        throw new TypeError("a temporary password cannot be empty");
+    }
+    // tcid and tcpw are required on the wire, even for the default channel.
+    const fields = {
+        ...temp,
+        targetChannelID: temp.targetChannelID ?? asChannelID(0),
+        targetChannelPassword: temp.targetChannelPassword ?? "",
+    };
+    await exec(client, "servertemppasswordadd", encodeFields(fields, tempPasswordNames), options, [
+        "tcpw",
+    ]);
+}
+/** Delete a temporary password. */
+export async function deleteTempPassword(client, password, options) {
+    await exec(client, "servertemppassworddel", [["pw", password]], options);
+}
+//# sourceMappingURL=server.js.map

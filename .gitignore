@@ -1,8 +1,9 @@
 node_modules/
 dist/
 web/dist/
-!/vendor/teamspeak-client/dist/
-!/vendor/teamspeak-client/dist/**
+# Vendored SDK build output must ship in the repo (npm ci installs from it).
+!/vendor/teamspeak/dist/
+!/vendor/teamspeak/dist/**
 data/
 config.json
 *.log
