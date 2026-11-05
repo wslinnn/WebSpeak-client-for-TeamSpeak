@@ -2,7 +2,7 @@ import { createStore } from "zustand/vanilla";
 import type { StoreApi } from "zustand";
 
 import type { ChannelInfo, ChannelMember, ChatMessage } from "@shared/voice-models";
-import { loadChatHistory, normalizeChatHistoryServerKey, saveChatHistoryMessage } from "@/services/local-persistence";
+import { getChatHistoryConversationKey, loadChatHistory, normalizeChatHistoryServerKey, saveChatHistoryMessage } from "@/services/local-persistence";
 import type { MobileSection } from "./mobile-section";
 import type { WebClientChatTab } from "./home-store";
 
@@ -59,6 +59,9 @@ interface Options {
   sendServerMessage(text: string): Promise<void>;
   sendPrivateMessage(clientId: number, text: string, conversationId?: string, expectedKey?: string): Promise<void>;
   notifyPrivateMessage(): void;
+  /** 本地聊天记录删除通道（页签删记录）：过滤语义由控制器定义。 */
+  removeChatMessages(match: (message: ChatMessage) => boolean): void;
+  deleteChatHistoryWhere(serverKey: string, match: (conversationKey: string) => boolean): Promise<void>;
   t(key: string, variables?: Record<string, string | number>): string;
   getList(): ChatScrollerAspect | null;
 }
@@ -380,6 +383,53 @@ export function createChatController(options: Options) {
     patch({ unreadPrivate: next });
   }
 
+  /** 按页签删除本地聊天记录（视图层先弹确认，不可逆）：仅删本机 IndexedDB
+   *  与内存消息，服务器与对方不受影响。private=该会话（含旧 clid 锚的分裂
+   *  记录，从待删消息逐条取持久化键精确覆盖）；channel=本服务器全部频道
+   *  记录；server=服务器记录；events 纯内存无持久化、刷新即空，不支持。 */
+  function deleteTabHistory(target: WebClientChatTab, conversationKey = ""): void {
+    const serverKey = options.getServerKey();
+    if (!serverKey) return;
+    const normalized = normalizeChatHistoryServerKey(serverKey);
+    const doomedKeys = new Set<string>();
+    let matchInMemory: (message: ChatMessage) => boolean;
+    if (target === "private" && conversationKey) {
+      const removed = options.session.getState().chatMessages.filter(
+        (message) => message.scope === "private" && messageKey(message) === conversationKey,
+      );
+      for (const message of removed) {
+        const key = getChatHistoryConversationKey(message);
+        if (key) doomedKeys.add(key);
+      }
+      doomedKeys.add(`private:${conversationKey}`);
+      matchInMemory = (message) => message.scope === "private" && messageKey(message) === conversationKey;
+      seededConversations.delete(conversationKey);
+      markPrivateRead(conversationKey);
+      if (tab() === "private" && state().privateConversationKey === conversationKey) {
+        patch({ privateClientId: 0, privateConversationKey: "", messageDraft: "" });
+        setTab("channel");
+      }
+    } else if (target === "channel") {
+      matchInMemory = (message) => message.scope === "channel";
+      doomedKeys.add("channel:");
+    } else if (target === "server") {
+      matchInMemory = (message) => message.scope === "server";
+      doomedKeys.add("server");
+    } else {
+      return;
+    }
+    options.removeChatMessages(matchInMemory);
+    void options.deleteChatHistoryWhere(normalized, (candidate) =>
+      doomedKeys.has(candidate) || (target === "channel" && candidate.startsWith("channel:")));
+    // 草稿/在途/错误按目的地维度隔离，被删会话的条目一并清掉。
+    const isPrivate = target === "private" && Boolean(conversationKey);
+    for (const map of [drafts, pending, errors]) {
+      for (const key of [...map.keys()]) {
+        if (isPrivate ? key.endsWith(`:private:${conversationKey}`) : key.includes(`:${target}:`)) map.delete(key);
+      }
+    }
+  }
+
   /** 桌面聊天列折叠态接线（voice-shell effect）。 */
   function setDesktopCollapsed(collapsed: boolean): void {
     desktopCollapsed = collapsed;
@@ -427,6 +477,7 @@ export function createChatController(options: Options) {
     openConversation,
     submitMessage,
     markPrivateRead,
+    deleteTabHistory,
     setDesktopCollapsed,
     scrollToEnd,
     onScroll,

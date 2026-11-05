@@ -35,6 +35,10 @@ function harness(overrides: Partial<Parameters<typeof createChatController>[0]> 
       const known = new Set(session.getState().chatMessages.map((message) => message.id));
       session.setState({ chatMessages: [...session.getState().chatMessages, ...additions.filter((message) => !known.has(message.id))] });
     },
+    removeChatMessages: (match) => {
+      session.setState({ chatMessages: session.getState().chatMessages.filter((message) => !match(message)) });
+    },
+    deleteChatHistoryWhere: vi.fn(async () => undefined),
     getClientId: () => 1,
     getServerKey: () => "example.test:9987",
     getCurrentChannel: () => CHANNEL,
@@ -337,6 +341,65 @@ describe("chat controller（私聊 seed 与未读）", () => {
     expect(conversations[0]?.key).toBe("uid:peer");
     controller.openPrivateChat(7);
     expect(controller.visibleMessages()).toHaveLength(2);
+  });
+
+  it("deleting a private conversation clears messages, seed, unread and exits the tab", async () => {
+    const deleteSpy = vi.fn(async (_serverKey: string, _match: (key: string) => boolean) => undefined);
+    const { controller, session, store, home } = harness({ deleteChatHistoryWhere: deleteSpy });
+    session.setState({ members: [peerMember] });
+    // 默认频道页签：他人私聊先到达，未读累计
+    session.setState({ chatMessages: [peerMessage("m1", 1)] });
+    await tick();
+    expect(store.getState().unreadPrivate["uid:peer"]).toBe(1);
+    // 激活会话后到达一条自发消息（对话完整），随后按页签删除
+    controller.openPrivateChat(7);
+    session.setState({
+      chatMessages: [
+        peerMessage("m1", 1),
+        { ...peerMessage("s1", 2), isSelf: true, senderId: 1, conversationKey: "uid:peer" },
+      ],
+    });
+    await tick();
+    controller.deleteTabHistory("private", "uid:peer");
+    expect(session.getState().chatMessages).toHaveLength(0);
+    expect(store.getState().unreadPrivate).toEqual({});
+    expect(store.getState().privateConversationKey).toBe("");
+    expect(home.getState().chatTab).toBe("channel");
+    // 持久化删除谓词：uid 直译键命中，旧 clid 锚键不误删
+    const match = deleteSpy.mock.calls.at(-1)?.[1];
+    expect(match?.("private:uid:peer")).toBe(true);
+    expect(match?.("private:client:[7,\"\"]")).toBe(false);
+  });
+
+  it("channel and server tab deletions clear their scopes from memory and persistence", async () => {
+    const deleteSpy = vi.fn(async (_serverKey: string, _match: (key: string) => boolean) => undefined);
+    const { controller, session } = harness({ deleteChatHistoryWhere: deleteSpy });
+    session.setState({
+      chatMessages: [
+        { id: "c1", scope: "channel", invokerName: "Alice", message: "Hi", timestamp: 1 },
+        { id: "s1", scope: "server", invokerName: "Bob", message: "Yo", timestamp: 2 },
+      ],
+    });
+    await tick();
+    controller.deleteTabHistory("channel");
+    controller.deleteTabHistory("server");
+    expect(session.getState().chatMessages).toHaveLength(0);
+    const channelMatch = deleteSpy.mock.calls[0]?.[1];
+    expect(channelMatch?.("channel:1")).toBe(true);
+    expect(channelMatch?.("channel:9")).toBe(true);
+    expect(channelMatch?.("private:uid:peer")).toBe(false);
+    const serverMatch = deleteSpy.mock.calls[1]?.[1];
+    expect(serverMatch?.("server")).toBe(true);
+    expect(serverMatch?.("channel:1")).toBe(false);
+  });
+
+  it("events tab has no history deletion (memory-only, no-op)", () => {
+    const deleteSpy = vi.fn(async (_serverKey: string, _match: (key: string) => boolean) => undefined);
+    const { controller, session } = harness({ deleteChatHistoryWhere: deleteSpy });
+    session.setState({ chatMessages: [peerMessage("m1", 1)] });
+    controller.deleteTabHistory("events");
+    expect(session.getState().chatMessages).toHaveLength(1);
+    expect(deleteSpy).not.toHaveBeenCalled();
   });
 
   it("history replay on refresh neither counts unread nor rings the arrival sound", async () => {

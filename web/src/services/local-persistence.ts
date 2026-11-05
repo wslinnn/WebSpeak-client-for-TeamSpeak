@@ -275,6 +275,31 @@ export async function loadChatHistory(serverKey: string): Promise<ChatMessage[]>
   }
 }
 
+/** 按「页签删聊天记录」的本地删除通道：仅删除本机 IndexedDB 记录，
+ *  匹配语义由调用方定义（会话键精确匹配 / 频道前缀）。 */
+export async function deleteChatHistoryWhere(serverKey: string, match: (conversationKey: string) => boolean): Promise<void> {
+  if (!serverKey) return;
+  try {
+    const database = await openDatabase();
+    await new Promise<void>((resolve, reject) => {
+      const transaction = database.transaction("chatHistory", "readwrite");
+      const store = transaction.objectStore("chatHistory");
+      const get = store.index("serverKey").getAll(serverKey);
+      get.onerror = () => reject(get.error ?? new Error("Could not read local chat history"));
+      get.onsuccess = () => {
+        for (const record of get.result as ChatHistoryRecord[]) {
+          if (match(record.conversationKey)) store.delete(JSON.stringify([serverKey, record.conversationKey]));
+        }
+      };
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error ?? new Error("Local chat history transaction failed"));
+      transaction.onabort = () => reject(transaction.error ?? new Error("Local chat history transaction aborted"));
+    });
+  } catch {
+    // 删除失败静默：本地多留一份数据不构成正确性问题。
+  }
+}
+
 export async function saveChatHistoryMessage(serverKey: string, message: ChatMessage): Promise<void> {
   const conversationKey = getChatHistoryConversationKey(message);
   if (!serverKey || !conversationKey) return;

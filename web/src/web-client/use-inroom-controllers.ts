@@ -5,6 +5,7 @@ import type { VoiceSessionController } from "@/voice/session-controller";
 import { showBackgroundTabNotification, readDesktopNotificationSetting } from "@/services/desktop-notifications";
 import { combineTeamSpeakTarget, splitTeamSpeakTarget } from "@/services/teamspeak-target";
 import type { FavoriteServer } from "@/services/local-persistence";
+import { deleteChatHistoryWhere } from "@/services/local-persistence";
 import { buildChannelTree, findCurrentChannel } from "@/web-client/channel-tree";
 import { createAudioControls } from "@/web-client/audio-controls";
 import { createChannelFold } from "@/web-client/channel-fold";
@@ -153,6 +154,8 @@ export function useInRoomControllers(options: InRoomOptions) {
     home: store,
     session: voice.session.store,
     mergeChatHistory: voice.session.mergeChatHistory,
+    removeChatMessages: voice.session.removeChatMessages,
+    deleteChatHistoryWhere,
     voice: voice.store,
     getClientId: () => voice.store.getState().tsClientId,
     getServerKey: () => {

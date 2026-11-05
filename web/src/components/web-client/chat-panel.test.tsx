@@ -40,6 +40,10 @@ function harness(messages: ChatMessage[], members: ChannelMember[] = []) {
       const known = new Set(session.getState().chatMessages.map((message) => message.id));
       session.setState({ chatMessages: [...session.getState().chatMessages, ...additions.filter((message) => !known.has(message.id))] });
     },
+    removeChatMessages: (match) => {
+      session.setState({ chatMessages: session.getState().chatMessages.filter((message) => !match(message)) });
+    },
+    deleteChatHistoryWhere: vi.fn(async () => undefined),
     getClientId: () => 1,
     getServerKey: () => "example.test:9987",
     getCurrentChannel: () => ({ id: "1", parentID: "0", name: "Lobby" }),

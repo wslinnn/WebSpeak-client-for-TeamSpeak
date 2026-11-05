@@ -418,6 +418,16 @@ export function createVoiceSessionState(options: SessionStateOptions) {
     syncChat();
   }
 
+  /** 本地记录删除通道（按页签删聊天记录专用）：唯一允许的消息移除路径，
+   *  与 mergeChatHistory 同一纪律——过滤器语义由调用方定义（会话键/scope），
+   *  移除后整体同步。 */
+  function removeChatMessages(match: (message: ChatMessage) => boolean): void {
+    const next = chatMessages.filter(message => !match(message));
+    if (next.length === chatMessages.length) return;
+    chatMessages.splice(0, chatMessages.length, ...next);
+    syncChat();
+  }
+
   function reset(): void {
     store.setState({ epoch: store.getState().epoch + 1 });
     replaceMembers([]);
@@ -433,7 +443,7 @@ export function createVoiceSessionState(options: SessionStateOptions) {
     syncPokes();
   }
 
-  return { store, connected, receive, appendLocal, retractLocal, mergeChatHistory, reset,
+  return { store, connected, receive, appendLocal, retractLocal, mergeChatHistory, removeChatMessages, reset,
     /** Live working array for non-render consumers (e.g. volume sync inside
      *  onMembersChanged, which runs before the store snapshot syncs). */
     membersLive: () => members,

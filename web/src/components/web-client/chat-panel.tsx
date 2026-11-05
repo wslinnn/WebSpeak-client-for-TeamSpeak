@@ -1,4 +1,4 @@
-import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "zustand";
 import { useShallow } from "zustand/react/shallow";
 
@@ -6,12 +6,14 @@ import { Icon } from "./icon";
 import { InputGroup, InputGroupAddon, InputGroupTextarea } from "@/components/ui/input-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
 import type { ChatController, ChatScrollerAspect } from "@/web-client/chat-controller";
 import { formatFullTimestamp, formatTime, resolveMessageAvatar } from "@/web-client/view-utils";
 import type { ChannelMember, ServerEvent } from "@shared/voice-models";
 import type { Language } from "@/i18n/web-client";
 import type { WebClientChatTab } from "@/web-client/home-store";
+import { createLongPressContextMenu } from "@/services/long-press-context-menu";
 import { Button } from "@/components/ui/button";
 
 interface ChatPanelProps {
@@ -114,8 +116,40 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
   // 计数与空态判断用；行渲染在 ChatMessageList 内自算（那里的数组不能每渲新建）。
   const visibleMessages = chat.visibleMessages(sessionSlice.chatMessages);
   const [composing, setComposing] = useState(false);
+  /** 页签删记录的确认目标（右键/长按页签弹出）：events 无持久化不提供入口。 */
+  const [historyDeleteTarget, setHistoryDeleteTarget] = useState<{ tab: WebClientChatTab; conversationKey: string; label: string } | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  // 触屏长按与桌面右键共用一个入口（iOS 无原生 contextmenu）；context 携带
+  // 页签三元组，长按结束的 click 被服务吞掉不会误切页签。
+  const tabGestures = useMemo(
+    () => createLongPressContextMenu<{ tab: WebClientChatTab; conversationKey: string; label: string }>((open) => {
+      if (open.context && open.context.tab !== "events") setHistoryDeleteTarget(open.context);
+    }),
+    [setHistoryDeleteTarget],
+  );
+  useEffect(() => () => tabGestures.dispose(), [tabGestures]);
+  const openTabHistoryDelete = (tab: WebClientChatTab, conversationKey: string, label: string): void => {
+    if (tab === "events") return;
+    setHistoryDeleteTarget({ tab, conversationKey, label });
+  };
+  const bindTabGestures = (tab: WebClientChatTab, conversationKey: string, label: string) => ({
+    onContextMenu: (event: React.MouseEvent) => {
+      event.preventDefault();
+      openTabHistoryDelete(tab, conversationKey, label);
+    },
+    onPointerDown: (event: React.PointerEvent) => tabGestures.pointerDown(event.nativeEvent, { tab, conversationKey, label }),
+    onPointerMove: (event: React.PointerEvent) => tabGestures.pointerMove(event.nativeEvent),
+    onPointerUp: () => tabGestures.pointerUp(),
+    onPointerCancel: () => tabGestures.pointerCancel(),
+  });
+  /** 确认弹窗标题按目标分型：私聊带对方昵称，频道/服务器按范围。 */
+  const historyDeleteTitle = (tab: WebClientChatTab, label: string): string => {
+    if (tab === "channel") return t("deleteTabHistoryChannel");
+    if (tab === "server") return t("deleteTabHistoryServer");
+    if (tab === "private") return t("deleteTabHistoryPrivate", { name: label });
+    return "";
+  };
 
   // 旧 listElement ref 平价：把渲染出来的滚动容器交给控制器切面（卸载时解绑）。
   // 页签切换会卸载/重挂滚动容器（TabsContent 惰性渲染），切换后必须重新绑定，
@@ -264,12 +298,22 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
       </div>
       <Tabs value={activeTabValue} onValueChange={onTabChange}>
         <TabsList ref={tabsListRef} className="chat-tabs" data-ws-part="voice.chat.tabs" aria-label={t("chatTabs")}>
-          <TabsTrigger value="channel" data-ws-part="voice.chat.tab" data-ws-state={tab === "channel" ? "active" : "idle"}>
+          <TabsTrigger
+            value="channel"
+            data-ws-part="voice.chat.tab"
+            data-ws-state={tab === "channel" ? "active" : "idle"}
+            {...bindTabGestures("channel", "", currentChannelName)}
+          >
             <Icon name="hash" size={15} />
             {" "}
             {currentChannelName}
           </TabsTrigger>
-          <TabsTrigger value="server" data-ws-part="voice.chat.tab" data-ws-state={tab === "server" ? "active" : "idle"}>
+          <TabsTrigger
+            value="server"
+            data-ws-part="voice.chat.tab"
+            data-ws-state={tab === "server" ? "active" : "idle"}
+            {...bindTabGestures("server", "", t("serverChat"))}
+          >
             <Icon name="server" size={15} />
             {" "}
             {t("serverChat")}
@@ -284,6 +328,7 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
                 data-ws-state={tab === "private" && chatUi.privateConversationKey === conversation.key ? "active" : "idle"}
                 data-offline={conversation.offline ? "true" : undefined}
                 title={conversation.offline ? t("offlineConversationTab") : undefined}
+                {...bindTabGestures("private", conversation.key, conversation.name)}
               >
                 <Icon name="message" size={15} />
                 {" "}
@@ -320,6 +365,23 @@ export function ChatPanel({ chat, tab, language, currentChannelName, mobileHidde
       {chat.status(t) && (
         <p className="chat-status" data-ws-part="voice.chat.status" role="status">{chat.status(t)}</p>
       )}
+      {/* 页签删记录确认：全局弹窗纪律——组件根部、页签分支之外。 */}
+      <AlertDialog open={Boolean(historyDeleteTarget)} onOpenChange={(next) => { if (!next) setHistoryDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{historyDeleteTarget && historyDeleteTitle(historyDeleteTarget.tab, historyDeleteTarget.label)}</AlertDialogTitle>
+            <AlertDialogDescription>{t("deleteTabHistoryNotice")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              if (!historyDeleteTarget) return;
+              chat.deleteTabHistory(historyDeleteTarget.tab, historyDeleteTarget.conversationKey);
+              setHistoryDeleteTarget(null);
+            }}>{t("deleteTabHistoryConfirm")}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 }
