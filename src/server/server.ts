@@ -172,27 +172,44 @@ export function createWebServer(options: WebServerOptions): WebServer {
 
   // The prefill check hits upstream DNS and the nickname lookup service on
   // every request of an unauthenticated endpoint; a short positive/negative
-  // cache bounds that amplification. The authoritative safety check still
-  // runs on the join path, so staleness here only affects form prefill.
+  // cache bounds that amplification. The cache is only written after the
+  // lookup finishes, so concurrent cold requests also share one in-flight
+  // promise instead of each starting its own DNS + registry call.
+  // The authoritative safety check still runs on the join path, so staleness
+  // here only affects form prefill.
   const prefillResolveTtlMs = options.prefillResolveTtlMs ?? 30_000;
   let prefillResolution: { key: string; blocked: boolean; at: number } | null = null;
+  let prefillInFlight: { key: string; promise: Promise<boolean> } | null = null;
+  async function resolvePrefill(target: string): Promise<boolean> {
+    const now = Date.now();
+    if (prefillResolution && prefillResolution.key === target && now - prefillResolution.at <= prefillResolveTtlMs) {
+      return prefillResolution.blocked;
+    }
+    if (prefillInFlight && prefillInFlight.key === target) return prefillInFlight.promise;
+    const entry = { key: target, promise: (async (): Promise<boolean> => {
+      let blocked: boolean;
+      try {
+        blocked = !await isSafeOpenTargetForPrefill(await resolveTeamSpeakTarget(target));
+      } catch {
+        blocked = true;
+      }
+      prefillResolution = { key: target, blocked, at: Date.now() };
+      return blocked;
+    })() };
+    prefillInFlight = entry;
+    try {
+      return await entry.promise;
+    } finally {
+      if (prefillInFlight === entry) prefillInFlight = null;
+    }
+  }
   app.get("/api/public-config", async (request, response) => {
     response.setHeader("Cache-Control", "no-store");
     const publicConfig = options.adminService.getPublicConfig();
     let target = typeof publicConfig.target === "string" ? publicConfig.target : "";
     let targetPrefillBlocked = false;
     if (publicConfig.accessMode === "open" && target.trim()) {
-      const now = Date.now();
-      if (!prefillResolution || prefillResolution.key !== target || now - prefillResolution.at > prefillResolveTtlMs) {
-        try {
-          targetPrefillBlocked = !await isSafeOpenTargetForPrefill(await resolveTeamSpeakTarget(target));
-        } catch {
-          targetPrefillBlocked = true;
-        }
-        prefillResolution = { key: target, blocked: targetPrefillBlocked, at: now };
-      } else {
-        targetPrefillBlocked = prefillResolution.blocked;
-      }
+      targetPrefillBlocked = await resolvePrefill(target);
       if (targetPrefillBlocked) target = "";
     }
     response.json({
