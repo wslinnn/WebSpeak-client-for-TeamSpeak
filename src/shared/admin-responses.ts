@@ -59,11 +59,6 @@ const connection = object({
   startedAt: text, connectedAt: nullable(text), disconnectedAt: nullable(text), durationSeconds: nullable(number),
   status: choice("active", "connecting", "disconnected", "failed"), reason: nullable(text), failureDetail: nullable(text),
 });
-const skin = object({
-  id: text, name: text, version: text, author: text, license: text, minAppVersion: text, installedAt: number,
-  description: optional(text), previewUrl: optional(text), previewMimeType: optional(text),
-  builtIn: optional(boolean), enabled: optional(boolean), previewKind: optional(choice("day", "night")),
-});
 const sessionStatus = object({ authenticated: boolean, mustChangePassword: optional(boolean), csrfToken: optional(text) });
 
 export const adminResponses = {
@@ -85,10 +80,6 @@ export const adminResponses = {
     voiceTransports: optional(object({ connected: number, webrtc: number, compat: number, compatRatio: number })),
     database: object({ schemaVersion: number }), sessions: object({ created: number }),
   }),
-  skins: object({ skins: array(skin), defaultSkinId: text }),
-  defaultSkin: object({ ok: choice(true), defaultSkinId: text }),
-  updatedSkin: object({ ok: choice(true), skin, defaultSkinId: text }),
-  uploadedSkin: object({ ok: choice(true), skin }),
   probe: object({
     ok: boolean, checkType: choice("network", "protocol"), passwordVerified: boolean,
     latencyMs: number, serverName: nullable(text), requiresPassword: boolean,

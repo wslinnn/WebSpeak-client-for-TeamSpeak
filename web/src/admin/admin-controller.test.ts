@@ -25,7 +25,6 @@ const defaults = (path: string) => ({
   "/server": settings(), "/overview": overview, "/sessions": { sessions: [] },
   "/diagnostics": { gateway: { version: "test", node: "test", platform: "test", arch: "test" }, database: { schemaVersion: 1 }, sessions: { created: 0 } },
   "/logs?limit=100": { available: false, entries: [], sessions: [] }, "/audit?limit=50": { events: [] },
-  "/skins": { skins: [], defaultSkinId: "builtin.light" },
 })[path as "/session"];
 
 let handler: (path: string, init?: RequestInit) => Promise<Response>;

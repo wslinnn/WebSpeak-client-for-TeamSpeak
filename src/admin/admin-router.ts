@@ -155,14 +155,16 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
     });
   });
 
-  router.get("/diagnostics", (_request, response) => {
+  // JSON 视图与可下载报告曾各写一份同样的字段清单。两者共用同一个
+  // 采集函数，差异只剩额外字段（视图带 logs，报告带 audit）与响应头。
+  const diagnosticsPayload = () => {
     const overview = options.service.getOverview(
       options.getActiveSessions(),
       options.getPeakSessions(),
       options.startedAt,
     );
     const memory = process.memoryUsage();
-    response.json({
+    return {
       generatedAt: new Date().toISOString(),
       gateway: {
         version: options.version ?? "0.1.0",
@@ -187,44 +189,18 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
       voiceTransports: options.getVoiceTransportStats?.(),
       teamSpeak: overview.teamSpeak,
       database: { schemaVersion: options.service.database.schemaVersion },
+    };
+  };
+
+  router.get("/diagnostics", (_request, response) => {
+    response.json({
+      ...diagnosticsPayload(),
       logs: { available: Boolean(options.logFile && existsSync(options.logFile)) },
     });
   });
 
   router.get("/diagnostics/report", (_request, response) => {
-    const overview = options.service.getOverview(
-      options.getActiveSessions(),
-      options.getPeakSessions(),
-      options.startedAt,
-    );
-    const memory = process.memoryUsage();
-    const report = {
-      generatedAt: new Date().toISOString(),
-      gateway: {
-        version: options.version ?? "0.1.0",
-        uptimeSeconds: overview.gateway.uptimeSeconds,
-        node: process.version,
-        platform: process.platform,
-        arch: process.arch,
-        rssMb: Math.round(memory.rss / 1024 / 1024),
-        heapUsedMb: Math.round(memory.heapUsed / 1024 / 1024),
-      },
-      sessions: {
-        active: options.getActiveSessions(),
-        peak: options.getPeakSessions(),
-        created: options.getCreatedSessions?.() ?? 0,
-        limit: 100,
-      },
-      voiceTransports: options.getVoiceTransportStats?.(),
-      teamSpeak: {
-        status: overview.teamSpeak.status,
-        lastTestAt: overview.teamSpeak.lastTestAt,
-        latencyMs: overview.teamSpeak.latencyMs,
-        lastError: overview.teamSpeak.lastError,
-      },
-      database: { schemaVersion: options.service.database.schemaVersion },
-      audit: options.service.database.recentAudit(50),
-    };
+    const report = { ...diagnosticsPayload(), audit: options.service.database.recentAudit(50) };
     response.setHeader("Content-Type", "application/json; charset=utf-8");
     response.setHeader("Content-Disposition", `attachment; filename="webspeak-diagnostic-report.json"`);
     response.send(JSON.stringify(report, null, 2));
@@ -340,7 +316,7 @@ function readSettingsInput(body: Record<string, unknown>): AdminSettingsInput {
     target: readString(body, "target", 300),
     serverPassword: typeof body.serverPassword === "string" ? body.serverPassword.slice(0, 512) : undefined,
     passwordAction: readPasswordAction(body.passwordAction),
-    accessMode: body.accessMode === "open" ? "open" : body.accessMode === "fixed" ? "fixed" : body.accessMode as never,
+    accessMode: readAccessMode(body.accessMode),
     siteName: readString(body, "siteName", 80),
     welcomeText: readOptionalString(body, "welcomeText", 500),
     welcomeTextEn: typeof body.welcomeTextEn === "string" ? body.welcomeTextEn.slice(0, 500) : undefined,
@@ -348,13 +324,34 @@ function readSettingsInput(body: Record<string, unknown>): AdminSettingsInput {
     welcomeTextRu: typeof body.welcomeTextRu === "string" ? body.welcomeTextRu.slice(0, 500) : undefined,
     welcomeTextJa: typeof body.welcomeTextJa === "string" ? body.welcomeTextJa.slice(0, 500) : undefined,
     webRtcEnabled: body.webRtcEnabled === true,
-    webRtcPublicHost: body.webRtcPublicHost as string | undefined,
-    webRtcIpv6Enabled: body.webRtcIpv6Enabled as boolean | undefined,
-    webRtcStunServer: body.webRtcStunServer as string | undefined,
+    webRtcPublicHost: readOptionalTypedString(body.webRtcPublicHost, "INVALID_WEBRTC_PUBLIC_HOST"),
+    webRtcIpv6Enabled: readOptionalTypedBoolean(body.webRtcIpv6Enabled, "INVALID_WEBRTC_IPV6"),
+    webRtcStunServer: readOptionalTypedString(body.webRtcStunServer, "INVALID_WEBRTC_STUN_SERVER"),
     screenShareIceServersJson: typeof body.screenShareIceServersJson === "string" ? body.screenShareIceServersJson.slice(0, 8192) : undefined,
     webRtcUdpStart: readOptionalInteger(body, "webRtcUdpStart"),
     webRtcUdpEnd: readOptionalInteger(body, "webRtcUdpEnd"),
   };
+}
+
+/** 以前把 unknown 直接 `as string | undefined` / `as boolean` 塞进
+ *  AdminSettingsInput，类型声明与实际值不符（下游 AdminService 再做运行时校验才
+ *  没有安全影响）。这里按声明类型收窄，非法值用与 service 相同的错误码拒绝，
+ *  响应仍是 400 —— 契约与行为都不变。 */
+function readOptionalTypedString(value: unknown, code: string): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string") throw new AdminInputError(code, `${code} is invalid`);
+  return value;
+}
+
+function readOptionalTypedBoolean(value: unknown, code: string): boolean | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "boolean") throw new AdminInputError(code, `${code} is invalid`);
+  return value;
+}
+
+function readAccessMode(value: unknown): AdminSettingsInput["accessMode"] {
+  if (value === "fixed" || value === "open") return value;
+  throw new AdminInputError("INVALID_ACCESS_MODE", "Access mode is invalid");
 }
 
 function readPasswordAction(value: unknown): "keep" | "replace" | "remove" {
