@@ -195,6 +195,7 @@ Building `@discordjs/opus` requires Python, Make, and a C/C++ toolchain.
 | Data | Docker data is in `webspeak-data`; release packages and source installs use `data/`. Back up before upgrades. |
 | Session limit | One instance accepts up to 100 active browser sessions. |
 | Deployment security boundary | The same-origin check (the `Origin` header must match `Host`, also enforced on the voice WebSocket upgrade) stops cross-site requests only. It does **not** stop DNS rebinding: when an attacker's domain later resolves to the gateway IP, Origin and Host still agree. Expose the gateway only inside a trusted network (firewall/ACL, intranet or VPN) and put the public entry point on a reverse proxy you control on a different host; never expose `3040/TCP` directly to an untrusted network. The admin console additionally uses SameSite=strict cookies and CSRF tokens, which lowers but does not remove that risk. |
+| Browser storage and passwords | Remembering the TeamSpeak server password is always on for this device: open mode writes it into the IndexedDB favorite record, fixed mode ("this server only") into the `localStorage` key `webspeak:fixed-server-password`. Both are **plaintext**, scoped to this device and this origin, and removed by "Clear local data". The trust boundary is therefore anyone who can read this browser profile; the page's CSP (`script-src 'self'`) narrows the XSS surface but does not encrypt browser storage. Avoid relying on password memory on shared computers. |
 
 ## Recent contributors
 
