@@ -216,6 +216,10 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       if (initialStateSent || !tsReady || !events.ready || session.state !== "syncing") return;
       initialStateSent = true;
       entry!.connectedOnce = true;
+      // 重连成功即恢复，之前那次失败码只描述失败的那次尝试。
+      // 不清空的话 teardown 日志会带上它，管理台把「恢复过并正常退出」的会话
+      // 当成失败（readConnectionHistory 以 failureCode 作为会话 reason）。
+      entry!.connectionFailureCode = undefined;
       const wasReconnecting = hasConnectedOnce;
       hasConnectedOnce = true;
       reconnectAttempt = 0;

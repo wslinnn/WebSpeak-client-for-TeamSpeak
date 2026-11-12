@@ -184,12 +184,16 @@ test("传输层掉线进入 1/2/4s 重连预算，恢复后回发 reconnected", 
   t.after(() => h.close());
   const view = await join(h);
   await waitFor(h, view, "connected");
+  const entry = [...h.entries.values()][0] as unknown as { connectionFailureCode?: string };
   // 掉线后首次重拨仍失败，第二次（~3s）前恢复连接成功。
   h.sdk.connectImpl = async () => { throw new Error("read ECONNRESET"); };
   h.sdk.emit("disconnected", Object.assign(new Error("read ECONNRESET"), { code: "ECONNRESET" }));
   const reconnecting1 = await waitFor(h, view, "reconnecting");
   assert.equal(reconnecting1.attempt, 1);
   assert.equal(view.messages.find((m) => m.type === "disconnected")?.recoverable, true);
+  // 第一次重拨失败会落一次失败码（管理台据此记录那次尝试）。
+  while (view.messages.filter((m) => m.type === "reconnecting").length < 2) await nextTurn();
+  assert.equal(typeof entry.connectionFailureCode, "string");
   setTimeout(() => {
     h.sdk.connectImpl = async () => {
       h.sdk.disconnected = false;
@@ -198,6 +202,9 @@ test("传输层掉线进入 1/2/4s 重连预算，恢复后回发 reconnected", 
   }, 1_500).unref?.();
   const reconnected = await waitFor(h, view, "reconnected");
   assert.ok(reconnected, "恢复成功必须回发 reconnected");
+  // 恢复成功必须清掉失败尝试留下的码，否则正常退出的会话会被
+  // teardown 日志 / readConnectionHistory 记成失败。
+  assert.equal(entry.connectionFailureCode, undefined);
 });
 
 test("连接后被踢是终态：connectionFailed + 会话拆除", { timeout: 5_000 }, async t => {
