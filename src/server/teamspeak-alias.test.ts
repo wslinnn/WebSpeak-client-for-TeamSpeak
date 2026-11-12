@@ -70,6 +70,11 @@ test("ordinary targets retain their parser and do not call nickname lookup", asy
     assert.deepEqual(await resolveTeamSpeakTarget(value, unexpectedFetch), parseTeamSpeakTarget(value));
   }
   assert.throws(() => parseTeamSpeakTarget("team eco"));
+  // 主机名不能以 - 开头（RFC 1035 标签），否则会以选项形态进入外部命令。
+  // 注意：连接地址解析里裸 "-f" 是昵称（走官方 registry），拒之的是解析后的主机名。
+  for (const value of ["-f", "-f:9987", "--help", "[-f]:9987"]) {
+    assert.throws(() => parseTeamSpeakTarget(value), value);
+  }
 });
 
 test("invalid inputs and failed or malformed lookups reject the connection", async () => {

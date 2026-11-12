@@ -62,6 +62,12 @@ export function isRestrictedAddress(address: string): boolean {
   if ((first & 0xff00) === 0xff00) return true; // multicast ff00::/8
   if (normalized.startsWith("2001:db8:")) return true; // documentation range
   if (normalized.startsWith("64:ff9b:")) return true; // NAT64 64:ff9b::/96 well-known prefix (RFC 6052) plus its local-use sibling (RFC 8215) both translate back into IPv4 space
+  // Transition / special-purpose ranges. 6to4 and Teredo embed an
+  // IPv4 address inside the IPv6 one, so they inherit whatever the IPv4 policy
+  // would say about that address; 100::/64 is discard-only.
+  if (normalized.startsWith("2002:")) return true; // 6to4 2002::/16 (bits 16-47 carry an IPv4 address)
+  if (normalized.startsWith("2001:0:") || normalized.startsWith("2001::")) return true; // Teredo 2001::/32 (embedded server/client IPv4)
+  if (normalized.startsWith("100:")) return true; // discard-only 100::/64
   return false;
 }
 

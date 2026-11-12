@@ -125,13 +125,25 @@ function classifyProbeError(error: unknown): TeamSpeakPingErrorCode {
   return "UNREACHABLE";
 }
 
+/** Build the platform ping invocation. A host starting with "-" is refused:
+ *  `ping` would read it as an option (no shell is involved, so this is argument
+ *  ambiguity rather than injection), and the target parser rejects such names
+ *  anyway — this is the defense-in-depth layer at the spawn boundary.
+ *  Exported for tests. */
+export function buildPingInvocation(
+  host: string,
+  timeoutMs: number,
+  platform: NodeJS.Platform = process.platform,
+): { command: string; args: string[] } {
+  if (!host || host.startsWith("-")) throw new Error("Invalid ping host");
+  return platform === "win32"
+    ? { command: "ping.exe", args: ["-n", "1", "-w", String(timeoutMs), host] }
+    : { command: "ping", args: ["-c", "1", "-W", String(Math.max(1, Math.ceil(timeoutMs / 1_000))), host] };
+}
+
 function pingHostOnce(host: string, timeoutMs: number): Promise<number> {
   return new Promise((resolve, reject) => {
-    const windows = process.platform === "win32";
-    const command = windows ? "ping.exe" : "ping";
-    const args = windows
-      ? ["-n", "1", "-w", String(timeoutMs), host]
-      : ["-c", "1", "-W", String(Math.max(1, Math.ceil(timeoutMs / 1_000))), host];
+    const { command, args } = buildPingInvocation(host, timeoutMs);
     const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
     let output = "";
     let settled = false;

@@ -85,6 +85,10 @@ function createTarget(hostValue: string, portValue: string | number): TeamSpeakT
   if (!host || host.length > 255 || /[\s/\\?#@\[\]]/.test(host)) {
     throw new InvalidTeamSpeakTargetError("Invalid TeamSpeak server address");
   }
+  // A hostname never starts with "-" (RFC 1035 labels start with a letter or a
+  // digit), and passing one to an external command would be read as an option
+  // rather than a host.
+  if (host.startsWith("-")) throw new InvalidTeamSpeakTargetError("Invalid TeamSpeak server address");
   if (host.includes(":")) {
     // A raw IPv6 host is valid only when it came from bracket notation.
     if (!host.split(":").every((part) => /^[0-9a-f]*$/i.test(part))) {
