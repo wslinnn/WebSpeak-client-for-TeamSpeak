@@ -77,6 +77,30 @@ test("malformed nested directory and event data is rejected before client state 
   ]) assert.equal(parseServerMessage(message), null, JSON.stringify(message));
 });
 
+test("chat identity fields and screen-share lists are bounded at the parse boundary", () => {
+  // senderUid 会进会话键并随消息持久化到 IndexedDB；scope 是判别字段；两者此前
+  // 只要求是字符串，512 KiB 帧上限允许单字段任意大。
+  assert.ok(parseServerMessage({ type: "chatMessage", message: "hi", senderUid: "u".repeat(128) }));
+  assert.equal(parseServerMessage({ type: "chatMessage", message: "hi", senderUid: "u".repeat(129) }), null);
+  assert.ok(parseServerMessage({ type: "chatMessage", message: "hi", scope: "s".repeat(32) }));
+  assert.equal(parseServerMessage({ type: "chatMessage", message: "hi", scope: "s".repeat(33) }), null);
+  assert.equal(parseServerMessage({ type: "pokeReceived", message: "poke", invokerUid: "u".repeat(129) }), null);
+  // 空串仍合法（旧客户端/查询客户端可能没有 uid），只是不接受超长值。
+  assert.ok(parseServerMessage({ type: "chatMessage", message: "hi", senderUid: "" }));
+  // screenShareList 之前只校验「是数组」：条目数没有上限。
+  const streams = Array.from({ length: 64 }, (_, index) => ({ ...stream, streamId: `stream-${index}`, ownerPeerId: `owner-${index}` }));
+  const full = parseServerMessage({ type: "screenShareList", streams });
+  assert.ok(full?.type === "screenShareList");
+  assert.equal(full.streams.length, 64);
+  const overflow = parseServerMessage({ type: "screenShareList", streams: [...streams, { ...stream, streamId: "extra" }] });
+  assert.equal(overflow, null);
+  // 流描述里的显示字符串与观看者名单一样被截断。
+  const legacy = parseServerMessage({ type: "screenShareList", streams: [{ streamId: "s", ownerPeerId: "o", ownerNickname: "n".repeat(500), name: "x".repeat(500) }] });
+  assert.ok(legacy?.type === "screenShareList");
+  assert.equal(legacy.streams[0]?.ownerNickname.length, 120);
+  assert.equal(legacy.streams[0]?.name.length, 120);
+});
+
 test("legacy chat sentinels, numeric channel acknowledgements and incomplete stats remain compatible", () => {
   assert.deepEqual(parseServerMessage({ type: "chatMessage", targetId: 0, message: "legacy" }), { type: "chatMessage", targetId: 0, message: "legacy" });
   assert.deepEqual(parseServerMessage({ type: "channelSwitched", channelId: 4 }), { type: "channelSwitched", channelId: 4 });

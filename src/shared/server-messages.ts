@@ -108,20 +108,29 @@ export function parseScreenShareViewers(raw: unknown): ScreenShareViewerDescript
     }));
 }
 
-/** Defaults preserve stream descriptions sent by older gateway versions. */
+/** Defaults preserve stream descriptions sent by older gateway versions. Display
+ *  strings are clamped like the viewer roster: the frame ceiling must not turn
+ *  one field into a transport-sized string. */
 export function parseScreenShareStream(value: unknown): ScreenShareStreamDescription | null {
   if (!isRecord(value) || !identifier(value.streamId) || !identifier(value.ownerPeerId)) return null;
   return {
     streamId: value.streamId, ownerPeerId: value.ownerPeerId,
     source: value.source === "teamspeak" ? "teamspeak" : "browser",
     ...(clientId(value.ownerClientId) ? { ownerClientId: value.ownerClientId } : {}),
-    ownerNickname: text(value.ownerNickname) ? value.ownerNickname : "TeamSpeak 用户",
-    name: text(value.name) ? value.name : "屏幕共享", audio: value.audio === true,
+    ownerNickname: text(value.ownerNickname) ? value.ownerNickname.slice(0, 120) : "TeamSpeak 用户",
+    name: text(value.name) ? value.name.slice(0, 120) : "屏幕共享", audio: value.audio === true,
     createdAt: finite(value.createdAt) ? value.createdAt : Date.now(),
     viewerCount: finite(value.viewerCount) ? Math.max(0, Math.floor(value.viewerCount)) : 0,
     viewers: parseScreenShareViewers(value.viewers),
   };
 }
+
+/** One chat/poke field that ends up in browser storage or a conversation key:
+ *  the 512 KiB frame ceiling alone lets a single field be arbitrarily large.
+ *  TeamSpeak UIDs are ~28 characters, so 128 is generous. */
+const uid = (value: unknown): value is string => text(value) && value.length <= 128;
+/** Chat scope discriminator ("channel" | "server" | "private" | "system"). */
+const scope = (value: unknown): value is string => text(value) && value.length <= 32;
 
 const valid: Record<ServerMessage["type"], (message: RecordValue) => boolean> = {
   connected: m => clientId(m.tsClientId) && optional(m.members, v => arrayOf(v, member)) && optional(m.serverEventLog, v => arrayOf(v, event))
@@ -142,8 +151,8 @@ const valid: Record<ServerMessage["type"], (message: RecordValue) => boolean> = 
   channelUpdated: m => channelId(m.id) && text(m.name) && optional(m.description, text) && optional(m.passwordProtected, boolean),
   channelRemoved: m => channelId(m.id),
   chatMessage: m => text(m.message) && optional(m.invokerId, finite) && optional(m.invokerName, text) && optional(m.timestamp, finite)
-    && optional(m.scope, text) && optional(m.senderUid, text) && optional(m.targetId, channelId),
-  pokeReceived: m => text(m.message) && optional(m.invokerId, finite) && optional(m.invokerName, text) && optional(m.timestamp, finite) && optional(m.invokerUid, text),
+    && optional(m.scope, scope) && optional(m.senderUid, uid) && optional(m.targetId, channelId),
+  pokeReceived: m => text(m.message) && optional(m.invokerId, finite) && optional(m.invokerName, text) && optional(m.timestamp, finite) && optional(m.invokerUid, uid),
   serverEvent: m => event(m.event),
   channelSwitched: m => channelId(m.channelId),
   audioStats: m => text(m.sequence) && m.sequence.length <= 64 && isRecord(m.stats),
@@ -162,7 +171,7 @@ const valid: Record<ServerMessage["type"], (message: RecordValue) => boolean> = 
   commandCompleted: m => text(m.requestId),
   screenShareCompleted: m => text(m.requestId),
   error: m => optional(m.message, text) && optional(m.error, v => isRecord(v) && optional(v.code, text) && optional(v.message, text) && optional(v.recoverable, boolean)),
-  screenShareList: m => Array.isArray(m.streams),
+  screenShareList: m => Array.isArray(m.streams) && m.streams.length <= 64,
   screenShareStarted: m => isRecord(m.stream) && optional(m.owner, boolean) && optional(m.ownerPeerId, identifier) && optional(m.mode, v => v === "browser" || v === "teamspeak"),
   screenShareJoined: m => isRecord(m.stream) && optional(m.owner, boolean) && optional(m.ownerPeerId, identifier) && optional(m.mode, v => v === "browser" || v === "teamspeak"),
   screenShareViewerCount: m => identifier(m.streamId) && optional(m.viewerCount, finite) && optional(m.viewers, Array.isArray),
