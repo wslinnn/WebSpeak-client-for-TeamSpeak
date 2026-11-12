@@ -360,8 +360,8 @@ export class SessionEventCoordinator {
       if (!state.channelTree.some(current => current.id === channel.id)) deltas.push({ type: "channelRemoved", id: channel.id });
     }
 
-    // One member→channel index per tree instead of a per-member channel scan
-    // The old helper walked every channel's roster for every
+    // One member→channel index per tree instead of a per-member channel scan:
+    // the old helper walked every channel's roster for every
     // member, which is O(members × members) on a full-room delta.
     const channelOfMember = (tree: ChannelInfo[]): Map<number, string> => {
       const index = new Map<number, string>();
