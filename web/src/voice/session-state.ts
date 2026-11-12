@@ -122,11 +122,29 @@ export function createVoiceSessionState(options: SessionStateOptions) {
   // ——HTTP 缓存只省字节，解码仍逐次发生；全服共享头像（ clan 头像）此前按
   // 成员数各解码一次。URL 带内容 hash 版本，换图即换 URL，集合无需失效逻辑。
   const validatedAvatarUrls = new Set<string>();
+  // 与 avatars 同口径的有界 LRU：URL 带内容 hash，换图即换 URL，
+  // 长会话里成员反复换头像会让这个集合只增不减。命中即刷新位置，避免仍在用的
+  // 共用头像 URL 被相邻的新 URL 挤掉。
+  const rememberValidatedAvatarUrl = (url: string): void => {
+    validatedAvatarUrls.delete(url);
+    validatedAvatarUrls.add(url);
+    while (validatedAvatarUrls.size > AVATAR_CACHE_LIMIT) {
+      const oldest = validatedAvatarUrls.keys().next().value;
+      if (oldest === undefined) break;
+      validatedAvatarUrls.delete(oldest);
+    }
+  };
+  const avatarUrlValidated = (url: string): boolean => {
+    if (!validatedAvatarUrls.has(url)) return false;
+    validatedAvatarUrls.delete(url);
+    validatedAvatarUrls.add(url);
+    return true;
+  };
   const pendingAvatarProbes = new Map<string, Array<(applied: boolean) => void>>();
   const storeAvatar = (uid: string, url: string): void => {
     if (avatars.get(uid) === url) return;
     if (typeof Image === "undefined") { applyAvatar(uid, url); return; }
-    if (validatedAvatarUrls.has(url)) { applyAvatar(uid, url); return; }
+    if (avatarUrlValidated(url)) { applyAvatar(uid, url); return; }
     const inflight = pendingAvatarProbes.get(url);
     if (inflight) {
       inflight.push((applied) => { if (applied) applyAvatar(uid, url); });
@@ -136,7 +154,7 @@ export function createVoiceSessionState(options: SessionStateOptions) {
     pendingAvatarProbes.set(url, waiters);
     const probe = new Image();
     probe.onload = () => {
-      validatedAvatarUrls.add(url);
+      rememberValidatedAvatarUrl(url);
       pendingAvatarProbes.delete(url);
       applyAvatar(uid, url);
       for (const waiter of waiters.splice(0)) waiter(true);
