@@ -1,6 +1,7 @@
 import path from "node:path";
 import { existsSync, readFileSync, unlinkSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { createGracefulShutdown } from "./graceful-shutdown.js";
 import { normalizeScreenShareIceServers, type ScreenShareIceServer } from "./server/screen-share.js";
 import { startStunServer } from "./server/stun-server.js";
 
@@ -126,16 +127,18 @@ async function main() {
 
   await webServer.start();
 
-  // Graceful shutdown
-  const shutdown = async (signal: string) => {
-    logger.info({ signal }, "Shutting down");
-    await webServer.stop();
-    await selfStun?.close();
-    database.close();
-    process.exit(0);
-  };
-  process.on("SIGINT", () => shutdown("SIGINT"));
-  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  // Graceful shutdown: idempotent (a second SIGINT must not double-close the
+  // STUN socket or SQLite) with one isolated, watchdog-bound step per resource.
+  const shutdown = createGracefulShutdown({
+    logger,
+    steps: [
+      { name: "web-server", run: () => webServer.stop() },
+      { name: "stun", run: () => selfStun?.close() },
+      { name: "database", run: () => { database.close(); } },
+    ],
+  });
+  process.on("SIGINT", () => { void shutdown("SIGINT"); });
+  process.on("SIGTERM", () => { void shutdown("SIGTERM"); });
 }
 
 function readPackageVersion(): string {
