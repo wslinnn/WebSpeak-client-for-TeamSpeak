@@ -9,8 +9,7 @@ import { formatTeamSpeakTarget, teamSpeakTargetKey } from "../../domain/teamspea
 import type { JoinTicketPayload } from "../join-ticket.js";
 import { SessionEventCoordinator } from "../session-events.js";
 import type { SessionTeardownReason } from "../session-manager.js";
-import { isRecoverable, reconnectDelayMs, reconnectWindowOpen } from "../reconnect-policy.js";
-import type { WebRtcAudioOptions, WebRtcSessionDescription } from "../webrtc-audio.js";
+import { isRecoverable, reconnectDelayMs, reconnectWindowOpen } from "../reconnect-policy.js";import type { WebRtcAudioOptions, WebRtcSessionDescription } from "../webrtc-audio.js";
 import type { ScreenShareIceServer } from "../screen-share.js";
 import { createAudioFlowStats } from "../audio-stats.js";
 import { SessionAudioTransport } from "../session-audio.js";
@@ -23,7 +22,7 @@ import type { AvatarService } from "../avatar-service.js";
 import type { DetachedSessionPool } from "./detached-pool.js";
 import type { ServerEvent, VoiceBridgeDependencies, VoiceBridgeOptions, WebClientEntry } from "./types.js";
 import { admitConnection, notePasswordFailure } from "./connection-admission.js";
-import { publicFailureDetail, resolveWebRtcPublicHost } from "./connection-request.js";
+import { publicFailureDetail, rejectCrossOriginUpgrade, resolveWebRtcPublicHost } from "./connection-request.js";
 import { createConnectionFailureReporter } from "./connection-failure.js";
 import { bindSocketHandlers } from "./connection-socket.js";
 import { connectWithDialTimeout } from "./connection-dial.js";
@@ -56,6 +55,8 @@ export interface VoiceConnectionHandlerDeps {
  *  join/resume/reconnect lifecycle through its own per-connection state. */
 export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): (ws: WebSocket, req: IncomingMessage) => Promise<void> {
   return async (ws: WebSocket, req: IncomingMessage) => {
+    // 跨源 upgrade 在消费票据之前拒绝（见 rejectCrossOriginUpgrade）。
+    if (rejectCrossOriginUpgrade(ws, req, deps.logger)) return;
     const url = new URL(req.url ?? "/", `https://${req.headers.host ?? "localhost"}`);
     const connection = deps.resolveConnection(url);
     if (!connection) {

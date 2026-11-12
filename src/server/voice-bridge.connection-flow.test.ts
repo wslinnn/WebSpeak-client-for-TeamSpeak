@@ -121,6 +121,35 @@ function waitFor(harness: BridgeHarness, view: OpenSocket, type: string, timeout
   });
 }
 
+test("跨源 WebSocket upgrade 被拒且不消耗 join 票据", { timeout: 5_000 }, async t => {
+  const h = await startBridge(t);
+  t.after(() => h.close());
+  // A browser always sends Origin; a cross-site page (or a stolen ticket used
+  // from a foreign origin) must not get a session.
+  const ticket = h.tickets.create({ target: { host: "voice.example.invalid", port: 9987 }, nickname: "Tester", serverPassword: "" });
+  const crossOrigin = new WebSocket(`ws://127.0.0.1:${h.port}/ws/voice?ticket=${ticket}`, { origin: "http://evil.example" });
+  const code = await once(crossOrigin, "close").then(([reason]) => reason as number);
+  assert.equal(code, 1008);
+  assert.equal(h.bridge.getActiveCount(), 0);
+  // 判据在消费票据之前：同一个票仍可被非浏览器连接使用。
+  const view = openSocket(h, `/ws/voice?ticket=${ticket}`);
+  await waitFor(h, view, "connected");
+  assert.equal(h.bridge.getActiveCount(), 1);
+});
+
+test("同源 Origin 的浏览器连接照常准入", { timeout: 5_000 }, async t => {
+  const h = await startBridge(t);
+  t.after(() => h.close());
+  const ticket = h.tickets.create({ target: { host: "voice.example.invalid", port: 9987 }, nickname: "Tester", serverPassword: "" });
+  const socket = new WebSocket(`ws://127.0.0.1:${h.port}/ws/voice?ticket=${ticket}`, { origin: `http://127.0.0.1:${h.port}` });
+  const view: OpenSocket = { socket, messages: [], closed: Promise.resolve(0) };
+  socket.on("message", (data) => {
+    try { view.messages.push(JSON.parse(data.toString())); } catch { /* ignore */ }
+  });
+  await waitFor(h, view, "connected");
+  assert.equal(h.bridge.getActiveCount(), 1);
+});
+
 test("无票据的 socket 被 4001 拒绝", { timeout: 5_000 }, async t => {
   const h = await startBridge(t);
   t.after(() => h.close());

@@ -194,6 +194,7 @@ Building `@discordjs/opus` requires Python, Make, and a C/C++ toolchain.
 | Accompaniment | Desktop only and requires WebRTC. Enable audio sharing when selecting a window or tab. |
 | Data | Docker data is in `webspeak-data`; release packages and source installs use `data/`. Back up before upgrades. |
 | Session limit | One instance accepts up to 100 active browser sessions. |
+| Deployment security boundary | The same-origin check (the `Origin` header must match `Host`, also enforced on the voice WebSocket upgrade) stops cross-site requests only. It does **not** stop DNS rebinding: when an attacker's domain later resolves to the gateway IP, Origin and Host still agree. Expose the gateway only inside a trusted network (firewall/ACL, intranet or VPN) and put the public entry point on a reverse proxy you control on a different host; never expose `3040/TCP` directly to an untrusted network. The admin console additionally uses SameSite=strict cookies and CSRF tokens, which lowers but does not remove that risk. |
 
 ## Recent contributors
 

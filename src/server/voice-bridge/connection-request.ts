@@ -1,6 +1,8 @@
 import type { BlockList } from "node:net";
 import type { IncomingMessage } from "node:http";
 import { normalizeTeamSpeakError } from "../../errors.js";
+import type { Logger } from "../../logger.js";
+import { isAllowedUpgradeOrigin } from "../../security/same-origin.js";
 import type { ServerMessage } from "../../shared/server-messages.js";
 import { isTrustedProxyPeer, resolveClientAddress } from "../client-ip.js";
 
@@ -54,4 +56,22 @@ function normalizeWebRtcHost(value: string | undefined): string | undefined {
 
 export function sendProtocolError(sendJson: (message: ServerMessage) => void, code: string, message: string, requestId?: string): void {
   sendJson({ type: "error", ...(requestId ? { requestId } : {}), error: { code, message, recoverable: false } });
+}
+
+/**
+ * 浏览器的跨源 upgrade 直接拒绝（1008），且必须发生在消费 join
+ * 票据之前——被拒的跨源尝试不该烧掉浏览器手里的票。缺 Origin 的是非浏览器
+ * 客户端（冒烟/诊断脚本），仍由一次性票据兜底。返回 true 表示已拒绝。
+ */
+export function rejectCrossOriginUpgrade(
+  ws: { close(code: number, reason: string): void },
+  request: IncomingMessage,
+  logger: Pick<Logger, "warn">,
+): boolean {
+  const origin = firstHeader(request.headers.origin);
+  const host = firstHeader(request.headers.host);
+  if (isAllowedUpgradeOrigin(origin, host)) return false;
+  logger.warn({ origin, host }, "Rejected a cross-origin voice WebSocket upgrade");
+  ws.close(1008, "ORIGIN_REJECTED");
+  return true;
 }
