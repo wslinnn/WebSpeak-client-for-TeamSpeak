@@ -98,29 +98,28 @@ test("settings, tests, and join tickets resolve nicknames through the gateway", 
   assert.equal(direct.payload?.serverPassword, "stored-password");
 });
 
-test("concurrent cold prefill requests share one nickname lookup", async (context) => {
+test("a burst of cold prefill requests performs one nickname lookup", async (context) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "webspeak-prefill-"));
   const database = new WebSpeakDatabase(path.join(directory, "webspeak.db"));
   const service = new AdminService(database, Buffer.alloc(32, 1), logger, path.join(directory, "missing-config.json"));
   await service.initialize();
   const realFetch = globalThis.fetch;
   let lookups = 0;
-  let release!: () => void;
-  const gate = new Promise<void>((resolve) => { release = resolve; });
   context.mock.method(globalThis, "fetch", (async (input, options) => {
     if (new URL(String(input)).origin === "https://named.myteamspeak.com") {
       lookups += 1;
-      await gate;
       return new Response("8.8.8.8:10000");
     }
     return realFetch(input, options);
   }) as typeof fetch);
   const port = await availablePort();
   const origin = `http://127.0.0.1:${port}`;
-  // TTL 0 关掉正缓存：并发请求只能靠 in-flight 合并共用一个查询。
+  // 预填缓存是未认证端点的放大器闸门：无论 5 个请求是同时到达还是在第一个
+  // 解析完成后才到，上游都只应被查询一次。TTL 保持正数，避免测试依赖请求
+  // 到达的相对时序（在途合并本身由 prefill-resolver 单测钉死）。
   const server = createWebServer({
     port, adminService: service, voiceBridgeOptions: { joinTickets: new JoinTicketStore() },
-    logger, serverPasswordGuard: new ServerPasswordGuard(), prefillResolveTtlMs: 0,
+    logger, serverPasswordGuard: new ServerPasswordGuard(),
   });
   context.after(async () => {
     await server.stop();
@@ -129,20 +128,16 @@ test("concurrent cold prefill requests share one nickname lookup", async (contex
   });
   await server.start();
   service.updateSettings(settings("team eco"));
-  const requests = Array.from({ length: 5 }, () =>
-    realFetch(`${origin}/api/public-config`).then(async response => await response.json() as { target: string; targetPrefillBlocked: boolean }));
-  // 等所有请求都进入解析阶段再放行，确认它们共用一个在途查询。
-  while (lookups === 0) await new Promise(resolve => setTimeout(resolve, 1));
-  release();
-  const results = await Promise.all(requests);
+  const results = await Promise.all(Array.from({ length: 5 }, () =>
+    realFetch(`${origin}/api/public-config`).then(async response => await response.json() as { target: string; targetPrefillBlocked: boolean })));
   assert.equal(lookups, 1, "五路并发只触发一次昵称查询");
   for (const result of results) {
     assert.equal(result.target, "team eco");
     assert.equal(result.targetPrefillBlocked, false);
   }
-  // 序列化的下一次请求（无在途可合并）照旧解析：TTL 0 时不做缓存。
+  // TTL 内的后续请求继续复用结果。
   await (await realFetch(`${origin}/api/public-config`)).json();
-  assert.equal(lookups, 2);
+  assert.equal(lookups, 1);
 });
 
 test("schema 8 settings survive the nickname migration and managed_invites is dropped", async (context) => {

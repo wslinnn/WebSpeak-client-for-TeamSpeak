@@ -18,6 +18,7 @@ import { isSafeOpenTargetForPrefill, resolveSafeOpenTarget } from "../security/o
 import { isSameOrigin } from "../security/same-origin.js";
 import { parseIdentity } from "@honeybbq/teamspeak/client";
 import { JoinRateLimiter } from "./join-rate-limit.js";
+import { createPrefillResolver } from "./prefill-resolver.js";
 import { FixedWindowRateLimiter } from "./fixed-window-rate-limit.js";
 import { createConfiguredTrustedProxies, isTrustedProxyPeer, rateLimitPeerKey, resolveClientAddress } from "./client-ip.js";
 import { createProxyHint } from "./proxy-hint.js";
@@ -178,45 +179,21 @@ export function createWebServer(options: WebServerOptions): WebServer {
   app.get("/api/health", healthHandler);
 
   // The prefill check hits upstream DNS and the nickname lookup service on
-  // every request of an unauthenticated endpoint; a short positive/negative
-  // cache bounds that amplification. The cache is only written after the
-  // lookup finishes, so concurrent cold requests also share one in-flight
-  // promise instead of each starting its own DNS + registry call.
-  // The authoritative safety check still runs on the join path, so staleness
-  // here only affects form prefill.
-  const prefillResolveTtlMs = options.prefillResolveTtlMs ?? 30_000;
-  let prefillResolution: { key: string; blocked: boolean; at: number } | null = null;
-  let prefillInFlight: { key: string; promise: Promise<boolean> } | null = null;
-  async function resolvePrefill(target: string): Promise<boolean> {
-    const now = Date.now();
-    if (prefillResolution && prefillResolution.key === target && now - prefillResolution.at <= prefillResolveTtlMs) {
-      return prefillResolution.blocked;
-    }
-    if (prefillInFlight && prefillInFlight.key === target) return prefillInFlight.promise;
-    const entry = { key: target, promise: (async (): Promise<boolean> => {
-      let blocked: boolean;
-      try {
-        blocked = !await isSafeOpenTargetForPrefill(await resolveTeamSpeakTarget(target));
-      } catch {
-        blocked = true;
-      }
-      prefillResolution = { key: target, blocked, at: Date.now() };
-      return blocked;
-    })() };
-    prefillInFlight = entry;
-    try {
-      return await entry.promise;
-    } finally {
-      if (prefillInFlight === entry) prefillInFlight = null;
-    }
-  }
+  // every request of an unauthenticated endpoint; the resolver bounds that
+  // amplification with a short positive/negative cache plus one shared
+  // in-flight lookup per target. The authoritative safety check still runs on
+  // the join path, so staleness here only affects form prefill.
+  const prefillBlocked = createPrefillResolver(
+    async target => !await isSafeOpenTargetForPrefill(await resolveTeamSpeakTarget(target)),
+    { ttlMs: options.prefillResolveTtlMs ?? 30_000 },
+  );
   app.get("/api/public-config", async (request, response) => {
     response.setHeader("Cache-Control", "no-store");
     const publicConfig = options.adminService.getPublicConfig();
     let target = typeof publicConfig.target === "string" ? publicConfig.target : "";
     let targetPrefillBlocked = false;
     if (publicConfig.accessMode === "open" && target.trim()) {
-      targetPrefillBlocked = await resolvePrefill(target);
+      targetPrefillBlocked = await prefillBlocked(target);
       if (targetPrefillBlocked) target = "";
     }
     response.json({
