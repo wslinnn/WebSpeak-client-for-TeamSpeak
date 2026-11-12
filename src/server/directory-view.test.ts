@@ -27,6 +27,28 @@ test("partial welcome data can restore self by channel name without duplicating 
   assert.equal(source.clients.length, 1);
 });
 
+test("channel buckets keep roster order when the roster interleaves channels", () => {
+  const snapshot: TSDirectorySnapshot = {
+    channels: [
+      { id: 1n, parentID: 0n, order: 0n, name: "One", description: "" },
+      { id: 2n, parentID: 0n, order: 1n, name: "Two", description: "" },
+    ],
+    clients: [
+      { id: 10, channelID: 2n, nickname: "A", uid: "a", type: 0, serverGroups: [] },
+      { id: 11, channelID: 1n, nickname: "B", uid: "b", type: 0, serverGroups: [] },
+      { id: 12, channelID: 2n, nickname: "C", uid: "c", type: 0, serverGroups: [] },
+    ],
+  };
+  const tree = mapChannelTree(snapshot);
+  assert.deepEqual(tree[0]?.members?.map(member => member.id), [11]);
+  assert.deepEqual(tree[1]?.members?.map(member => member.id), [10, 12], "arrival order survives the bucketing");
+});
+
+test("directories with no members still emit every channel", () => {
+  const tree = mapChannelTree({ channels: [{ id: 7n, parentID: 0n, order: 0n, name: "Empty", description: "" }], clients: [] });
+  assert.deepEqual(tree.map(channel => ({ id: channel.id, members: channel.members })), [{ id: "7", members: [] }]);
+});
+
 test("directory presentation survives JSON transport with large IDs and member flags, avatars excluded", () => {
   const source = directory();
   const channels = mapChannelTree(source);

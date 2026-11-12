@@ -360,12 +360,22 @@ export class SessionEventCoordinator {
       if (!state.channelTree.some(current => current.id === channel.id)) deltas.push({ type: "channelRemoved", id: channel.id });
     }
 
-    const channelOfMember = (tree: ChannelInfo[], id: number): string | undefined =>
-      tree.find(channel => channel.members?.some(member => member.id === id))?.id;
+    // One member→channel index per tree instead of a per-member channel scan
+    // The old helper walked every channel's roster for every
+    // member, which is O(members × members) on a full-room delta.
+    const channelOfMember = (tree: ChannelInfo[]): Map<number, string> => {
+      const index = new Map<number, string>();
+      for (const channel of tree) {
+        for (const member of channel.members ?? []) index.set(member.id, channel.id);
+      }
+      return index;
+    };
+    const currentChannels = channelOfMember(state.channelTree);
+    const previousChannelsByMember = channelOfMember(previousTree);
     const previousById = previousMembers;
     for (const member of state.members.values()) {
       const before = previousById.get(member.id);
-      const channelId = channelOfMember(state.channelTree, member.id);
+      const channelId = currentChannels.get(member.id);
       if (!before) {
         deltas.push({ type: "memberEnter", id: member.id, nickname: member.nickname, uid: member.uid,
           isSelf: member.id === this.clientId, away: member.away, awayMessage: member.awayMessage,
@@ -373,7 +383,7 @@ export class SessionEventCoordinator {
           ...(channelId ? { channelId } : {}) });
         continue;
       }
-      if (channelOfMember(previousTree, member.id) !== channelId) {
+      if (previousChannelsByMember.get(member.id) !== channelId) {
         deltas.push({ type: "memberMoved", id: member.id, ...(channelId ? { channelId } : {}) });
       }
       const changes: Partial<Pick<ChannelMember, "nickname" | "uid" | "away" | "awayMessage" | "inputMuted" | "outputMuted" | "channelCommander">> = {};

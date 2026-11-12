@@ -5,7 +5,17 @@ import type { TSDirectorySnapshot } from "./ts-client.js";
 // images in every channelList resends multiplied directory traffic by the
 // largest avatar in the tree. They travel as capability URLs (avatarSnapshot
 // / avatarUpdate messages) from the shared cross-session cache instead.
+//
+// Bucket the clients by channel first: the per-channel filter used to rescan
+// the whole roster for every channel. The bucket preserves the
+// roster order, so each channel still lists its members in arrival order.
 export function mapChannelTree(snapshot: TSDirectorySnapshot): ChannelInfo[] {
+  const clientsByChannel = new Map<bigint, TSDirectorySnapshot["clients"]>();
+  for (const client of snapshot.clients) {
+    const bucket = clientsByChannel.get(client.channelID);
+    if (bucket) bucket.push(client);
+    else clientsByChannel.set(client.channelID, [client]);
+  }
   return snapshot.channels.map((channel) => ({
     id: String(channel.id),
     parentID: String(channel.parentID),
@@ -13,18 +23,16 @@ export function mapChannelTree(snapshot: TSDirectorySnapshot): ChannelInfo[] {
     name: channel.name || "未命名频道",
     description: channel.description || "",
     ...(typeof channel.passwordProtected === "boolean" ? { passwordProtected: channel.passwordProtected } : {}),
-    members: snapshot.clients
-      .filter((client) => client.channelID === channel.id)
-      .map((client) => ({
-        id: client.id,
-        nickname: client.nickname || "未知用户",
-        uid: client.uid,
-        away: client.away,
-        awayMessage: client.awayMessage,
-        inputMuted: client.inputMuted,
-        outputMuted: client.outputMuted,
-        channelCommander: client.channelCommander,
-      })),
+    members: (clientsByChannel.get(channel.id) ?? []).map((client) => ({
+      id: client.id,
+      nickname: client.nickname || "未知用户",
+      uid: client.uid,
+      away: client.away,
+      awayMessage: client.awayMessage,
+      inputMuted: client.inputMuted,
+      outputMuted: client.outputMuted,
+      channelCommander: client.channelCommander,
+    })),
   }));
 }
 
