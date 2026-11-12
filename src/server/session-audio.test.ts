@@ -5,7 +5,7 @@ import { createAudioFlowStats } from "./audio-stats.js";
 import type { ServerMessage } from "../shared/server-messages.js";
 import type { TSVoiceData } from "./ts-client.js";
 
-function fixture(uplinkDecoder?: { decode(frame: Buffer): Buffer }) {
+function fixture(uplinkDecoder?: () => { decode(frame: Buffer): Buffer }) {
   const state = { current: true, ready: true, now: 0, targets: null as number[] | null, disposed: 0,
     webRtcVoice: false,
     peer: null as { pushTeamSpeakVoice(data: TSVoiceData): void } | null };
@@ -243,7 +243,7 @@ test("uplink silence gate drops near-silent frames after the release window and 
   // 解码桩：帧首字节 1 = 语音（rms≈0.09），否则为数字静音（rms=0）。
   const voicePcm = Buffer.from(Int16Array.from({ length: 960 }, () => 3000).buffer);
   const decoder = { decode: (frame: Buffer) => (frame[0] === 1 ? voicePcm : Buffer.alloc(1_920)) };
-  const f = fixture(decoder);
+  const f = fixture(() => decoder);
   // 静音帧：释放窗未武装 → 直接拦截（门控从未打开，无停止标记）。
   const silence = Buffer.from([2, 9]);
   f.transport.receiveWebRtc(silence, 4);
@@ -275,7 +275,7 @@ test("uplink silence gate drops near-silent frames after the release window and 
 test("the stop marker follows the active whisper route", () => {
   const voicePcm = Buffer.from(Int16Array.from({ length: 960 }, () => 3000).buffer);
   const decoder = { decode: (frame: Buffer) => (frame[0] === 1 ? voicePcm : Buffer.alloc(1_920)) };
-  const f = fixture(decoder);
+  const f = fixture(() => decoder);
   f.transport.receiveWebRtc(Buffer.from([1, 9]), 4);
   assert.equal(f.forwarded.length, 1);
   f.state.targets = [7, 8];
@@ -283,6 +283,25 @@ test("the stop marker follows the active whisper route", () => {
   f.transport.receiveWebRtc(Buffer.from([2, 9]), 4);
   assert.equal(f.forwarded.length, 2);
   assert.deepEqual(f.forwarded[1], { data: Buffer.alloc(0), codec: 4, targets: [7, 8] });
+});
+
+test("the uplink silence-gate decoder is allocated on the first WebRTC frame only", () => {
+  let created = 0;
+  const decoder = { decode: () => Buffer.alloc(1_920) };
+  const f = fixture(() => { created += 1; return decoder; });
+  // 兼容（WebSocket）路径从不做上行门控：编码 PCM 帧不该为它分配原生 Opus 解码器。
+  f.transport.receivePcm(Buffer.alloc(1_920));
+  assert.equal(created, 0);
+  assert.equal(f.audio.ingressFrames, 1);
+  // 首个 WebRTC 语音帧才创建，之后复用同一个实例。
+  f.transport.receiveWebRtc(Buffer.from([2, 9]), 4);
+  assert.equal(created, 1);
+  f.transport.receiveWebRtc(Buffer.from([2, 9]), 4);
+  assert.equal(created, 1);
+  // 工厂抛错时门控 fail-open（放行），不打断语音。
+  const broken = fixture(() => { throw new Error("native opus unavailable"); });
+  broken.transport.receiveWebRtc(Buffer.from([2, 9]), 4);
+  assert.equal(broken.forwarded.length, 1);
 });
 
 test("uplink silence gate fails open when no decoder is wired (legacy construction)", () => {

@@ -80,10 +80,32 @@ export class SessionAudioTransport {
   private readonly egressClientLastSeen = new Map<string, number>();
 
   constructor(private readonly options: SessionAudioOptions, encoder: VoiceEncoder, private readonly clock: () => number = Date.now,
-    private readonly uplinkDecoder?: UplinkFrameDecoder) {
+    /** Uplink silence-gate decoder factory. Created lazily on the first WebRTC
+     *  voice frame: only WebRTC voice sessions ever measure
+     *  uplink loudness, so a compatibility (WebSocket) session must not pay for
+     *  a native Opus codec instance it never uses. */
+    private readonly createUplinkDecoder?: () => UplinkFrameDecoder | undefined) {
     this.encoder = encoder;
     this.logger = options.logger ?? null;
     this.frameTokensAt = this.clock();
+  }
+
+  private uplinkDecoder: UplinkFrameDecoder | null = null;
+  private uplinkDecoderResolved = false;
+
+  /** The gate is an optional enhancement: an unavailable decoder fails open
+   *  exactly like the legacy construction without one. */
+  private uplinkRmsDecoder(): UplinkFrameDecoder | undefined {
+    if (!this.createUplinkDecoder) return undefined;
+    if (!this.uplinkDecoderResolved) {
+      this.uplinkDecoderResolved = true;
+      try {
+        this.uplinkDecoder = this.createUplinkDecoder() ?? null;
+      } catch {
+        this.uplinkDecoder = null;
+      }
+    }
+    return this.uplinkDecoder ?? undefined;
   }
 
   private isCurrent(): boolean {
@@ -247,7 +269,7 @@ export class SessionAudioTransport {
   private uplinkSpeech(now: number, frame: Buffer): boolean {
     let rms: number | null = null;
     try {
-      const pcm = this.uplinkDecoder?.decode(frame);
+      const pcm = this.uplinkRmsDecoder()?.decode(frame);
       if (pcm && pcm.length >= 2) {
         let sum = 0;
         const samples = Math.floor(pcm.length / 2);
