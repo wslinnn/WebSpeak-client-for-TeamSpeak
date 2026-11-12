@@ -46,7 +46,7 @@ async function main() {
   process.on("unhandledRejection", (reason) => {
     logger.error({ reason: reason instanceof Error ? { message: reason.message, stack: reason.stack } : String(reason) }, "Unhandled promise rejection");
   });
-  const database = new WebSpeakDatabase(path.join(DATA_DIR, "webspeak.db"));
+  const database = new WebSpeakDatabase(path.join(DATA_DIR, "webspeak.db"), logger);
   const masterSecret = loadOrCreateMasterSecret(path.join(DATA_DIR, "master.key"));
   const adminService = new AdminService(
     database,

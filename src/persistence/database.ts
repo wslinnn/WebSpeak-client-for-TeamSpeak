@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, unlinkSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
+import type { Logger } from "../logger.js";
 import type { AdminCredential } from "../security/admin-password.js";
 import { DEFAULT_WEBRTC_UDP_PORT_RANGE } from "../constants.js";
 import type { TeamSpeakProtocol } from "../domain/teamspeak-target.js";
@@ -86,8 +87,9 @@ const AUDIT_EVENT_RETENTION = 5_000;
 
 export class WebSpeakDatabase {
   private readonly database: DatabaseSync;
+  private credentialCorruptionReported = false;
 
-  constructor(private readonly path: string) {
+  constructor(private readonly path: string, private readonly logger?: Pick<Logger, "warn">) {
     mkdirSync(dirname(path), { recursive: true });
     const existed = existsSync(path);
     this.database = new DatabaseSync(path);
@@ -111,13 +113,40 @@ export class WebSpeakDatabase {
   getAdminCredential(): AdminCredential | null {
     const row = this.database.prepare("SELECT credential_json FROM admin_credentials WHERE id = 1").get() as { credential_json?: string } | undefined;
     if (!row?.credential_json) return null;
-    const credential = JSON.parse(row.credential_json) as Partial<AdminCredential>;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(row.credential_json);
+    } catch {
+      this.reportCorruptCredential("credential_json is not valid JSON");
+      return null;
+    }
+    // A parseable but non-object row ("null", a string, an array) is corruption
+    // too: spreading it would fabricate a credential that rejects every
+    // password with no explanation.
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      this.reportCorruptCredential("credential_json is not an object");
+      return null;
+    }
+    const credential = parsed as Partial<AdminCredential>;
     return {
       ...credential,
       version: 1,
       username: typeof credential.username === "string" && credential.username ? credential.username : "admin",
       mustChangePassword: credential.mustChangePassword === true,
     } as AdminCredential;
+  }
+
+  /** A damaged credential row must not surface as an unexplained 500 from
+   *  /api/admin/login. Login then fails as INVALID_PASSWORD and
+   *  the operator gets one explicit line naming the real cause. */
+  private reportCorruptCredential(detail: string): void {
+    if (this.credentialCorruptionReported) return;
+    this.credentialCorruptionReported = true;
+    this.logger?.warn({
+      code: "ADMIN_CREDENTIAL_CORRUPT",
+      dbPath: this.path,
+      detail,
+    }, "The stored administrator credential cannot be parsed; administrator login is disabled until the credential row is reset");
   }
 
   initializeAdmin(credential: AdminCredential, settings: SettingsUpdate): void {
