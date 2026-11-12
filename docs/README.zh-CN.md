@@ -197,6 +197,7 @@ npm start
 | 会话上限 | 单实例最多允许 100 个活动网页会话。 |
 | 部署安全边界 | 同源校验（`Origin` 必须与 `Host` 一致，语音 WebSocket upgrade 同样校验）只能防跨源请求，**不能防 DNS rebinding**：攻击者域名在 TTL 后解析到网关 IP 时两者的 Host 依旧一致。网关只应在受信网络内暴露（防火墙/ACL、内网或 VPN），公网入口交给自己控制的反向代理并与网关分处不同主机；不要把 `3040/TCP` 直接暴露给不可信网络。管理台另有 SameSite=strict + CSRF 保护，风险较低但同样适用。 |
 | 浏览器存储与密码 | 记住服务器密码是常开的本机行为：open 模式写入 IndexedDB 的收藏记录，fixed 模式（仅限此服务器）写入 `localStorage` 的 `webspeak:fixed-server-password`——两者都是**明文**，作用域仅限本设备与本源，可由「清除本地数据」整体抹掉。信任边界因此是「能读到本机浏览器存储的人」；页面侧靠 CSP（`script-src 'self'`）收窄 XSS 面，但这不等于浏览器存储加密，公共/共享电脑上请勿依赖密码记忆。 |
+| 管理口令哈希 | 管理员口令用 scrypt（`N=2^15, r=8, p=1`，每次约 32 MiB / 数十毫秒）存储，参数随凭据行一起保存，日后提高成本不会让旧口令失效。OWASP 现行建议 `N=2^17`，本网关面向小型自托管 VPS（同机还要跑 TeamSpeak 客户端与 Opus 编码），128 MiB/次的内存与 CPU 成本偏高，故按 32 MiB 折中并在此记录；内存充裕的部署可自行提高 `src/security/admin-password.ts` 的 `N` 并同步提高 `maxmem`（`N=2^16` 需要 ≥64 MiB）。 |
 
 ## 近期合并贡献者
 

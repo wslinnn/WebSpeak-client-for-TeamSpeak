@@ -1,6 +1,13 @@
 import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 
 const KEY_LENGTH = 64;
+// Deliberate cost tradeoff. OWASP currently suggests scrypt
+// N=2^17,r=8,p=1; this gateway is a self-hosted single-admin service that also
+// runs TeamSpeak clients and Opus on the same small VPS, so a login is held to
+// N=2^15 (32 MiB + ~100ms here) instead of 128 MiB. Raising N doubles the
+// memory need AND the per-login CPU time, and `maxmem` has to grow with it
+// (N=2^16 needs ~64 MiB, which this 64 MiB ceiling would reject). Old
+// credentials stay verifiable because the parameters are stored per row.
 const SCRYPT_PARAMETERS = Object.freeze({ N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
 
 export interface AdminCredential {
