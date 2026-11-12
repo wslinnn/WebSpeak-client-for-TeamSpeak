@@ -99,6 +99,9 @@ export function createAdminRouter(options: AdminRouterOptions): Router {
     try {
       const body = asRecord(request.body);
       await options.service.changePassword(readString(body, "newPassword", 1024));
+      // 改密成功后改密前签发的管理会话全部失效，只留当前这一个
+      // （其它标签/页或被窃 cookie 不能再凭旧口令签发的 cookie 继续操作）。
+      options.sessions.retainOnly(request);
       response.json({ ok: true, mustChangePassword: false });
     } catch (error: unknown) {
       sendAdminError(response, error);

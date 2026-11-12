@@ -47,6 +47,21 @@ export class AdminSessionStore {
     return session;
   }
 
+  /**
+   * Drop every session except the requester's. A password change must retire
+   * cookies issued before it: a stolen cookie would otherwise keep working for
+   * the rest of the 12-hour TTL even though the credential it was obtained
+   * with no longer exists. The caller's own session keeps its
+   * token and CSRF secret, so the tab that changed the password stays usable.
+   */
+  retainOnly(request: Request): void {
+    const token = readCookie(request.headers.cookie, COOKIE_NAME);
+    const keep = token ? hashToken(token) : null;
+    for (const key of [...this.sessions.keys()]) {
+      if (key !== keep) this.sessions.delete(key);
+    }
+  }
+
   destroy(request: Request, response: Response, secure: boolean): void {
     const token = readCookie(request.headers.cookie, COOKIE_NAME);
     if (token) this.sessions.delete(hashToken(token));
