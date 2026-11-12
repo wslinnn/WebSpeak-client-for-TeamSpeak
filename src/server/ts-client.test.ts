@@ -329,3 +329,85 @@ for (const [name, payload] of retiredEvents) {
     assert.equal(observed.length, 1);
   });
 }
+
+/** connect() 的最小 SDK 替身：exec 提供两条 listing，send 接 channelsubscribeall，
+ *  clientID/channelID 在 welcome 序列里由 SDK 写入。 */
+class ConnectSdkStub extends EventEmitter {
+  clientID: number;
+  channelID = 1n;
+  view = { clients: new Map(), channels: new Map() };
+  execCommands: string[] = [];
+  sendCommands: string[] = [];
+  constructor(private readonly channelName: string, clientID: number) {
+    super();
+    this.clientID = clientID;
+  }
+  exec = async (command: string): Promise<Array<Record<string, string>>> => {
+    this.execCommands.push(command);
+    return command.startsWith("channellist")
+      ? [{ cid: "1", pid: "0", channel_order: "0", channel_name: this.channelName, channel_flag_password: "0" }]
+      : [];
+  };
+  send = async (request: { command: string }): Promise<[]> => {
+    this.sendCommands.push(request.command);
+    return [];
+  };
+}
+
+test("a late connect continuation cannot revive a replaced TeamSpeak connection", async () => {
+  const client = new TSClient({ target: { host: "voice.example.invalid", port: 9987 }, nickname: "Test" }, pino({ enabled: false }));
+  const state = client as unknown as {
+    client: unknown;
+    adapter: unknown;
+    attachClientListeners(sdk: unknown): void;
+  };
+  const gate = deferred<void>();
+  const retired = new ConnectSdkStub("old", 7);
+  state.client = retired;
+  state.attachClientListeners(retired);
+  state.adapter = { client: retired, connect: () => gate.promise, disconnect: async () => {} };
+  const events: string[] = [];
+  client.on("connected", (id: number) => events.push(`connected:${id}`));
+  client.on("directorySnapshot", (snapshot: { channels: Array<{ name: string }> }) => {
+    events.push(`snapshot:${snapshot.channels.map(channel => channel.name).join(",")}`);
+  });
+  const stale = client.connect();
+  // 拨号超时（8s）先于 SDK 自己的 15s 中止：外层 disconnect() 置空 client/adapter
+  // 并推进代际，而 SDK 的 continuation 稍后仍会 resolve。
+  await client.disconnect();
+  const current = new ConnectSdkStub("new", 9);
+  state.client = current;
+  state.attachClientListeners(current);
+  state.adapter = { client: current, connect: async () => {}, disconnect: async () => {} };
+  await client.connect();
+  gate.resolve();
+  await stale;
+  // 迟到的旧 continuation 一个状态都不许写：不拉 listing、不覆盖共享 channelTree、
+  // 不把旧 clientId 写回，也不 emit 快照/connected。
+  assert.deepEqual(events, ["snapshot:new", "connected:9"]);
+  assert.equal(client.isConnected(), true);
+  assert.equal(client.getClientId(), 9);
+  assert.deepEqual(retired.execCommands, []);
+  assert.deepEqual(retired.sendCommands, []);
+  assert.deepEqual(current.execCommands, ["channellist -flags", "clientlist -uid -away -voice -groups"]);
+});
+
+test("a disconnected session cannot be revived by a late connect continuation", async () => {
+  const client = new TSClient({ target: { host: "voice.example.invalid", port: 9987 }, nickname: "Test" }, pino({ enabled: false }));
+  const state = client as unknown as { client: unknown; adapter: unknown; connected: boolean };
+  const gate = deferred<void>();
+  const retired = new ConnectSdkStub("old", 7);
+  state.client = retired;
+  state.adapter = { client: retired, connect: () => gate.promise, disconnect: async () => {} };
+  let connectedEvents = 0;
+  client.on("connected", () => { connectedEvents++; });
+  const stale = client.connect();
+  await client.disconnect();
+  gate.resolve();
+  await stale;
+  assert.equal(connectedEvents, 0);
+  assert.equal(client.isConnected(), false);
+  assert.equal(client.getClientId(), 0);
+  assert.deepEqual(retired.execCommands, []);
+});
+

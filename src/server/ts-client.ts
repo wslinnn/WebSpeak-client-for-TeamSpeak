@@ -101,7 +101,7 @@ export class TSClient extends EventEmitter {
   }
 
   async connect(): Promise<void> {
-    this.connectionGeneration++;
+    const generation = ++this.connectionGeneration;
     this.inputState = { muted: false, accompaniment: false };
     this.syncedInputMuted = null;
     this.inputStateQueue = Promise.resolve();
@@ -120,8 +120,14 @@ export class TSClient extends EventEmitter {
     }
     const adapter = this.adapter;
     const client = this.client;
+    // 拨号有外层 8s 上限（connection-dial.ts），SDK 自己的中止是 15s：超时后
+    // disconnect() 会把 client/adapter 置空并推进代际，而迟到的 SDK continuation
+    // 仍会走到这里。之后每一次 await 都必须复检，否则旧连接的 listing 会覆盖
+    // 共享 channelTree、旧 clientId 覆盖新连接，并把已拆会话的 connected 置回 true。
+    const isCurrent = (): boolean => this.adapter === adapter && this.client === client && this.connectionGeneration === generation;
 
     await adapter.connect();
+    if (!isCurrent()) return;
 
     this.clientId = client.clientID;
     try {
@@ -135,6 +141,7 @@ export class TSClient extends EventEmitter {
         err: error instanceof Error ? error.message : String(error),
       }, "Could not subscribe to all TeamSpeak channels");
     }
+    if (!isCurrent()) return;
 
     // TS6 can finish the welcome event stream before it has exposed every
     // existing client to a newly connected session. Pull one authoritative
@@ -150,6 +157,7 @@ export class TSClient extends EventEmitter {
       this.pullChannelListing(client),
       this.pullDirectoryClients(client),
     ]);
+    if (!isCurrent()) return;
     this.channelTree.applyListing(listing);
     for (const [id, passwordProtected] of listing.flags) this.channelPasswordProtection.set(id, passwordProtected);
     this.emit("directorySnapshot", { channels: this.channelTree.decorated(), clients });
@@ -171,6 +179,7 @@ export class TSClient extends EventEmitter {
         this.preferredChannelId = client.channelID;
       }
     }
+    if (!isCurrent()) return;
     this.connected = true;
 
     this.logger.info({ clientId: this.clientId }, "Connected to TeamSpeak");
