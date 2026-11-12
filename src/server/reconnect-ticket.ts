@@ -39,13 +39,15 @@ export class ReconnectTicketStore {
     return { payload: stored.payload, entryId: stored.entryId };
   }
 
-  /** Keep the stored channel in sync with mid-session channel switches. */
+  /** Keep the stored channel in sync with mid-session channel switches. Every
+   *  ticket of the entry is rewritten, not just the first: a resume that never
+   *  consumed its predecessor's token leaves two live tickets for one entry, and
+   *  the browser holds the newest one. */
   updateChannel(entryId: string, channel: string, now = Date.now()): void {
     for (const stored of this.tickets.values()) {
       if (stored.entryId !== entryId || stored.expiresAt <= now) continue;
       if (channel) stored.payload = { ...stored.payload, channel };
       else delete stored.payload.channel;
-      return;
     }
   }
 

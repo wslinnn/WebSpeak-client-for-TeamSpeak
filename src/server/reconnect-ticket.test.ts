@@ -38,6 +38,18 @@ test("updateChannel rewrites the stored payload channel for the owning entry onl
   assert.equal(store.consume(second, 1)?.payload.channel, undefined);
 });
 
+test("updateChannel rewrites every live ticket of an entry", () => {
+  const store = new ReconnectTicketStore();
+  // A resume whose predecessor token was never consumed leaves two tickets for
+  // the same entry; the browser holds the newest one, so both must follow the
+  // channel switch.
+  const older = store.issue(payload, "w-1", 0);
+  const newer = store.issue(payload, "w-1", 0);
+  store.updateChannel("w-1", "Gaming", 1);
+  assert.equal(store.consume(older, 1)?.payload.channel, "Gaming");
+  assert.equal(store.consume(newer, 1)?.payload.channel, "Gaming");
+});
+
 test("issuing beyond the cap evicts the oldest live ticket", () => {
   const store = new ReconnectTicketStore(10_000, 2);
   const first = store.issue(payload, "w-1", 0);
