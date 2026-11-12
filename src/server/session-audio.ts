@@ -215,6 +215,10 @@ export class SessionAudioTransport {
 
   receiveWebRtc(data: Buffer, codec: number): void {
     if (!this.isCurrent() || !this.options.isReady()) return;
+    // RTP 上行同样绕过命令限流器——没有预算时单个已入房客户端
+    // 可以按线速送 Opus 包，让网关逐包解码测电平再向 TS 转发。与兼容路径共用
+    // 同一个令牌桶（会话同一时刻只有一条上行路由），持续洪泛同样关闭会话。
+    if (!this.consumeFrameBudget()) return;
     this.recordIngress();
     // 上行静音门控：解码测电平，迟滞释放窗（350ms，保词尾）过后静默期不向
     // TS 转发。伴奏混音（codec 5）不门控；解码失败放行（fail-open）。

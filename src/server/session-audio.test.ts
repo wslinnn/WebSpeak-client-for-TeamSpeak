@@ -127,6 +127,29 @@ test("the ingress token bucket drops burst overflow and closes sustained floods"
   assert.deepEqual(f.closes, [{ code: 1008, reason: "AUDIO_FRAME_RATE_LIMITED" }]);
 });
 
+test("WebRTC ingress shares the frame budget instead of letting RTP bypass it", () => {
+  const f = fixture();
+  // codec 5（伴奏混音）不经过静音门控，直接把每条上行包计入转发，便于观察预算。
+  const frame = Buffer.from([5, 9]);
+  for (let i = 0; i < 100; i++) f.transport.receiveWebRtc(frame, 5);
+  assert.equal(f.forwarded.length, 100, "满突发（2x 设计码率）全部放行");
+  // 同一瞬间的溢出只丢包：真实浏览器 TCP/UDP 抖动不该直接拆会话。
+  for (let i = 0; i < 60; i++) f.transport.receiveWebRtc(frame, 5);
+  assert.equal(f.forwarded.length, 100);
+  assert.equal(f.audio.ingressDroppedFrames, 60);
+  assert.equal(f.audio.tsSendFrames, 100);
+  assert.equal(f.closes.length, 0);
+  // 持续洪泛（1 秒窗口内 200 次丢弃）与兼容路径同样关闭会话。窗口跨过阈值后
+  // 每个后续丢弃仍会再发一次 close（socket 已关闭时抛错被吞），判据只看首个。
+  for (let i = 0; i < 200; i++) f.transport.receiveWebRtc(frame, 5);
+  assert.ok(f.closes.length >= 1);
+  assert.deepEqual(f.closes[0], { code: 1008, reason: "AUDIO_FRAME_RATE_LIMITED" });
+  // 真实 50 Hz 上行不受预算影响：时间推进后照常放行。
+  f.state.now = 5_000;
+  for (let i = 0; i < 50; i++) { f.transport.receiveWebRtc(frame, 5); f.state.now += 20; }
+  assert.equal(f.forwarded.length, 150);
+});
+
 test("WebRTC ingress excludes queued PCM and fallback re-enables PCM", () => {
   const f = fixture();
   f.state.peer = { pushTeamSpeakVoice() {} };
