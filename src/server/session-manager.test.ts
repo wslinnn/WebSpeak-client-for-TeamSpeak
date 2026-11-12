@@ -124,6 +124,29 @@ test("admission caps concurrent sessions per peer key and releases the budget on
   }
 });
 
+test("concurrent teardowns decrement the per-peer budget exactly once", async () => {
+  const manager = new SessionManager();
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  assert.ok(manager.admit("a", async () => { await gate; }, "peer"));
+  assert.ok(manager.admit("b", async () => {}, "peer"));
+  // 两次调用拿到同一个 ManagedSession，清理共用 teardownPromise：真正完成时
+  // 只有一次调用可以删除会话并归还该对端的一档预算。
+  const first = manager.teardown("a", "websocket-close");
+  const second = manager.teardown("a", "admin-terminated");
+  release();
+  await Promise.all([first, second]);
+  assert.equal(manager.activeCount, 1);
+  // b 仍占一档：同对端还能进 9 个，第 10 个才撞上限（双递减会多放一档）。
+  let accepted = 0;
+  for (let index = 0; index < 12; index++) {
+    if (manager.admit(`x${index}`, async () => {}, "peer")) accepted += 1;
+  }
+  assert.equal(accepted, 9);
+  assert.equal(manager.rejectReason, "peer-limit");
+  await manager.shutdown();
+});
+
 test("global capacity exhaustion reports gateway-full, distinct from the per-peer cap", async () => {
   const manager = new SessionManager();
   for (let index = 0; index < manager.maxSessions; index++) {

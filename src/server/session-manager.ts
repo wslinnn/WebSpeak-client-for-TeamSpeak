@@ -149,6 +149,10 @@ export class SessionManager {
     const session = this.sessions.get(id);
     if (!session) return;
     await session.teardown(reason);
+    // 并发的第二次 teardown 共用同一个 teardownPromise，会一起在这里醒来：
+    // 只有仍持有该会话的那一次可以删除并归还单对端预算，否则同一个会话被
+    // 减两次，MAX_SESSIONS_PER_PEER 就能被多进一档。
+    if (this.sessions.get(id) !== session) return;
     this.sessions.delete(id);
     if (session.peerKey) {
       const remaining = (this.peerCounts.get(session.peerKey) ?? 1) - 1;
