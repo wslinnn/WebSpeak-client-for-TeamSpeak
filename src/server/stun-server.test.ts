@@ -122,7 +122,8 @@ test("exhausted peers are dropped until the bucket refills", () => {
   let now = 1_000_000;
   const limiter = createStunRateLimiter(() => now);
   const key = "203.0.113.7";
-  for (let index = 0; index < 30; index++) assert.equal(limiter.allow(key), true, `request ${index} within burst`);
+  // 120 burst / 60 per second: one shared NAT can host a room gathering at once.
+  for (let index = 0; index < 120; index++) assert.equal(limiter.allow(key), true, `request ${index} within burst`);
   assert.equal(limiter.allow(key), false, "burst exhausted");
   now += 1_000;
   assert.equal(limiter.allow(key), true, "one second refills the refill rate");

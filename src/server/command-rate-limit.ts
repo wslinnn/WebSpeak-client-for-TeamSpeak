@@ -4,13 +4,19 @@
  * protection bans the gateway's shared identity — one abusive client must not
  * be able to take the whole room down with it. Voice frames are bounded
  * separately in session-audio.ts.
+ *
+ * Burst is 60, not 30: screen-share trickle ICE arrives as one text frame per
+ * candidate and a browser with several interfaces plus TURN can emit a few
+ * dozen in one go, which must not be mistaken for command flooding. The
+ * sustained refill stays at 20/s — comfortably above any human UI cadence and
+ * still well below what would trip TeamSpeak's own flood protection.
  */
 export class CommandRateLimiter {
   private tokens: number;
   private lastRefillAt: number;
 
   constructor(
-    private readonly capacity = 30,
+    private readonly capacity = 60,
     private readonly refillPerSecond = 20,
     now = Date.now(),
   ) {

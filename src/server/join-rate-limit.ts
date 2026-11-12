@@ -1,5 +1,10 @@
 const WINDOW_MS = 60 * 1000;
-const MAX_REQUESTS = 30;
+// A whole household/office usually shares one peer key (one NAT address, or one
+// IPv6 /64), and every page load or reconnect exchange spends a ticket from the
+// same bucket. 120/min still bounds store growth and abuse while leaving room
+// for a room full of people reloading and reconnecting at once; 30/min made a
+// shared NAT look like an attacker after a handful of reloads.
+const MAX_REQUESTS = 120;
 
 interface PeerWindow {
   startedAt: number;

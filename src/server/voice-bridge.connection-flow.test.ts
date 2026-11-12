@@ -166,16 +166,16 @@ test("无效记忆身份以结构化 IDENTITY_INVALID 失败（4003）", { timeo
   assert.equal(await view.closed, 4003);
 });
 
-test("同对端第 11 条并发会话被 4006 PEER_SESSION_LIMIT 拒绝", { timeout: 15_000 }, async t => {
+test("同对端第 21 条并发会话被 4006 PEER_SESSION_LIMIT 拒绝", { timeout: 30_000 }, async t => {
   const h = await startBridge(t);
   t.after(() => h.close());
   const views: OpenSocket[] = [];
-  for (let i = 0; i < 10; i++) views.push(await join(h, { nickname: `Peer-${i}` }));
-  assert.equal(h.bridge.getActiveCount(), 10);
-  const eleventh = openSocket(h, `/ws/voice?ticket=${h.tickets.create({
-    target: { host: "voice.example.invalid", port: 9987 }, nickname: "Peer-10", serverPassword: "",
+  for (let i = 0; i < 20; i++) views.push(await join(h, { nickname: `Peer-${i}` }));
+  assert.equal(h.bridge.getActiveCount(), 20);
+  const overflow = openSocket(h, `/ws/voice?ticket=${h.tickets.create({
+    target: { host: "voice.example.invalid", port: 9987 }, nickname: "Peer-20", serverPassword: "",
   })}`);
-  assert.equal(await eleventh.closed, 4006);
+  assert.equal(await overflow.closed, 4006);
 });
 
 test("同记忆身份的第二条连接逐出第一条（切服跟随连接成败）", { timeout: 10_000 }, async t => {
@@ -248,12 +248,13 @@ test("连接后被踢是终态：connectionFailed + 会话拆除", { timeout: 5_
   assert.equal(h.bridge.getActiveCount(), 0);
 });
 
-test("控制消息突发第 31 条起被限流且通知一秒内只发一条", { timeout: 8_000 }, async t => {
+test("控制消息突发第 61 条起被限流且通知一秒内只发一条", { timeout: 8_000 }, async t => {
   const h = await startBridge(t);
   t.after(() => h.close());
   const view = await join(h);
   await waitFor(h, view, "connected");
-  for (let i = 0; i < 40; i++) {
+  // 突发容量 60（屏幕共享 trickle ICE 需要余量），第 61 条起进限流。
+  for (let i = 0; i < 80; i++) {
     view.socket.send(JSON.stringify({ type: "definitelyNotACommand" }));
   }
   await new Promise((resolve) => setTimeout(resolve, 500));

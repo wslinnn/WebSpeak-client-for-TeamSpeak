@@ -151,7 +151,14 @@ export function createWebServer(options: WebServerOptions): WebServer {
       // A page fetches one avatar per roster member on first sight; the window
   // quota covers the 100-session roster burst with room for reloads. Avatars
   // are tiny, so a per-request count still bounds them fairly.
-  const avatarLimiter = new FixedWindowRateLimiter(1024, 240);
+  //
+  // The key is the peer address, so a household/office behind one NAT shares
+  // one bucket: three people opening a 100-member room at once is ~300 requests
+  // in the first minute, which the old 240/min budget throttled into blank
+  // initial-letter avatars. 1200/min (20/s) keeps that comfortable; the
+  // capability URLs are unguessable and the bytes are HTTP-cached, so this is
+  // still a runaway-client backstop rather than a bandwidth policy.
+  const avatarLimiter = new FixedWindowRateLimiter(1024, 1200);
   const startedAt = Date.now();
   // Limiter key for a request: the client IP when trust proxy is configured,
   // otherwise the socket address, aggregated to a /64 for IPv6.

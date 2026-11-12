@@ -14,13 +14,19 @@ const MAX_BUFFERED_BYTES = 4_096;
 // second and drop the connection after a full second of consecutive garbage.
 const INVALID_FRAME_REPORT_INTERVAL_MS = 1_000;
 const INVALID_FRAME_CLOSE_THRESHOLD = 20;
-// Binary frames bypass the command rate limiter by design, so ingress needs
-// its own budget: a 100-frame burst (2x the 50 Hz design rate) that refills
-// at the design rate. A window with FRAME_FLOOD_CLOSE_DROPS drops is sustained
-// flooding — a client bug or an attack either way — and closes the session
-// instead of paying Opus encoding for garbage.
-const FRAME_RATE_LIMIT_PER_SECOND = 100;
-const FRAME_FLOOD_CLOSE_DROPS = 200;
+// Binary frames bypass the command rate limiter by design, so ingress needs a
+// budget of its own. It is sized as a runaway-client backstop, not as a policy
+// knob: the design rate is 50 frames/s (20 ms), so 400/s is 8x headroom — that
+// covers 10 ms ptime (100/s) and 5 ms ptime (200/s) browsers, a tab that was
+// suspended and flushes its queue, and mobile uplink jitter. A self-hosted
+// gateway must never silence a normal user to save CPU; the earlier 100/s
+// budget sat exactly on a 10 ms-ptime browser's rate and could drop frames
+// under jitter.
+const FRAME_RATE_LIMIT_PER_SECOND = 400;
+// Closing the session is reserved for an absurd burst: any successful frame
+// resets the window, so 600 drops in one window means >600 packets arrived
+// back-to-back with no refill gap — a client bug or an attack, never audio.
+const FRAME_FLOOD_CLOSE_DROPS = 600;
 // L7（报告 21）：egressFramesByClient 按 说话者 键只增不减——满编服务器跑一天
 // 会把每个会话的统计表养到数千键。超过阈值时清掉 10 分钟没说话的键；活跃键
 // 每帧刷新时间戳，不受影响。

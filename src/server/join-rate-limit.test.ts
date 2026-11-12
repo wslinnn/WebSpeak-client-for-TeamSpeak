@@ -28,14 +28,15 @@ async function availablePort(): Promise<number> {
   return address.port;
 }
 
-test("join rate limiter blocks the 31st request and reports the remaining window", () => {
+test("join rate limiter blocks the 121st request and reports the remaining window", () => {
   const limiter = new JoinRateLimiter();
   const now = 1_000_000;
-  for (let index = 0; index < 30; index += 1) assert.equal(limiter.allow("peer-1", now + index), true);
-  assert.equal(limiter.allow("peer-1", now + 30), false);
-  assert.equal(limiter.allow("peer-2", now + 30), true, "other peers keep their own budget");
-  assert.equal(limiter.blockedForMs("peer-1", now + 30), 60_000 - 30);
-  assert.equal(limiter.blockedForMs("peer-2", now + 30), 0);
+  // 120/min per peer: one NAT can host a whole room reloading at once.
+  for (let index = 0; index < 120; index += 1) assert.equal(limiter.allow("peer-1", now + index), true);
+  assert.equal(limiter.allow("peer-1", now + 120), false);
+  assert.equal(limiter.allow("peer-2", now + 120), true, "other peers keep their own budget");
+  assert.equal(limiter.blockedForMs("peer-1", now + 120), 60_000 - 120);
+  assert.equal(limiter.blockedForMs("peer-2", now + 120), 0);
   // 窗口滚过：预算恢复，等待时间归零。
   assert.equal(limiter.allow("peer-1", now + 60_000), true);
   assert.equal(limiter.blockedForMs("peer-1", now + 60_000), 0);
@@ -69,7 +70,7 @@ test("a throttled join ticket answers 429 with Retry-After so browsers can wait 
     headers: { origin, "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify({ target: "8.8.8.8:9988", nickname: "Tester" }),
   });
-  for (let index = 0; index < 30; index += 1) {
+  for (let index = 0; index < 120; index += 1) {
     const allowed = await join();
     assert.equal(allowed.status, 201, `request ${index + 1} is within the window budget`);
     await allowed.json();

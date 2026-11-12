@@ -35,9 +35,16 @@ const IPV6_BYTES = 16;
 
 /** Per-peer token bucket: STUN answers are tiny but an open responder should
  *  still not amplify arbitrary traffic. Silently drop when exhausted — a
- *  lost binding reply just costs the peer one ICE restart. */
-const RATE_BUCKET_CAPACITY = 30;
-const RATE_REFILL_PER_SECOND = 15;
+ *  lost binding reply just costs the peer one ICE restart.
+ *
+ *  Sized for a shared NAT: every screen-share peer behind the same public
+ *  address (or IPv6 /64) draws from one bucket, and a room where ten people
+ *  start watching at once emits a few dozen binding requests in a second. The
+ *  old 30/15s bucket could starve late gatherers and cost them their srflx
+ *  candidate, so the budget is now 120 burst / 60 per second — still four
+ *  times below a trivial flood. */
+const RATE_BUCKET_CAPACITY = 120;
+const RATE_REFILL_PER_SECOND = 60;
 const RATE_SWEEP_INTERVAL_MS = 60_000;
 
 export interface StunServerOptions {

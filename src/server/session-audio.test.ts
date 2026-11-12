@@ -102,52 +102,62 @@ test("a frame the route discards is never reported as malformed", () => {
   assert.equal(f.closes.length, 0);
 });
 
-test("the ingress token bucket drops burst overflow and closes sustained floods", () => {
+test("the ingress token bucket drops burst overflow and closes only absurd floods", () => {
   const f = fixture();
   // The fixture clock advances on every encode; pin it so the bucket is only
   // refilled by explicit time jumps. The stand-in still records frames.
   f.encoder.encode = (frame) => { f.encoded.push(frame); return Buffer.from([9]); };
-  // The full burst budget passes at once; real-time audio (50 Hz) refills
-  // behind its consumption forever.
-  for (let i = 0; i < 100; i++) f.transport.receivePcm(Buffer.alloc(1_920));
-  assert.equal(f.encoded.length, 100);
+  // 设计码率 50 Hz，预算 400/s（8 倍余量）：整个突发放行。
+  for (let i = 0; i < 400; i++) f.transport.receivePcm(Buffer.alloc(1_920));
+  assert.equal(f.encoded.length, 400);
   // Same-instant overflow only drops: TCP catch-up bursts must not close a
   // session that was merely slow for a moment.
-  for (let i = 0; i < 60; i++) f.transport.receivePcm(Buffer.alloc(1_920));
-  assert.equal(f.encoded.length, 100);
-  assert.equal(f.audio.ingressDroppedFrames, 60);
+  for (let i = 0; i < 100; i++) f.transport.receivePcm(Buffer.alloc(1_920));
+  assert.equal(f.encoded.length, 400);
+  assert.equal(f.audio.ingressDroppedFrames, 100);
   assert.equal(f.closes.length, 0);
   // Time passes, the bucket refills to full again.
   f.state.now = 5_000;
-  for (let i = 0; i < 100; i++) f.transport.receivePcm(Buffer.alloc(1_920));
-  assert.equal(f.encoded.length, 200);
-  // A window of sustained flooding (200 drops, FRAME_FLOOD_CLOSE_DROPS)
-  // closes the session like malformed audio.
-  for (let i = 0; i < 200; i++) f.transport.receivePcm(Buffer.alloc(1_920));
+  for (let i = 0; i < 400; i++) f.transport.receivePcm(Buffer.alloc(1_920));
+  assert.equal(f.encoded.length, 800);
+  // Only a burst far beyond any audio pattern (600 back-to-back drops,
+  // FRAME_FLOOD_CLOSE_DROPS) closes the session.
+  for (let i = 0; i < 600; i++) f.transport.receivePcm(Buffer.alloc(1_920));
   assert.deepEqual(f.closes, [{ code: 1008, reason: "AUDIO_FRAME_RATE_LIMITED" }]);
+});
+
+test("a browser using 10 ms frames (100 pps) never touches the ingress budget", () => {
+  const f = fixture();
+  f.encoder.encode = (frame) => { f.encoded.push(frame); return Buffer.from([9]); };
+  // 10 ms ptime = 100 帧/秒，是旧预算（100/s）的临界值：抖动会丢帧。新预算下
+  // 连续 10 秒的 10 ms 帧全部放行，且没有任何丢弃。
+  for (let index = 0; index < 1_000; index++) { f.state.now += 10; f.transport.receivePcm(Buffer.alloc(1_920)); }
+  assert.equal(f.encoded.length, 1_000);
+  assert.equal(f.audio.ingressDroppedFrames, 0);
+  assert.equal(f.closes.length, 0);
 });
 
 test("WebRTC ingress shares the frame budget instead of letting RTP bypass it", () => {
   const f = fixture();
   // codec 5（伴奏混音）不经过静音门控，直接把每条上行包计入转发，便于观察预算。
   const frame = Buffer.from([5, 9]);
+  for (let i = 0; i < 400; i++) f.transport.receiveWebRtc(frame, 5);
+  assert.equal(f.forwarded.length, 400, "满突发（8x 设计码率）全部放行");
+  // 同一瞬间的溢出只丢包：真实浏览器 UDP 抖动不该直接拆会话。
   for (let i = 0; i < 100; i++) f.transport.receiveWebRtc(frame, 5);
-  assert.equal(f.forwarded.length, 100, "满突发（2x 设计码率）全部放行");
-  // 同一瞬间的溢出只丢包：真实浏览器 TCP/UDP 抖动不该直接拆会话。
-  for (let i = 0; i < 60; i++) f.transport.receiveWebRtc(frame, 5);
-  assert.equal(f.forwarded.length, 100);
-  assert.equal(f.audio.ingressDroppedFrames, 60);
-  assert.equal(f.audio.tsSendFrames, 100);
+  assert.equal(f.forwarded.length, 400);
+  assert.equal(f.audio.ingressDroppedFrames, 100);
+  assert.equal(f.audio.tsSendFrames, 400);
   assert.equal(f.closes.length, 0);
-  // 持续洪泛（1 秒窗口内 200 次丢弃）与兼容路径同样关闭会话。窗口跨过阈值后
-  // 每个后续丢弃仍会再发一次 close（socket 已关闭时抛错被吞），判据只看首个。
-  for (let i = 0; i < 200; i++) f.transport.receiveWebRtc(frame, 5);
+  // 远超音频形态的突发（1 秒窗口内 600 次丢弃）与兼容路径同样关闭会话。窗口
+  // 跨过阈值后每个后续丢弃仍会再发一次 close（socket 已关闭时抛错被吞）。
+  for (let i = 0; i < 600; i++) f.transport.receiveWebRtc(frame, 5);
   assert.ok(f.closes.length >= 1);
   assert.deepEqual(f.closes[0], { code: 1008, reason: "AUDIO_FRAME_RATE_LIMITED" });
   // 真实 50 Hz 上行不受预算影响：时间推进后照常放行。
   f.state.now = 5_000;
   for (let i = 0; i < 50; i++) { f.transport.receiveWebRtc(frame, 5); f.state.now += 20; }
-  assert.equal(f.forwarded.length, 150);
+  assert.equal(f.forwarded.length, 450);
 });
 
 test("WebRTC ingress excludes queued PCM and fallback re-enables PCM", () => {
