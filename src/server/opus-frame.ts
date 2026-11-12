@@ -9,6 +9,8 @@
 // Duration in milliseconds of a single frame, indexed by the TOC config
 // (the top five bits): SILK modes span 10-60 ms, hybrid modes 10-20 ms and
 // CELT modes 2.5-20 ms.
+const MAX_PACKET_DURATION_MS = 120;
+
 const FRAME_DURATION_MS = [
   10, 20, 40, 60, // SILK NB
   10, 20, 40, 60, // SILK MB
@@ -30,18 +32,18 @@ function opusFrameCount(toc: number, payload: Uint8Array): number | null {
     // and must itself be non-empty.
     return payload.length >= 3 && payload[1]! > 0 ? 2 : null;
   }
-  // Code 3: a control byte carries an optional padding flag and the frame
-  // count, either inline (six bits) or in a following byte.
+  // Code 3 (RFC 6716 §3.2.5): the frame count always lives in the six low
+  // bits of the second byte (M, 1..48). Bit 6 is the Opus padding flag and
+  // bit 7 the VBR flag — there is no "extended frame count" byte. Padding
+  // length bytes and the padding itself follow the frame count byte and come
+  // out of the same budget, so they never take part in the timing.
   if (payload.length < 2) return null;
-  const control = payload[1]!;
-  const extended = (control & 0x40) !== 0;
-  const count = extended
-    ? (payload.length >= 3 ? payload[2]! : 0)
-    : control & 0x3f;
-  // Every declared frame needs its own data byte; an implausible count would
-  // poison the RTP timeline more than dropping the packet would.
-  const headerBytes = extended ? 3 : 2;
-  return count > 0 && count <= 48 && payload.length - headerBytes >= count ? count : null;
+  const count = payload[1]! & 0x3f;
+  // Every declared frame needs at least one compressed byte; padding only
+  // removes bytes from the tail, so this necessary bound holds in both the
+  // CBR and VBR layouts. An implausible count would poison the RTP timeline
+  // more than dropping the packet does.
+  return count > 0 && count <= 48 && payload.length - 2 >= count ? count : null;
 }
 
 /** Total play duration of an Opus packet in milliseconds, or null when the
@@ -51,5 +53,8 @@ export function opusFrameDurationMs(payload: Uint8Array): number | null {
   const toc = payload[0]!;
   const frames = opusFrameCount(toc, payload);
   if (frames === null) return null;
-  return FRAME_DURATION_MS[toc >> 3] * frames;
+  const duration = FRAME_DURATION_MS[toc >> 3] * frames;
+  // RFC 6716 §3.2.5: the audio duration in one packet MUST NOT exceed 120 ms.
+  // A larger jump would desynchronize the receiver's jitter buffer.
+  return duration > MAX_PACKET_DURATION_MS ? null : duration;
 }
