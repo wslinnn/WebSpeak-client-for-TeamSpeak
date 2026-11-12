@@ -19,6 +19,9 @@ const SCREEN_SHARE_FIRST_FRAME_PROOF_TIMEOUT_MS = 10_000;
 // gathering window); the budget is consumed by whichever arrives first — the
 // negotiation timer or a `failed` connection state.
 const SCREEN_SHARE_CONNECT_RETRIES = 1;
+/** 未建 peer（尚未收到/发出 SDP）时按对端缓存的远端 ICE 候选上限：一次正常
+ *  协商只有十余个候选，超出的丢弃即可。 */
+const MAX_PENDING_ICE_CANDIDATES = 64;
 
 export interface ScreenShareOutputSettings {
   maxWidth?: number;
@@ -496,7 +499,16 @@ export function createScreenShareController(transport: ScreenShareTransport) {
         ...(signal.sdpMLineIndex !== undefined ? { sdpMLineIndex: signal.sdpMLineIndex } : {}),
       };
       if (!peer?.remoteDescription) {
-        screenSharePendingIce.set(fromPeerId, [...(screenSharePendingIce.get(fromPeerId) ?? []), candidate]);
+        // 协商前缓存的候选必须有上限。合法观看端一次协商只有十余个
+        // 候选，而命令限流（20/s × 8KB）允许对方只发 iceCandidate 不发 offer，
+        // 长期累积占内存。按对端截断：超出的候选丢弃（offer 到达后重新收集），
+        // 并用就地 push 取代每条都复制整个数组。
+        const pending = screenSharePendingIce.get(fromPeerId);
+        if (!pending) {
+          screenSharePendingIce.set(fromPeerId, [candidate]);
+        } else if (pending.length < MAX_PENDING_ICE_CANDIDATES) {
+          pending.push(candidate);
+        }
         return;
       }
       try { await peer.addIceCandidate(candidate); } catch { /* stale ICE is not fatal */ }

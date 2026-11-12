@@ -47,7 +47,8 @@ class Peer {
   createAnswer() { return Promise.resolve({ type: "answer", sdp: "answer" }); }
   setLocalDescription(description: unknown) { this.localDescription = description; return Promise.resolve(); }
   setRemoteDescription() { return Promise.resolve(); }
-  addIceCandidate() { return Promise.resolve(); }
+  iceCandidates: unknown[] = [];
+  addIceCandidate(candidate: unknown) { this.iceCandidates.push(candidate); return Promise.resolve(); }
   addTransceiver(kind: string) {
     const transceiver = {
       sender: { track: null },
@@ -100,6 +101,38 @@ const remote = { streamId: "remote-1", ownerPeerId: "owner", ownerNickname: "Own
 function confirmStart(streamId: string, requestId = [...sent].reverse().find(message => message.type === "screenShareStart")?.requestId) {
   controller.handleMessage({ type: "screenShareStarted", owner: true, requestId, stream: { ...remote, streamId } } as never);
 }
+
+test("pre-offer ICE candidates are buffered up to a per-peer cap", async () => {
+  await controller.startScreenShare();
+  confirmStart("live-1");
+  // 观看者只发候选、不发 offer：网关会按合法 owner↔viewer 关系转发，候选在此之前
+  // 只能挂在待处理表里。没有上限时 20/s × 8KB 可以无限累积。
+  for (let index = 0; index < 200; index++) {
+    controller.handleMessage({
+      type: "screenShareSignal", streamId: "live-1", fromPeerId: "viewer-1",
+      signal: { kind: "iceCandidate", candidate: `candidate:${index} 1 udp 1 10.0.0.1 5000 typ host` },
+    } as never);
+  }
+  // offer 到达：缓存被一次性冲进 peer；只保留上限内的候选。
+  controller.handleMessage({
+    type: "screenShareSignal", streamId: "live-1", fromPeerId: "viewer-1",
+    signal: { kind: "offer", sdp: "v=0\r\n" },
+  } as never);
+  await nextTurn();
+  const owner = Peer.instances.at(-1)!;
+  assert.equal(owner.iceCandidates.length, 64);
+  // 另一个对端的缓存独立计数，不受前一个对端截断影响。
+  controller.handleMessage({
+    type: "screenShareSignal", streamId: "live-1", fromPeerId: "viewer-2",
+    signal: { kind: "iceCandidate", candidate: "candidate:1 1 udp 1 10.0.0.2 5001 typ host" },
+  } as never);
+  controller.handleMessage({
+    type: "screenShareSignal", streamId: "live-1", fromPeerId: "viewer-2",
+    signal: { kind: "offer", sdp: "v=0\r\n" },
+  } as never);
+  await nextTurn();
+  assert.equal(Peer.instances.at(-1)!.iceCandidates.length, 1);
+});
 
 test("cancelling a pending offer cannot send signaling or restore diagnostics after exit", async () => {
   const offer = deferred<{ type: string; sdp: string }>();
