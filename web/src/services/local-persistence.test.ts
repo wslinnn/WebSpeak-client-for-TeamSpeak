@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeAll as before, afterAll as after, beforeEach, test } from "vitest";
 import { setImmediate as nextTurn } from "node:timers/promises";
-import { clearNamespacedStorageEntries, getChatHistoryConversationKey, loadLocalPreferences, normalizeChatHistoryServerKey, saveLocalPreferences } from "./local-persistence";
+import { clearLocalData, clearNamespacedStorageEntries, getChatHistoryConversationKey, loadLocalPreferences, normalizeChatHistoryServerKey, saveLocalPreferences } from "./local-persistence";
 
 // Control IndexedDB's request and transaction completion separately. These tests
 // exercise the public storage APIs, including cancellation before opening the DB.
@@ -12,21 +12,36 @@ interface FakeRequest {
 }
 let opening: FakeRequest;
 let transactions: Transaction[] = [];
+let attempted: string[] = [];
+let missingStore: string | null = null;
 class Transaction {
   oncomplete?: () => void; onerror?: () => void; onabort?: () => void;
   getRequest: FakeRequest = { onsuccess: () => {} };
   putRequest: FakeRequest = { onsuccess: () => {} };
-  written: unknown; aborted = false;
+  written: unknown; aborted = false; cleared = false;
+  readonly store: string;
+  constructor(store: string) { this.store = store; }
   objectStore() { return {
     get: () => this.getRequest = { onsuccess: () => {} },
     put: (value: unknown) => { this.written = value; return this.putRequest = { onsuccess: () => {} }; },
+    clear: () => { this.cleared = true; },
   }; }
   abort() { this.aborted = true; this.onabort?.(); }
   read(value: unknown) { this.getRequest.result = value; this.getRequest.onsuccess(); }
   writtenSuccessfully() { this.putRequest.onsuccess(); }
   commit() { assert.equal(this.aborted, false); this.oncomplete?.(); }
 }
-const database = { transaction: () => { const tx = new Transaction(); transactions.push(tx); return tx; } };
+const database = {
+  // A real IndexedDB transaction constructor throws NotFoundError synchronously
+  // for a store the schema never created.
+  transaction: (name: string) => {
+    attempted.push(name);
+    if (missingStore === name) throw Object.assign(new Error(`object store ${name} not found`), { name: "NotFoundError" });
+    const tx = new Transaction(name);
+    transactions.push(tx);
+    return tx;
+  },
+};
 
 test("chat history keys isolate server targets and group private messages by stable conversation", () => {
   assert.equal(normalizeChatHistoryServerKey(" Example.COM:9987 "), "example.com:9987");
@@ -44,7 +59,7 @@ before(() => Object.defineProperty(globalThis, "indexedDB", { configurable: true
     return opening;
   },
 } }));
-beforeEach(() => { transactions = []; });
+beforeEach(() => { transactions = []; attempted = []; missingStore = null; });
 after(() => {
   if (descriptor) Object.defineProperty(globalThis, "indexedDB", descriptor);
   else Reflect.deleteProperty(globalThis, "indexedDB");
@@ -85,6 +100,28 @@ test("v1 preferences migrate to v2 and drop the stale echo-cancellation default"
   assert.deepEqual(await pending, {
     schemaVersion: 2, language: "en", noiseSuppressionEnabled: true, inputGain: 1.2, volumesByUid: {},
   });
+});
+
+test("clearing local data clears every store the current schema owns", async () => {
+  const pending = clearLocalData();
+  await nextTurn();
+  // 顺序覆盖清单本身：不存在的 "skins" 会让 transaction 构造抛错，真实 IDB 里
+  // 只有其它事务已建好才“看起来”清干净了。
+  assert.deepEqual(attempted, ["identities", "preferences", "favorites", "chatHistory"]);
+  for (const tx of transactions) tx.commit();
+  await pending;
+  assert.deepEqual(transactions.map(tx => tx.cleared), [true, true, true, true]);
+});
+
+test("a missing store never leaves the remaining local data behind", async () => {
+  missingStore = "preferences";
+  const pending = clearLocalData();
+  await nextTurn();
+  assert.deepEqual(attempted, ["identities", "preferences", "favorites", "chatHistory"]);
+  assert.deepEqual(transactions.map(tx => tx.store), ["identities", "favorites", "chatHistory"]);
+  for (const tx of transactions) tx.commit();
+  await pending;
+  assert.deepEqual(transactions.map(tx => tx.cleared), [true, true, true]);
 });
 
 function createFakeStorage(entries: Record<string, string> = {}): Storage {

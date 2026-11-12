@@ -333,7 +333,14 @@ export async function saveChatHistoryMessage(serverKey: string, message: ChatMes
 export async function clearLocalData(): Promise<void> {
   try {
     const database = await openDatabase();
-    await Promise.all(["identities", "preferences", "favorites", "skins", "chatHistory"].map((storeName) => new Promise<void>((resolve, reject) => {
+    // The store list mirrors the v4 schema exactly (identities, preferences,
+    // favorites, chatHistory). "skins" was never created by this schema, so
+    // asking for it made the transaction constructor throw — the sweep only
+    // looked complete because the other transactions had already been created
+    //. Each store is now settled independently: one refused store
+    // (a future schema change, a locked browser profile) must never leave the
+    // rest of the data behind.
+    await Promise.allSettled(["identities", "preferences", "favorites", "chatHistory"].map((storeName) => new Promise<void>((resolve, reject) => {
       const transaction = database.transaction(storeName, "readwrite");
       transaction.objectStore(storeName).clear();
       transaction.oncomplete = () => resolve();
