@@ -353,18 +353,18 @@ export class WebRtcAudioSession {
   }
 
   /** Records a TeamSpeak packet that is deliberately not relayed (comfort
-   *  noise during a pause, or the empty end-of-speech packet) against its
-   *  speaker's sender-sequence baseline. The packet consumes a sequence number
-   *  even though it carries no audio for us, so ignoring it would make the next
-   *  real frame look like a burst of loss and turn every short pause into a
-   *  concealment hole. The RTP timeline does not move: nothing is emitted. */
+   *  noise, or the empty end-of-speech packet) against its speaker's
+   *  sender-sequence baseline. Such packets still consume a sequence number,
+   *  so ignoring them would read the next real frame as a burst of loss and
+   *  turn every short pause into a concealment hole. The RTP timeline does
+   *  not move. */
   noteSilentTeamSpeakPacket(data: TSVoiceData): void {
     if (this.closed) return;
     const rawVid = data.vid;
+    // A speaker who only sends comfort noise has no slot yet, and must not
+    // take one just for being silent.
     if (typeof rawVid !== "number" || !Number.isInteger(rawVid)) return;
     const slot = this.slots.find(candidate => candidate.clientId === data.clientId);
-    // A speaker who only sends comfort noise has no slot yet, and must not take
-    // one just for being silent.
     if (!slot) return;
     slot.lastVid = rawVid & 0xffff;
     slot.vidWhisper = data.isWhisper === true;
@@ -391,12 +391,8 @@ export class WebRtcAudioSession {
       return false;
     }
     const slot = this.slotFor(data.clientId);
-    if (!slot) {
-      this.stats.webrtcDownlinkDroppedFrames++;
-      return false;
-    }
     const samples = Math.round(durationMs * RTP_SAMPLES_PER_MS);
-    if (!this.placeOnTimeline(slot, data, samples, frameIndex > 0)) {
+    if (!slot || !this.placeOnTimeline(slot, data, samples, frameIndex > 0)) {
       this.stats.webrtcDownlinkDroppedFrames++;
       return false;
     }
@@ -458,20 +454,12 @@ export class WebRtcAudioSession {
       // RFC-equivalent comparison for a 16-bit counter: the signed difference,
       // never `a < b` (it wraps from 65535 to 0).
       const delta = ((vid - slot.lastVid) << 16) >> 16;
-      if (delta === 0) {
-        // The same packet arrived twice: forwarding it would repeat a syllable.
-        slot.vidRejected += 1;
-        if (slot.vidRejected < VID_REBASE_AFTER_REJECTS) return false;
-        // A speaker whose counter keeps repeating has restarted it: rebase so
-        // the member is heard again instead of being dropped forever.
-        slot.vidRejected = 0;
-        slot.lastVid = vid;
-        slot.vidWhisper = whisper;
-        return true;
-      }
-      if (delta < 0) {
-        // Arrived after a later packet: the receiver cannot use it either, and
-        // forwarding it would move the audio backwards in time.
+      if (delta <= 0) {
+        // A repeat forwards the same syllable twice; a packet that arrived
+        // after a later one would move the audio backwards in time. Either way
+        // the receiver cannot use it. Ten rejects in a row are not reordering
+        // but a restarted counter: rebase so the member is heard again instead
+        // of being dropped forever.
         slot.vidRejected += 1;
         if (slot.vidRejected < VID_REBASE_AFTER_REJECTS) return false;
         slot.vidRejected = 0;
