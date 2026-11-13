@@ -317,4 +317,3 @@ export class VoiceBridge {
     return this.voiceRtc.handleWebRtcOffer(entry, offer, sendJson);
   }
 }
-
