@@ -17,7 +17,7 @@ import { VoiceBanners } from "./voice-banners";
 import { VoiceMobileMore } from "./voice-mobile-more";
 import { VoicePerformancePanel } from "./voice-performance-panel";
 import { VoiceWorkspace } from "./voice-workspace";
-import { selectVoiceShellView } from "./voice-shell-view";
+import { selectVoiceShellSession, selectVoiceShellView } from "./voice-shell-view";
 import { avatarInitial, avatarStyle } from "@/web-client/avatar";
 import { useI18n } from "@/hooks/use-i18n";
 import { useStoreOfSpeaking } from "@/hooks/useVoiceSession";
@@ -84,7 +84,8 @@ export function VoiceShell(props: VoiceShellProps) {
   // 整包订阅会让 20–50Hz 的 micLevel 驱动整棵壳重渲——窄选排除电平，坞与设置
   // 弹窗各自内部订阅；字段集合即本组件渲染实际消费面，新增消费须在此登记。
   const voiceView = useStore(voice.store, useShallow(selectVoiceShellView));
-  const session = useStore(voice.session.store);
+  // 会话同样窄订阅：整包会让每条聊天消息都重渲整个进房壳。
+  const session = useStore(voice.session.store, useShallow(selectVoiceShellSession));
   const homeState = useStore(home);
   const speakingIds = useStoreOfSpeaking(voice).speakingIds;
   // 折叠集合经订阅进渲染（直接 getState 是一次性快照，toggle 后 UI 不更新）。
@@ -159,6 +160,14 @@ export function VoiceShell(props: VoiceShellProps) {
   useEffect(() => () => railGestures.dispose(), [railGestures]);
 
   const mobileMore = props.mobileSection === "more";
+
+  // 声明在渲染之前（原先写在 return 之后）：函数声明落在不可达代码路径上会让
+  // React Compiler 跳过整个组件的优化，而这正是进房后最热的壳。
+  const selectMobileSection = (section: MobileSection): void => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    membersController.closeMemberMenu();
+    props.onMobileSectionChange(section);
+  };
 
   return (
     <div
@@ -425,10 +434,4 @@ export function VoiceShell(props: VoiceShellProps) {
       )}
     </div>
   );
-
-  function selectMobileSection(section: MobileSection): void {
-    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
-    membersController.closeMemberMenu();
-    props.onMobileSectionChange(section);
-  }
 }

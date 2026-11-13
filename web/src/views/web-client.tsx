@@ -199,9 +199,10 @@ function WebClientRoot() {
       voice.disconnect(true);
       voice.dispose();
     };
-    // 仅挂载语义：与旧 onMounted/onUnmounted 1:1。
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // 仅挂载语义：与旧 onMounted/onUnmounted 1:1。deps 全部是单例（控制器经
+    // useMemo/useState 建一次、setter 恒定），列出来只是为了让 React Compiler
+    // 能优化页面组件——用 eslint-disable 关掉规则会让整个页面被跳过优化。
+  }, [store, voice, publicConfig, identity, favorites, setLanguage, setIdentityReady, setMobileViewport]);
 
   // —— 首页动作 ——
   function continueOnMobile(): void {

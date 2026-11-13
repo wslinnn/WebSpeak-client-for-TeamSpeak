@@ -33,6 +33,18 @@ interface ChannelMemberPanelProps {
 
 const DRAG_EDGE_PX = 44;
 
+/** One auto-scroll frame for a drag near the tree edge: advances the tree by the
+ *  current delta and schedules the next frame while the drag stays near an edge.
+ *  Module scope on purpose — a recursive `requestAnimationFrame(stepAutoScroll)`
+ *  inside the component references a hoisted declaration, which makes React
+ *  Compiler skip optimizing the whole panel. */
+function stepAutoScroll(state: { frame: number; delta: number }, tree: HTMLDivElement | null): void {
+  state.frame = 0;
+  if (!tree || !state.delta) return;
+  tree.scrollTop += state.delta;
+  state.frame = requestAnimationFrame(() => stepAutoScroll(state, tree));
+}
+
 /** 成员面板（旧 ChannelMemberPanel.vue 平价）：服务器头+状态/搜索、频道树
  *  （单击选中、双击/Enter 进房、折叠分支保挂载做网格插值）、成员行（拖拽换频道
  *  + 树边缘自动滚动）。房内 ≡ 常用服务器切换器已删（2026-10-26 拍板：空收藏时
@@ -56,6 +68,12 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
     setPendingJoinId(null);
   }
 
+  // 自动滚动的停止函数先声明：effect 清理与指针回调都引用它。
+  const stopAutoScroll = (): void => {
+    if (autoScroll.current.frame) cancelAnimationFrame(autoScroll.current.frame);
+    autoScroll.current.frame = 0;
+    autoScroll.current.delta = 0;
+  };
   useEffect(() => () => stopAutoScroll(), []);
 
   // 搜索框聚焦同理：等挂载提交后再 focus。
@@ -63,27 +81,16 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
     if (searchOpen) searchInputRef.current?.focus();
   }, [searchOpen]);
 
-  function toggleSearch(): void {
+  const toggleSearch = (): void => {
     setSearchOpen((open) => !open);
-  }
+  };
 
   const searchActive = props.query.trim().length > 0;
   const isFolded = (id: string): boolean => !searchActive && props.foldedChannels.has(id);
 
   // 拖拽中靠近树顶/底边自动滚动，让屏外频道成为可落点；速度随贴近程度爬升。
-  function stepAutoScroll(): void {
-    autoScroll.current.frame = 0;
-    const tree = treeRef.current;
-    if (!tree || !menu.draggedMember || !autoScroll.current.delta) return;
-    tree.scrollTop += autoScroll.current.delta;
-    autoScroll.current.frame = requestAnimationFrame(stepAutoScroll);
-  }
-  function stopAutoScroll(): void {
-    if (autoScroll.current.frame) cancelAnimationFrame(autoScroll.current.frame);
-    autoScroll.current.frame = 0;
-    autoScroll.current.delta = 0;
-  }
-  function onTreePointerMove(event: React.PointerEvent): void {
+  // 箭头函数而非函数声明：hoisted declaration 会让 React Compiler 跳过整个面板。
+  const onTreePointerMove = (event: React.PointerEvent): void => {
     members.onMemberPointerMove(event.nativeEvent);
     const tree = treeRef.current;
     if (!tree || !menu.draggedMember) {
@@ -99,16 +106,18 @@ export function ChannelMemberPanel(props: ChannelMemberPanelProps) {
       stopAutoScroll();
       return;
     }
-    if (!autoScroll.current.frame) autoScroll.current.frame = requestAnimationFrame(stepAutoScroll);
-  }
-  function onTreePointerEnd(event: React.PointerEvent): void {
+    if (!autoScroll.current.frame) {
+      autoScroll.current.frame = requestAnimationFrame(() => stepAutoScroll(autoScroll.current, treeRef.current));
+    }
+  };
+  const onTreePointerEnd = (event: React.PointerEvent): void => {
     stopAutoScroll();
     members.onMemberPointerUp(event.nativeEvent);
-  }
-  function onTreePointerCancel(event: React.PointerEvent): void {
+  };
+  const onTreePointerCancel = (event: React.PointerEvent): void => {
     stopAutoScroll();
     members.onMemberPointerCancel(event.nativeEvent);
-  }
+  };
 
   return (
     <aside className={cn("member-panel", { "mobile-section-visible": props.mobileVisible })} data-ws-part="voice.member-panel">
