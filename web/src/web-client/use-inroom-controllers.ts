@@ -6,7 +6,7 @@ import { showBackgroundTabNotification, readDesktopNotificationSetting } from "@
 import { combineTeamSpeakTarget, splitTeamSpeakTarget } from "@/services/teamspeak-target";
 import type { FavoriteServer } from "@/services/local-persistence";
 import { deleteChatHistoryWhere } from "@/services/local-persistence";
-import { buildChannelTree, findCurrentChannel } from "@/web-client/channel-tree";
+import { createChannelTreeProjection, findCurrentChannel } from "@/web-client/channel-tree";
 import { createAudioControls } from "@/web-client/audio-controls";
 import { createChannelFold } from "@/web-client/channel-fold";
 import { createChatController, type ChatScrollerAspect } from "@/web-client/chat-controller";
@@ -123,17 +123,20 @@ export function useInRoomControllers(options: InRoomOptions) {
   useEffect(() => () => audioControls.dispose(), [audioControls]);
 
   // 频道投影根部版（shell 内 useMemo 是渲染期平价；这里是控制器回调读取的同一事实源）。
+  // 投影按 channels 数组引用缓存：每条聊天消息都会经 chat.visibleMessages 读到
+  // currentChannelOf，逐次重建整棵树等于每条消息克隆 200 个对象。
+  const channelTreeProjection = useMemo(() => createChannelTreeProjection(), []);
   const currentChannelOf = useCallback(() => {
     const clientId = voice.store.getState().tsClientId;
     const homeSnapshot = store.getState();
     return findCurrentChannel(
-      buildChannelTree(voice.session.store.getState().channels, clientId),
+      channelTreeProjection(voice.session.store.getState().channels, clientId),
       { selectedChannelId: homeSnapshot.selectedChannelId, channelName: homeSnapshot.channelName, clientId },
     );
-  }, [voice, store]);
+  }, [voice, store, channelTreeProjection]);
 
   const membersController = useMemo(() => createMembersController({
-    getChannels: () => buildChannelTree(voice.session.store.getState().channels, voice.store.getState().tsClientId),
+    getChannels: () => channelTreeProjection(voice.session.store.getState().channels, voice.store.getState().tsClientId),
     getCurrentChannel: currentChannelOf,
     moveClient: (clientId, targetChannelId) => voice.moveClient(clientId, targetChannelId),
     setWhisperTargets: (clientIds) => voice.setWhisperTargets(clientIds),
@@ -145,7 +148,7 @@ export function useInRoomControllers(options: InRoomOptions) {
     localizedMessage: localizedLive,
     showToast: options.showToast,
     t: tLive,
-  }), [voice, currentChannelOf, localizedLive, tLive, options.showToast]);
+  }), [voice, currentChannelOf, channelTreeProjection, localizedLive, tLive, options.showToast]);
 
   const onChatListElement = useCallback((element: ChatScrollerAspect | null) => {
     chatListBox.current = element;

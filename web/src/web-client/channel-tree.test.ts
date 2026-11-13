@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ChannelInfo } from "@shared/voice-models";
 
-import { buildChannelTree, deriveMemberChannels, ensureSelectedChannelId, filterMemberChannels, findCurrentChannel } from "./channel-tree";
+import { buildChannelTree, createChannelTreeProjection, deriveMemberChannels, ensureSelectedChannelId, filterMemberChannels, findCurrentChannel } from "./channel-tree";
 
 const CLIENT_ID = 1;
 
@@ -96,5 +96,19 @@ describe("ensureSelectedChannelId（旧 watch(channelTree) 平价）", () => {
     expect(ensureSelectedChannelId(tree, { selectedChannelId: "", channelName: "Missing", clientId: CLIENT_ID })).toBe("2");
     expect(ensureSelectedChannelId(tree, { selectedChannelId: "1", channelName: "Games", clientId: CLIENT_ID })).toBeNull();
     expect(ensureSelectedChannelId([], { selectedChannelId: "", channelName: "", clientId: CLIENT_ID })).toBeNull();
+  });
+});
+
+describe("createChannelTreeProjection（热路径复用）", () => {
+  it("reuses the projection while the directory snapshot is unchanged", () => {
+    const projection = createChannelTreeProjection();
+    const channels = [{ id: "1", name: "Lobby" }] as ChannelInfo[];
+    const first = projection(channels, CLIENT_ID);
+    // Every chat message reads the current channel; the same array reference
+    // must not rebuild the tree and clone every member.
+    expect(projection(channels, CLIENT_ID)).toBe(first);
+    expect(projection([...channels], CLIENT_ID)).not.toBe(first);
+    // isSelf is derived from the client id, so it is part of the cache key.
+    expect(projection(channels, 7)).not.toBe(first);
   });
 });

@@ -52,6 +52,22 @@ export function buildChannelTree(channels: ChannelInfo[], clientId: number): Tre
   return orderedTree;
 }
 
+/** 按 channels 数组引用缓存的频道树投影。会话 store 只在目录真正变化时替换
+ *  数组，而热路径（每条聊天消息都要读当前频道）按调用重建整棵树并克隆全部
+ *  成员是纯浪费：100 频道 × 100 成员时一次重建就是 200 个对象。 */
+export function createChannelTreeProjection(): (channels: ChannelInfo[], clientId: number) => TreeChannel[] {
+  let lastChannels: ChannelInfo[] | null = null;
+  let lastClientId = Number.NaN;
+  let lastTree: TreeChannel[] = [];
+  return (channels, clientId) => {
+    if (channels === lastChannels && clientId === lastClientId) return lastTree;
+    lastChannels = channels;
+    lastClientId = clientId;
+    lastTree = buildChannelTree(channels, clientId);
+    return lastTree;
+  };
+}
+
 function orderSiblings(siblings: TreeChannel[], sourceIndex: Map<string, number>): TreeChannel[] {
   const bySiblingId = new Map(siblings.map((item) => [item.id, item]));
   const successors = new Map<string, TreeChannel[]>();
