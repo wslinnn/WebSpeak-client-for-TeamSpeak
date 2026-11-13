@@ -10,7 +10,11 @@ import type { Logger as LoggerType } from "../logger.js";
 import type { TSVoiceData } from "./ts-client.js";
 import { isAcceptableRemoteIceCandidate, WEBRTC_UDP_PORT_RANGE } from "./webrtc-config.js";
 import { opusFrameDurationMs } from "./opus-frame.js";
-import { WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS, type WebRtcSessionDescription } from "../shared/webrtc.js";
+import {
+  MAX_DOWNSTREAM_SLOTS,
+  WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS,
+  type WebRtcSessionDescription,
+} from "../shared/webrtc.js";
 export type { WebRtcSessionDescription } from "../shared/webrtc.js";
 
 export { DEFAULT_WEBRTC_UDP_PORT_RANGE, WEBRTC_UDP_PORT_RANGE } from "./webrtc-config.js";
@@ -18,14 +22,12 @@ export { DEFAULT_WEBRTC_UDP_PORT_RANGE, WEBRTC_UDP_PORT_RANGE } from "./webrtc-c
 const AUDIO_SAMPLE_RATE = 48_000;
 const RTP_SAMPLES_PER_MS = AUDIO_SAMPLE_RATE / 1000;
 const DEFAULT_WEBRTC_OPUS_PAYLOAD_TYPE = 111;
-// Downstream slot count is bounded both for CPU hygiene (every werift track
-// runs RTCP bookkeeping) and because the offer's m-line count — which a
-// malicious client controls — must not dictate gateway work. The browser
-// opens exactly this many recvonly transceivers; extra ones are answered
-// inactive. 24 covers a large panel's concurrent speakers; an idle slot costs
-// a negotiated m-line and nothing else (the browser only builds an <audio>
-// element for a slot the gateway actually assigns).
-const MAX_DOWNSTREAM_SLOTS = 24;
+// The slot count lives in the shared contract (src/shared/webrtc.ts) because
+// the browser, the gateway and the voiceRoute parser must agree on it; an
+// oversized table is rejected by the parser and silently unbinds every slot.
+// An idle slot costs a negotiated m-line plus one werift MediaStreamTrack and
+// sender object; the browser only builds an <audio> element for a slot the
+// gateway actually assigns.
 // A slot may only be taken away from its speaker after that speaker has been
 // silent this long. TeamSpeak stops sending packets the moment a member stops
 // talking, so "idle" is a reliable "not speaking"; the window is what keeps a
@@ -350,6 +352,25 @@ export class WebRtcAudioSession {
     return { type: description.type, sdp: description.sdp };
   }
 
+  /** Records a TeamSpeak packet that is deliberately not relayed (comfort
+   *  noise during a pause, or the empty end-of-speech packet) against its
+   *  speaker's sender-sequence baseline. The packet consumes a sequence number
+   *  even though it carries no audio for us, so ignoring it would make the next
+   *  real frame look like a burst of loss and turn every short pause into a
+   *  concealment hole. The RTP timeline does not move: nothing is emitted. */
+  noteSilentTeamSpeakPacket(data: TSVoiceData): void {
+    if (this.closed) return;
+    const rawVid = data.vid;
+    if (typeof rawVid !== "number" || !Number.isInteger(rawVid)) return;
+    const slot = this.slots.find(candidate => candidate.clientId === data.clientId);
+    // A speaker who only sends comfort noise has no slot yet, and must not take
+    // one just for being silent.
+    if (!slot) return;
+    slot.lastVid = rawVid & 0xffff;
+    slot.vidWhisper = data.isWhisper === true;
+    slot.vidRejected = 0;
+  }
+
   /** Relays one TeamSpeak voice frame to the speaker's downstream slot. The
    *  Opus payload is forwarded byte-identically; only the RTP framing is
    *  generated here, with the timestamp advancing by the packet's real audio
@@ -358,25 +379,26 @@ export class WebRtcAudioSession {
    *  visible to the browser instead of being flattened into a continuous
    *  stream. `frameIndex` is the frame's position inside its sender packet:
    *  the second and later frames of one packet share its sender sequence and
-   *  follow each other with no gap. */
-  pushTeamSpeakVoice(data: TSVoiceData, frameIndex = 0): void {
-    if (this.closed || (data.codec !== 4 && data.codec !== 5)) return;
+   *  follow each other with no gap. Returns whether the frame reached the
+   *  slot's timeline. */
+  pushTeamSpeakVoice(data: TSVoiceData, frameIndex = 0): boolean {
+    if (this.closed || (data.codec !== 4 && data.codec !== 5)) return false;
     const payload = Buffer.isBuffer(data.data) ? data.data : Buffer.from(data.data);
     const durationMs = opusFrameDurationMs(payload);
     if (durationMs === null || payload.length === 0) {
       this.stats.webrtcDownlinkDroppedFrames++;
       this.logDebugFrame(payload[0] ?? -1, payload.length, -1, 0, 0, data.clientId);
-      return;
+      return false;
     }
     const slot = this.slotFor(data.clientId);
     if (!slot) {
       this.stats.webrtcDownlinkDroppedFrames++;
-      return;
+      return false;
     }
     const samples = Math.round(durationMs * RTP_SAMPLES_PER_MS);
     if (!this.placeOnTimeline(slot, data, samples, frameIndex > 0)) {
       this.stats.webrtcDownlinkDroppedFrames++;
-      return;
+      return false;
     }
     const marker = slot.markerPending;
     slot.markerPending = false;
@@ -401,8 +423,10 @@ export class WebRtcAudioSession {
       this.stats.webrtcEgressRtpLastAt = Date.now();
       this.stats.webrtcEgressRtpFrames++;
       this.stats.webrtcDownlinkForwardedFrames++;
+      return true;
     } catch {
       this.stats.webrtcDownlinkDroppedFrames++;
+      return false;
     }
   }
 

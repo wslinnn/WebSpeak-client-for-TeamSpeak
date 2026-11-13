@@ -10,7 +10,7 @@ import type { TSVoiceData } from "./ts-client.js";
 export function fixture(uplinkDecoder?: () => { decode(frame: Buffer): Buffer }) {
   const state = { current: true, ready: true, now: 0, targets: null as number[] | null, disposed: 0,
     webRtcVoice: false,
-    peer: null as { pushTeamSpeakVoice(data: TSVoiceData): void } | null };
+    peer: null as { pushTeamSpeakVoice(data: TSVoiceData, frameIndex?: number): boolean | void; noteSilentTeamSpeakPacket?(data: TSVoiceData): void } | null };
   const audio = createAudioFlowStats();
   const packets: Buffer[] = [];
   const encoded: Buffer[] = [];
@@ -40,6 +40,11 @@ export function fixture(uplinkDecoder?: () => { decode(frame: Buffer): Buffer })
     sendJson: message => { notices.push(message); },
   }, () => { encoderCreations.count += 1; return encoder; }, () => state.now, uplinkDecoder);
   // 载荷取现实尺寸（≥4 字节）：≤3 字节是舒适噪声帧，下行过滤器会拦（见下方专测）。
-  const remote = (clientId = 513) => ({ clientId, codec: 4, data: Buffer.from([11, 12, 13, 14]) });
+  // 默认 4 字节便于逐字节断言；需要贴近真实 Opus 包（约 40-60 字节）的用例给长度。
+  const remote = (clientId = 513, payloadBytes?: number) => ({
+    clientId,
+    codec: 4,
+    data: payloadBytes ? Buffer.alloc(payloadBytes, 0x11) : Buffer.from([11, 12, 13, 14]),
+  });
   return { transport, audio, state, socket, client, encoder, encoderCreations, packets, encoded, forwarded, notices, warnings, closes, remote };
 }

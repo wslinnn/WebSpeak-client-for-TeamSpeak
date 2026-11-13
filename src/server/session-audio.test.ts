@@ -300,20 +300,27 @@ test("uplink silence gate fails open when no decoder is wired (legacy constructi
   assert.equal(f.forwarded.length, 1);
 });
 
-test("backpressure tolerates a jitter-sized backlog and drops beyond it without a retained queue", () => {
+test("backpressure tolerates a per-speaker jitter backlog and drops beyond it without a retained queue", () => {
   const f = fixture();
-  // 16 frames (320 ms) of queued audio: the depth the browser's 250 ms window
-  // is built to ride out after a TCP stall.
-  f.socket.bufferedAmount = 30_720;
-  f.transport.receiveTeamSpeak(f.remote());
-  f.socket.bufferedAmount = 30_721;
-  for (let i = 0; i < 100; i++) f.transport.receiveTeamSpeak(f.remote());
+  // The socket buffers Opus packets (3-byte header + payload), not PCM frames:
+  // a 42-byte payload is a realistic TeamSpeak voice packet. One speaker may
+  // queue 2 KiB (~16 frames / 320 ms) before the gateway starts dropping.
+  const payload = 42;
+  f.socket.bufferedAmount = 2_048;
+  f.transport.receiveTeamSpeak(f.remote(513, payload));
+  f.socket.bufferedAmount = 2_049;
+  for (let i = 0; i < 100; i++) f.transport.receiveTeamSpeak(f.remote(513, payload));
   assert.equal(f.packets.length, 1);
   assert.equal(f.audio.egressDroppedFrames, 100);
+  // A second speaker doubles the budget: the browser's jitter window is per
+  // speaker, so the backlog it can absorb is too.
+  f.socket.bufferedAmount = 3_000;
+  f.transport.receiveTeamSpeak(f.remote(777, payload));
+  assert.equal(f.packets.length, 2, "a second speaker may use the doubled budget");
   f.socket.bufferedAmount = 0;
-  f.transport.receiveTeamSpeak(f.remote());
-  assert.equal(f.packets.length, 2);
-  assert.equal(f.audio.egressPeakBufferedBytes, 30_721);
+  f.transport.receiveTeamSpeak(f.remote(513, payload));
+  assert.equal(f.packets.length, 3);
+  assert.equal(f.audio.egressPeakBufferedBytes, 3_000);
 });
 
 test("the per-client egress table prunes speakers silent for ten minutes (报告 21 L7)", () => {
@@ -404,6 +411,47 @@ test("codec cleanup is idempotent even if disposal throws", t => {
   assert.equal(attempts, 1);
   assert.equal(f.audio.ingressFrames, 1);
   assert.equal(f.audio.tsReceiveFrames, 0);
+});
+
+test("comfort noise only advances the sender baseline, never the RTP timeline", () => {
+  const pushed: TSVoiceData[] = [];
+  const silent: TSVoiceData[] = [];
+  const f = fixture();
+  f.state.peer = {
+    pushTeamSpeakVoice: (data: TSVoiceData) => { pushed.push(data); return true; },
+    noteSilentTeamSpeakPacket: (data: TSVoiceData) => { silent.push(data); },
+  };
+  // 3-byte comfort noise and the empty end-of-speech packet are not relayed,
+  // but they do consume the speaker's sequence number: the downstream timeline
+  // has to learn about them or every pause becomes a loss hole.
+  f.transport.receiveTeamSpeak({ clientId: 513, codec: 4, data: Buffer.from([252, 3, 7]), vid: 41 });
+  f.transport.receiveTeamSpeak({ clientId: 513, codec: 4, data: Buffer.alloc(0), vid: 42 });
+  assert.equal(pushed.length, 0, "nothing is relayed");
+  assert.deepEqual(silent.map(item => item.vid), [41, 42], "the baseline follows the silent packets");
+});
+
+test("the rest of a rejected multi-frame packet is not forwarded", () => {
+  const calls: number[] = [];
+  const f = fixture();
+  // First frame rejected (duplicate/late), second frame of the same packet must
+  // not be forwarded under the same sender sequence.
+  f.state.peer = { pushTeamSpeakVoice: (_data: TSVoiceData, index = 0) => { calls.push(index); return index !== 0; } };
+  const frame = Buffer.from([0x48, 1, 2, 3]);
+  const payload = Buffer.concat([Buffer.from([2]), frame, frame]);
+  f.transport.receiveTeamSpeak({ clientId: 513, codec: 4, data: payload, flags: 0x10, vid: 5 });
+  assert.deepEqual(calls, [0], "the second frame of a rejected packet is skipped");
+  assert.equal(f.audio.egressDroppedFrames, 1);
+});
+
+test("an accepted multi-frame packet forwards every frame with its index", () => {
+  const calls: number[] = [];
+  const f = fixture();
+  f.state.peer = { pushTeamSpeakVoice: (_data: TSVoiceData, index = 0) => { calls.push(index); return true; } };
+  const frame = Buffer.from([0x48, 1, 2, 3]);
+  const payload = Buffer.concat([Buffer.from([2]), frame, frame]);
+  f.transport.receiveTeamSpeak({ clientId: 513, codec: 4, data: payload, flags: 0x10, vid: 5 });
+  assert.deepEqual(calls, [0, 1]);
+  assert.equal(f.audio.egressFrames, 2);
 });
 
 test("the compatibility encoder is only created when a PCM frame arrives", () => {

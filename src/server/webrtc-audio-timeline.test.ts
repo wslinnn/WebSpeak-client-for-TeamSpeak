@@ -73,3 +73,26 @@ test("whisper and normal voice counters do not create gaps when they interleave"
     "each counter switch is a new segment, never a 870-packet hole");
 });
 
+
+test("a pause filled with comfort noise is not turned into a loss hole", () => {
+  const f = fixture();
+  f.session.pushTeamSpeakVoice({ clientId: 7, codec: 4, data: VOICE_20MS, vid: 0 });
+  // TeamSpeak keeps numbering its packets through a pause (comfort noise and
+  // the end-of-speech packet); the gateway filters those out, so only the
+  // baseline advances. Without this the next word would arrive as a 25-frame
+  // gap and the browser would conceal half a second of noise.
+  for (let vid = 1; vid <= 25; vid++) {
+    f.session.noteSilentTeamSpeakPacket({ clientId: 7, codec: 4, data: Buffer.from([252, 3, 7]), vid });
+  }
+  f.session.pushTeamSpeakVoice({ clientId: 7, codec: 4, data: VOICE_20MS, vid: 26 });
+  assert.equal(f.sent.length, 2);
+  assert.equal(f.sent[1]!.header.sequenceNumber, (f.sent[0]!.header.sequenceNumber + 1) & 0xffff);
+  assert.equal(f.sent[1]!.header.timestamp, (f.sent[0]!.header.timestamp + 960) >>> 0);
+});
+
+test("comfort noise from a speaker without a slot does not take one", () => {
+  const f = fixture();
+  f.session.noteSilentTeamSpeakPacket({ clientId: 7, codec: 4, data: Buffer.from([252, 3, 7]), vid: 3 });
+  assert.deepEqual(f.resources.slots.map(slot => slot.clientId), [0, 0], "silence must not claim a downstream slot");
+  assert.equal(f.resources.stats.webrtcDownlinkDroppedFrames, 0);
+});

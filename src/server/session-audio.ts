@@ -3,17 +3,20 @@ import type { Logger as LoggerType } from "../logger.js";
 import type { ServerMessage } from "../shared/server-messages.js";
 import type { AudioFlowStats } from "./audio-stats.js";
 import type { TSClient, TSVoiceData } from "./ts-client.js";
-import type { WebRtcAudioSession } from "./webrtc-audio.js";
+
 import { splitVoicePayload } from "./voice-payload.js";
 
 const AUDIO_FRAME_BYTES = 1_920; // 20 ms of 48 kHz mono Int16 PCM.
-// Egress backlog the gateway tolerates before it starts dropping: 16 frames
-// (320 ms). The browser plays the compatibility path through a 250 ms jitter
-// window precisely because one ordered TCP stream turns a single loss into a
-// 100-300 ms burst; a 4 KB (40 ms) server-side cap dropped the burst before
-// that window ever saw it. Anything beyond this is a stalled socket, not a
-// burst, and the browser would discard it as late anyway.
-const MAX_BUFFERED_BYTES = AUDIO_FRAME_BYTES * 16;
+// Compatibility egress is one ordered TCP stream: a stalled socket turns into
+// queue growth, and the browser plays this path through a 250 ms per-speaker
+// jitter window. The backlog guard therefore measures what the socket actually
+// buffers — *Opus* packets (3-byte header + payload, tens to a few hundred
+// bytes each), never the 1920-byte PCM frames the uplink uses — and scales with
+// the number of speakers being relayed, because the browser's window is per
+// speaker: one speaker may queue ~16 frames (320 ms), eight speakers may queue
+// eight times that before anyone hears stale audio.
+const MAX_EGRESS_BACKLOG_BYTES_PER_SPEAKER = 2_048;
+const EGRESS_SPEAKER_WINDOW_MS = 1_000;
 // A malformed frame at voice rate is one error per 20 ms; replying per frame
 // turns a bad client into a 100x reply amplifier. Report at most once per
 // second and drop the connection after a full second of consecutive garbage.
@@ -31,6 +34,11 @@ const INVALID_FRAME_CLOSE_THRESHOLD = 20;
 //      5 ms ptime (200/s) browsers, a tab that was suspended and flushes its
 //      queue, and mobile uplink jitter; the earlier 100/s budget sat exactly on
 //      a 10 ms-ptime browser's rate and could drop frames under jitter.
+//      Note this is a deliberate product choice for a self-hosted deployment,
+//      not a capacity claim: a hostile client at the cap could still push
+//      ~19 Mbps of Opus toward TeamSpeak and ~8 cores of encode work. The
+//      deployment mitigates it at the edge (admission ceiling, per-peer session
+//      cap) rather than by tightening the per-session budget here.
 //   2. Closing the session is reserved for an absurd burst: any successful
 //      frame resets the window, so 600 drops in one window means >600 packets
 //      arrived back-to-back with no refill gap — a client bug or an attack,
@@ -68,6 +76,18 @@ export interface VoiceEncoder {
   dispose(): void;
 }
 
+/** Downstream sink for relayed TeamSpeak frames. `pushTeamSpeakVoice` reports
+ *  whether the frame reached the RTP timeline (false = duplicate, late packet
+ *  or no slot), so the rest of a rejected multi-frame packet can be skipped;
+ *  a stub that returns nothing is treated as accepted. */
+export interface TeamSpeakVoiceSink {
+  pushTeamSpeakVoice(data: TSVoiceData, frameIndex?: number): boolean | void;
+  /** Records a packet that is deliberately not forwarded (comfort noise or the
+   *  empty end-of-speech packet) against the speaker's sender-sequence
+   *  baseline, without moving the RTP timeline. */
+  noteSilentTeamSpeakPacket?(data: TSVoiceData): void;
+}
+
 export interface SessionAudioOptions {
   audio: AudioFlowStats;
   socket: Pick<WebSocket, "readyState" | "bufferedAmount" | "close"> & { send(packet: Buffer): void };
@@ -83,7 +103,7 @@ export interface SessionAudioOptions {
    *  fallback in either direction — the failure surfaces on the browser
    *  instead of silently degrading to the compatibility transport. */
   webRtcVoice(): boolean;
-  peer(): Pick<WebRtcAudioSession, "pushTeamSpeakVoice"> | null;
+  peer(): TeamSpeakVoiceSink | null;
   whisperTargets(): readonly number[] | null;
   sendJson(message: ServerMessage): void;
 }
@@ -103,6 +123,10 @@ export class SessionAudioTransport {
   private floodWindowDrops = 0;
   private readonly egressClientLastSeen = new Map<string, number>();
   private egressClientsPrunedAt = Number.NEGATIVE_INFINITY;
+  /** Speakers relayed in the current window: the egress backlog budget is per
+   *  speaker, because the browser's jitter window is. */
+  private readonly egressSpeakers = new Set<string>();
+  private egressSpeakerWindowStart = Number.NEGATIVE_INFINITY;
 
   constructor(private readonly options: SessionAudioOptions,
     /** Compatibility-uplink encoder factory. Created on the first PCM frame:
@@ -390,7 +414,15 @@ export class SessionAudioTransport {
     }
     const frames = split.frames.filter(frame => frame.length > COMFORT_NOISE_FRAME_BYTES);
     stats.egressDroppedFrames += split.frames.length - frames.length;
-    if (frames.length === 0) return;
+    if (frames.length === 0) {
+      // Comfort noise and the empty end-of-speech packet are not forwarded (the
+      // speaking badge counts packets, so relaying them would light the tile
+      // during silence), but they do consume a sender sequence number. Record
+      // that so the next real frame is not read as a burst of loss — otherwise
+      // every short pause becomes a concealment hole on the browser's timeline.
+      this.options.peer()?.noteSilentTeamSpeakPacket?.(data);
+      return;
+    }
     // WebRTC 语音会话没有 WS 音频回退：无 live peer（协商窗口/协商失败/peer 拆除）
     // 时帧按丢弃记账而不是转投 WS——降级被移除后，断流必须显式可见。
     if (!this.options.peer() && this.options.webRtcVoice()) {
@@ -403,6 +435,11 @@ export class SessionAudioTransport {
     const key = String(data.clientId);
     stats.egressFramesByClient[key] = (stats.egressFramesByClient[key] ?? 0) + frames.length;
     this.egressClientLastSeen.set(key, now);
+    if (now - this.egressSpeakerWindowStart >= EGRESS_SPEAKER_WINDOW_MS) {
+      this.egressSpeakerWindowStart = now;
+      this.egressSpeakers.clear();
+    }
+    this.egressSpeakers.add(key);
     if (this.egressClientLastSeen.size > EGRESS_CLIENT_PRUNE_THRESHOLD
       && now - this.egressClientsPrunedAt >= EGRESS_CLIENT_PRUNE_INTERVAL_MS) {
       this.egressClientsPrunedAt = now;
@@ -410,20 +447,29 @@ export class SessionAudioTransport {
     }
     const peer = this.options.peer();
     if (peer) {
+      let packetAccepted = true;
       for (const [index, frame] of frames.entries()) {
+        // The frames of one sender packet share its sequence number: when the
+        // first was rejected (duplicate or late), forwarding the next one would
+        // put repeated audio on the timeline under the same sequence.
+        if (index > 0 && !packetAccepted) { stats.egressDroppedFrames++; continue; }
         try {
           // The frame's position inside its sender packet: the gateway must not
           // read the second frame of one packet as a lost-packet gap.
-          peer.pushTeamSpeakVoice(frame === data.data ? data : { ...data, data: frame }, index);
-          stats.egressFrames++;
-        } catch { stats.egressDroppedFrames++; }
+          packetAccepted = peer.pushTeamSpeakVoice(frame === data.data ? data : { ...data, data: frame }, index) !== false;
+          if (packetAccepted) stats.egressFrames++;
+        } catch {
+          packetAccepted = false;
+          stats.egressDroppedFrames++;
+        }
       }
       return;
     }
+    const backlogCap = MAX_EGRESS_BACKLOG_BYTES_PER_SPEAKER * Math.max(1, this.egressSpeakers.size);
     for (const frame of frames) {
       const bufferedBytes = this.options.socket.bufferedAmount;
       stats.egressPeakBufferedBytes = Math.max(stats.egressPeakBufferedBytes, bufferedBytes);
-      if (bufferedBytes > MAX_BUFFERED_BYTES) { stats.egressDroppedFrames++; continue; }
+      if (bufferedBytes > backlogCap) { stats.egressDroppedFrames++; continue; }
       const packet = Buffer.allocUnsafe(3 + frame.length);
       packet[0] = data.codec;
       packet.writeUInt16BE(data.clientId, 1);

@@ -23,7 +23,8 @@ class PeerStub {
   constructor(readonly options: WebRtcAudioSessionOptions) {}
   async close() { this.closed = true; await this.closeResult; }
   getStats() { return { webrtcIngressRtpFrames: 10 }; }
-  pushTeamSpeakVoice() {}
+  pushTeamSpeakVoice(): boolean { return true; }
+  noteSilentTeamSpeakPacket() {}
   async createAnswer(offer: WebRtcSessionDescription): Promise<WebRtcSessionDescription> {
     await this.answerResult;
     return { type: "answer", sdp: offer.sdp };
