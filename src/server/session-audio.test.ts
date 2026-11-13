@@ -1,45 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { SessionAudioTransport } from "./session-audio.js";
-import { createAudioFlowStats } from "./audio-stats.js";
-import type { ServerMessage } from "../shared/server-messages.js";
+import { fixture } from "./session-audio-fixture.js";
 import type { TSVoiceData } from "./ts-client.js";
-
-function fixture(uplinkDecoder?: () => { decode(frame: Buffer): Buffer }) {
-  const state = { current: true, ready: true, now: 0, targets: null as number[] | null, disposed: 0,
-    webRtcVoice: false,
-    peer: null as { pushTeamSpeakVoice(data: TSVoiceData): void } | null };
-  const audio = createAudioFlowStats();
-  const packets: Buffer[] = [];
-  const encoded: Buffer[] = [];
-  const forwarded: Array<{ data: Buffer; codec: number; targets?: number[] }> = [];
-  const notices: ServerMessage[] = [];
-  const warnings: Array<Record<string, unknown>> = [];
-  const closes: Array<{ code: number; reason: string }> = [];
-  const socket = { readyState: 1 as 0 | 1 | 2 | 3, bufferedAmount: 0, send: (packet: Buffer) => { packets.push(packet); },
-    close: (code: number, reason: string) => { closes.push({ code, reason }); } };
-  const client = {
-    sendVoice: (data: Buffer, codec: number) => { forwarded.push({ data, codec }); },
-    sendWhisper: (data: Buffer, targets: number[], codec: number) => { forwarded.push({ data, codec, targets }); },
-  };
-  const encoder = {
-    encode(frame: Buffer) { encoded.push(frame); state.now += 3; return Buffer.from([9, 8, 7]); },
-    dispose() { state.disposed++; },
-  };
-  const logger = {
-    debug: () => {}, info: () => {}, error: () => {},
-    warn: (objOrMessage: unknown) => { if (typeof objOrMessage === "object" && objOrMessage !== null) warnings.push(objOrMessage as Record<string, unknown>); },
-    child: () => logger,
-  };
-  const transport = new SessionAudioTransport({
-    audio, socket, client, logger, isCurrent: () => state.current, isReady: () => state.ready,
-    selfId: () => 1, webRtcVoice: () => state.webRtcVoice, peer: () => state.peer, whisperTargets: () => state.targets,
-    sendJson: message => { notices.push(message); },
-  }, encoder, () => state.now, uplinkDecoder);
-  // 载荷取现实尺寸（≥4 字节）：≤3 字节是舒适噪声帧，下行过滤器会拦（见下方专测）。
-  const remote = (clientId = 513) => ({ clientId, codec: 4, data: Buffer.from([11, 12, 13, 14]) });
-  return { transport, audio, state, socket, client, encoder, packets, encoded, forwarded, notices, warnings, closes, remote };
-}
 
 test("PCM framing preserves codec, whisper routing and timing counters", () => {
   const f = fixture();
@@ -135,6 +97,24 @@ test("a browser using 10 ms frames (100 pps) never touches the ingress budget", 
   assert.equal(f.encoded.length, 1_000);
   assert.equal(f.audio.ingressDroppedFrames, 0);
   assert.equal(f.closes.length, 0);
+});
+
+test("sustained overload is capped and reported, never disconnected", () => {
+  const f = fixture();
+  f.encoder.encode = (frame) => { f.encoded.push(frame); return Buffer.from([9]); };
+  // 500 帧/秒持续 10 秒（5000 帧）：可放行 = 回填 400×10 + 突发 400 = 4400，其余
+  // 丢弃，且**不断连**。成功帧会重置洪泛窗口，所以累计丢弃即使超过 600 也不会
+  // 触发关闭——「持续超预算即断开」从来不是本实现的语义，关闭只留给「没有任何
+  // 成功帧插进来的瞬时爆发」。
+  for (let frame = 0; frame < 5_000; frame++) { f.state.now += 2; f.transport.receivePcm(Buffer.alloc(1_920)); }
+  assert.equal(f.closes.length, 0, "持续超预算只丢帧，不断连");
+  assert.ok(f.audio.ingressDroppedFrames >= 500, `drops accumulate, got ${f.audio.ingressDroppedFrames}`);
+  assert.ok(f.encoded.length >= 4_000, `the cap still forwards the budgeted share, got ${f.encoded.length}`);
+  // 诊断留痕：一分钟窗口内一条告警，带丢弃数，运维能区分「网关在丢上行」与
+  // 「TS 侧听不到」。
+  const throttled = f.warnings.filter(warning => warning.code === "AUDIO_INGRESS_THROTTLED");
+  assert.equal(throttled.length, 1);
+  assert.ok(Number(throttled[0]!.droppedFrames) >= 100);
 });
 
 test("WebRTC ingress shares the frame budget instead of letting RTP bypass it", () => {
