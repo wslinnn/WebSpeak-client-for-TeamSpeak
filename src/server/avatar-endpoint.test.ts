@@ -93,22 +93,23 @@ test("avatar egress is bounded by bytes, not only by request count", async (cont
   });
   await server.start();
 
-  // 一张最大尺寸（256 KiB）的头像：8 MiB 桶只够连续取 32 次，第 33 次起按字节
-  // 拒绝（请求数限额 1200/min 远未触发）。旧实现只按次数记账，20/s × 256 KiB
-  // ≈ 40 Mbit/s，足以打满 3 Mbit/s 上行。
+  // 一张最大尺寸（256 KiB）的头像：32 MiB 桶正好覆盖 100 人房间在 256 KiB 上限下
+  // 的首轮加载（25.6 MiB），连续取 128 次后第 129 次按字节拒绝（请求数限额
+  // 1200/min 远未触发）。旧实现只按次数记账，20/s × 256 KiB ≈ 40 Mbit/s，足以
+  // 打满 3 Mbit/s 上行。
   const bytes = Buffer.alloc(256 * 1024, 7);
   bytes.write("GIF89a", 0, "latin1");
   assert.ok(server.avatars.store("uid-heavy", bytes));
   const url = server.avatars.url("uid-heavy")!;
   let allowed = 0;
   let throttled: Response | null = null;
-  for (let index = 0; index < 40; index++) {
+  for (let index = 0; index < 140; index++) {
     const response = await fetch(`${origin}${url}`);
     if (response.status === 200) { allowed += 1; continue; }
     throttled = response;
     break;
   }
-  assert.equal(allowed, 32, "the 8 MiB bucket admits 32 maximal avatars");
+  assert.equal(allowed, 128, "the 32 MiB bucket admits 128 maximal avatars");
   assert.ok(throttled, "further fetches are refused");
   assert.equal(throttled.status, 429);
   assert.equal(throttled.headers.get("cache-control"), "no-store", "a throttle must not be cached");

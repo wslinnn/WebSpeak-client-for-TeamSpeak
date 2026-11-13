@@ -157,7 +157,9 @@ export function createWebServer(options: WebServerOptions): WebServer {
   // in the first minute, which the old 240/min budget throttled into blank
   // initial-letter avatars. 1200/min (20/s) keeps that comfortable.
   const avatarLimiter = new FixedWindowRateLimiter(1024, 1200);
-  const avatarBytes = new ByteBucketRateLimiter(8 * 1024 * 1024, 2 * 1024 * 1024);
+  // 32 MiB covers a 100-member room at the 256 KiB per-avatar ceiling in one
+  // burst; 6 MiB/min is the sustained abuse bound (≈0.8 Mbit/s per peer).
+  const avatarBytes = new ByteBucketRateLimiter(32 * 1024 * 1024, 6 * 1024 * 1024);
   const startedAt = Date.now();
   // Limiter key for a request: the client IP when trust proxy is configured,
   // otherwise the socket address, aggregated to a /64 for IPv6.
@@ -221,10 +223,15 @@ export function createWebServer(options: WebServerOptions): WebServer {
   // above bounds request floods (404 probes, tiny avatars), and the byte bucket
   // bounds bandwidth. Bytes are the number that matters — one avatar is capped
   // at 256 KiB, so a client that ignores HTTP caching could otherwise pull
-  // 20/s × 256 KiB ≈ 40 Mbit/s from a 3 Mbit/s uplink. An 8 MiB bucket lets a
-  // full 100-member room load in one burst while 2 MiB/min (≈ 0.28 Mbit/s)
-  // bounds what a single peer can sustain; a full bucket always admits the next
-  // request, so a single large avatar can never be blocked by the bucket size.
+  // 20/s × 256 KiB ≈ 40 Mbit/s from a 3 Mbit/s uplink.
+  //
+  // Sizing: the bucket has to cover a *legitimate first load* in one burst or
+  // throttled avatars stay as initial letters until the next reconnect (the
+  // Image probe has no retry). A 100-member room at the 256 KiB ceiling is
+  // 25.6 MiB, so the bucket is 32 MiB. The refill rate is the abuse bound: at
+  // 6 MiB/min one peer can sustain ≈0.8 Mbit/s (about a quarter of the uplink),
+  // while a shared NAT loading several large rooms keeps draining at a visible
+  // but finite pace instead of being refused outright.
   app.get("/avatars/:aid", (request, response) => {
     const peer = peerKey(request);
     const aid = typeof request.params.aid === "string" ? request.params.aid : "";
