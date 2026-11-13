@@ -222,7 +222,6 @@ export class SessionAudioTransport {
 
   receivePcm(frame: Buffer): void {
     if (!this.isCurrent()) return;
-    if (!this.consumeFrameBudget()) return;
     const stats = this.options.audio;
     // Resolve the route before judging the frame. A frame that arrives while
     // the route is down (session not ready, a WebRTC peer has taken over, or
@@ -233,6 +232,11 @@ export class SessionAudioTransport {
     // quick connect. Late TCP frames from before a WebRTC switch must not
     // duplicate RTP audio either.
     if (!this.options.isReady() || this.options.peer() || this.options.webRtcVoice()) { stats.ingressDroppedFrames++; return; }
+    // The budget is charged only for frames this route would actually process:
+    // a suspended tab flushing its queue into a not-ready session is dropped
+    // above at O(1) cost and must not trip the "ingress exceeds the frame
+    // budget" warning, which is meant to describe real uplink overload.
+    if (!this.consumeFrameBudget()) return;
     if (frame.length !== AUDIO_FRAME_BYTES) {
       stats.ingressDroppedFrames++;
       this.invalidFrameStreak++;

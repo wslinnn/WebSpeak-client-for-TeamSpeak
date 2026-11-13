@@ -361,8 +361,10 @@ export class SessionEventCoordinator {
     }
 
     // One member→channel index per tree instead of a per-member channel scan:
-    // the old helper walked every channel's roster for every
-    // member, which is O(members × members) on a full-room delta.
+    // the old helper walked every channel's roster for every member, which is
+    // O(members × members) on a full-room delta. A malformed directory that
+    // lists the same member in two channels resolves to the last channel here
+    // (the old helper kept the first); real directories never duplicate.
     const channelOfMember = (tree: ChannelInfo[]): Map<number, string> => {
       const index = new Map<number, string>();
       for (const channel of tree) {
