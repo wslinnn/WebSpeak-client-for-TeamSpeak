@@ -5,7 +5,7 @@ import { buildTeamSpeakCommand } from "./screen-share-signals.js";
 import { formatTeamSpeakTarget, teamSpeakTargetKey, type TeamSpeakTarget } from "../domain/teamspeak-target.js";
 import type { ServerMessage } from "../shared/server-messages.js";
 import type { ChannelInfo } from "../shared/voice-models.js";
-import type { ScreenShareClientMessage, ScreenShareStreamDescription, ScreenShareViewerDescription } from "../shared/screen-share.js";
+import { MAX_SCREEN_SHARE_STREAMS, type ScreenShareClientMessage, type ScreenShareStreamDescription, type ScreenShareViewerDescription } from "../shared/screen-share.js";
 import { handleScreenShareNotification, relayScreenShareSignal, screenStreamKey, type ScreenShareRelayHost, type ScreenStreamRecord } from "./screen-share-relay.js";
 import { createScreenShareDiscovery } from "./screen-share-discovery.js";
 
@@ -157,6 +157,9 @@ export class ScreenShareCoordinator {
     const targetKey = teamSpeakTargetKey(entry.target);
     return [...this.screenStreams.values()]
       .filter((stream) => stream.targetKey === targetKey && stream.channelId === entry.tsClient.getChannelId())
+      // 与客户端校验器共用同一个上限：超出的流直接截断，而不是让整条列表被
+      // 客户端判为畸形而丢弃（那样一张共享卡都看不到）。
+      .slice(0, MAX_SCREEN_SHARE_STREAMS)
       .map((stream) => this.describeScreenStream(stream));
   }
 

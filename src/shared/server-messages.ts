@@ -1,5 +1,5 @@
 import type { ChannelMember, ChannelInfo, ServerEvent, VoiceAudioBridgeStats } from "./voice-models.js";
-import { normalizeScreenShareIceServers, parseScreenShareSignal, type ScreenShareIceServer, type ScreenSharePeerSignal, type ScreenShareStreamDescription, type ScreenShareViewerDescription } from "./screen-share.js";
+import { MAX_SCREEN_SHARE_STREAMS, normalizeScreenShareIceServers, parseScreenShareSignal, type ScreenShareIceServer, type ScreenSharePeerSignal, type ScreenShareStreamDescription, type ScreenShareViewerDescription } from "./screen-share.js";
 
 import { normalizeVoiceStunServer } from "./voice-ice.js";
 import { isSessionDescription, type SessionDescription } from "./webrtc.js";
@@ -171,7 +171,7 @@ const valid: Record<ServerMessage["type"], (message: RecordValue) => boolean> = 
   commandCompleted: m => text(m.requestId),
   screenShareCompleted: m => text(m.requestId),
   error: m => optional(m.message, text) && optional(m.error, v => isRecord(v) && optional(v.code, text) && optional(v.message, text) && optional(v.recoverable, boolean)),
-  screenShareList: m => Array.isArray(m.streams) && m.streams.length <= 64,
+  screenShareList: m => Array.isArray(m.streams) && m.streams.length <= MAX_SCREEN_SHARE_STREAMS,
   screenShareStarted: m => isRecord(m.stream) && optional(m.owner, boolean) && optional(m.ownerPeerId, identifier) && optional(m.mode, v => v === "browser" || v === "teamspeak"),
   screenShareJoined: m => isRecord(m.stream) && optional(m.owner, boolean) && optional(m.ownerPeerId, identifier) && optional(m.mode, v => v === "browser" || v === "teamspeak"),
   screenShareViewerCount: m => identifier(m.streamId) && optional(m.viewerCount, finite) && optional(m.viewers, Array.isArray),

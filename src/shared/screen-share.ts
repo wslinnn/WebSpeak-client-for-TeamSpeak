@@ -148,6 +148,12 @@ const MAX_NAME_LENGTH = 120;
 const MAX_SDP_LENGTH = 256 * 1024;
 const MAX_CANDIDATE_LENGTH = 8 * 1024;
 
+/** Upper bound on the stream list in one `screenShareList` message. The
+ *  gateway truncates to it and the client validator enforces the same number:
+ *  a mismatch would let the client drop the *whole* list (no cards at all) the
+ *  moment a channel carried one stream too many. */
+export const MAX_SCREEN_SHARE_STREAMS = 64;
+
 export function parseScreenShareMessage(raw: string): ScreenShareMessageParseResult | null {
   let value: unknown;
   try {
