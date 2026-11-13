@@ -311,7 +311,10 @@ async function runProbe(
   }
 }
 
-function readSettingsInput(body: Record<string, unknown>): AdminSettingsInput {
+/** Exported for the input-contract test: the router is the place where an
+ *  untyped request body becomes `AdminSettingsInput`, so the narrowing rules are
+ *  worth pinning without an HTTP round trip. */
+export function readSettingsInput(body: Record<string, unknown>): AdminSettingsInput {
   return {
     target: readString(body, "target", 300),
     serverPassword: typeof body.serverPassword === "string" ? body.serverPassword.slice(0, 512) : undefined,
@@ -323,7 +326,11 @@ function readSettingsInput(body: Record<string, unknown>): AdminSettingsInput {
     welcomeTextDe: typeof body.welcomeTextDe === "string" ? body.welcomeTextDe.slice(0, 500) : undefined,
     welcomeTextRu: typeof body.welcomeTextRu === "string" ? body.welcomeTextRu.slice(0, 500) : undefined,
     welcomeTextJa: typeof body.welcomeTextJa === "string" ? body.welcomeTextJa.slice(0, 500) : undefined,
-    webRtcEnabled: body.webRtcEnabled === true,
+    // A missing or non-boolean flag used to be coerced to `false`, which would
+    // silently move voice onto the degraded compatibility path. The field is
+    // required in AdminSettingsInput and the console always sends it, so refuse
+    // anything else with the code AdminService already uses.
+    webRtcEnabled: readRequiredTypedBoolean(body.webRtcEnabled, "INVALID_WEBRTC_ENABLED"),
     webRtcPublicHost: readOptionalTypedString(body.webRtcPublicHost, "INVALID_WEBRTC_PUBLIC_HOST"),
     webRtcIpv6Enabled: readOptionalTypedBoolean(body.webRtcIpv6Enabled, "INVALID_WEBRTC_IPV6"),
     webRtcStunServer: readOptionalTypedString(body.webRtcStunServer, "INVALID_WEBRTC_STUN_SERVER"),
@@ -345,6 +352,11 @@ function readOptionalTypedString(value: unknown, code: string): string | undefin
 
 function readOptionalTypedBoolean(value: unknown, code: string): boolean | undefined {
   if (value === undefined) return undefined;
+  if (typeof value !== "boolean") throw new AdminInputError(code, `${code} is invalid`);
+  return value;
+}
+
+function readRequiredTypedBoolean(value: unknown, code: string): boolean {
   if (typeof value !== "boolean") throw new AdminInputError(code, `${code} is invalid`);
   return value;
 }

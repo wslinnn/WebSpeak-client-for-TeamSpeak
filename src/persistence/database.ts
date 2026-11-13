@@ -137,8 +137,10 @@ export class WebSpeakDatabase {
   }
 
   /** A damaged credential row must not surface as an unexplained 500 from
-   *  /api/admin/login. Login then fails as INVALID_PASSWORD and
-   *  the operator gets one explicit line naming the real cause. */
+   *  /api/admin/login. Login then fails as INVALID_PASSWORD and the operator
+   *  gets one explicit line naming the real cause *and* the recovery step: the
+   *  gateway will not re-mint a setup token while the row exists, so the fix is
+   *  deleting it and restarting. */
   private reportCorruptCredential(detail: string): void {
     if (this.credentialCorruptionReported) return;
     this.credentialCorruptionReported = true;
@@ -146,7 +148,7 @@ export class WebSpeakDatabase {
       code: "ADMIN_CREDENTIAL_CORRUPT",
       dbPath: this.path,
       detail,
-    }, "The stored administrator credential cannot be parsed; administrator login is disabled until the credential row is reset");
+    }, "The stored administrator credential cannot be parsed; administrator login is disabled. Recovery: DELETE FROM admin_credentials WHERE id = 1, then restart to mint a new setup token");
   }
 
   initializeAdmin(credential: AdminCredential, settings: SettingsUpdate): void {
