@@ -64,7 +64,7 @@ function fixture(webRtc = { enabled: true } as import("./webrtc-audio.js").WebRt
     isReady: () => entry.session.state === "connected", selfId: () => 1,
     webRtcVoice: () => false,
     peer: () => entry.webrtc, whisperTargets: () => null, sendJson: message => messages.push(message),
-  }, { encode: frame => frame, dispose() {} });
+  }, () => ({ encode: frame => frame, dispose() {} }));
   const offer = (sdp: string) => bridge.handleWebRtcOffer(entry, { type: "offer", sdp }, message => messages.push(message));
   return { bridge, entry, peers, messages, offer, forwarded: () => forwarded, configure: (callback: typeof configurePeer) => { configurePeer = callback; } };
 }

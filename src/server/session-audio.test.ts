@@ -300,18 +300,20 @@ test("uplink silence gate fails open when no decoder is wired (legacy constructi
   assert.equal(f.forwarded.length, 1);
 });
 
-test("backpressure drops bursts above 4096 bytes and resumes without a retained queue", () => {
+test("backpressure tolerates a jitter-sized backlog and drops beyond it without a retained queue", () => {
   const f = fixture();
-  f.socket.bufferedAmount = 4_096;
+  // 16 frames (320 ms) of queued audio: the depth the browser's 250 ms window
+  // is built to ride out after a TCP stall.
+  f.socket.bufferedAmount = 30_720;
   f.transport.receiveTeamSpeak(f.remote());
-  f.socket.bufferedAmount = 4_097;
+  f.socket.bufferedAmount = 30_721;
   for (let i = 0; i < 100; i++) f.transport.receiveTeamSpeak(f.remote());
   assert.equal(f.packets.length, 1);
   assert.equal(f.audio.egressDroppedFrames, 100);
   f.socket.bufferedAmount = 0;
   f.transport.receiveTeamSpeak(f.remote());
   assert.equal(f.packets.length, 2);
-  assert.equal(f.audio.egressPeakBufferedBytes, 4_097);
+  assert.equal(f.audio.egressPeakBufferedBytes, 30_721);
 });
 
 test("the per-client egress table prunes speakers silent for ten minutes (报告 21 L7)", () => {
@@ -392,14 +394,31 @@ test("codec cleanup is idempotent even if disposal throws", t => {
   const f = fixture();
   let attempts = 0;
   t.mock.method(f.encoder, "dispose", () => { attempts++; throw new Error("Already closed"); });
+  // The encoder is created on the first PCM frame; close must release it once.
+  f.transport.receivePcm(Buffer.alloc(1_920));
   f.transport.close();
   f.transport.close();
   f.transport.receivePcm(Buffer.alloc(1_920));
   f.transport.receiveWebRtc(Buffer.from([1]), 4);
   f.transport.receiveTeamSpeak(f.remote());
   assert.equal(attempts, 1);
-  assert.equal(f.audio.ingressFrames, 0);
+  assert.equal(f.audio.ingressFrames, 1);
   assert.equal(f.audio.tsReceiveFrames, 0);
+});
+
+test("the compatibility encoder is only created when a PCM frame arrives", () => {
+  const f = fixture();
+  // A WebRTC voice session sends its microphone over the peer and never calls
+  // receivePcm: it must not allocate a native Opus encoder at all.
+  f.transport.receiveWebRtc(Buffer.from([1]), 4);
+  f.transport.receiveTeamSpeak(f.remote());
+  assert.equal(f.encoderCreations.count, 0);
+  f.transport.receivePcm(Buffer.alloc(1_920));
+  assert.equal(f.encoderCreations.count, 1);
+  f.transport.receivePcm(Buffer.alloc(1_920));
+  assert.equal(f.encoderCreations.count, 1, "one encoder per session");
+  f.transport.close();
+  assert.equal(f.state.disposed, 1);
 });
 
 test("non-Opus channel codecs are dropped and reported once per session", () => {

@@ -7,8 +7,13 @@ import type { WebRtcAudioSession } from "./webrtc-audio.js";
 import { splitVoicePayload } from "./voice-payload.js";
 
 const AUDIO_FRAME_BYTES = 1_920; // 20 ms of 48 kHz mono Int16 PCM.
-// Keep the established byte guard; the browser also bounds playback by time.
-const MAX_BUFFERED_BYTES = 4_096;
+// Egress backlog the gateway tolerates before it starts dropping: 16 frames
+// (320 ms). The browser plays the compatibility path through a 250 ms jitter
+// window precisely because one ordered TCP stream turns a single loss into a
+// 100-300 ms burst; a 4 KB (40 ms) server-side cap dropped the burst before
+// that window ever saw it. Anything beyond this is a stalled socket, not a
+// burst, and the browser would discard it as late anyway.
+const MAX_BUFFERED_BYTES = AUDIO_FRAME_BYTES * 16;
 // A malformed frame at voice rate is one error per 20 ms; replying per frame
 // turns a bad client into a 100x reply amplifier. Report at most once per
 // second and drop the connection after a full second of consecutive garbage.
@@ -39,9 +44,11 @@ const THROTTLE_REPORT_INTERVAL_MS = 60_000;
 const THROTTLE_REPORT_DROPS = 100;
 // L7（报告 21）：egressFramesByClient 按 说话者 键只增不减——满编服务器跑一天
 // 会把每个会话的统计表养到数千键。超过阈值时清掉 10 分钟没说话的键；活跃键
-// 每帧刷新时间戳，不受影响。
+// 每帧刷新时间戳，不受影响。扫描本身按分钟节流：大房间里表长期超阈值，逐帧
+// 扫描会把 Map 遍历放到每 20ms 的音频热路径上。
 const EGRESS_CLIENT_PRUNE_THRESHOLD = 256;
 const EGRESS_CLIENT_TTL_MS = 10 * 60_000;
+const EGRESS_CLIENT_PRUNE_INTERVAL_MS = 60_000;
 /** TS 客户端开麦静默期的周期帧 = ≤3 字节的数字舒适噪声（RFC 6716 最小有意义
  *  载荷远大于此；voice.md 62-63 档案的 0xfc 3 字节实锤）。不向下游转发：浏览器
  *  说话指示吃 packetsReceived 增量，舒适噪声会让磁贴在静音期误报说话。 */
@@ -83,7 +90,8 @@ export interface SessionAudioOptions {
 
 /** A session owns one encoder and one active audio route in each direction. */
 export class SessionAudioTransport {
-  private encoder: VoiceEncoder | null;
+  private encoder: VoiceEncoder | null = null;
+  private encoderResolved = false;
   private closed = false;
   private readonly logger: LoggerType | null;
   private warnedAt: number | null = null;
@@ -94,16 +102,35 @@ export class SessionAudioTransport {
   private floodWindowStart: number | null = null;
   private floodWindowDrops = 0;
   private readonly egressClientLastSeen = new Map<string, number>();
+  private egressClientsPrunedAt = Number.NEGATIVE_INFINITY;
 
-  constructor(private readonly options: SessionAudioOptions, encoder: VoiceEncoder, private readonly clock: () => number = Date.now,
+  constructor(private readonly options: SessionAudioOptions,
+    /** Compatibility-uplink encoder factory. Created on the first PCM frame:
+     *  a WebRTC voice session sends its microphone over the peer and never
+     *  calls `receivePcm`, so it must not pay for a native Opus encoder it
+     *  would never use. */
+    private readonly createEncoder: () => VoiceEncoder | undefined,
+    private readonly clock: () => number = Date.now,
     /** Uplink silence-gate decoder factory. Created lazily on the first WebRTC
      *  voice frame: only WebRTC voice sessions ever measure
      *  uplink loudness, so a compatibility (WebSocket) session must not pay for
      *  a native Opus codec instance it never uses. */
     private readonly createUplinkDecoder?: () => UplinkFrameDecoder | undefined) {
-    this.encoder = encoder;
     this.logger = options.logger ?? null;
     this.frameTokensAt = this.clock();
+  }
+
+  /** The gate and the encoder are both optional enhancements: an unavailable
+   *  native codec fails open / reports, it never throws into the socket path. */
+  private voiceEncoder(): VoiceEncoder | null {
+    if (this.encoderResolved) return this.encoder;
+    this.encoderResolved = true;
+    try {
+      this.encoder = this.createEncoder() ?? null;
+    } catch {
+      this.encoder = null;
+    }
+    return this.encoder;
   }
 
   private uplinkDecoder: UplinkFrameDecoder | null = null;
@@ -264,8 +291,9 @@ export class SessionAudioTransport {
     const startedAt = this.clock();
     let encoded: Buffer;
     try {
-      if (!this.encoder) throw new Error("Encoder unavailable");
-      encoded = this.encoder.encode(frame);
+      const encoder = this.voiceEncoder();
+      if (!encoder) throw new Error("Encoder unavailable");
+      encoded = encoder.encode(frame);
       stats.tsEncodeMaxMs = Math.max(stats.tsEncodeMaxMs, this.clock() - startedAt);
     } catch {
       stats.tsSendErrors++;
@@ -375,7 +403,11 @@ export class SessionAudioTransport {
     const key = String(data.clientId);
     stats.egressFramesByClient[key] = (stats.egressFramesByClient[key] ?? 0) + frames.length;
     this.egressClientLastSeen.set(key, now);
-    if (this.egressClientLastSeen.size > EGRESS_CLIENT_PRUNE_THRESHOLD) this.pruneEgressClients(now);
+    if (this.egressClientLastSeen.size > EGRESS_CLIENT_PRUNE_THRESHOLD
+      && now - this.egressClientsPrunedAt >= EGRESS_CLIENT_PRUNE_INTERVAL_MS) {
+      this.egressClientsPrunedAt = now;
+      this.pruneEgressClients(now);
+    }
     const peer = this.options.peer();
     if (peer) {
       for (const [index, frame] of frames.entries()) {

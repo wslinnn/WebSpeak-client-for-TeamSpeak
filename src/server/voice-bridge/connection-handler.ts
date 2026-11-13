@@ -185,18 +185,12 @@ export function createVoiceConnectionHandler(deps: VoiceConnectionHandlerDeps): 
       peer: () => entry!.webrtc,
       whisperTargets: () => entry!.whisperActive ? [...entry!.whisperTargetIds] : null,
       sendJson: message => sendJson(message),
-    // 门控解码器惰性创建：只有 WebRTC 语音会话做上行静音门控，
-    // WS 兼容会话不该为它分配一个原生 Opus 编解码器实例。门控仍是 RMS 而非
-    // RFC 6464 电平：实测 v 位在静音时仍为 true，电平门限待真实语音样本标定
-    // （.agents/notes/voice.md D11），在此之前保持现行为。
-    }, deps.dependencies.createEncoder?.() ?? createVoiceEncoder(), undefined, () => new OpusEncoder(48_000, 1));
-    try {
-      entry.audioTransport = createAudioTransport(ws);
-    } catch (error: unknown) {
-      deps.logger.error({ err: error, entryId }, "Could not create Opus encoder");
-      void deps.teardown(entryId, "teamSpeak-connect-failed");
-      return;
-    }
+      // 编解码器都惰性创建：只有 WebRTC 语音会话做上行静音门控，只有兼容
+      // （WS）会话做上行编码——任一侧都不该为另一条路由分配原生 Opus 实例。
+      // 门控仍是 RMS 而非 RFC 6464 电平：实测 v 位在静音时仍为 true，电平门限
+      // 待真实语音样本标定（.agents/notes/voice.md D11），在此之前保持现行为。
+    }, () => deps.dependencies.createEncoder?.() ?? createVoiceEncoder(), undefined, () => new OpusEncoder(48_000, 1));
+    entry.audioTransport = createAudioTransport(ws);
 
     let initialStateSent = false;
     let hasConnectedOnce = false;

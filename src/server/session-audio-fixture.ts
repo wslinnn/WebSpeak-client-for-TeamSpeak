@@ -28,6 +28,7 @@ export function fixture(uplinkDecoder?: () => { decode(frame: Buffer): Buffer })
     encode(frame: Buffer) { encoded.push(frame); state.now += 3; return Buffer.from([9, 8, 7]); },
     dispose() { state.disposed++; },
   };
+  const encoderCreations = { count: 0 };
   const logger = {
     debug: () => {}, info: () => {}, error: () => {},
     warn: (objOrMessage: unknown) => { if (typeof objOrMessage === "object" && objOrMessage !== null) warnings.push(objOrMessage as Record<string, unknown>); },
@@ -37,8 +38,8 @@ export function fixture(uplinkDecoder?: () => { decode(frame: Buffer): Buffer })
     audio, socket, client, logger, isCurrent: () => state.current, isReady: () => state.ready,
     selfId: () => 1, webRtcVoice: () => state.webRtcVoice, peer: () => state.peer, whisperTargets: () => state.targets,
     sendJson: message => { notices.push(message); },
-  }, encoder, () => state.now, uplinkDecoder);
+  }, () => { encoderCreations.count += 1; return encoder; }, () => state.now, uplinkDecoder);
   // 载荷取现实尺寸（≥4 字节）：≤3 字节是舒适噪声帧，下行过滤器会拦（见下方专测）。
   const remote = (clientId = 513) => ({ clientId, codec: 4, data: Buffer.from([11, 12, 13, 14]) });
-  return { transport, audio, state, socket, client, encoder, packets, encoded, forwarded, notices, warnings, closes, remote };
+  return { transport, audio, state, socket, client, encoder, encoderCreations, packets, encoded, forwarded, notices, warnings, closes, remote };
 }
