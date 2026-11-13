@@ -10,10 +10,12 @@ export interface UplinkCapture {
 }
 
 // Downstream speaking slots pre-negotiated in every offer. The gateway
-// assigns TeamSpeak speakers to them LRU-style and announces assignments via
-// voiceRoute messages; with the pool in place a new speaker never triggers a
-// renegotiation. Must mirror MAX_DOWNSTREAM_SLOTS in src/server/webrtc-audio.ts.
-const DOWNSTREAM_SLOTS = 16;
+// assigns TeamSpeak speakers to them and announces assignments via voiceRoute
+// messages; with the pool in place a new speaker never triggers a
+// renegotiation. A slot only costs an m-line until the gateway assigns it, so
+// the pool covers a large panel's concurrent speakers. Must mirror
+// MAX_DOWNSTREAM_SLOTS in src/server/webrtc-audio.ts.
+const DOWNSTREAM_SLOTS = 24;
 
 interface Microphone {
   context: AudioContext;

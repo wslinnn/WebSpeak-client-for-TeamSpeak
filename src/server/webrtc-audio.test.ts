@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createSocket } from "node:dgram";
 import pino from "pino";
-import { RTCPeerConnection, MediaStreamTrack, useOPUS, usePCMU, type CandidatePair, type RtpPacket } from "werift";
+import { RTCPeerConnection, MediaStreamTrack, useOPUS, usePCMU, type CandidatePair } from "werift";
 import type { Logger } from "../logger.js";
-import { countIceCandidates, pinOpusCodecParameters, WebRtcAudioSession, type WebRtcAudioStats } from "./webrtc-audio.js";
+import { countIceCandidates, pinOpusCodecParameters, WebRtcAudioSession } from "./webrtc-audio.js";
+import { fixture, VOICE_20MS, VOICE_40MS, VOICE_CELT_2_5MS } from "./webrtc-audio-fixture.js";
 
 function recordingLogger() {
   const warnings: Array<{ payload: Record<string, unknown>; message: string }> = [];
@@ -111,54 +112,6 @@ test("the answer turns the first audio m-line into the uplink and the rest into 
   }
 });
 
-interface FixtureSlot {
-  track: { stop(): void; writeRtp(packet: RtpPacket): void };
-  clientId: number;
-  sequenceNumber: number;
-  timestamp: number;
-  markerPending: boolean;
-  lastUsedAt: number;
-}
-
-interface FixtureStats {
-  webrtcDownlinkForwardedFrames: number;
-  webrtcDownlinkDroppedFrames: number;
-}
-
-function fixture(overrides: Partial<{ slots: FixtureSlot[] }> = {}) {
-  const released: string[] = [];
-  const sent: RtpPacket[] = [];
-  const makeTrack = (name: string) => ({
-    stop(): void { released.push(name); },
-    writeRtp(packet: RtpPacket): void { sent.push(packet); },
-  });
-  const resources = {
-    closed: false, closePromise: null,
-    onVoiceFrame: () => {},
-    onVoiceRoutes: (() => {}) as (slots: readonly number[]) => void,
-    slots: overrides.slots ?? [
-      { track: makeTrack("slot-0"), clientId: 0, sequenceNumber: 100, timestamp: 5_000, markerPending: true, lastUsedAt: 0 },
-      { track: makeTrack("slot-1"), clientId: 0, sequenceNumber: 200, timestamp: 9_000, markerPending: true, lastUsedAt: 0 },
-    ] as FixtureSlot[],
-    stats: {
-      webrtcIngressRtpFrames: 0, webrtcIngressRtpFirstAt: null, webrtcIngressRtpLastAt: null, webrtcIngressRtpMaxGapMs: 0,
-      webrtcEgressRtpFrames: 0, webrtcEgressRtpFirstAt: null, webrtcEgressRtpLastAt: null, webrtcEgressRtpMaxGapMs: 0,
-      webrtcDownlinkForwardedFrames: 0, webrtcDownlinkDroppedFrames: 0, webrtcActiveSpeakerSlots: 0,
-    } as WebRtcAudioStats & FixtureStats,
-    peer: { async close() { released.push("peer"); } },
-  };
-  // Slot and stats state is private on the real class; tests reach it through
-  // `resources` while the prototype methods operate on the same object.
-  const session = Object.assign(Object.create(WebRtcAudioSession.prototype), resources) as WebRtcAudioSession;
-  return { session, resources, released, sent };
-}
-
-// A 20 ms SILK WB mono frame (TOC 0x48: config 9, code 0), a 40 ms sibling
-// and a 2.5 ms CELT frame exercise the timestamp table.
-const VOICE_20MS = Buffer.concat([Buffer.from([0x48]), Buffer.alloc(33, 0x55)]);
-const VOICE_40MS = Buffer.concat([Buffer.from([0x50]), Buffer.alloc(60, 0x66)]);
-const VOICE_CELT_2_5MS = Buffer.concat([Buffer.from([0x80]), Buffer.alloc(12, 0x77)]);
-
 test("TeamSpeak frames are relayed byte-identically with rewritten RTP framing", () => {
   const f = fixture();
   f.session.pushTeamSpeakVoice({ clientId: 7, codec: 4, data: VOICE_20MS });
@@ -211,16 +164,38 @@ test("a departed speaker releases its downstream slot", () => {
   assert.equal(f.sent.at(-1)!.header.marker, true);
 });
 
-test("a full slot pool evicts the least recently active speaker", () => {
+test("a full slot pool keeps its speakers and drops the newcomer while they are active", () => {
   const routes: number[][] = [];
   const f = fixture();
   (f.session as unknown as { onVoiceRoutes: (slots: readonly number[]) => void }).onVoiceRoutes = slots => routes.push([...slots]);
   f.session.pushTeamSpeakVoice({ clientId: 7, codec: 4, data: VOICE_20MS });
   f.session.pushTeamSpeakVoice({ clientId: 9, codec: 4, data: VOICE_20MS });
+  // Both slots were just used; a third speaker must not evict either of them.
+  for (let frame = 0; frame < 5; frame++) f.session.pushTeamSpeakVoice({ clientId: 11, codec: 4, data: VOICE_20MS });
+  assert.equal(routes.length, 2, "an active pool must not re-broadcast the route table per frame");
+  assert.equal(f.resources.stats.webrtcDownlinkDroppedFrames, 5, "the newcomer's frames are dropped instead");
+  assert.deepEqual(f.resources.slots.map(slot => slot.clientId), [7, 9], "the established speakers keep their slots");
+});
+
+test("a slot whose speaker has been silent for the hysteresis window is preempted", () => {
+  const routes: number[][] = [];
+  const f = fixture();
+  (f.session as unknown as { onVoiceRoutes: (slots: readonly number[]) => void }).onVoiceRoutes = slots => routes.push([...slots]);
+  f.session.pushTeamSpeakVoice({ clientId: 7, codec: 4, data: VOICE_20MS });
+  f.session.pushTeamSpeakVoice({ clientId: 9, codec: 4, data: VOICE_20MS });
+  const firstSeq = f.sent[0]!.header.sequenceNumber;
+  const firstTimestamp = f.sent[0]!.header.timestamp;
+  // Speaker 7 stopped talking 5 s ago; speaker 9 is still transmitting.
+  f.resources.slots[0].lastUsedAt = performance.now() - 5_000;
   f.session.pushTeamSpeakVoice({ clientId: 11, codec: 4, data: VOICE_20MS });
-  assert.deepEqual(routes.at(-1), [11, 9], "the oldest slot was reassigned and marked with a fresh marker");
-  assert.equal(f.sent[2]!.header.marker, true, "a reassigned stream restarts with a marker");
-  assert.notEqual(f.sent[2]!.header.sequenceNumber, 102, "a reassigned stream restarts its sequence space");
+  assert.deepEqual(routes.at(-1), [11, 9], "the idle slot was reassigned to the newcomer");
+  assert.equal(f.resources.slots[0].clientId, 11);
+  const reassigned = f.sent.at(-1)!;
+  assert.equal(reassigned.header.marker, true, "a reassigned stream starts a new talk spurt");
+  // Same SSRC, same timeline: the hand-over continues the slot's sequence and
+  // timestamp space instead of drawing new random ones.
+  assert.equal(reassigned.header.sequenceNumber, (firstSeq + 1) & 0xffff, "the sequence continues across the hand-over");
+  assert.equal(reassigned.header.timestamp, (firstTimestamp + 960) >>> 0, "the timestamp continues across the hand-over");
 });
 
 test("unforwardable frames are counted and dropped without touching the slots", () => {

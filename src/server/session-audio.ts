@@ -378,9 +378,11 @@ export class SessionAudioTransport {
     if (this.egressClientLastSeen.size > EGRESS_CLIENT_PRUNE_THRESHOLD) this.pruneEgressClients(now);
     const peer = this.options.peer();
     if (peer) {
-      for (const frame of frames) {
+      for (const [index, frame] of frames.entries()) {
         try {
-          peer.pushTeamSpeakVoice(frame === data.data ? data : { ...data, data: frame });
+          // The frame's position inside its sender packet: the gateway must not
+          // read the second frame of one packet as a lost-packet gap.
+          peer.pushTeamSpeakVoice(frame === data.data ? data : { ...data, data: frame }, index);
           stats.egressFrames++;
         } catch { stats.egressDroppedFrames++; }
       }

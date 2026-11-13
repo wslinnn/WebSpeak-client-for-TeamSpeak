@@ -22,9 +22,26 @@ const DEFAULT_WEBRTC_OPUS_PAYLOAD_TYPE = 111;
 // runs RTCP bookkeeping) and because the offer's m-line count — which a
 // malicious client controls — must not dictate gateway work. The browser
 // opens exactly this many recvonly transceivers; extra ones are answered
-// inactive. Speaking slots are assigned LRU: in a room with more concurrent
-// speakers than slots the least recently active voice stream stops.
-const MAX_DOWNSTREAM_SLOTS = 16;
+// inactive. 24 covers a large panel's concurrent speakers; an idle slot costs
+// a negotiated m-line and nothing else (the browser only builds an <audio>
+// element for a slot the gateway actually assigns).
+const MAX_DOWNSTREAM_SLOTS = 24;
+// A slot may only be taken away from its speaker after that speaker has been
+// silent this long. TeamSpeak stops sending packets the moment a member stops
+// talking, so "idle" is a reliable "not speaking"; the window is what keeps a
+// room with more concurrent speakers than slots stable. Without it every
+// packet of a 25th speaker preempted the least recently active slot, which
+// re-broadcast the whole route table and restarted an RTP timeline 50 times a
+// second (both the displaced and the newcomer kept evicting each other).
+const SLOT_PREEMPT_IDLE_MS = 2_000;
+// A sender-sequence jump larger than this is not packet loss (that would be a
+// multi-second outage on a 50 Hz stream): the speaker's client restarted its
+// counter. Rebase onto the new counter instead of emitting a huge gap.
+const MAX_VID_GAP_FRAMES = 50;
+// A sender sequence that keeps counting backwards is not reordering either:
+// after this many rejected frames the counter is rebased so a client that
+// reset it can never silence itself for the rest of the call.
+const VID_REBASE_AFTER_REJECTS = 10;
 
 /** RFC 6464 ssrc-audio-level header extension. Configuring the URI (not a
  *  fixed id) is what matters: werift keeps the remote offer's extension id
@@ -91,6 +108,15 @@ interface DownstreamSlot {
   timestamp: number;
   markerPending: boolean;
   lastUsedAt: number;
+  /** Last TeamSpeak sender sequence relayed on this slot (null while the slot
+   *  has no sender sequence to follow). */
+  lastVid: number | null;
+  /** True while `lastVid` belongs to the speaker's whisper counter, which
+   *  TeamSpeak numbers separately from its normal voice counter. */
+  vidWhisper: boolean;
+  /** Packets rejected as duplicates or late reordering since the last accepted
+   *  one (see VID_REBASE_AFTER_REJECTS). */
+  vidRejected: number;
 }
 
 /**
@@ -281,10 +307,16 @@ export class WebRtcAudioSession {
       this.slots.push({
         track,
         clientId: 0,
+        // RFC 3550 §5.1: the initial sequence number and timestamp are drawn
+        // at random so an observer cannot infer traffic history. This is the
+        // only place they are drawn — a slot keeps its timeline for life.
         sequenceNumber: randomInt(0, 65_536),
         timestamp: randomInt(0, 0x1_0000_0000) >>> 0,
         markerPending: true,
         lastUsedAt: 0,
+        lastVid: null,
+        vidWhisper: false,
+        vidRejected: 0,
       });
     }
     // Offers with more audio m-lines than the slot cap (or video m-lines we
@@ -321,8 +353,13 @@ export class WebRtcAudioSession {
   /** Relays one TeamSpeak voice frame to the speaker's downstream slot. The
    *  Opus payload is forwarded byte-identically; only the RTP framing is
    *  generated here, with the timestamp advancing by the packet's real audio
-   *  duration parsed from its TOC header. */
-  pushTeamSpeakVoice(data: TSVoiceData): void {
+   *  duration parsed from its TOC header and the sequence following the
+   *  speaker's own packet counter so loss, reordering and duplicates stay
+   *  visible to the browser instead of being flattened into a continuous
+   *  stream. `frameIndex` is the frame's position inside its sender packet:
+   *  the second and later frames of one packet share its sender sequence and
+   *  follow each other with no gap. */
+  pushTeamSpeakVoice(data: TSVoiceData, frameIndex = 0): void {
     if (this.closed || (data.codec !== 4 && data.codec !== 5)) return;
     const payload = Buffer.isBuffer(data.data) ? data.data : Buffer.from(data.data);
     const durationMs = opusFrameDurationMs(payload);
@@ -333,6 +370,11 @@ export class WebRtcAudioSession {
     }
     const slot = this.slotFor(data.clientId);
     if (!slot) {
+      this.stats.webrtcDownlinkDroppedFrames++;
+      return;
+    }
+    const samples = Math.round(durationMs * RTP_SAMPLES_PER_MS);
+    if (!this.placeOnTimeline(slot, data, samples, frameIndex > 0)) {
       this.stats.webrtcDownlinkDroppedFrames++;
       return;
     }
@@ -348,7 +390,7 @@ export class WebRtcAudioSession {
       marker,
     }), payload);
     slot.sequenceNumber = (slot.sequenceNumber + 1) & 0xffff;
-    slot.timestamp = (slot.timestamp + Math.round(durationMs * RTP_SAMPLES_PER_MS)) >>> 0;
+    slot.timestamp = (slot.timestamp + samples) >>> 0;
     this.logDebugFrame(payload[0] ?? -1, payload.length, durationMs, packet.header.sequenceNumber, packet.header.timestamp, data.clientId);
     const sentAt = performance.now();
     try {
@@ -362,6 +404,71 @@ export class WebRtcAudioSession {
     } catch {
       this.stats.webrtcDownlinkDroppedFrames++;
     }
+  }
+
+  /** Places the frame on the slot's RTP timeline. Returns false when the frame
+   *  must not be forwarded (a duplicate, or a packet that arrived after a later
+   *  one — putting it back in time would make the browser play the audio out of
+   *  order). A sender-sequence gap is turned into a sequence/timestamp hole so
+   *  the browser conceals the missing audio instead of playing the rest of the
+   *  speech slightly fast. */
+  private placeOnTimeline(slot: DownstreamSlot, data: TSVoiceData, samples: number, continuation: boolean): boolean {
+    const whisper = data.isWhisper === true;
+    const rawVid = data.vid;
+    const vid = typeof rawVid === "number" && Number.isInteger(rawVid) ? rawVid & 0xffff : null;
+    if (continuation) {
+      // Another Opus frame of the packet already on the timeline: it shares
+      // that packet's sender sequence, so no gap and no new baseline.
+      return true;
+    }
+    if (vid === null) {
+      // No sender sequence to key on (legacy SDK event): keep the arrival-order
+      // timeline this path has always used.
+      slot.lastVid = null;
+      slot.vidRejected = 0;
+      slot.vidWhisper = whisper;
+      return true;
+    }
+    let advance = 1;
+    if (slot.lastVid !== null && slot.vidWhisper === whisper) {
+      // RFC-equivalent comparison for a 16-bit counter: the signed difference,
+      // never `a < b` (it wraps from 65535 to 0).
+      const delta = ((vid - slot.lastVid) << 16) >> 16;
+      if (delta === 0) {
+        // The same packet arrived twice: forwarding it would repeat a syllable.
+        slot.vidRejected += 1;
+        if (slot.vidRejected < VID_REBASE_AFTER_REJECTS) return false;
+        // A speaker whose counter keeps repeating has restarted it: rebase so
+        // the member is heard again instead of being dropped forever.
+        slot.vidRejected = 0;
+        slot.lastVid = vid;
+        slot.vidWhisper = whisper;
+        return true;
+      }
+      if (delta < 0) {
+        // Arrived after a later packet: the receiver cannot use it either, and
+        // forwarding it would move the audio backwards in time.
+        slot.vidRejected += 1;
+        if (slot.vidRejected < VID_REBASE_AFTER_REJECTS) return false;
+        slot.vidRejected = 0;
+        slot.lastVid = vid;
+        slot.vidWhisper = whisper;
+        return true;
+      }
+      if (delta <= MAX_VID_GAP_FRAMES) advance = delta;
+      // A larger jump is a counter restart, not loss: rebase (advance stays 1).
+    }
+    slot.vidRejected = 0;
+    if (advance > 1) {
+      // Leave the hole *before* this packet: the receiver then sees the gap
+      // between the previous packet and this one, and this packet's timestamp
+      // lands delta frame durations later.
+      slot.sequenceNumber = (slot.sequenceNumber + (advance - 1)) & 0xffff;
+      slot.timestamp = (slot.timestamp + (advance - 1) * samples) >>> 0;
+    }
+    slot.lastVid = vid;
+    slot.vidWhisper = whisper;
+    return true;
   }
 
   private uplinkLevelFrames = 0;
@@ -418,12 +525,20 @@ export class WebRtcAudioSession {
     if (!slot) return;
     slot.clientId = 0;
     slot.markerPending = true;
+    // The RTP timeline is not reset here: the slot keeps its sequence space
+    // and the next speaker continues it (see slotFor).
+    slot.lastVid = null;
+    slot.vidRejected = 0;
     this.onVoiceRoutes(this.slots.map(assigned => assigned.clientId));
   }
 
-  /** Finds the speaker's slot, assigning a free one or evicting the least
-   *  recently active speaker when the pool is full. Every reassignment is
-   *  published so the browser can bind its playback streams. */
+  /** Finds the speaker's slot, assigning a free one or — only once its speaker
+   *  has been silent for SLOT_PREEMPT_IDLE_MS — taking the least recently
+   *  active one. A slot whose speaker is still transmitting is never taken:
+   *  with more concurrent speakers than slots the newcomer's frames are dropped
+   *  instead, so the speakers that got a slot keep a stable RTP stream each.
+   *  Every reassignment is published once so the browser can bind its playback
+   *  streams. */
   private slotFor(clientId: number): DownstreamSlot | null {
     const now = performance.now();
     const existing = this.slots.find(slot => slot.clientId === clientId);
@@ -432,12 +547,21 @@ export class WebRtcAudioSession {
       return existing;
     }
     let slot = this.slots.find(candidate => candidate.clientId === 0);
-    if (!slot) slot = this.slots.reduce<DownstreamSlot | undefined>((oldest, candidate) => oldest === undefined || candidate.lastUsedAt < oldest.lastUsedAt ? candidate : oldest, undefined);
-    if (!slot) return null;
+    if (!slot) {
+      const oldest = this.slots.reduce<DownstreamSlot | undefined>(
+        (candidate, other) => candidate === undefined || other.lastUsedAt < candidate.lastUsedAt ? other : candidate, undefined);
+      if (!oldest || now - oldest.lastUsedAt < SLOT_PREEMPT_IDLE_MS) return null;
+      slot = oldest;
+    }
     slot.clientId = clientId;
     slot.markerPending = true;
-    slot.sequenceNumber = randomInt(0, 65_536);
-    slot.timestamp = randomInt(0, 0x1_0000_0000) >>> 0;
+    // Hand the slot over on the timeline it already has. The slot's SSRC never
+    // changes and RFC 3550 defines one continuous sequence/timestamp space per
+    // SSRC; the previous random restart made the browser's jitter buffer read
+    // the new speaker as loss or reordering. The marker bit is what tells the
+    // receiver a new talk spurt starts here.
+    slot.lastVid = null;
+    slot.vidRejected = 0;
     slot.lastUsedAt = now;
     this.onVoiceRoutes(this.slots.map(assigned => assigned.clientId));
     return slot;
@@ -445,16 +569,13 @@ export class WebRtcAudioSession {
 }
 
 // werift echoes the browser offer's Opus fmtp into the negotiated codec, so
-// the browser uplink encoder would keep its self-chosen settings. Rewriting
-// the negotiated parameters is the only server-side lever on uplink quality:
-// maxaveragebitrate raises the ceiling to the TeamSpeak quality-10 budget
-// (the shared constant documents why 60 kbps, not 64), and usedtx=0 keeps
+// the browser uplink encoder would keep its self-chosen settings. Rewriting the
+// negotiated parameters is the only server-side lever on uplink quality:
+// maxaveragebitrate raises the ceiling to the TeamSpeak quality-10 budget (the
+// shared constant documents why 60 kbps, not 64), and usedtx=0 keeps
 // discontinuous transmission off so the forwarded RTP timeline stays
-// continuous — the gateway relays payloads untouched and cannot paper over
-// DTX gaps. stereo is deliberately NOT set: the uplink is mono (microphone,
-// with accompaniment mixed into the same track) and a stereo declaration
-// would split the same bits across channels; the downstream slots inherit
-// per-packet channel counts from the Opus TOC itself.
+// continuous — the gateway relays payloads untouched and cannot paper over DTX
+// gaps.
 export function pinOpusCodecParameters(existing: string | undefined): string {
   const kept = (existing ?? "")
     .split(";")
