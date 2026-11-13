@@ -84,8 +84,9 @@ for (const scenario of ["PCMU only", "Opus only", "PCMU before Opus"] as const) 
     const answer = await session.createAnswer({ type: "offer", sdp: offer.sdp });
     assert.equal(answer.type, "answer");
     assert.match(answer.sdp, /a=rtpmap:109 opus\/48000\/2/i);
-    // The uplink pins travel through the negotiated codec parameters.
-    assert.match(answer.sdp, /a=fmtp:109 maxaveragebitrate=60000;usedtx=0/i);
+    // The uplink pins travel through the negotiated codec parameters, and the
+    // uplink declares the mono send it actually is.
+    assert.match(answer.sdp, /a=fmtp:109 maxaveragebitrate=60000;usedtx=0;stereo=0/i);
     assert.doesNotMatch(answer.sdp, /PCMU/i);
     const audio = session.peer.getTransceivers().find(transceiver => transceiver.kind === "audio")!;
     assert.deepEqual(audio.codecs.map(codec => codec.payloadType), [109]);
@@ -286,9 +287,21 @@ test("a failing uplink setup closes the half-built peer before the constructor t
 });
 
 test("codec parameter pinning merges browser parameters and overrides conflicting pins", () => {
-  assert.equal(pinOpusCodecParameters("minptime=10;useinbandfec=1;maxaveragebitrate=32000;usedtx=1"), "minptime=10;useinbandfec=1;maxaveragebitrate=60000;usedtx=0");
-  assert.equal(pinOpusCodecParameters(undefined), "maxaveragebitrate=60000;usedtx=0");
-  assert.equal(pinOpusCodecParameters(""), "maxaveragebitrate=60000;usedtx=0");
+  assert.equal(pinOpusCodecParameters("minptime=10;useinbandfec=1;maxaveragebitrate=32000;usedtx=1"), "minptime=10;useinbandfec=1;maxaveragebitrate=60000;usedtx=0;stereo=0");
+  assert.equal(pinOpusCodecParameters(undefined), "maxaveragebitrate=60000;usedtx=0;stereo=0");
+  assert.equal(pinOpusCodecParameters(""), "maxaveragebitrate=60000;usedtx=0;stereo=0");
+  // A Firefox-style offer declares a stereo send; the mono uplink must drop it
+  // (both spellings) instead of echoing it back.
+  assert.equal(
+    pinOpusCodecParameters("maxplaybackrate=48000;stereo=1;sprop-stereo=1;useinbandfec=1"),
+    "maxplaybackrate=48000;useinbandfec=1;maxaveragebitrate=60000;usedtx=0;stereo=0",
+  );
+  // Downstream m-lines relay TeamSpeak's stereo accompaniment (codec 5), so
+  // their stereo declaration survives.
+  assert.equal(
+    pinOpusCodecParameters("maxplaybackrate=48000;stereo=1;useinbandfec=1", "downstream"),
+    "maxplaybackrate=48000;stereo=1;useinbandfec=1;maxaveragebitrate=60000;usedtx=0",
+  );
 });
 
 test("countIceCandidates reads a=candidate lines regardless of line endings", () => {

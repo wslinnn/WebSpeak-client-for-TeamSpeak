@@ -294,7 +294,7 @@ export class WebRtcAudioSession {
       transceiver.direction = "sendonly";
       for (const codec of transceiver.codecs) {
         if (codec.mimeType.toLowerCase() === "audio/opus" && codec.clockRate === AUDIO_SAMPLE_RATE) {
-          codec.parameters = pinOpusCodecParameters(codec.parameters);
+          codec.parameters = pinOpusCodecParameters(codec.parameters, "downstream");
           this.opusPayloadTypes.add(codec.payloadType);
         }
       }
@@ -576,11 +576,20 @@ export class WebRtcAudioSession {
 // discontinuous transmission off so the forwarded RTP timeline stays
 // continuous — the gateway relays payloads untouched and cannot paper over DTX
 // gaps.
-export function pinOpusCodecParameters(existing: string | undefined): string {
+//
+// The uplink is mono (microphone, with accompaniment mixed into the same
+// track), so the uplink answer must say so: Firefox offers `stereo=1` by
+// default and keeping it would let the browser declare a stereo send while the
+// gateway forwards the payload as codec 4 (mono). The downstream m-lines keep
+// whatever the browser offered — codec 5 (stereo accompaniment) is relayed
+// untouched and must stay allowed there.
+export function pinOpusCodecParameters(existing: string | undefined, role: "uplink" | "downstream" = "uplink"): string {
   const kept = (existing ?? "")
     .split(";")
     .map(part => part.trim())
-    .filter(part => part && !/^(maxaveragebitrate|usedtx)=/i.test(part));
+    .filter(part => part && !/^(maxaveragebitrate|usedtx)=/i.test(part))
+    .filter(part => role === "downstream" || !/^(stereo|sprop-stereo)=/i.test(part));
   kept.push(`maxaveragebitrate=${WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS}`, "usedtx=0");
+  if (role === "uplink") kept.push("stereo=0");
   return kept.join(";");
 }
