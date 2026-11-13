@@ -933,19 +933,24 @@ test("device enumeration rejected after disconnect cannot restore an audio notic
   assert.equal(V().audioNoticeCode, "");
 });
 
-test("a successful microphone switch replaces the WebRTC peer and persists the new device", async () => {
+test("a successful microphone switch rebinds the uplink without renegotiating", async () => {
   devices().enumerateDevices = async () => availableDevices;
   const initial = microphoneStream();
   devices().getUserMedia = async () => initial;
-  const { peer: old, socket } = await connectWebRtc();
+  const { peer, socket } = await connectWebRtc();
+  const offersBefore = socket.messages.filter(message => (message as { type: string }).type === "webrtcOffer").length;
   const replacement = microphoneStream();
   devices().getUserMedia = async () => replacement;
   await voice.setInputDevice("mic-b");
-  assert.equal(old.connectionState, "closed");
-  assert.notEqual(TestPeer.instances.at(-1), old);
+  // The peer and its downstream slots survive: renegotiating silenced every
+  // other member for the whole offer/answer round trip.
+  assert.notEqual(peer.connectionState, "closed");
+  assert.equal(TestPeer.instances.at(-1), peer);
+  assert.notEqual(peer.sender.track, initial.track, "the sender no longer carries the replaced capture");
+  assert.equal((peer.sender.track as { readyState: string }).readyState, "live");
+  assert.equal(socket.messages.filter(message => (message as { type: string }).type === "webrtcOffer").length, offersBefore);
   assert.equal((initial.track as { readyState: string }).readyState, "ended");
   assert.equal((replacement.track as { readyState: string }).readyState, "live");
-  assert.equal(socket.messages.filter(message => (message as { type: string }).type === "webrtcOffer").length, 2);
   assert.equal(globalThis.localStorage.getItem("webspeak:input-device"), "mic-b");
 });
 
@@ -1233,17 +1238,18 @@ test("a failed first capture graph reports an error and releases its stream", as
   assert.notEqual(V().microphoneErrorCode, "");
 });
 
-test("removing the selected microphone restarts WebRTC with the default input", async () => {
+test("removing the selected microphone falls back to the default input without renegotiating", async () => {
   devices().enumerateDevices = async () => availableDevices;
   await voice.setInputDevice("mic-a");
   const { peer, socket } = await connectWebRtc();
+  const offersBefore = socket.messages.filter(message => (message as { type: string }).type === "webrtcOffer").length;
   devices().enumerateDevices = async () => availableDevices.filter(device => device.deviceId !== "mic-a");
   const replacement = microphoneStream();
   devices().getUserMedia = async () => replacement;
   await voice.refreshAudioDevices();
   await nextTurn();
-  assert.equal(peer.connectionState, "closed");
-  assert.equal(socket.messages.filter(message => (message as { type: string }).type === "webrtcOffer").length, 2);
+  assert.notEqual(peer.connectionState, "closed");
+  assert.equal(socket.messages.filter(message => (message as { type: string }).type === "webrtcOffer").length, offersBefore);
   assert.equal(V().selectedInputDeviceId, "");
   assert.equal(globalThis.localStorage.getItem("webspeak:input-device"), "");
   assert.equal((replacement.track as { readyState: string }).readyState, "live");
@@ -1936,7 +1942,7 @@ test("resetting an overloaded remote decoder disconnects its old gain", async ()
   const socket = await connect();
   receiveAudio(socket);
   const gain = AudioContextStub.gains.at(-1)!;
-  AudioDecoderStub.instances.at(-1)!.decodeQueueSize = 3;
+  AudioDecoderStub.instances.at(-1)!.decodeQueueSize = 12;
   receiveAudio(socket);
   assert.equal(gain.disconnects, 1);
   assert.equal(AudioDecoderStub.instances.length, 2);
@@ -1950,7 +1956,7 @@ test("an old source ending cannot hide replacement playback from session cleanup
   output(decodedChunk());
   output(decodedChunk()); // the pre-roll flushes once two frames are queued
   const oldSource = AudioContextStub.sources[0]!;
-  first.decodeQueueSize = 3;
+  first.decodeQueueSize = 12;
   receiveAudio(socket);
   (AudioDecoderStub.instances.at(-1)!.callbacks as { output: (chunk: unknown) => void }).output(decodedChunk());
   const replacement = AudioContextStub.sources.at(-1)!;
@@ -2040,7 +2046,7 @@ test("remote playback preserves member volume through output mute and decoder re
   voice.toggleOutputMute();
   assert.deepEqual(AudioContextStub.gains.map(node => node.gain.value), [0, 0]);
   const old = AudioDecoderStub.instances[0]!;
-  old.decodeQueueSize = 3;
+  old.decodeQueueSize = 12;
   receiveAudio(socket, 7);
   const replacement = AudioDecoderStub.instances.at(-1)!;
   (old.callbacks as { error: (error: unknown) => void }).error(new Error("stale decoder error"));
@@ -2329,6 +2335,9 @@ test("an old peer's browser stats cannot be combined with a replacement peer", a
   const pending = voice.measureVoiceAudioStatus();
   const request = socket.messages.find(message => (message as { type: string }).type === "audioStatsProbe") as { payload: { sequence: string } };
   socket.receive({ type: "audioStats", sequence: request.payload.sequence, stats: { transport: "webrtc" } });
+  // Only a refused replacement track rebuilds the transport now; a device
+  // switch itself rebinds the sender in place.
+  peer.sender.replaceTrack = async () => { throw new Error("replace refused"); };
   await voice.setInputDevice("replacement");
   assert.notEqual(TestPeer.instances.at(-1), peer);
   stats.resolve(new Map());
@@ -2381,6 +2390,9 @@ test("diagnostic sample scopes follow peer replacement and fallback on one socke
   const next = (await audioSample(socket))!;
   assert.equal(typeof first.scopeId, "number");
   assert.equal(next.scopeId, first.scopeId);
+  // Force a transport rebuild: a refused replacement track falls back to a
+  // fresh peer (a device switch alone rebinds the sender in place).
+  TestPeer.instances.at(-1)!.sender.replaceTrack = async () => { throw new Error("replace refused"); };
   await voice.setInputDevice("replacement");
   const replaced = (await audioSample(socket))!;
   assert.notEqual(replaced.scopeId, first.scopeId);

@@ -1,6 +1,7 @@
 import { createRemotePlayback } from "./remote-playback";
 import { createAudioSinkRouter } from "./audio-sink";
 import { createAudioDiagnostics, type VoiceAudioStatusSample } from "./audio-diagnostics";
+import { playbackDebugEnabled } from "./playback-debug";
 import { normalizeMicrophoneFailure } from "./microphone-failure";
 import { safeClientErrorCode, safeClientErrorDetail } from "./error-messages";
 import type { ChannelMember, VoiceAudioBridgeStats } from "@shared/voice-models";
@@ -281,7 +282,7 @@ export function createAudioOutput(deps: AudioOutputDeps) {
   function setVolume(clientId: number, volume: number): void {
     const normalized = Math.max(0, Math.min(4, volume));
     patch({ volumes: { ...V().volumes, [clientId]: normalized } });
-    if (localStorage.getItem("webspeak:playback-debug") === "1") console.info("[playback-debug] setVolume", clientId, normalized);
+    if (playbackDebugEnabled()) console.info("[playback-debug] setVolume", clientId, normalized);
     const member = deps.sessionMembers().find((candidate) => candidate.id === clientId);
     if (member?.uid) deps.audioPrefs.stashUidVolume(member.uid, normalized);
     // Per-speaker volume is applied locally on the playback graph (both the

@@ -1,3 +1,5 @@
+import { playbackDebugEnabled } from "./playback-debug";
+
 export type SinkAudioElement = HTMLAudioElement & { setSinkId?: (deviceId: string) => Promise<void> };
 
 export interface WebRtcPlaybackOptions {
@@ -69,9 +71,7 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
   // Playback state dump for `webspeak:playback-debug` — the runtime values
   // (slot binding, applied element volume, pipe state, packet flow) that the
   // member-volume chain cannot be diagnosed without in a real browser.
-  const playbackDebug = (() => {
-    try { return localStorage.getItem("webspeak:playback-debug") === "1"; } catch { return false; }
-  })();
+  const playbackDebug = playbackDebugEnabled();
   if (playbackDebug) {
     (window as unknown as { __webspeakPlayback: () => Promise<unknown> }).__webspeakPlayback = async () => {
       const slotStates = [];
@@ -133,10 +133,17 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     } else {
       slot.receiver = receiver;
       if (slot.stream !== stream) {
-        // A renegotiated stream invalidates the amp pipe's source binding.
+        // A renegotiated stream invalidates the amp pipe's source binding and
+        // starts a new RTP timeline: the flow gate and the packet counter
+        // belong to the previous stream (a stale `flowed` would build a pipe
+        // before the new stream's first packet, and a stale `packetsSeen`
+        // could sit above the new receiver's counter for a long time).
         teardownAmp(slot);
         slot.stream = stream;
         slot.element.srcObject = stream;
+        slot.flowed = false;
+        slot.packetsSeen = 0;
+        slot.lastAudioAt = 0;
       }
     }
     slot.element.srcObject = slot.stream;
@@ -161,33 +168,49 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     }
     const perSpeaker = slot.clientId > 0 ? options.speakerVolume(slot.clientId) : 1;
     const combined = master * Math.max(0, Math.min(4, perSpeaker));
-    if (combined <= 1) {
+    if (combined === 0) {
+      // Per-speaker mute. element.volume = 0 is ignored on iOS Safari, so the
+      // member would keep playing at full volume there; `muted` is honored
+      // everywhere and needs no gain pipe.
       teardownAmp(slot);
-      slot.element.muted = false;
-      slot.element.volume = clamp01(combined);
-      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "element", clamp01(combined));
+      slot.element.muted = true;
+      slot.element.volume = 1;
+      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "speaker muted");
       return;
     }
-    // Amplification beyond 100% needs a gain node, and the pipe's context is
-    // only trustworthy once the slot has received RTP: created earlier it
-    // would be bound dead. Until then the element renders at up to 100% and
-    // the flow poll upgrades the slot the moment packets arrive.
+    if (combined === 1) {
+      teardownAmp(slot);
+      slot.element.muted = false;
+      slot.element.volume = 1;
+      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "element unity");
+      return;
+    }
+    // Every other gain (attenuation and amplification alike) rides the gain
+    // pipe: element.volume is ignored on iOS Safari, so an element-level 0.5
+    // would leave the member at full volume and the master slider inert there.
+    // The pipe's context is only trustworthy once the slot has received RTP:
+    // created earlier it would be bound dead. Until then the element volume is
+    // the best effort, and the flow poll upgrades the slot the moment packets
+    // arrive.
     if (!slot.flowed) {
       teardownAmp(slot);
       slot.element.muted = false;
-      slot.element.volume = 1;
-      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "awaiting flow, clamped", combined);
+      slot.element.volume = clamp01(combined);
+      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "awaiting flow, element", clamp01(combined));
       return;
     }
     const pipe = ensureAmp(slot);
-    if (!pipe) {
+    if (!pipe || pipe.context.state !== "running") {
+      // No usable gain path — a suspended context (iOS needs a gesture to
+      // resume one) would render silence, so keep the element audible instead
+      // of muting it. The gesture retry resumes the context and re-applies.
       slot.element.muted = false;
-      slot.element.volume = 1;
-      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "pipe unavailable, clamped");
+      slot.element.volume = clamp01(combined);
+      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "pipe suspended, element", clamp01(combined));
       return;
     }
     // The element stays attached and playing: it is the pipeline Chrome
-    // reliably pulls, while the pipe renders the amplified copy.
+    // reliably pulls, while the pipe renders the adjusted copy.
     slot.element.muted = true;
     slot.element.volume = 1;
     pipe.gain.gain.value = Math.min(4, combined);
@@ -199,15 +222,20 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     if (typeof AudioContext === "undefined") return null;
     try {
       ampContext ??= new AudioContext({ sampleRate: 48_000 });
-      if (ampContext.state === "suspended") void ampContext.resume().catch(() => undefined);
       applySink(ampContext);
       const source = ampContext.createMediaStreamSource(slot.stream);
       const gain = ampContext.createGain();
       gain.gain.value = 1;
       source.connect(gain);
       gain.connect(ampContext.destination);
-      slot.amp = { context: ampContext, source, gain };
-      return slot.amp;
+      const pipe: AmpPipe = { context: ampContext, source, gain };
+      slot.amp = pipe;
+      if (ampContext.state === "suspended") {
+        // Suspended until a gesture (iOS Safari): the element stays audible at
+        // its element volume meanwhile, so re-apply as soon as it resumes.
+        void ampContext.resume().then(() => { if (slot.amp === pipe) applySlotPlayback(slot); }).catch(() => undefined);
+      }
+      return pipe;
     } catch {
       return null;
     }
@@ -236,6 +264,7 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
   }
 
   let playPending: Promise<void> | null = null;
+  let slotPollPending = false;
 
   function play(): Promise<void> {
     // Overlapping triggers (autoplay kickoff + retry gestures) share one
@@ -244,9 +273,19 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     const attempt = (async () => {
       const generation = playbackGeneration;
       const elements = [...slots.values()].map(slot => slot.element);
+      // A gain pipe's context starts suspended on iOS Safari (and on any page
+      // without a gesture yet); this runs from the gesture retry too, so a tap
+      // resumes it and the slots upgrade from element volume to the pipe.
+      const amp = ampContext;
+      if (amp && amp.state === "suspended") {
+        try { await amp.resume(); } catch { /* the gesture policy refused it */ }
+      }
       if (elements.length === 0) return;
       const results = await Promise.allSettled(elements.map(element => element.play()));
       if (generation !== playbackGeneration) return;
+      if (amp && amp.state === "running") {
+        for (const slot of slots.values()) applySlotPlayback(slot);
+      }
       const blocked = results.every(result => result.status === "rejected");
       if (blocked) {
         options.onBlocked(true);
@@ -263,31 +302,44 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
   }
 
   function pollSlots(): void {
-    for (const slot of slots.values()) {
-      if (!slot.receiver || slot.clientId <= 0) continue;
-      void slot.receiver.getStats().then(report => {
-        let packets = slot.packetsSeen;
-        report.forEach(entry => {
-          if (entry.type === "inbound-rtp" && entry.kind === "audio") packets = entry.packetsReceived ?? slot.packetsSeen;
-        });
-        // Flow gate: the first packet unlocks pipe creation for >100% gains.
-        if (packets > 0 && !slot.flowed) {
-          slot.flowed = true;
-          applySlotPlayback(slot);
-        }
-        // Speaking = transmission, not decoded level: packets grow whenever
-        // the member transmits, regardless of element volume or mute.
-        if (packets > slot.packetsSeen) slot.lastAudioAt = Date.now();
-        slot.packetsSeen = packets;
-        const active = Date.now() - slot.lastAudioAt < SLOT_SPEAKING_HANGOVER_MS;
-        // Report level, not edges: the badge is a self-expiring hold that
-        // survives on repeated marks (the fallback path re-marks per voice
-        // frame; this poll is the WebRTC path's only heartbeat), so a single
-        // rising edge would let a continuously speaking member go dark.
-        if (active || slot.active) options.onSlotActivity(slot.clientId, active);
-        slot.active = active;
-      }).catch(() => undefined);
+    // One sweep at a time: a getStats() slower than the interval would
+    // otherwise stack statistics snapshots and promises on the same slots.
+    if (slotPollPending) return;
+    const targets = [...slots.entries()].filter(([, slot]) => slot.receiver !== null && slot.clientId > 0);
+    if (targets.length === 0) return;
+    slotPollPending = true;
+    void Promise.all(targets.map(([slotIndex, slot]) => slot.receiver!.getStats()
+      .then(report => {
+        // A slot released while its report was in flight must not publish
+        // activity for a speaker that is already gone.
+        if (slots.get(slotIndex) === slot) applySlotStats(slot, report);
+      })
+      .catch(() => undefined)))
+      .finally(() => { slotPollPending = false; });
+  }
+
+  function applySlotStats(slot: SlotChannel, report: RTCStatsReport): void {
+    let packets = slot.packetsSeen;
+    report.forEach(entry => {
+      if (entry.type === "inbound-rtp" && entry.kind === "audio") packets = entry.packetsReceived ?? slot.packetsSeen;
+    });
+    // Flow gate: the first packet unlocks pipe creation for any gain other
+    // than unity.
+    if (packets > 0 && !slot.flowed) {
+      slot.flowed = true;
+      applySlotPlayback(slot);
     }
+    // Speaking = transmission, not decoded level: packets grow whenever the
+    // member transmits, regardless of element volume or mute.
+    if (packets > slot.packetsSeen) slot.lastAudioAt = Date.now();
+    slot.packetsSeen = packets;
+    const active = Date.now() - slot.lastAudioAt < SLOT_SPEAKING_HANGOVER_MS;
+    // Report level, not edges: the badge is a self-expiring hold that
+    // survives on repeated marks (the fallback path re-marks per voice
+    // frame; this poll is the WebRTC path's only heartbeat), so a single
+    // rising edge would let a continuously speaking member go dark.
+    if (active || slot.active) options.onSlotActivity(slot.clientId, active);
+    slot.active = active;
   }
 
   function ensurePolling(): void {

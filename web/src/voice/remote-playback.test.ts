@@ -106,13 +106,26 @@ test("a backlog beyond the 300 ms hard cap keeps the reset as a safety net", () 
   assert.equal(AudioContextStub.gains[0]!.disconnects, 1);
 });
 
-test("a full decode queue still resets the stream", () => {
+test("a decoder that is a full jitter window behind resets the stream", () => {
   feedFrame();
   const decoder = AudioDecoderStub.instances[0]!;
-  decoder.decodeQueueSize = 3;
+  // 12 queued frames = 240 ms: the decoder is behind the whole play-ahead
+  // window, so the stream is rebuilt instead of drifting.
+  decoder.decodeQueueSize = 12;
   feedFrame();
   assert.equal(AudioDecoderStub.instances.length, 2);
   assert.equal(decoder.closed, 1);
+});
+
+test("a burst that queues a few frames does not reset the stream", () => {
+  feedFrame();
+  const decoder = AudioDecoderStub.instances[0]!;
+  // A 100-300 ms TCP stall delivers its frames in one burst; that is exactly
+  // what the 250 ms jitter window exists to ride out.
+  decoder.decodeQueueSize = 8;
+  feedFrame();
+  assert.equal(AudioDecoderStub.instances.length, 1, "the stream survives the burst");
+  assert.equal(decoder.closed, 0);
 });
 
 test("clear discards the held pre-roll and its wait timer", () => {

@@ -56,6 +56,9 @@ interface Attempt {
   connection: Connection;
   peer: RTCPeerConnection | null;
   meter: MicrophoneMeter | null;
+  /** Capture graph the metering tap belongs to; a replacement microphone
+   *  rebuilds the tap on the new one without touching the peer. */
+  context: AudioContext | null;
   active: boolean;
   closed: boolean;
   answerTimer: number | null;
@@ -106,6 +109,22 @@ export function createWebRtcTransport(options: TransportOptions) {
     const meter = record.meter;
     record.meter = null;
     if (meter) clean(() => meter.dispose());
+  }
+
+  /** Rebuilds the metering tap on a replacement capture graph. Metering is
+   *  optional: a failure must not take voice down with it. */
+  function rebindMeter(record: Attempt, stream: MediaStream): void {
+    const track = stream.getAudioTracks()[0];
+    const context = record.context;
+    if (!track || !context) return;
+    const previous = record.meter;
+    record.meter = null;
+    if (previous) clean(() => previous.dispose());
+    try {
+      record.meter = createMicrophoneMeter(context, stream, rms => options.onLevel(rms, track));
+    } catch {
+      record.meter = null;
+    }
   }
 
   function stop(): void {
@@ -165,7 +184,7 @@ export function createWebRtcTransport(options: TransportOptions) {
 
   async function start(connection: Connection): Promise<void> {
     stop();
-    const record: Attempt = { connection, peer: null, meter: null,
+    const record: Attempt = { connection, peer: null, meter: null, context: null,
       active: false, closed: false, answerTimer: null, cancelIce: null };
     current = record;
     notifyTransport();
@@ -220,7 +239,8 @@ export function createWebRtcTransport(options: TransportOptions) {
         }
         catch { void fail(record, "WEBRTC_PLAYBACK_FAILED"); }
       };
-      record.meter = createMicrophoneMeter(context, stream, rms => options.onLevel(rms, track));
+      record.context = context;
+      rebindMeter(record, stream);
       peer.onconnectionstatechange = () => {
         // 状态迁移打点（稀有事件）：disconnected→failed 的间隔是判「环境性
         // UDP 断流」与自愈预算烧穿的证据链（网关侧同名字段只记日志）。
@@ -298,6 +318,24 @@ export function createWebRtcTransport(options: TransportOptions) {
       const sender = peer.getSenders().find(candidate => candidate.track?.kind === "audio");
       if (!sender || sender.track === track) return;
       sender.replaceTrack(track).catch(() => undefined);
+    },
+    /** Rebinds the uplink sender and the metering tap onto a freshly committed
+     *  capture graph without renegotiation: the peer, its downstream slots and
+     *  every playback element stay untouched, so the other members keep
+     *  playing while the input device or its processing changes. Rejects when
+     *  the sender cannot take the new track, so the caller can fall back to a
+     *  full restart. */
+    async replaceUplink(input: { stream: MediaStream; meterStream: MediaStream }): Promise<void> {
+      const record = current;
+      const peer = record?.peer;
+      if (!record || record.closed || !peer) throw new Error("WebRTC transport is not running");
+      const track = input.stream.getAudioTracks()[0];
+      if (!track) throw new Error("没有可用的上行音轨");
+      const sender = peer.getSenders().find(candidate => candidate.track?.kind === "audio");
+      if (!sender) throw new Error("上行发送器不可用");
+      if (sender.track !== track) await sender.replaceTrack(track);
+      if (!isCurrent(record)) return;
+      rebindMeter(record, input.meterStream);
     },
     get output() { return playback.output; },
     setOutputVolume: playback.setVolume,

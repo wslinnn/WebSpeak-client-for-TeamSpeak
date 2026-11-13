@@ -1,4 +1,5 @@
 import { createAccompaniment } from "./accompaniment";
+import { playbackDebugEnabled } from "./playback-debug";
 import { createWebRtcTransport } from "./webrtc-transport";
 import { safeClientErrorCode } from "./error-messages";
 import type { ClientCommandPayloads, ClientCommandType } from "@shared/client-commands";
@@ -204,7 +205,7 @@ export function createAudioDevices(deps: AudioDevicesDeps) {
   /** handleMessage 的 voiceRoute 分支：更新槽位表并重绑多轨播放。 */
   function setVoiceRoutes(slots: number[]): void {
     webRtcVoiceRoutes = [...slots];
-    if (localStorage.getItem("webspeak:playback-debug") === "1") console.info("[playback-debug] voiceRoute received", [...slots]);
+    if (playbackDebugEnabled()) console.info("[playback-debug] voiceRoute received", [...slots]);
     webrtc.setSlotClients(slots);
   }
 
@@ -292,12 +293,23 @@ export function createAudioDevices(deps: AudioDevicesDeps) {
     const sequence = deps.connection.voiceConnection.generation;
     const current = deps.connection.socket();
     const isCurrent = () => generation === deps.deviceGenerations.input && sequence === deps.connection.voiceConnection.generation;
-    const shouldRestartWebRtc = webrtc.active && Boolean(deps.connection.socket());
+    const shouldRebindWebRtc = webrtc.active && Boolean(deps.connection.socket());
     try {
       // Keep the current peer alive until the replacement microphone is ready.
       if (deps.mic.microphoneStream()) await deps.mic.startMicrophone();
       if (!isCurrent()) return;
-      if (shouldRestartWebRtc && current) await startWebRtcTransport(sequence, current);
+      // The new graph replaces the uplink track in place: renegotiating tore
+      // down every downstream slot, so the other members went silent for the
+      // whole offer/answer round trip on each device or processing change.
+      if (shouldRebindWebRtc && current) {
+        try {
+          await deps.mic.replaceWebRtcUplink();
+        } catch {
+          // The sender refused the new track: only then rebuild the transport.
+          if (!isCurrent()) return;
+          await startWebRtcTransport(sequence, current);
+        }
+      }
       if (!isCurrent()) return;
       await refreshAudioDevices();
       if (!isCurrent()) return;

@@ -1,6 +1,7 @@
 import { createMicrophoneTest } from "./microphone-test";
 import { createMicrophoneCaptureFactory, type MicrophoneCapture } from "./microphone-capture";
 import { createMicrophoneMeter, type MicrophoneMeter } from "./microphone-meter";
+import { captureFrameEnergy, createVoxGateState, gateVoiceFrame, resetVoxGate } from "./vox-gate";
 import { requestMediaBeforeAudioResume } from "../services/microphone-start";
 import type { ClientCommandPayloads, ClientCommandType } from "@shared/client-commands";
 import type { createWebRtcTransport } from "./webrtc-transport";
@@ -45,10 +46,7 @@ export function createMicrophone(deps: MicrophoneDeps) {
   let pendingMicrophoneCapture: AbortController | null = null;
   let microphoneStartPromise: Promise<void> | null = null;
   let microphoneGeneration = 0;
-  let voxAttack = 0;
-  let voxRelease = 0;
-  const VOX_HOLD = 15;
-  const VOX_ATTACK_FRAMES = 1;
+  const voxState = createVoxGateState();
   let convBuf = new Int16Array(1024);
   let accumBuf = new Int16Array(2048);
   let accumLen = 0;
@@ -100,7 +98,7 @@ export function createMicrophone(deps: MicrophoneDeps) {
     if (V().micLevel !== level) patch({ micLevel: level });
   }
 
-  function handleCaptureChunk(input: Float32Array, _rms?: number): void {
+  function handleCaptureChunk(input: Float32Array, rms?: number): void {
     if (!input.length) return;
     // 电平显示改由预增益抽头（inputMeter）供给：本 tap 在广播门控（gain 0）
     // 之后，测试/静音期 rms 恒零，声波条会被错误地按满门限清零（2026-10-18）。
@@ -112,12 +110,11 @@ export function createMicrophone(deps: MicrophoneDeps) {
       && !V().webrtcVoiceOnly
       && !deps.webrtc().active
       && current?.readyState === WebSocket.OPEN
-      && voxGate(input);
+      && voxGate(input, rms);
     if (!shouldSend) {
       accumLen = 0;
       if (V().microphoneMuted) {
-        voxAttack = 0;
-        voxRelease = 0;
+        resetVoxGate(voxState);
       }
       return;
     }
@@ -280,28 +277,17 @@ export function createMicrophone(deps: MicrophoneDeps) {
     await microphoneStartPromise;
   }
 
-  function voxGate(samples: Float32Array): boolean {
-    let sum = 0;
-    const count = Math.min(256, samples.length);
-    for (let i = 0; i < count; i++) sum += samples[i]! * samples[i]!;
-    const rms = Math.sqrt(sum / count);
-    if (rms >= V().voxThreshold) {
-      voxAttack = Math.min(VOX_ATTACK_FRAMES, voxAttack + 1);
-      voxRelease = VOX_HOLD;
-      return voxAttack >= VOX_ATTACK_FRAMES;
-    }
-    voxAttack = 0;
-    if (voxRelease > 0) {
-      voxRelease--;
-      return true;
-    }
-    return false;
+  function voxGate(samples: Float32Array, rms?: number): boolean {
+    // 整帧能量（worklet 已算好则直接用），并按输入增益还原到增益前电平：
+    // 采集抽头在 gain/limiter 之后，直接用后增益电平判定会让音量滑条改变
+    // VOX 灵敏度（调低增益后正常说话也打不开门）。见 vox-gate.ts。
+    const energy = captureFrameEnergy(samples, rms);
+    return gateVoiceFrame(voxState, energy, V().voxThreshold, V().inputVolume);
   }
 
   function stopCaptureGraph(): void {
     accumLen = 0;
-    voxAttack = 0;
-    voxRelease = 0;
+    resetVoxGate(voxState);
     setMicLevel(0);
     microphoneCapture?.stopCapture();
   }
@@ -381,6 +367,21 @@ export function createMicrophone(deps: MicrophoneDeps) {
     deps.webrtc().setUplinkStream(bypass || !capture ? micStream : capture.processedStream);
   }
 
+  /** 采集图更换（切设备/开关降噪、AEC、AGC）后把上行与电平抽头挂到新图上：
+   *  sender.replaceTrack 不重新协商，peer、下行槽位与其他成员的播放全部保持
+   *  不动。失败时抛出，由设备切换事务回退到重建传输。 */
+  async function replaceWebRtcUplink(): Promise<void> {
+    const stream = micStream;
+    if (!stream) return;
+    const capture = microphoneCapture;
+    const bypass = uplinkBypassActive();
+    lastRoutedBypass = bypass;
+    await deps.webrtc().replaceUplink({
+      stream: bypass || !capture ? stream : capture.processedStream,
+      meterStream: stream,
+    });
+  }
+
   /** WebRTC 上行的采集准备（webrtc 选项 prepareMicrophone 调用）。 */
   async function prepareWebRtcMicrophone(): Promise<{ context: AudioContext; stream: MediaStream;
     processedStream: MediaStream; capture: MicrophoneCapture } | null> {
@@ -392,8 +393,7 @@ export function createMicrophone(deps: MicrophoneDeps) {
 
   function setMicrophoneMuted(muted: boolean): void {
     patch({ microphoneMuted: muted });
-    voxAttack = 0;
-    voxRelease = 0;
+    resetVoxGate(voxState);
     accumLen = 0;
     applyUplinkGate();
     deps.sendCmd("setMicrophoneMuted", { muted });
@@ -473,6 +473,7 @@ export function createMicrophone(deps: MicrophoneDeps) {
     setEchoCancellationEnabled,
     setAutoGainControlEnabled,
     applyUplinkRouting,
+    replaceWebRtcUplink,
     prepareWebRtcMicrophone,
   };
 }

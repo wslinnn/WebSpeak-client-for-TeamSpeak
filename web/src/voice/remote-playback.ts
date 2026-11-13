@@ -32,7 +32,13 @@ const CODEC_CHANNELS: Record<number, number> = { 4: 1, 5: 2 };
 // tracks the arrival cadence (~20-40 ms) and only post-stall backlog rides
 // the cap until the next talk gap underruns the timeline.
 const MAX_PLAY_AHEAD_SECONDS = 0.25;
-const MAX_DECODE_QUEUE_FRAMES = 3;
+// Decoder queue depth that counts as "the decoder is not keeping up". It is
+// sized against the jitter window above, not against the arrival cadence: a
+// 100-300 ms WS stall delivers a burst of frames at once, and a 3-frame (60 ms)
+// limit reset the whole speaker stream — already scheduled audio included —
+// before the 250 ms window could ride the burst out. At 12 frames (240 ms) only
+// a decoder that is a full window behind trips the reset.
+const MAX_DECODE_QUEUE_FRAMES = 12;
 // Overflow drops the late frame instead of resetting the stream, so the burst
 // glitch no longer cuts audio that was already scheduled; only a deep backlog
 // (suspended context, desynced timeline) keeps the reset as a safety net
