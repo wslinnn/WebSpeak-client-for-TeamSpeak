@@ -18,6 +18,7 @@ import { isSafeOpenTargetForPrefill, resolveSafeOpenTarget } from "../security/o
 import { isSameOrigin } from "../security/same-origin.js";
 import { parseIdentity } from "@honeybbq/teamspeak/client";
 import { JoinRateLimiter } from "./join-rate-limit.js";
+import { ByteBucketRateLimiter } from "./byte-bucket-rate-limit.js";
 import { createPrefillResolver } from "./prefill-resolver.js";
 import { FixedWindowRateLimiter } from "./fixed-window-rate-limit.js";
 import { createConfiguredTrustedProxies, isTrustedProxyPeer, rateLimitPeerKey, resolveClientAddress } from "./client-ip.js";
@@ -147,19 +148,16 @@ export function createWebServer(options: WebServerOptions): WebServer {
   const voiceBridge = new VoiceBridge(options.voiceBridgeOptions, logger);
   const adminSessions = new AdminSessionStore();
   const joinRateLimiter = new JoinRateLimiter();
-  // S5（报告 21）：皮肤包/预览按字节记账（满桶首下载恒放行，持续回填 8MiB/分
-  // ≈ 1.1Mbps，把单对端压到 3Mbps 上行的公平份额）；桶容量覆盖单包 20MiB 上限。
-      // A page fetches one avatar per roster member on first sight; the window
-  // quota covers the 100-session roster burst with room for reloads. Avatars
-  // are tiny, so a per-request count still bounds them fairly.
+  // A page fetches one avatar per roster member on first sight; the window
+  // quota covers the 100-session roster burst with room for reloads. This is a
+  // request-count guard only — the bandwidth ceiling is the byte bucket below.
   //
   // The key is the peer address, so a household/office behind one NAT shares
   // one bucket: three people opening a 100-member room at once is ~300 requests
   // in the first minute, which the old 240/min budget throttled into blank
-  // initial-letter avatars. 1200/min (20/s) keeps that comfortable; the
-  // capability URLs are unguessable and the bytes are HTTP-cached, so this is
-  // still a runaway-client backstop rather than a bandwidth policy.
+  // initial-letter avatars. 1200/min (20/s) keeps that comfortable.
   const avatarLimiter = new FixedWindowRateLimiter(1024, 1200);
+  const avatarBytes = new ByteBucketRateLimiter(8 * 1024 * 1024, 2 * 1024 * 1024);
   const startedAt = Date.now();
   // Limiter key for a request: the client IP when trust proxy is configured,
   // otherwise the socket address, aggregated to a /64 for IPv6.
@@ -217,17 +215,32 @@ export function createWebServer(options: WebServerOptions): WebServer {
   // path hands out capability URLs (/avatars/<hmac>?v=<content-hash>) whose
   // stability is what lets the browser's disk cache absorb every refresh and
   // resume. The endpoint is a read-only projection of the shared cache —
-  // ids are unguessable HMAC outputs, misses never trigger downloads, and
-  // the per-peer limiter bounds hammering.
+  // ids are unguessable HMAC outputs, misses never trigger downloads.
+  //
+  // Two per-peer limits, because the payload is bulk egress: the count limiter
+  // above bounds request floods (404 probes, tiny avatars), and the byte bucket
+  // bounds bandwidth. Bytes are the number that matters — one avatar is capped
+  // at 256 KiB, so a client that ignores HTTP caching could otherwise pull
+  // 20/s × 256 KiB ≈ 40 Mbit/s from a 3 Mbit/s uplink. An 8 MiB bucket lets a
+  // full 100-member room load in one burst while 2 MiB/min (≈ 0.28 Mbit/s)
+  // bounds what a single peer can sustain; a full bucket always admits the next
+  // request, so a single large avatar can never be blocked by the bucket size.
   app.get("/avatars/:aid", (request, response) => {
+    const peer = peerKey(request);
     const aid = typeof request.params.aid === "string" ? request.params.aid : "";
-    if (!avatarLimiter.allow(peerKey(request))) {
+    if (!avatarLimiter.allow(peer)) {
       response.status(429).setHeader("Cache-Control", "no-store").json({ ok: false, code: "RATE_LIMITED" });
       return;
     }
     const entry = voiceBridge.avatars.serve(aid);
     if (!entry) {
       response.status(404).setHeader("Cache-Control", "no-store").end();
+      return;
+    }
+    if (!avatarBytes.allow(peer, entry.data.length)) {
+      const retryAfterMs = avatarBytes.blockedForMs(peer, entry.data.length);
+      response.setHeader("Retry-After", String(Math.max(1, Math.ceil(retryAfterMs / 1_000))));
+      response.status(429).setHeader("Cache-Control", "no-store").json({ ok: false, code: "RATE_LIMITED", retryAfterMs });
       return;
     }
     // private: browsers may pin the bytes across reloads, but shared proxies

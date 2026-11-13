@@ -7,10 +7,12 @@ interface PeerWindow {
 }
 
 /**
- * Per-peer fixed-window request budget, shared by the unauthenticated bulk
- * endpoints whose payloads are either tiny (avatar bytes) or expensive per
- * hit (RTP-lab offers each spin up a peer connection with native Opus
- * encoders). Byte-shaped payloads use ByteBucketRateLimiter instead.
+ * Per-peer fixed-window request budget, shared by the unauthenticated endpoints
+ * whose payloads are tiny (avatar bytes are also capped by a byte bucket — see
+ * `ByteBucketRateLimiter`) or expensive per hit (RTP-lab offers each spin up a
+ * peer connection with native Opus encoders). Count-based limits bound request
+ * rate; anything whose cost scales with payload size belongs in the byte
+ * bucket instead.
  */
 export class FixedWindowRateLimiter {
   private readonly peers = new Map<string, PeerWindow>();
