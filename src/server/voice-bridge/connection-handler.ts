@@ -9,7 +9,8 @@ import { formatTeamSpeakTarget, teamSpeakTargetKey } from "../../domain/teamspea
 import type { JoinTicketPayload } from "../join-ticket.js";
 import { SessionEventCoordinator } from "../session-events.js";
 import type { SessionTeardownReason } from "../session-manager.js";
-import { isRecoverable, reconnectDelayMs, reconnectWindowOpen } from "../reconnect-policy.js";import type { WebRtcAudioOptions, WebRtcSessionDescription } from "../webrtc-audio.js";
+import { isRecoverable, reconnectDelayMs, reconnectWindowOpen } from "../reconnect-policy.js";
+import type { WebRtcAudioOptions, WebRtcSessionDescription } from "../webrtc-audio.js";
 import type { ScreenShareIceServer } from "../screen-share.js";
 import { createAudioFlowStats } from "../audio-stats.js";
 import { SessionAudioTransport } from "../session-audio.js";

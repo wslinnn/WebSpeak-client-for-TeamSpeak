@@ -410,4 +410,3 @@ test("a disconnected session cannot be revived by a late connect continuation", 
   assert.equal(client.getClientId(), 0);
   assert.deepEqual(retired.execCommands, []);
 });
-

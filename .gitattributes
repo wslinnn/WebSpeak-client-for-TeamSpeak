@@ -1,0 +1,4 @@
+# Repository blobs are LF. Pin it so a Windows checkout (core.autocrlf=true) or a
+# tool that writes CRLF cannot re-introduce line-ending churn into diffs: git
+# normalizes on add and checks out LF everywhere.
+* text=auto eol=lf
