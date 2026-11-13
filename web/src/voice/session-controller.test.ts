@@ -1866,6 +1866,23 @@ test("a voiceRoute announcement binds the downstream slot to the member's volume
   assert.equal(AudioContextStub.gains.some(gain => gain.gain.value === 3), false, "volumes for unbound speakers apply nowhere");
 });
 
+test("a full slot table survives the shared parser and still binds the member", async () => {
+  const { socket, peer } = await connectWebRtc();
+  const receiver = {
+    getStats: async () => new Map([["in", { type: "inbound-rtp", kind: "audio", packetsReceived: 10 }]]),
+  };
+  peer.ontrack?.({ streams: [microphoneStream()], track: microphoneStream().getAudioTracks()[0], transceiver: peer.transceivers[1], receiver });
+  // The gateway announces every slot on each route change, so the shared
+  // parser's limit and the slot count must agree: an oversized table is
+  // dropped whole and every slot stays unbound.
+  socket.receive({ type: "voiceRoute", slots: Array.from({ length: 24 }, (_, index) => (index === 0 ? 7 : 0)) });
+  await nextTurn();
+  voice.setVolume(7, 0);
+  await nextTurn();
+  const output = [...audioElements][0] as { muted?: boolean };
+  assert.equal(output.muted, true, "the member's mute reached the bound slot");
+});
+
 test("a transmitting slot keeps the speaking badge lit across polls and the hangover clears it", async () => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
   try {

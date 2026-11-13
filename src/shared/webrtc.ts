@@ -30,6 +30,21 @@ export const MAX_VOICE_SDP_LENGTH = 256 * 1024;
  */
 export const WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS = 60_000;
 
+/**
+ * Downstream speaking slots pre-negotiated in every voice offer. One number,
+ * three consumers that must agree:
+ *
+ * - the browser opens exactly this many recvonly transceivers;
+ * - the gateway turns the offer's extra audio m-lines into this many sendonly
+ *   slot tracks and announces the full table in every `voiceRoute`;
+ * - the shared `voiceRoute` parser accepts exactly this many entries.
+ *
+ * A mismatch is silent: an oversized table fails validation and the whole
+ * route message is dropped, which unbinds every slot (no speaker badges, no
+ * per-member volume, no gain pipe).
+ */
+export const MAX_DOWNSTREAM_SLOTS = 24;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }

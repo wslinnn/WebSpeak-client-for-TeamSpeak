@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { parseServerMessage, parseScreenShareStream, parseScreenShareViewers, parseVoiceAudioBridgeStats, type ServerMessage } from "./server-messages.js";
+import { MAX_DOWNSTREAM_SLOTS } from "./webrtc.js";
 
 const stream = {
   streamId: "stream-1", source: "browser" as const, ownerPeerId: "owner", ownerClientId: 1,
@@ -50,6 +51,17 @@ const samples: Record<ServerMessage["type"], ServerMessage> = {
   screenShareSignal: { type: "screenShareSignal", streamId: "stream-1", fromPeerId: "owner", signal: { kind: "offer", sdp: "v=0\r\n" } },
   screenShareError: { type: "screenShareError", requestId: "share-1", code: "SCREEN_SHARE_NOT_FOUND", message: "ended" },
 };
+
+test("the voiceRoute parser accepts exactly the shared slot count", () => {
+  // The gateway announces the full slot table on every route change. One entry
+  // more than the parser allows drops the whole message, which silently
+  // unbinds every slot (no speaker badges, no per-member volume, no gain pipe).
+  const full = Array.from({ length: MAX_DOWNSTREAM_SLOTS }, (_, index) => (index % 2 === 0 ? 0 : 1));
+  const accepted = parseServerMessage({ type: "voiceRoute", slots: full });
+  assert.equal(accepted?.type, "voiceRoute");
+  assert.deepEqual(accepted, { type: "voiceRoute", slots: full });
+  assert.equal(parseServerMessage({ type: "voiceRoute", slots: [...full, 0] }), null, "an oversized table is rejected");
+});
 
 test("every current gateway message survives JSON transport and shared validation", () => {
   for (const [kind, message] of Object.entries(samples)) {

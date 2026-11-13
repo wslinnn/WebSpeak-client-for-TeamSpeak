@@ -2,7 +2,7 @@ import type { ChannelMember, ChannelInfo, ServerEvent, VoiceAudioBridgeStats } f
 import { MAX_SCREEN_SHARE_STREAMS, normalizeScreenShareIceServers, parseScreenShareSignal, type ScreenShareIceServer, type ScreenSharePeerSignal, type ScreenShareStreamDescription, type ScreenShareViewerDescription } from "./screen-share.js";
 
 import { normalizeVoiceStunServer } from "./voice-ice.js";
-import { isSessionDescription, type SessionDescription } from "./webrtc.js";
+import { isSessionDescription, MAX_DOWNSTREAM_SLOTS, type SessionDescription } from "./webrtc.js";
 export type { SessionDescription } from "./webrtc.js";
 
 type Message<T extends string, Fields = object> = { type: T } & Fields;
@@ -167,7 +167,7 @@ const valid: Record<ServerMessage["type"], (message: RecordValue) => boolean> = 
   audioError: m => optional(m.code, text) && optional(m.detail, text),
   whisperTargets: m => arrayOf(m.targetIds, clientId) && boolean(m.active),
   webrtcAnswer: m => isRecord(m.payload) && isSessionDescription(m.payload.sdp, "answer"),
-  voiceRoute: m => Array.isArray(m.slots) && m.slots.length <= 16 && arrayOf(m.slots, v => finite(v) && Number.isInteger(v) && v >= 0 && v <= 65535),
+  voiceRoute: m => Array.isArray(m.slots) && m.slots.length <= MAX_DOWNSTREAM_SLOTS && arrayOf(m.slots, v => finite(v) && Number.isInteger(v) && v >= 0 && v <= 65535),
   commandCompleted: m => text(m.requestId),
   screenShareCompleted: m => text(m.requestId),
   error: m => optional(m.message, text) && optional(m.error, v => isRecord(v) && optional(v.code, text) && optional(v.message, text) && optional(v.recoverable, boolean)),

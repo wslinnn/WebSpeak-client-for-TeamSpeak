@@ -1,4 +1,4 @@
-import { isSessionDescription, WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS, type WebRtcClientMessage } from "@shared/webrtc";
+import { isSessionDescription, MAX_DOWNSTREAM_SLOTS, WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS, type WebRtcClientMessage } from "@shared/webrtc";
 import { createMicrophoneMeter, type MicrophoneMeter } from "./microphone-meter";
 import { createWebRtcPlayback, type WebRtcPlaybackOptions } from "./webrtc-playback";
 
@@ -9,13 +9,10 @@ export interface UplinkCapture {
   setAccompaniment(stream: MediaStream | null): void;
 }
 
-// Downstream speaking slots pre-negotiated in every offer. The gateway
-// assigns TeamSpeak speakers to them and announces assignments via voiceRoute
-// messages; with the pool in place a new speaker never triggers a
-// renegotiation. A slot only costs an m-line until the gateway assigns it, so
-// the pool covers a large panel's concurrent speakers. Must mirror
-// MAX_DOWNSTREAM_SLOTS in src/server/webrtc-audio.ts.
-const DOWNSTREAM_SLOTS = 24;
+// The downstream slot count is the shared contract (src/shared/webrtc.ts): the
+// browser opens exactly this many recvonly transceivers, the gateway answers
+// with the same number of sendonly slot tracks, and the voiceRoute parser
+// accepts exactly this many entries — three numbers that must never drift.
 
 interface Microphone {
   context: AudioContext;
@@ -217,7 +214,7 @@ export function createWebRtcTransport(options: TransportOptions) {
       // The transform must attach before negotiation — after the answer the
       // encoded streams are already consumed by the decoder ("too late").
       const rtpDebug = localStorage.getItem("webspeak:rtp-debug") === "1";
-      for (let slot = 0; slot < DOWNSTREAM_SLOTS; slot++) {
+      for (let slot = 0; slot < MAX_DOWNSTREAM_SLOTS; slot++) {
         const transceiver = peer.addTransceiver("audio", { direction: "recvonly" });
         if (rtpDebug) attachDecodeTap(transceiver, `slot${slot}`);
       }
@@ -226,13 +223,13 @@ export function createWebRtcTransport(options: TransportOptions) {
       peer.ontrack = event => {
         if (!isCurrent(record)) return;
         const slotIndex = peer.getTransceivers().indexOf(event.transceiver) - 1;
-        if (slotIndex < 0 || slotIndex >= DOWNSTREAM_SLOTS) return;
+        if (slotIndex < 0 || slotIndex >= MAX_DOWNSTREAM_SLOTS) return;
         try {
           // NEVER use event.streams[0] here: the gateway's answer carries no
           // per-slot msid (the offer pre-opens bare recvonly transceivers and
           // werift echoes no stream ids back), so Chrome groups every
           // downstream track into ONE default MediaStream. Attaching that
-          // shared stream would make all 12 elements play the full mix and
+          // shared stream would make all slot elements play the full mix and
           // per-slot volume/mute would silently do nothing. A fresh
           // MediaStream per track restores slot isolation.
           playback.attach(new MediaStream([event.track]), slotIndex, event.receiver);
