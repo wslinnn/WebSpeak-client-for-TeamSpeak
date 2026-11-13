@@ -131,3 +131,51 @@ test("a replaced stream re-arms the flow gate", async () => {
   assert.equal(second.volume, 0.5);
   playback.stop();
 });
+
+test("a context that cannot follow the sink falls back to element volume", async () => {
+  // Firefox/Safari route HTMLMediaElement but not AudioContext: with a sink
+  // selected, a piped (muted) element would sit on the chosen device while the
+  // gain renders through the default one — the choice silently ignored.
+  const contextWithSink = Object.getOwnPropertyDescriptor(AudioContextStub.prototype, "setSinkId");
+  const elementWithSink = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, "setSinkId");
+  try {
+    // The context loses setSinkId; the element keeps it.
+    Object.defineProperty(AudioContextStub.prototype, "setSinkId", { value: undefined, configurable: true });
+    Object.defineProperty(HTMLMediaElement.prototype, "setSinkId", { value: async () => undefined, configurable: true });
+    const { playback, attach } = harness({ master: 0.5 });
+    const element = attach(0, () => 5);
+    playback.setSlotClients([7]);
+    await pollOnce();
+    await playback.setSinkDevice("headphones");
+    assert.equal(element.muted, false, "the element keeps rendering where the pipe cannot be routed");
+    assert.equal(element.volume, 0.5, "element volume carries the gain instead");
+    // Back to the default output: the pipe may take over again.
+    await playback.setSinkDevice("");
+    assert.equal(element.muted, true, "with no sink selected the pipe renders again");
+    playback.stop();
+  } finally {
+    if (contextWithSink) Object.defineProperty(AudioContextStub.prototype, "setSinkId", contextWithSink);
+    else delete (AudioContextStub.prototype as unknown as Record<string, unknown>).setSinkId;
+    if (elementWithSink) Object.defineProperty(HTMLMediaElement.prototype, "setSinkId", elementWithSink);
+    else delete (HTMLMediaElement.prototype as unknown as Record<string, unknown>).setSinkId;
+  }
+});
+
+test("a context suspended mid-session falls back to the element and restores the pipe on resume", async () => {
+  const { playback, attach } = harness({ master: 0.5 });
+  const element = attach(0, () => 5);
+  playback.setSlotClients([7]);
+  await pollOnce();
+  assert.equal(element.muted, true, "the pipe renders while the context runs");
+  // An iOS call or a backgrounded tab suspends the context; the muted element
+  // must take over instead of silencing the member.
+  const context = AudioContextStub.instances.at(-1)!;
+  context.state = "suspended";
+  context.dispatchEvent(new Event("statechange"));
+  assert.equal(element.muted, false, "the element takes over while the context is suspended");
+  assert.equal(element.volume, 0.5);
+  context.state = "running";
+  context.dispatchEvent(new Event("statechange"));
+  assert.equal(element.muted, true, "the pipe renders again once the context resumes");
+  playback.stop();
+});

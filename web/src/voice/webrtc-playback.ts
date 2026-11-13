@@ -59,8 +59,8 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
   let ampContext: AudioContext | null = null;
   let sinkDevice = "";
   const clean = (operation: () => void): void => { try { operation(); } catch { /* continue teardown */ } };
-  // F8（报告 21）：350ms 是说话徽标边沿延迟（≤350ms）与 getStats 频率（满载
-  // 100 槽 ≈286 次/秒 → ~86 次/秒）的折中。hangover 曾随轮询翻倍到 1.2s，实测
+  // F8（报告 21）：350ms 是说话徽标边沿延迟（≤350ms）与 getStats 频率（24 槽
+  // ≈69 次/秒，隐藏页签时整轮跳过）的折中。hangover 曾随轮询翻倍到 1.2s，实测
   // 终止延迟 ~1.2-1.55s 被判「太慢」——回到 600ms（覆盖 ~2 个轮询周期），
   // 词间隙桥接仍够，终止延迟回落到 ~0.6-0.95s。
   const SLOT_POLL_INTERVAL_MS = 350;
@@ -156,6 +156,17 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     return Math.max(0, Math.min(1, value));
   }
 
+  /** A gain pipe renders through its own AudioContext, and some browsers can
+   *  only route HTMLMediaElement to a chosen output device (no
+   *  `AudioContext.setSinkId`). With a non-default sink selected, the pipe
+   *  would play through the default device while the (muted) elements sit on
+   *  the chosen one, so the element has to keep rendering and the gain falls
+   *  back to element volume there. */
+  function ampRoutable(context: AudioContext): boolean {
+    if (!sinkDevice) return true;
+    return typeof (context as AudioContext & { setSinkId?: unknown }).setSinkId === "function";
+  }
+
   function applySlotPlayback(slot: SlotChannel): void {
     const master = options.volume();
     if (master <= 0) {
@@ -200,13 +211,15 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       return;
     }
     const pipe = ensureAmp(slot);
-    if (!pipe || pipe.context.state !== "running") {
+    if (!pipe || pipe.context.state !== "running" || !ampRoutable(pipe.context)) {
       // No usable gain path — a suspended context (iOS needs a gesture to
-      // resume one) would render silence, so keep the element audible instead
-      // of muting it. The gesture retry resumes the context and re-applies.
+      // resume one) renders silence, and a context that cannot follow the
+      // chosen output device would play through the default one — so keep the
+      // element audible instead of muting it. Element volume is the best
+      // effort there; the statechange/gesture recovery re-applies the pipe.
       slot.element.muted = false;
       slot.element.volume = clamp01(combined);
-      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "pipe suspended, element", clamp01(combined));
+      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "pipe unusable, element", clamp01(combined));
       return;
     }
     // The element stays attached and playing: it is the pipeline Chrome
@@ -223,6 +236,7 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     try {
       ampContext ??= new AudioContext({ sampleRate: 48_000 });
       applySink(ampContext);
+      installVisibilityResume();
       const source = ampContext.createMediaStreamSource(slot.stream);
       const gain = ampContext.createGain();
       gain.gain.value = 1;
@@ -230,6 +244,7 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       gain.connect(ampContext.destination);
       const pipe: AmpPipe = { context: ampContext, source, gain };
       slot.amp = pipe;
+      watchAmpContext();
       if (ampContext.state === "suspended") {
         // Suspended until a gesture (iOS Safari): the element stays audible at
         // its element volume meanwhile, so re-apply as soon as it resumes.
@@ -239,6 +254,42 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     } catch {
       return null;
     }
+  }
+
+  let watchingAmpContext: AudioContext | null = null;
+  let removeVisibilityResume: (() => void) | null = null;
+
+  /** A context that was running can still be suspended later (an iOS call, a
+   *  backgrounded tab, a browser audio policy change). Every slot with a
+   *  non-unity gain is muted on its element and depends on the pipe, so a
+   *  suspended context would silence the room until the next gesture. Re-apply
+   *  on every state change: suspended falls back to element volume, running
+   *  restores the pipe. */
+  function watchAmpContext(): void {
+    const context = ampContext;
+    if (!context || watchingAmpContext === context) return;
+    watchingAmpContext = context;
+    clean(() => context.addEventListener("statechange", () => {
+      if (ampContext !== context) return;
+      for (const slot of slots.values()) applySlotPlayback(slot);
+    }));
+  }
+
+  /** Returning to the tab after iOS interrupted the audio session: the context
+   *  often stays suspended until something calls resume() — and every non-unity
+   *  slot is muted on its element while that is true. Unlike the autoplay retry
+   *  (installed only while blocked), this lives for the playback lifetime. */
+  function installVisibilityResume(): void {
+    if (removeVisibilityResume) return;
+    const handler = (): void => {
+      const amp = ampContext;
+      if (document.visibilityState !== "visible" || !amp || amp.state !== "suspended") return;
+      void amp.resume()
+        .then(() => { if (ampContext === amp) for (const slot of slots.values()) applySlotPlayback(slot); })
+        .catch(() => undefined);
+    };
+    document.addEventListener("visibilitychange", handler);
+    removeVisibilityResume = () => { document.removeEventListener("visibilitychange", handler); removeVisibilityResume = null; };
   }
 
   function teardownAmp(slot: SlotChannel): void {
@@ -302,9 +353,9 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
   }
 
   function pollSlots(): void {
-    // One sweep at a time: a getStats() slower than the interval would
-    // otherwise stack statistics snapshots and promises on the same slots.
-    if (slotPollPending) return;
+    // Hidden tabs gain nothing from speaking badges, and every getStats() is a
+    // cross-thread statistics snapshot; skip the sweep while hidden.
+    if (slotPollPending || document.visibilityState === "hidden") return;
     const targets = [...slots.entries()].filter(([, slot]) => slot.receiver !== null && slot.clientId > 0);
     if (targets.length === 0) return;
     slotPollPending = true;
@@ -369,6 +420,8 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     playbackGeneration++;
     for (const slotIndex of [...slots.keys()]) releaseSlot(slotIndex);
     removeRetry?.();
+    removeVisibilityResume?.();
+    watchingAmpContext = null;
     if (ampContext) {
       const context = ampContext;
       ampContext = null;
@@ -392,11 +445,20 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
         ...[...slots.values()].map(slot => slot.element),
       ];
       if (ampContext) targets.push(ampContext);
-      let firstFailure: unknown = null;
+      // undefined = nothing failed: a `null` sentinel here would be thrown on
+      // complete success (null !== undefined), failing every sink change that
+      // actually worked.
+      let firstFailure: unknown = undefined;
       for (const target of targets) {
         if (!target.setSinkId) continue;
         try { await target.setSinkId(requested); } catch (error) { firstFailure ??= error; }
       }
+      // Routing changed what the gain pipe can do: with a non-default sink on a
+      // browser whose AudioContext cannot follow it, the pipe would play through
+      // the default device while the (muted) elements sit on the chosen one.
+      // Re-apply so such slots fall back to element volume — and so they return
+      // to the pipe when the default device is chosen again.
+      for (const slot of slots.values()) applySlotPlayback(slot);
       if (firstFailure !== undefined) throw firstFailure;
     },
     setVolume(_level?: number): void {
