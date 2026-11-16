@@ -1887,7 +1887,7 @@ test("a full slot table survives the shared parser and still binds the member", 
 });
 
 test("a transmitting slot keeps the speaking badge lit across polls and the hangover clears it", async () => {
-  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date", "performance"] });
   try {
     const intervals = captureIntervals();
     const { socket, peer } = await connectWebRtc();

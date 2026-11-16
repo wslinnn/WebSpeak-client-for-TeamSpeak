@@ -5,7 +5,7 @@
  *  - `receiver.getSynchronizationSources()` — synchronous, no statistics round
  *    trip. Its `timestamp` is an **epoch** value on Chromium (measured
  *    2026-11-16: `performance.timeOrigin + performance.now()`, within ~25 ms of
- *    `Date.now()`), not the `performance.now()` relative clock the spec wording
+ *    `timeOrigin + performance.now()`), not the `performance.now()` relative clock the spec wording
  *    suggests, and the entry survives ~10 s after the last packet. Comparing it
  *    against `performance.now()` therefore reads every packet as "just now" and
  *    keeps a member lit for ten seconds after they stop talking.
@@ -21,7 +21,8 @@ export interface ActivitySlot {
   receiver: RTCRtpReceiver | null;
   clientId: number;
   active: boolean;
-  /** `Date.now()` of the last packet attributed to this slot. */
+  /** `sourceClockNow()` reading when the last packet arrived: the same
+   *  monotonic epoch clock the sources are stamped on. */
   lastAudioAt: number;
   /** Highest `packetsReceived` observed; grow-only, drives the fallback delta. */
   packetsSeen: number;
@@ -42,17 +43,28 @@ export interface SlotActivityOptions {
 
 export interface SlotActivityMonitor {
   ensurePolling(): void;
-  poll(): void;
   stop(): void;
 }
 
-/** Age of a synchronization-source timestamp, whatever clock it arrived on:
- *  epoch values are compared against `Date.now()`, `performance.now()` relative
- *  values against `performance.now()`. A future value clamps to 0. */
+/** Age of a synchronization-source timestamp, whatever clock it arrived on.
+ *
+ *  Chromium reports `performance.timeOrigin + performance.now()` (measured
+ *  2026-11-16: within a millisecond of `Date.now()`); the spec's wording suggests
+ *  the relative `performance.now()` clock instead. Both are accepted.
+ *
+ *  The epoch comparison deliberately uses `timeOrigin + performance.now()`
+ *  rather than `Date.now()`: `performance` is monotonic, so an NTP correction
+ *  cannot make a talking member read as an hour silent (or as silent-for-now
+ *  until the wall clock catches up). */
 export function sourceAgeMs(timestamp: number, nowEpoch: number): number {
   const relative = typeof performance !== "undefined" ? performance.now() : Number.NaN;
   if (Number.isFinite(relative) && timestamp <= relative) return Math.max(0, relative - timestamp);
   return Math.max(0, nowEpoch - timestamp);
+}
+
+/** The monotonic epoch clock the sources are stamped on. */
+export function sourceClockNow(): number {
+  return typeof performance !== "undefined" ? performance.timeOrigin + performance.now() : Date.now();
 }
 
 function syncSources(receiver: RTCRtpReceiver): RTCRtpSynchronizationSource[] | null {
@@ -88,7 +100,7 @@ export function createSlotActivityMonitor(options: SlotActivityOptions): SlotAct
     if (sources.length === 0) {
       // No source at all: the hold alone decides (a just-ended spurt stays lit
       // through the hangover).
-      report(slot, Date.now() - slot.lastAudioAt < options.hangoverMs);
+      report(slot, sourceClockNow() - slot.lastAudioAt < options.hangoverMs);
       return;
     }
     markFlowed(slot);
@@ -96,7 +108,7 @@ export function createSlotActivityMonitor(options: SlotActivityOptions): SlotAct
       (best, source) => (Number.isFinite(source.timestamp) ? Math.max(best, source.timestamp) : best),
       Number.NEGATIVE_INFINITY,
     );
-    const now = Date.now();
+    const now = sourceClockNow();
     // A source without a usable timestamp is no information, never "packet
     // right now": keeping the previous mark would light every member forever
     // on an implementation that omits it.
@@ -108,9 +120,9 @@ export function createSlotActivityMonitor(options: SlotActivityOptions): SlotAct
     if (packets > 0) markFlowed(slot);
     // Speaking = transmission, not decoded level: the counter grows whenever
     // the member transmits, regardless of element volume or mute.
-    if (packets > slot.packetsSeen) slot.lastAudioAt = Date.now();
+    if (packets > slot.packetsSeen) slot.lastAudioAt = sourceClockNow();
     slot.packetsSeen = packets;
-    report(slot, Date.now() - slot.lastAudioAt < options.hangoverMs);
+    report(slot, sourceClockNow() - slot.lastAudioAt < options.hangoverMs);
   }
 
   function poll(): void {
@@ -149,7 +161,6 @@ export function createSlotActivityMonitor(options: SlotActivityOptions): SlotAct
       if (timer !== null || slots.size === 0) return;
       timer = window.setInterval(poll, options.intervalMs);
     },
-    poll,
     stop() {
       if (timer !== null) {
         window.clearInterval(timer);
