@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { setImmediate as nextTurn } from "node:timers/promises";
 import { afterEach, beforeEach, test, vi } from "vitest";
 import type { LocalPreferences } from "../services/local-persistence";
+import { MAX_DOWNSTREAM_SLOTS } from "@shared/webrtc";
 import { createVoiceSessionController, type VoiceSessionController } from "./session-controller";
 import {
   AudioContextStub,
@@ -1875,7 +1876,9 @@ test("a full slot table survives the shared parser and still binds the member", 
   // The gateway announces every slot on each route change, so the shared
   // parser's limit and the slot count must agree: an oversized table is
   // dropped whole and every slot stays unbound.
-  socket.receive({ type: "voiceRoute", slots: Array.from({ length: 24 }, (_, index) => (index === 0 ? 7 : 0)) });
+  // The slot count is the shared contract: a literal here would silently stop
+  // exercising the real payload size when the pool changes.
+  socket.receive({ type: "voiceRoute", slots: Array.from({ length: MAX_DOWNSTREAM_SLOTS }, (_, index) => (index === 0 ? 7 : 0)) });
   await nextTurn();
   voice.setVolume(7, 0);
   await nextTurn();
