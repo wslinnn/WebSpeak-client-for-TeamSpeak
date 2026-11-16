@@ -1,4 +1,5 @@
 import { playbackDebugEnabled } from "./playback-debug";
+import { createSlotActivityMonitor } from "./webrtc-slot-activity";
 
 export type SinkAudioElement = HTMLAudioElement & { setSinkId?: (deviceId: string) => Promise<void> };
 
@@ -54,7 +55,6 @@ interface SlotChannel {
 export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
   let playbackGeneration = 0;
   const slots = new Map<number, SlotChannel>();
-  let pollTimer: number | null = null;
   let removeRetry: (() => void) | null = null;
   let ampContext: AudioContext | null = null;
   let sinkDevice = "";
@@ -107,6 +107,21 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     console.info("[playback-debug] hook installed — call await __webspeakPlayback()");
   }
 
+  // Speaking badges and the pipe's flow gate are the monitor's business: it
+  // owns the poll timer, the synchronization-source path and the statistics
+  // fallback, plus the clock semantics of both.
+  const activity = createSlotActivityMonitor({
+    slots,
+    hangoverMs: SLOT_SPEAKING_HANGOVER_MS,
+    // F8（报告 21）：350ms 是说话徽标边沿延迟（≤350ms）与统计频率（24 槽 ≈69
+    // 次/秒同步读取，隐藏页签整轮跳过）的折中。hangover 曾随轮询翻倍到 1.2s，
+    // 实测终止延迟 ~1.2-1.55s 被判「太慢」——回到 600ms（覆盖 ~2 个轮询周期），
+    // 词间隙桥接仍够，终止延迟回落到 ~0.6-0.95s。
+    intervalMs: SLOT_POLL_INTERVAL_MS,
+    onActivity: (clientId, active) => options.onSlotActivity(clientId, active),
+    onFlow: () => { for (const slot of slots.values()) if (slot.flowed) applySlotPlayback(slot); },
+  });
+
   function applySink(target: SinkAudioElement | (AudioContext & { setSinkId?: (deviceId: string) => Promise<void> })): void {
     if (!sinkDevice) return;
     clean(() => { void target.setSinkId?.(sinkDevice).catch(() => undefined); });
@@ -148,23 +163,12 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     }
     slot.element.srcObject = slot.stream;
     applySlotPlayback(slot);
-    ensurePolling();
+    activity.ensurePolling();
     void play();
   }
 
   function clamp01(value: number): number {
     return Math.max(0, Math.min(1, value));
-  }
-
-  /** A gain pipe renders through its own AudioContext, and some browsers can
-   *  only route HTMLMediaElement to a chosen output device (no
-   *  `AudioContext.setSinkId`). With a non-default sink selected, the pipe
-   *  would play through the default device while the (muted) elements sit on
-   *  the chosen one, so the element has to keep rendering and the gain falls
-   *  back to element volume there. */
-  function ampRoutable(context: AudioContext): boolean {
-    if (!sinkDevice) return true;
-    return typeof (context as AudioContext & { setSinkId?: unknown }).setSinkId === "function";
   }
 
   function applySlotPlayback(slot: SlotChannel): void {
@@ -210,16 +214,27 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "awaiting flow, element", clamp01(combined));
       return;
     }
-    const pipe = ensureAmp(slot);
-    if (!pipe || pipe.context.state !== "running" || !ampRoutable(pipe.context)) {
-      // No usable gain path — a suspended context (iOS needs a gesture to
-      // resume one) renders silence, and a context that cannot follow the
-      // chosen output device would play through the default one — so keep the
-      // element audible instead of muting it. Element volume is the best
-      // effort there; the statechange/gesture recovery re-applies the pipe.
+    // A pipe that cannot be routed (the browser has no AudioContext.setSinkId
+    // while a non-default sink is chosen) or that is not running must not be
+    // left connected: it would keep rendering on the default device while the
+    // element renders on the chosen one — the member heard twice, once at full
+    // volume. Tear it down and let the element carry the gain; a later
+    // applySlotPlayback rebuilds the pipe once the context can render again.
+    if (!ampUsable(sinkDevice)) {
+      teardownAmp(slot);
       slot.element.muted = false;
       slot.element.volume = clamp01(combined);
       if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "pipe unusable, element", clamp01(combined));
+      return;
+    }
+    const pipe = ensureAmp(slot);
+    if (!pipe || !ampRunning(pipe.context)) {
+      // The context refused to come up (autoplay policy, iOS interruption):
+      // keep the element audible rather than muting it into silence.
+      teardownAmp(slot);
+      slot.element.muted = false;
+      slot.element.volume = clamp01(combined);
+      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "pipe not running, element", clamp01(combined));
       return;
     }
     // The element stays attached and playing: it is the pipeline Chrome
@@ -228,6 +243,29 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     slot.element.volume = 1;
     pipe.gain.gain.value = Math.min(4, combined);
     if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "pipe", pipe.gain.gain.value);
+  }
+
+  /** A gain pipe renders through its own AudioContext, and some browsers can
+   *  only route HTMLMediaElement to a chosen output device (no
+   *  `AudioContext.setSinkId`). With a non-default sink selected the pipe would
+   *  play through the default device, so the element has to keep rendering. */
+  function ampUsable(device: string): boolean {
+    if (!device) return true;
+    if (typeof AudioContext === "undefined") return false;
+    const prototype = AudioContext.prototype as AudioContext & { setSinkId?: unknown };
+    const live = ampContext as (AudioContext & { setSinkId?: unknown }) | null;
+    return typeof prototype.setSinkId === "function" || typeof live?.setSinkId === "function";
+  }
+
+  /** Safari/iOS report an audio session interrupted by a call or another app as
+   *  the non-standard `interrupted` state; only `running` renders audio, so
+   *  everything else is treated alike (and a resume is attempted). */
+  function ampRunning(context: AudioContext): boolean {
+    const state = (context as AudioContext & { state: string }).state;
+    if (state === "running") return true;
+    if (state === "closed") return false;
+    if (typeof context.resume === "function") void context.resume().catch(() => undefined);
+    return false;
   }
 
   function ensureAmp(slot: SlotChannel): AmpPipe | null {
@@ -245,9 +283,10 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       const pipe: AmpPipe = { context: ampContext, source, gain };
       slot.amp = pipe;
       watchAmpContext();
-      if (ampContext.state === "suspended") {
-        // Suspended until a gesture (iOS Safari): the element stays audible at
-        // its element volume meanwhile, so re-apply as soon as it resumes.
+      if (ampContext.state !== "running") {
+        // Suspended (autoplay policy, iOS) or interrupted (a call): the element
+        // stays audible at its element volume meanwhile, so re-apply as soon as
+        // the context comes back.
         void ampContext.resume().then(() => { if (slot.amp === pipe) applySlotPlayback(slot); }).catch(() => undefined);
       }
       return pipe;
@@ -258,6 +297,7 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
 
   let watchingAmpContext: AudioContext | null = null;
   let removeVisibilityResume: (() => void) | null = null;
+  let removeAmpStateListener: (() => void) | null = null;
 
   /** A context that was running can still be suspended later (an iOS call, a
    *  backgrounded tab, a browser audio policy change). Every slot with a
@@ -269,10 +309,12 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     const context = ampContext;
     if (!context || watchingAmpContext === context) return;
     watchingAmpContext = context;
-    clean(() => context.addEventListener("statechange", () => {
+    const onStateChange = (): void => {
       if (ampContext !== context) return;
       for (const slot of slots.values()) applySlotPlayback(slot);
-    }));
+    };
+    clean(() => context.addEventListener("statechange", onStateChange));
+    removeAmpStateListener = () => { removeAmpStateListener = null; watchingAmpContext = null; clean(() => context.removeEventListener("statechange", onStateChange)); };
   }
 
   /** Returning to the tab after iOS interrupted the audio session: the context
@@ -283,7 +325,9 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     if (removeVisibilityResume) return;
     const handler = (): void => {
       const amp = ampContext;
-      if (document.visibilityState !== "visible" || !amp || amp.state !== "suspended") return;
+      // Safari reports an audio session interrupted by a call or another app as
+      // the non-standard `interrupted` state; it needs the same resume.
+      if (document.visibilityState !== "visible" || !amp || amp.state === "running" || amp.state === "closed") return;
       void amp.resume()
         .then(() => { if (ampContext === amp) for (const slot of slots.values()) applySlotPlayback(slot); })
         .catch(() => undefined);
@@ -315,7 +359,6 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
   }
 
   let playPending: Promise<void> | null = null;
-  let slotPollPending = false;
 
   function play(): Promise<void> {
     // Overlapping triggers (autoplay kickoff + retry gestures) share one
@@ -328,15 +371,13 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       // without a gesture yet); this runs from the gesture retry too, so a tap
       // resumes it and the slots upgrade from element volume to the pipe.
       const amp = ampContext;
-      if (amp && amp.state === "suspended") {
+      if (amp && amp.state !== "running" && amp.state !== "closed") {
         try { await amp.resume(); } catch { /* the gesture policy refused it */ }
       }
       if (elements.length === 0) return;
       const results = await Promise.allSettled(elements.map(element => element.play()));
       if (generation !== playbackGeneration) return;
-      if (amp && amp.state === "running") {
-        for (const slot of slots.values()) applySlotPlayback(slot);
-      }
+      for (const slot of slots.values()) applySlotPlayback(slot);
       const blocked = results.every(result => result.status === "rejected");
       if (blocked) {
         options.onBlocked(true);
@@ -352,99 +393,6 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     return attempt;
   }
 
-  /** Per-slot reception state without a statistics round trip:
-   *  `getSynchronizationSources()` is a synchronous copy of the receiver's RTP
-   *  state, where `getStats()` is a cross-thread snapshot per slot (24 slots at
-   *  350 ms is ~69 snapshots/s for every listening client). Returns null when
-   *  the browser does not implement it, so the caller falls back. */
-  function syncSources(receiver: RTCRtpReceiver): RTCRtpSynchronizationSource[] | null {
-    const read = (receiver as RTCRtpReceiver & { getSynchronizationSources?: () => RTCRtpSynchronizationSource[] }).getSynchronizationSources;
-    if (typeof read !== "function") return null;
-    try {
-      return read.call(receiver) ?? [];
-    } catch {
-      return null;
-    }
-  }
-
-  function pollSlots(): void {
-    // Hidden tabs gain nothing from speaking badges: skip the sweep entirely.
-    if (slotPollPending || document.visibilityState === "hidden") return;
-    const targets = [...slots.entries()].filter(([, slot]) => slot.receiver !== null && slot.clientId > 0);
-    if (targets.length === 0) return;
-    const fallback: Array<[number, SlotChannel]> = [];
-    for (const [slotIndex, slot] of targets) {
-      const sources = syncSources(slot.receiver!);
-      if (sources === null) { fallback.push([slotIndex, slot]); continue; }
-      applySlotSources(slot, sources);
-    }
-    if (fallback.length === 0) return;
-    slotPollPending = true;
-    void Promise.all(fallback.map(([slotIndex, slot]) => slot.receiver!.getStats()
-      .then(report => {
-        // A slot released while its report was in flight must not publish
-        // activity for a speaker that is already gone.
-        if (slots.get(slotIndex) === slot) applySlotStats(slot, report);
-      })
-      .catch(() => undefined)))
-      .finally(() => { slotPollPending = false; });
-  }
-
-  /** Speaking from `getSynchronizationSources()`: a source exists while the
-   *  member's RTP arrives, and its `timestamp` is when the last packet came in
-   *  (on the `performance.now()` clock). The age is mapped back onto the
-   *  `Date.now()` hold so both paths share one badge timeline. */
-  function applySlotSources(slot: SlotChannel, sources: RTCRtpSynchronizationSource[]): void {
-    if (sources.length === 0) {
-      applySlotActivity(slot, Date.now() - slot.lastAudioAt < SLOT_SPEAKING_HANGOVER_MS);
-      return;
-    }
-    if (!slot.flowed) {
-      slot.flowed = true;
-      // Flow gate: the first packet unlocks pipe creation for any gain other
-      // than unity.
-      applySlotPlayback(slot);
-    }
-    const latest = sources.reduce((best, source) => (Number.isFinite(source.timestamp) && source.timestamp > (best ?? -Infinity) ? source.timestamp : best), null as number | null);
-    // A browser that reports no usable timestamp still tells us a source is
-    // alive; treat that as a packet right now rather than as silence.
-    const age = latest === null ? 0 : Math.max(0, performance.now() - latest);
-    slot.lastAudioAt = Date.now() - age;
-    applySlotActivity(slot, age < SLOT_SPEAKING_HANGOVER_MS);
-  }
-
-  function applySlotStats(slot: SlotChannel, report: RTCStatsReport): void {
-    let packets = slot.packetsSeen;
-    report.forEach(entry => {
-      if (entry.type === "inbound-rtp" && entry.kind === "audio") packets = entry.packetsReceived ?? slot.packetsSeen;
-    });
-    // Flow gate: the first packet unlocks pipe creation for any gain other
-    // than unity.
-    if (packets > 0 && !slot.flowed) {
-      slot.flowed = true;
-      applySlotPlayback(slot);
-    }
-    // Speaking = transmission, not decoded level: packets grow whenever the
-    // member transmits, regardless of element volume or mute.
-    if (packets > slot.packetsSeen) slot.lastAudioAt = Date.now();
-    slot.packetsSeen = packets;
-    applySlotActivity(slot, Date.now() - slot.lastAudioAt < SLOT_SPEAKING_HANGOVER_MS);
-  }
-
-  /** Report level, not edges: the badge is a self-expiring hold that survives
-   *  on repeated marks (the fallback path re-marks per voice frame; this poll
-   *  is the WebRTC path's only heartbeat), so a single rising edge would let a
-   *  continuously speaking member go dark. */
-  function applySlotActivity(slot: SlotChannel, active: boolean): void {
-    if (active || slot.active) options.onSlotActivity(slot.clientId, active);
-    slot.active = active;
-  }
-
-  function ensurePolling(): void {
-    if (pollTimer !== null || slots.size === 0) return;
-    pollTimer = window.setInterval(pollSlots, SLOT_POLL_INTERVAL_MS);
-  }
-
   function releaseSlot(slotIndex: number): void {
     const slot = slots.get(slotIndex);
     if (!slot) return;
@@ -457,10 +405,7 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     clean(() => { slot.element.pause(); });
     clean(() => { slot.element.srcObject = null; });
     clean(() => slot.element.remove());
-    if (slots.size === 0 && pollTimer !== null) {
-      window.clearInterval(pollTimer);
-      pollTimer = null;
-    }
+    if (slots.size === 0) activity.stop();
   }
 
   function stop(): void {
@@ -468,7 +413,8 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     for (const slotIndex of [...slots.keys()]) releaseSlot(slotIndex);
     removeRetry?.();
     removeVisibilityResume?.();
-    watchingAmpContext = null;
+    removeAmpStateListener?.();
+    activity.stop();
     if (ampContext) {
       const context = ampContext;
       ampContext = null;

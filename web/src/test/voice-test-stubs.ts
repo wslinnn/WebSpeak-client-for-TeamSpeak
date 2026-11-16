@@ -115,6 +115,8 @@ export class AudioContextStub extends EventTarget {
     AudioContextStub.instances.push(this);
   }
   async setSinkId(id: string) { this.sinkId = id; }
+  // 与真实 AudioContext 对齐：suspended/interrupted 上下文需要 resume 恢复。
+  async resume() { this.state = "running"; }
   close() { this.state = "closed"; return Promise.resolve(); }
   createMediaStreamSource(stream: unknown) {
     if (this.state === "closed") throw new Error("Audio context closed");
