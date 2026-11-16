@@ -352,14 +352,35 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     return attempt;
   }
 
+  /** Per-slot reception state without a statistics round trip:
+   *  `getSynchronizationSources()` is a synchronous copy of the receiver's RTP
+   *  state, where `getStats()` is a cross-thread snapshot per slot (24 slots at
+   *  350 ms is ~69 snapshots/s for every listening client). Returns null when
+   *  the browser does not implement it, so the caller falls back. */
+  function syncSources(receiver: RTCRtpReceiver): RTCRtpSynchronizationSource[] | null {
+    const read = (receiver as RTCRtpReceiver & { getSynchronizationSources?: () => RTCRtpSynchronizationSource[] }).getSynchronizationSources;
+    if (typeof read !== "function") return null;
+    try {
+      return read.call(receiver) ?? [];
+    } catch {
+      return null;
+    }
+  }
+
   function pollSlots(): void {
-    // Hidden tabs gain nothing from speaking badges, and every getStats() is a
-    // cross-thread statistics snapshot; skip the sweep while hidden.
+    // Hidden tabs gain nothing from speaking badges: skip the sweep entirely.
     if (slotPollPending || document.visibilityState === "hidden") return;
     const targets = [...slots.entries()].filter(([, slot]) => slot.receiver !== null && slot.clientId > 0);
     if (targets.length === 0) return;
+    const fallback: Array<[number, SlotChannel]> = [];
+    for (const [slotIndex, slot] of targets) {
+      const sources = syncSources(slot.receiver!);
+      if (sources === null) { fallback.push([slotIndex, slot]); continue; }
+      applySlotSources(slot, sources);
+    }
+    if (fallback.length === 0) return;
     slotPollPending = true;
-    void Promise.all(targets.map(([slotIndex, slot]) => slot.receiver!.getStats()
+    void Promise.all(fallback.map(([slotIndex, slot]) => slot.receiver!.getStats()
       .then(report => {
         // A slot released while its report was in flight must not publish
         // activity for a speaker that is already gone.
@@ -367,6 +388,29 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       })
       .catch(() => undefined)))
       .finally(() => { slotPollPending = false; });
+  }
+
+  /** Speaking from `getSynchronizationSources()`: a source exists while the
+   *  member's RTP arrives, and its `timestamp` is when the last packet came in
+   *  (on the `performance.now()` clock). The age is mapped back onto the
+   *  `Date.now()` hold so both paths share one badge timeline. */
+  function applySlotSources(slot: SlotChannel, sources: RTCRtpSynchronizationSource[]): void {
+    if (sources.length === 0) {
+      applySlotActivity(slot, Date.now() - slot.lastAudioAt < SLOT_SPEAKING_HANGOVER_MS);
+      return;
+    }
+    if (!slot.flowed) {
+      slot.flowed = true;
+      // Flow gate: the first packet unlocks pipe creation for any gain other
+      // than unity.
+      applySlotPlayback(slot);
+    }
+    const latest = sources.reduce((best, source) => (Number.isFinite(source.timestamp) && source.timestamp > (best ?? -Infinity) ? source.timestamp : best), null as number | null);
+    // A browser that reports no usable timestamp still tells us a source is
+    // alive; treat that as a packet right now rather than as silence.
+    const age = latest === null ? 0 : Math.max(0, performance.now() - latest);
+    slot.lastAudioAt = Date.now() - age;
+    applySlotActivity(slot, age < SLOT_SPEAKING_HANGOVER_MS);
   }
 
   function applySlotStats(slot: SlotChannel, report: RTCStatsReport): void {
@@ -384,11 +428,14 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     // member transmits, regardless of element volume or mute.
     if (packets > slot.packetsSeen) slot.lastAudioAt = Date.now();
     slot.packetsSeen = packets;
-    const active = Date.now() - slot.lastAudioAt < SLOT_SPEAKING_HANGOVER_MS;
-    // Report level, not edges: the badge is a self-expiring hold that
-    // survives on repeated marks (the fallback path re-marks per voice
-    // frame; this poll is the WebRTC path's only heartbeat), so a single
-    // rising edge would let a continuously speaking member go dark.
+    applySlotActivity(slot, Date.now() - slot.lastAudioAt < SLOT_SPEAKING_HANGOVER_MS);
+  }
+
+  /** Report level, not edges: the badge is a self-expiring hold that survives
+   *  on repeated marks (the fallback path re-marks per voice frame; this poll
+   *  is the WebRTC path's only heartbeat), so a single rising edge would let a
+   *  continuously speaking member go dark. */
+  function applySlotActivity(slot: SlotChannel, active: boolean): void {
     if (active || slot.active) options.onSlotActivity(slot.clientId, active);
     slot.active = active;
   }

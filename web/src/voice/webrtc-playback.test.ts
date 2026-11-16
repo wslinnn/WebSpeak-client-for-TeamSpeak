@@ -179,3 +179,83 @@ test("a context suspended mid-session falls back to the element and restores the
   assert.equal(element.muted, true, "the pipe renders again once the context resumes");
   playback.stop();
 });
+
+test("speaking uses the synchronous sources and skips getStats entirely", async () => {
+  // One getStats per slot per poll is a cross-thread snapshot; the receiver's
+  // synchronization sources carry the same reception state for free.
+  const activity: Array<[number, boolean]> = [];
+  const statsCalls = { count: 0 };
+  const sources: RTCRtpSynchronizationSource[] = [];
+  const receiver = {
+    getSynchronizationSources: () => sources,
+    getStats: async () => { statsCalls.count += 1; return new Map(); },
+  } as unknown as RTCRtpReceiver;
+  const playback = createWebRtcPlayback({
+    volume: () => 1,
+    speakerVolume: () => 1,
+    onEndpoint() {},
+    onBlocked() {},
+    onPlaying() {},
+    onSlotActivity: (clientId, active) => activity.push([clientId, active]),
+  });
+  playback.attach(new MediaStream(), 0, receiver);
+  playback.setSlotClients([7]);
+  // No source yet: the slot has not flowed and must not light the badge.
+  await pollOnce();
+  assert.equal(activity.length, 0);
+  sources.push({ timestamp: performance.now(), source: 1, audioLevel: 0.2, voiceActivityFlag: true } as unknown as RTCRtpSynchronizationSource);
+  await pollOnce();
+  assert.deepEqual(activity.at(-1), [7, true], "a live source marks the member as speaking");
+  assert.equal(statsCalls.count, 0, "no statistics snapshot was taken");
+  // A source whose last packet is older than the hold means silence.
+  sources[0] = { ...sources[0]!, timestamp: performance.now() - 5_000 } as RTCRtpSynchronizationSource;
+  await pollOnce();
+  assert.deepEqual(activity.at(-1), [7, false]);
+  playback.stop();
+});
+
+test("a browser without synchronization sources falls back to getStats", async () => {
+  const activity: Array<[number, boolean]> = [];
+  const receiver = receiverStub(() => 10);
+  const playback = createWebRtcPlayback({
+    volume: () => 1,
+    speakerVolume: () => 1,
+    onEndpoint() {},
+    onBlocked() {},
+    onPlaying() {},
+    onSlotActivity: (clientId, active) => activity.push([clientId, active]),
+  });
+  playback.attach(new MediaStream(), 0, receiver);
+  playback.setSlotClients([7]);
+  await pollOnce();
+  assert.deepEqual(activity.at(-1), [7, true], "the statistics fallback still detects speaking");
+  playback.stop();
+});
+
+test("a hidden tab skips the slot sweep", async () => {
+  const statsCalls = { count: 0 };
+  const receiver = {
+    getSynchronizationSources: () => [],
+    getStats: async () => { statsCalls.count += 1; return new Map(); },
+  } as unknown as RTCRtpReceiver;
+  const playback = createWebRtcPlayback({
+    volume: () => 1,
+    speakerVolume: () => 1,
+    onEndpoint() {},
+    onBlocked() {},
+    onPlaying() {},
+    onSlotActivity() {},
+  });
+  playback.attach(new MediaStream(), 0, receiver);
+  playback.setSlotClients([7]);
+  const visibility = Object.getOwnPropertyDescriptor(Document.prototype, "visibilityState");
+  try {
+    Object.defineProperty(document, "visibilityState", { value: "hidden", configurable: true });
+    await pollOnce();
+    assert.equal(statsCalls.count, 0);
+  } finally {
+    if (visibility) Object.defineProperty(Document.prototype, "visibilityState", visibility);
+    else delete (document as unknown as Record<string, unknown>).visibilityState;
+    playback.stop();
+  }
+});
