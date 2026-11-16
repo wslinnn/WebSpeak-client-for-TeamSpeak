@@ -223,9 +223,15 @@ export const audioElements = new Set<unknown>();
 
 export class TestAudioElement extends EventTarget {
   style: Record<string, string> = {};
+  muted = false;
+  volume = 1;
+  srcObject: unknown = null;
+  /** Recorded sink routes, like the real element's setSinkId. */
+  sinkIds: string[] = [];
   async play() {}
   pause() {}
   setAttribute() {}
+  async setSinkId(id: string) { this.sinkIds.push(id); }
   remove() { audioElements.delete(this); }
 }
 

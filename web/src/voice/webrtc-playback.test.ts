@@ -20,26 +20,30 @@ function receiverStub(packets: () => number) {
   } as unknown as RTCRtpReceiver;
 }
 
-function lastElement(): ElementProbe {
-  const elements = [...audioElements] as ElementProbe[];
-  assert.ok(elements.length > 0, "a slot element must exist");
-  return elements.at(-1)!;
-}
-
 function harness(options: { master?: number; speakers?: Record<number, number> } = {}) {
+  // onEndpoint fires only for slot elements, never for the mix-bus player, so
+  // it is the reliable way to tell the two kinds apart.
+  const endpoints: ElementProbe[] = [];
   const playback = createWebRtcPlayback({
     volume: () => options.master ?? 1,
     speakerVolume: clientId => options.speakers?.[clientId] ?? 1,
-    onEndpoint() {},
+    onEndpoint: element => endpoints.push(element as unknown as ElementProbe),
     onBlocked() {},
     onPlaying() {},
     onSlotActivity() {},
   });
   const attach = (slot: number, packets: () => number) => {
     playback.attach(new MediaStream(), slot, receiverStub(packets));
-    return lastElement();
+    return endpoints.at(-1)!;
   };
-  return { playback, attach };
+  return { playback, attach, endpoints };
+}
+
+/** The mix-bus player element: the last audio element that is not a slot. */
+function mixElement(endpoints: ElementProbe[]): ElementProbe | null {
+  const slots = new Set(endpoints);
+  const others = [...audioElements] as ElementProbe[];
+  return others.find(element => !slots.has(element)) ?? null;
 }
 
 /** Lets the 350 ms slot poll run and its promise settle. */
@@ -132,32 +136,30 @@ test("a replaced stream re-arms the flow gate", async () => {
   playback.stop();
 });
 
-test("a context that cannot follow the sink falls back to element volume", async () => {
-  // Firefox/Safari route HTMLMediaElement but not AudioContext: with a sink
-  // selected, a piped (muted) element would sit on the chosen device while the
-  // gain renders through the default one — the choice silently ignored.
+test("a piped gain still follows the chosen output when the context cannot route", async () => {
+  // Chromium has no AudioContext.setSinkId (measured 2026-11-16: absent on the
+  // prototype and the instance), so a pipe rendered into context.destination
+  // could not follow a chosen device: the muted slot would sit on that device
+  // while the gain played through the default one. The pipe renders into a
+  // MediaStreamAudioDestinationNode instead, whose player IS a media element
+  // and therefore routable — gain and device selection hold together.
   const contextWithSink = Object.getOwnPropertyDescriptor(AudioContextStub.prototype, "setSinkId");
-  const elementWithSink = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, "setSinkId");
   try {
-    // The context loses setSinkId; the element keeps it.
     Object.defineProperty(AudioContextStub.prototype, "setSinkId", { value: undefined, configurable: true });
-    Object.defineProperty(HTMLMediaElement.prototype, "setSinkId", { value: async () => undefined, configurable: true });
-    const { playback, attach } = harness({ master: 0.5 });
+    const { playback, attach, endpoints } = harness({ master: 0.5 });
     const element = attach(0, () => 5);
     playback.setSlotClients([7]);
     await pollOnce();
+    const mix = mixElement(endpoints) as unknown as { muted: boolean; sinkIds: string[] } | null;
+    assert.ok(mix, "a mix-bus player element exists once a slot is piped");
     await playback.setSinkDevice("headphones");
-    assert.equal(element.muted, false, "the element keeps rendering where the pipe cannot be routed");
-    assert.equal(element.volume, 0.5, "element volume carries the gain instead");
-    // Back to the default output: the pipe may take over again.
-    await playback.setSinkDevice("");
-    assert.equal(element.muted, true, "with no sink selected the pipe renders again");
+    assert.equal(mix!.sinkIds.includes("headphones"), true, "the bus element was routed to the chosen device");
+    assert.equal(element.muted, true, "the slot element stays muted as the puller");
+    assert.equal(mix!.muted, false, "the bus element carries the room's audio");
     playback.stop();
   } finally {
     if (contextWithSink) Object.defineProperty(AudioContextStub.prototype, "setSinkId", contextWithSink);
     else delete (AudioContextStub.prototype as unknown as Record<string, unknown>).setSinkId;
-    if (elementWithSink) Object.defineProperty(HTMLMediaElement.prototype, "setSinkId", elementWithSink);
-    else delete (HTMLMediaElement.prototype as unknown as Record<string, unknown>).setSinkId;
   }
 });
 
@@ -298,30 +300,34 @@ test("a source entry that outlives its last packet does not keep the badge lit",
   playback.stop();
 });
 
-test("a fallback to element volume disconnects the gain pipe", async () => {
-  // Leaving the pipe connected while the element renders the same member means
-  // hearing them twice — once on the chosen device, once on the default one.
-  const contextWithSink = Object.getOwnPropertyDescriptor(AudioContextStub.prototype, "setSinkId");
-  const elementWithSink = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, "setSinkId");
-  try {
-    Object.defineProperty(AudioContextStub.prototype, "setSinkId", { value: undefined, configurable: true });
-    Object.defineProperty(HTMLMediaElement.prototype, "setSinkId", { value: async () => undefined, configurable: true });
-    const { playback, attach } = harness({ master: 0.5 });
-    const element = attach(0, () => 5);
-    playback.setSlotClients([7]);
-    await pollOnce();
-    const gain = AudioContextStub.gains.at(-1)!;
-    assert.equal(element.muted, true, "the pipe renders while it is routable");
-    await playback.setSinkDevice("headphones");
-    assert.equal(element.muted, false);
-    assert.equal(gain.disconnects > 0, true, "the unusable pipe is disconnected, not left playing");
-    playback.stop();
-  } finally {
-    if (contextWithSink) Object.defineProperty(AudioContextStub.prototype, "setSinkId", contextWithSink);
-    else delete (AudioContextStub.prototype as unknown as Record<string, unknown>).setSinkId;
-    if (elementWithSink) Object.defineProperty(HTMLMediaElement.prototype, "setSinkId", elementWithSink);
-    else delete (HTMLMediaElement.prototype as unknown as Record<string, unknown>).setSinkId;
-  }
+test("a piped slot is never played twice", async () => {
+  // The whole point of muting the slot element: exactly one of {element, pipe}
+  // may render a member. Leaving both connected meant hearing them twice, once
+  // at full volume.
+  let master = 0.5;
+  const endpoints: Array<{ muted: boolean }> = [];
+  const playback = createWebRtcPlayback({
+    volume: () => master,
+    speakerVolume: () => 1,
+    onEndpoint: element => endpoints.push(element as unknown as { muted: boolean }),
+    onBlocked() {},
+    onPlaying() {},
+    onSlotActivity() {},
+  });
+  playback.attach(new MediaStream(), 0, receiverStub(() => 5));
+  const element = endpoints.at(-1)! as { muted: boolean };
+  playback.setSlotClients([7]);
+  await pollOnce();
+  const slots = new Set(endpoints);
+  const mix = ([...audioElements] as Array<{ muted: boolean }>).find(candidate => !slots.has(candidate as never))!;
+  assert.equal(element.muted, true, "the slot element is muted while the pipe renders");
+  assert.equal(mix.muted, false);
+  // Back to unity gain: the pipe is torn down and the element takes over.
+  master = 1;
+  playback.setVolume();
+  assert.equal(element.muted, false, "unity gain returns to the element");
+  assert.equal(mix.muted, true, "and the bus element stops rendering, so nothing plays twice");
+  playback.stop();
 });
 
 test("returning to the tab resumes an interrupted audio session", async () => {
@@ -375,5 +381,37 @@ test("a suspended context is not rebuilt and torn down on every volume tick", as
   for (let tick = 0; tick < 5; tick++) playback.setVolume();
   assert.equal(AudioContextStub.gains.length, gainsBefore, "no pipe is built while the context cannot render");
   assert.equal(element.muted, false, "the element carries the gain meanwhile");
+  playback.stop();
+});
+
+test("a blocked bus element keeps the slots on element volume instead of muting the room", async () => {
+  // If the mix-bus player cannot autoplay, the slots must not be muted for a
+  // pipe nobody hears — that combination is a silent room.
+  const endpoints: Array<{ muted: boolean; volume: number; play(): Promise<void> }> = [];
+  const playback = createWebRtcPlayback({
+    volume: () => 0.5,
+    speakerVolume: () => 1,
+    onEndpoint: element => endpoints.push(element as unknown as { muted: boolean; volume: number; play(): Promise<void> }),
+    onBlocked() {},
+    onPlaying() {},
+    onSlotActivity() {},
+  });
+  playback.attach(new MediaStream(), 0, receiverStub(() => 5));
+  playback.setSlotClients([7]);
+  await pollOnce();
+  const slots = new Set(endpoints);
+  const mix = ([...audioElements] as Array<{ muted: boolean; play(): Promise<void> }>)
+    .find(candidate => !slots.has(candidate as never));
+  assert.ok(mix, "a bus element exists");
+  // Refuse autoplay on the bus only (the slot elements keep their own behaviour).
+  mix!.play = () => Promise.reject(new DOMException("blocked", "NotAllowedError"));
+  // Re-drive the pipe so the slot applies the bus state it now reports.
+  await playback.play();
+  playback.setVolume();
+  await Promise.resolve();
+  await Promise.resolve();
+  const element = endpoints.at(-1)!;
+  assert.equal(element.muted, false, "the slot element stays audible");
+  assert.ok(element.volume <= 0.5 + 1e-9, "at its own volume, not muted");
   playback.stop();
 });

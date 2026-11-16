@@ -290,7 +290,6 @@ export const en: Record<string, string> = {
     defaultOutput: "Default browser output",
     outputVolume: "Output volume",
     outputDeviceUnsupported: "Output device selection is not supported by this browser. Using the default output device.",
-    outputDeviceGainLimit: "This browser (Chrome included) can only route the playback elements to a chosen device, so boosting a member above 100% is unavailable while a non-default output is selected. Attenuation still works.",
     notificationVolume: "Notification volume",
     desktopNotifications: "Desktop notifications",
     desktopNotificationsHint: "Show a system notification for pokes while this tab is in the background",

@@ -286,17 +286,6 @@ export function AudioSettingsDialog({ model, controls, voice, settingsError, des
                     size={16}
                   /><span>{t("outputDeviceUnsupported")}</span></p>
               )}
-              {/* A non-default output can only be routed by the playback
-                  elements, not by the Web Audio gain pipe, so >100% boost is
-                  unavailable there. Say so instead of letting the slider look
-                  like it works. */}
-              {model.outputDeviceSupported && model.selectedOutputDeviceId !== "" && (
-                <p className="mode-note" data-ws-part="audio-settings.gain-limit"
-                  ><Icon
-                    name="info"
-                    size={16}
-                  /><span>{t("outputDeviceGainLimit")}</span></p>
-              )}
               <div className="settings-range-row"
                 ><label className="settings-label">{t("speakers")}</label
                 ><strong>{Math.round(outputVolume * 100)}%</strong></div
