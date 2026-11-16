@@ -13,7 +13,7 @@ export interface FixtureSlot {
   markerPending: boolean;
   lastUsedAt: number;
   lastVid: number | null;
-  silentVid: number | null;
+  skippedVids: Set<number>;
   silentWhisper: boolean | null;
   vidWhisper: boolean;
   vidRejected: number;
@@ -43,9 +43,9 @@ export function fixture(overrides: Partial<{ slots: FixtureSlot[] }> = {}) {
     onVoiceRoutes: (() => {}) as (slots: readonly number[]) => void,
     slots: overrides.slots ?? [
       { track: makeTrack("slot-0"), clientId: 0, sequenceNumber: 100, timestamp: 5_000, markerPending: true, lastUsedAt: 0,
-        lastVid: null, silentVid: null, silentWhisper: null, vidWhisper: false, vidRejected: 0 },
+        lastVid: null, skippedVids: new Set(), silentWhisper: null, vidWhisper: false, vidRejected: 0 },
       { track: makeTrack("slot-1"), clientId: 0, sequenceNumber: 200, timestamp: 9_000, markerPending: true, lastUsedAt: 0,
-        lastVid: null, silentVid: null, silentWhisper: null, vidWhisper: false, vidRejected: 0 },
+        lastVid: null, skippedVids: new Set(), silentWhisper: null, vidWhisper: false, vidRejected: 0 },
     ] as FixtureSlot[],
     stats: {
       webrtcIngressRtpFrames: 0, webrtcIngressRtpFirstAt: null, webrtcIngressRtpLastAt: null, webrtcIngressRtpMaxGapMs: 0,

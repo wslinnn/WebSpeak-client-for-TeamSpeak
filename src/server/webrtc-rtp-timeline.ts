@@ -29,14 +29,23 @@ export const MAX_VID_GAP_FRAMES = 50;
  *  reset it can never silence itself for the rest of the call. */
 export const VID_REBASE_AFTER_REJECTS = 10;
 
+/** Upper bound on the skipped-sequence set. Skipped packets only matter until
+ *  the next accepted frame consumes them, and a gap never exceeds
+ *  MAX_VID_GAP_FRAMES, so this is decades of slack; the bound exists so a
+ *  hostile or broken sender cannot grow the set without limit. */
+const MAX_TRACKED_SKIPS = 128;
+
 /** The timeline state a slot carries. */
 export interface SlotTimeline {
   /** Last sender sequence relayed (null before the first keyed frame). */
   lastVid: number | null;
-  /** Highest deliberately-skipped sender sequence seen. Unlike `lastVid` it is
-   *  only used to shrink the next gap, never to advance the timeline. */
-  silentVid: number | null;
-  /** Which counter `silentVid` belongs to (whispers number separately). */
+  /** Sender sequences the gateway deliberately skipped (comfort noise, the
+   *  empty end-of-speech packet), as a set rather than a high-water mark: only
+   *  those exact values are known to carry no audio. A real frame lost *inside*
+   *  a paused stretch therefore still shows up as loss, and a skipped packet
+   *  that overtakes speech is not mistaken for one the timeline still owes. */
+  skippedVids: Set<number>;
+  /** Which counter the skipped set belongs to (whispers number separately). */
   silentWhisper: boolean | null;
   /** Which counter `lastVid` belongs to. */
   vidWhisper: boolean;
@@ -46,6 +55,20 @@ export interface SlotTimeline {
   timestamp: number;
 }
 
+/** A fresh timeline: RTP sequence/timestamp start at the caller's random draw
+ *  (RFC 3550 §5.1) and no sender counter has been seen yet. */
+export function createTimeline(sequenceNumber = 0, timestamp = 0): SlotTimeline {
+  return {
+    lastVid: null,
+    skippedVids: new Set(),
+    silentWhisper: null,
+    vidWhisper: false,
+    vidRejected: 0,
+    sequenceNumber,
+    timestamp,
+  };
+}
+
 /** Signed 16-bit difference: never compare counter values with `<`, they wrap
  *  from 65535 to 0. */
 export function vidDelta(to: number, from: number): number {
@@ -53,14 +76,36 @@ export function vidDelta(to: number, from: number): number {
 }
 
 /** Records a skipped packet (comfort noise / end-of-speech) against the slot.
- *  Only a high-water mark above the speech already forwarded is kept: these
- *  packets share the UDP path with speech, so a late one must not drag anything
- *  back and an early one must not be mistaken for speech that already passed. */
+ *  Packets at or behind the speech already forwarded are dropped: these share
+ *  the UDP path with speech, and a reordered leftover must not change what the
+ *  timeline owes. */
 export function noteSkippedPacket(timeline: SlotTimeline, vid: number, whisper: boolean): void {
   if (timeline.lastVid !== null && vidDelta(vid, timeline.lastVid) <= 0) return;
-  if (timeline.silentWhisper !== null && timeline.silentWhisper !== whisper) timeline.silentVid = null;
+  if (timeline.silentWhisper !== null && timeline.silentWhisper !== whisper) timeline.skippedVids.clear();
   timeline.silentWhisper = whisper;
-  if (timeline.silentVid === null || vidDelta(vid, timeline.silentVid) > 0) timeline.silentVid = vid;
+  timeline.skippedVids.add(vid);
+  if (timeline.skippedVids.size > MAX_TRACKED_SKIPS) {
+    // Forget the oldest entries: recompute the earliest by counter order rather
+    // than insertion order, since arrivals are not ordered.
+    const oldest = [...timeline.skippedVids].reduce((best, value) => (best === null || vidDelta(value, best) < 0 ? value : best), null as number | null);
+    if (oldest !== null) timeline.skippedVids.delete(oldest);
+  }
+}
+
+/** Drops every skipped sequence the accepted packet has now accounted for, and
+ *  returns how many of them sat between the previous baseline and it. Only
+ *  values strictly inside the span between `lastVid` and `vid` count: one the
+ *  sender has since passed is not part of this gap. */
+function takeSkipsInSpan(timeline: SlotTimeline, from: number, to: number, whisper: boolean): number {
+  if (timeline.silentWhisper !== whisper || timeline.skippedVids.size === 0) return 0;
+  let inside = 0;
+  for (const skipped of timeline.skippedVids) {
+    const offset = vidDelta(skipped, from);
+    if (offset > 0 && offset < vidDelta(to, from)) inside += 1;
+    // Reached or passed by the sender: the timeline will never owe it again.
+    if (vidDelta(skipped, to) <= 0) timeline.skippedVids.delete(skipped);
+  }
+  return inside;
 }
 
 export interface Placement {
@@ -85,7 +130,7 @@ export function placeOnTimeline(timeline: SlotTimeline, placement: Placement): P
   if (vid === null) {
     // No sender sequence to key on: keep the arrival-order timeline.
     timeline.lastVid = null;
-    timeline.silentVid = null;
+    timeline.skippedVids.clear();
     timeline.silentWhisper = null;
     timeline.vidRejected = 0;
     timeline.vidWhisper = whisper;
@@ -95,12 +140,11 @@ export function placeOnTimeline(timeline: SlotTimeline, placement: Placement): P
   if (timeline.lastVid !== null && timeline.vidWhisper === whisper) {
     let delta = vidDelta(vid, timeline.lastVid);
     // Packets the gateway skipped consumed counter values without carrying
-    // audio: subtract them so a pause is not reported as loss. What remains
-    // really was lost.
-    if (timeline.silentVid !== null && timeline.silentWhisper === whisper) {
-      const silent = vidDelta(timeline.silentVid, timeline.lastVid);
-      if (silent > 0 && silent <= MAX_VID_GAP_FRAMES) delta = Math.max(1, delta - silent);
-    }
+    // audio, so they must not be reported as loss. Only the exact skipped
+    // values are discounted: a frame genuinely lost inside the same stretch
+    // still produces a hole, which is what the receiver needs to conceal.
+    const skipped = takeSkipsInSpan(timeline, timeline.lastVid, vid, whisper);
+    if (skipped > 0) delta = Math.max(1, delta - skipped);
     if (delta <= 0) {
       // A repeat forwards the same syllable twice; a packet that arrived after
       // a later one would move the audio backwards. Either way the receiver
@@ -112,15 +156,19 @@ export function placeOnTimeline(timeline: SlotTimeline, placement: Placement): P
       timeline.vidRejected = 0;
       timeline.lastVid = vid;
       timeline.vidWhisper = whisper;
-      timeline.silentVid = null;
+      timeline.skippedVids.clear();
+      timeline.silentWhisper = null;
       return { accepted: true, advance: 1 };
     }
     if (delta <= MAX_VID_GAP_FRAMES) advance = delta;
     // A larger jump is a counter restart, not loss: rebase (advance stays 1).
+  } else {
+    // A counter-domain switch (or the first keyed frame): nothing tracked under
+    // the other counter applies here.
+    timeline.skippedVids.clear();
+    timeline.silentWhisper = null;
   }
   timeline.vidRejected = 0;
-  timeline.silentVid = null;
-  timeline.silentWhisper = null;
   timeline.lastVid = vid;
   timeline.vidWhisper = whisper;
   return { accepted: true, advance };
@@ -140,7 +188,7 @@ export function openGap(timeline: SlotTimeline, advance: number, samples: number
  *  timeline (RFC 3550), and only the mark bit announces the new talk spurt. */
 export function resetSenderBaseline(timeline: SlotTimeline): void {
   timeline.lastVid = null;
-  timeline.silentVid = null;
+  timeline.skippedVids.clear();
   timeline.silentWhisper = null;
   timeline.vidRejected = 0;
 }

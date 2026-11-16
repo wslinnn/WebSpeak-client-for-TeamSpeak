@@ -10,7 +10,7 @@ import type { Logger as LoggerType } from "../logger.js";
 import type { TSVoiceData } from "./ts-client.js";
 import { isAcceptableRemoteIceCandidate, WEBRTC_UDP_PORT_RANGE } from "./webrtc-config.js";
 import { opusFrameDurationMs } from "./opus-frame.js";
-import { noteSkippedPacket, openGap, placeOnTimeline, resetSenderBaseline } from "./webrtc-rtp-timeline.js";
+import { noteSkippedPacket, openGap, placeOnTimeline, resetSenderBaseline, type SlotTimeline } from "./webrtc-rtp-timeline.js";
 import {
   MAX_DOWNSTREAM_SLOTS,
   WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS,
@@ -96,30 +96,11 @@ export interface WebRtcAudioStats {
   webrtcActiveSpeakerSlots: number;
 }
 
-interface DownstreamSlot {
+interface DownstreamSlot extends SlotTimeline {
   track: MediaStreamTrack;
   clientId: number;
-  sequenceNumber: number;
-  timestamp: number;
   markerPending: boolean;
   lastUsedAt: number;
-  /** Last TeamSpeak sender sequence relayed on this slot (null while the slot
-   *  has no sender sequence to follow). */
-  lastVid: number | null;
-  /** Highest deliberately-skipped sender sequence seen (comfort noise, the
-   *  end-of-speech packet). Kept apart from `lastVid` so the gap accounting
-   *  never mistakes a skipped packet for a lost one — or the other way round.
-   *  See noteSilentTeamSpeakPacket. */
-  silentVid: number | null;
-  /** Which counter `silentVid` belongs to, so a whisper counter cannot be
-   *  compared against the normal voice one. */
-  silentWhisper: boolean | null;
-  /** True while `lastVid` belongs to the speaker's whisper counter, which
-   *  TeamSpeak numbers separately from its normal voice counter. */
-  vidWhisper: boolean;
-  /** Packets rejected as duplicates or late reordering since the last accepted
-   *  one (see VID_REBASE_AFTER_REJECTS). */
-  vidRejected: number;
 }
 
 /**
@@ -318,7 +299,7 @@ export class WebRtcAudioSession {
         markerPending: true,
         lastUsedAt: 0,
         lastVid: null,
-        silentVid: null,
+        skippedVids: new Set(),
         silentWhisper: null,
         vidWhisper: false,
         vidRejected: 0,
@@ -390,7 +371,7 @@ export class WebRtcAudioSession {
     }
     const slot = this.slotFor(data.clientId);
     const samples = Math.round(durationMs * RTP_SAMPLES_PER_MS);
-    if (!slot || !this.placeOnTimeline(slot, data, samples, frameIndex > 0)) {
+    if (!slot || !this.placeOnSlotTimeline(slot, data, samples, frameIndex > 0)) {
       this.stats.webrtcDownlinkDroppedFrames++;
       return false;
     }
@@ -424,8 +405,9 @@ export class WebRtcAudioSession {
     }
   }
 
-  /** Places the frame on the slot's RTP timeline (see webrtc-rtp-timeline). */
-  private placeOnTimeline(slot: DownstreamSlot, data: TSVoiceData, samples: number, continuation: boolean): boolean {
+  /** Places the frame on the slot's RTP timeline (see webrtc-rtp-timeline);
+   *  named apart from the imported decision function it delegates to. */
+  private placeOnSlotTimeline(slot: DownstreamSlot, data: TSVoiceData, samples: number, continuation: boolean): boolean {
     const rawVid = data.vid;
     const placement = placeOnTimeline(slot, {
       vid: typeof rawVid === "number" && Number.isInteger(rawVid) ? rawVid & 0xffff : null,
