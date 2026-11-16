@@ -48,8 +48,10 @@
 - WebRTC pacer 空闲 200ms 停表、入帧即恢复（禁止逐帧门控）。
 - **槽位上限是共享契约**（`MAX_DOWNSTREAM_SLOTS`，`src/shared/webrtc.ts`）：浏览器开轨数、网关建槽数、voiceRoute 解析器上限三处同源。各自写数字会在扩容时静默崩掉——解析器拒收整条 voiceRoute，所有槽位失绑（2026-11-13 round2 实锤）。
 - **WS 出站积压按每说话者定容**：缓冲的是下行 Opus 包（几十字节），不是上行 1920B PCM 帧；阈值 = 1.5KB × 当前窗口内说话者数（quality-10 的 ~115B/包 ≈13 帧 260ms，与浏览器每说话者 240ms 解码队列窗口同量级；45B/包时 ≈34 帧 680ms，低码率下放心更松）。
-- **舒适噪声/结束包只推 VId 基线**：TS 的 seq 对每个包 +1（含说话结束），过滤掉不转发时用 `noteSilentTeamSpeakPacket` 更新基线，否则每个短停顿都会被当成成批丢包插洞（0.5s 静音 = 480ms 隐蔽噪声）。一包多帧共享同一 seq，第一帧被拒则整包跳过。**静音包只记单调前进的高水位、从缺口里扣除**（既不推进基线也不留洞）：乱序的 CN 不会回退基线，停顿不会被报成丢包，同一缺口里的真实丢包仍留洞。
+- **舒适噪声/结束包只推 VId 基线**：TS 的 seq 对每个包 +1（含说话结束），过滤掉不转发时用 `noteSilentTeamSpeakPacket` 更新基线，否则每个短停顿都会被当成成批丢包插洞（0.5s 静音 = 480ms 隐蔽噪声）。一包多帧共享同一 seq，第一帧被拒则整包跳过。**静音包记成「跳过的序号集合」、按值从缺口里扣除**（既不推进基线也不留洞）：只有网关确实丢弃的那些序号被折扣，所以停顿不会被报成丢包，而**同一次停顿里真实丢失的语音仍然留洞**；乱序越过语音的 CN 在语音追过后也不再算欠账。集合按 `MAX_TRACKED_SKIPS` 有界（128），坏发送方无法撑爆内存。
 - **说话徽标的时间基准**：`getSynchronizationSources().timestamp` 在本机 Chromium 实测是 epoch 毫秒（不是 `performance.now()` 相对值），且源条目在最后一包后约 10 秒才移除——按相对值算 age 会让徽标常亮 10 秒。判定必须双时钟归一，「有源但无 timestamp」按无信息处理。
+- **输出设备与 >100% 增益互斥（Chromium 实测）**：`AudioContext.setSinkId` 在 Chromium 上**原型和实例都没有**（只有 `HTMLMediaElement` 有，2026-11-16 实测）。所以只要选了非默认输出，走增益管线的槽位必须回退元素音量——`element.volume` 在 Chrome 生效，但 `clamp01` 会把 >100% 的增强吃掉。设置页对此有显式提示；彻底解耦的做法是「增益管线 → `MediaStreamAudioDestinationNode` → 可 `setSinkId` 的 `<audio>`」（探针已验证该链路可播放、可路由，尚未实施）。
+- **说话徽标的时钟是 monotonic epoch**：判定用 `performance.timeOrigin + performance.now()` 而不是 `Date.now()`，墙钟被 NTP 调整时不会让说话者被判静音一小时（或反过来常亮到时钟追上）。
 - **增益管线可路由性与挂起恢复**：选了非默认输出且 AudioContext 无 `setSinkId` 时管线不可路由（元素有），槽位回退 element 音量；上下文运行中被挂起要回退 element 音量并在 statechange/visibilitychange 恢复，否则 muted 元素 + 暂停管线 = 整体静音。
 - **VOX 用整帧能量、按增益前电平判定**（`vox-gate.ts`）：只看帧头 256 样本（5ms）会把爆破音/缓慢起音的词头整帧丢掉；抽头在 gain/limiter 之后，不按 `inputVolume` 还原会让音量滑条改变 VOX 灵敏度。worklet 已算好的 rms 直接用，ScriptProcessor 回退才现算。
 - **切输入设备/处理开关只 replaceTrack，不重建 peer**（2026-11-13）：采集图落定后 `sender.replaceTrack` + 重挂电平抽头，peer 与全部下行槽位不动；只有 replaceTrack 被拒绝才回退到重建传输（重建会让其他成员静音整轮 offer/answer）。
