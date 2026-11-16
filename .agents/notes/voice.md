@@ -46,6 +46,10 @@
 - **协商完成（answer 应用）前不得向槽位注入 RTP**——Chrome 会把未信令 SSRC 错误关联到已存在 m-section 永久污染。
 - `onSlotActivity` 是**电平语义**：active 期间每次轮询（350ms）都上报，靠消费方的自熄 hold（360ms）续命；只报上升沿会让持续说话的成员在 360ms 后熄灯（兼容路径按帧重 mark 不受影响，WebRTC 路径的轮询是唯一心跳）。槽位换人时必须用**旧** clientId 清灯。
 - WebRTC pacer 空闲 200ms 停表、入帧即恢复（禁止逐帧门控）。
+- **槽位上限是共享契约**（`MAX_DOWNSTREAM_SLOTS`，`src/shared/webrtc.ts`）：浏览器开轨数、网关建槽数、voiceRoute 解析器上限三处同源。各自写数字会在扩容时静默崩掉——解析器拒收整条 voiceRoute，所有槽位失绑（2026-11-13 round2 实锤）。
+- **WS 出站积压按每说话者定容**：缓冲的是下行 Opus 包（几十字节），不是上行 1920B PCM 帧；阈值 = 2KB（约 320ms）× 当前窗口内说话者数，与浏览器每说话者 250ms 抖动窗口同量级。
+- **舒适噪声/结束包只推 VId 基线**：TS 的 seq 对每个包 +1（含说话结束），过滤掉不转发时用 `noteSilentTeamSpeakPacket` 更新基线，否则每个短停顿都会被当成成批丢包插洞（0.5s 静音 = 480ms 隐蔽噪声）。一包多帧共享同一 seq，第一帧被拒则整包跳过。
+- **增益管线可路由性与挂起恢复**：选了非默认输出且 AudioContext 无 `setSinkId` 时管线不可路由（元素有），槽位回退 element 音量；上下文运行中被挂起要回退 element 音量并在 statechange/visibilitychange 恢复，否则 muted 元素 + 暂停管线 = 整体静音。
 - **VOX 用整帧能量、按增益前电平判定**（`vox-gate.ts`）：只看帧头 256 样本（5ms）会把爆破音/缓慢起音的词头整帧丢掉；抽头在 gain/limiter 之后，不按 `inputVolume` 还原会让音量滑条改变 VOX 灵敏度。worklet 已算好的 rms 直接用，ScriptProcessor 回退才现算。
 - **切输入设备/处理开关只 replaceTrack，不重建 peer**（2026-11-13）：采集图落定后 `sender.replaceTrack` + 重挂电平抽头，peer 与全部下行槽位不动；只有 replaceTrack 被拒绝才回退到重建传输（重建会让其他成员静音整轮 offer/answer）。
 - **媒体层静默死亡自愈（2026-11-04 拍板，洞 2 收账）**：ICE `connectionState failed` 只死媒体不死 WS——掉线恢复机器（票据/重连）全程无触发条件，旧设计在 fail 后「语音熄灭等手动重连」，即「突然没声音、刷新恢复」的根因。现由 audio-devices **自动重建预算**接管：2s/8s/30s 退避，重建=与重连链路同一路径（新 peer + re-offer + 槽位重绑）；仅会话在联（`V().connected`）时触发，WS 掉线场景静默让位给既有恢复链路；烧尽才落 `WEBRTC_UNAVAILABLE`；传输成功建联（onReady）清预算并撤陈旧定时器。`connectionState` 全迁移打 console 点，与网关侧同名字段日志（webrtc-audio.ts 只记日志）成对——「环境性 UDP 断流」的证据链。语音与屏共是**独立 RTCPeerConnection**（语音单 STUN / 屏共独立 ICE 配置），不共享 ICE 传输；唯一耦合是同一条 NAT 出口（屏共同断即环境实锤）。
