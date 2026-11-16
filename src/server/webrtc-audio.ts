@@ -10,6 +10,7 @@ import type { Logger as LoggerType } from "../logger.js";
 import type { TSVoiceData } from "./ts-client.js";
 import { isAcceptableRemoteIceCandidate, WEBRTC_UDP_PORT_RANGE } from "./webrtc-config.js";
 import { opusFrameDurationMs } from "./opus-frame.js";
+import { noteSkippedPacket, openGap, placeOnTimeline, resetSenderBaseline } from "./webrtc-rtp-timeline.js";
 import {
   MAX_DOWNSTREAM_SLOTS,
   WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS,
@@ -36,14 +37,6 @@ const DEFAULT_WEBRTC_OPUS_PAYLOAD_TYPE = 111;
 // re-broadcast the whole route table and restarted an RTP timeline 50 times a
 // second (both the displaced and the newcomer kept evicting each other).
 const SLOT_PREEMPT_IDLE_MS = 2_000;
-// A sender-sequence jump larger than this is not packet loss (that would be a
-// multi-second outage on a 50 Hz stream): the speaker's client restarted its
-// counter. Rebase onto the new counter instead of emitting a huge gap.
-const MAX_VID_GAP_FRAMES = 50;
-// A sender sequence that keeps counting backwards is not reordering either:
-// after this many rejected frames the counter is rebased so a client that
-// reset it can never silence itself for the rest of the call.
-const VID_REBASE_AFTER_REJECTS = 10;
 
 /** RFC 6464 ssrc-audio-level header extension. Configuring the URI (not a
  *  fixed id) is what matters: werift keeps the remote offer's extension id
@@ -113,6 +106,14 @@ interface DownstreamSlot {
   /** Last TeamSpeak sender sequence relayed on this slot (null while the slot
    *  has no sender sequence to follow). */
   lastVid: number | null;
+  /** Highest deliberately-skipped sender sequence seen (comfort noise, the
+   *  end-of-speech packet). Kept apart from `lastVid` so the gap accounting
+   *  never mistakes a skipped packet for a lost one — or the other way round.
+   *  See noteSilentTeamSpeakPacket. */
+  silentVid: number | null;
+  /** Which counter `silentVid` belongs to, so a whisper counter cannot be
+   *  compared against the normal voice one. */
+  silentWhisper: boolean | null;
   /** True while `lastVid` belongs to the speaker's whisper counter, which
    *  TeamSpeak numbers separately from its normal voice counter. */
   vidWhisper: boolean;
@@ -317,6 +318,8 @@ export class WebRtcAudioSession {
         markerPending: true,
         lastUsedAt: 0,
         lastVid: null,
+        silentVid: null,
+        silentWhisper: null,
         vidWhisper: false,
         vidRejected: 0,
       });
@@ -352,23 +355,18 @@ export class WebRtcAudioSession {
     return { type: description.type, sdp: description.sdp };
   }
 
-  /** Records a TeamSpeak packet that is deliberately not relayed (comfort
-   *  noise, or the empty end-of-speech packet) against its speaker's
-   *  sender-sequence baseline. Such packets still consume a sequence number,
-   *  so ignoring them would read the next real frame as a burst of loss and
-   *  turn every short pause into a concealment hole. The RTP timeline does
-   *  not move. */
+  /** Records a skipped packet (comfort noise, the empty end-of-speech packet)
+   *  so the next real frame does not read the pause as packet loss. The RTP
+   *  timeline does not move: nothing is emitted. */
   noteSilentTeamSpeakPacket(data: TSVoiceData): void {
     if (this.closed) return;
     const rawVid = data.vid;
-    // A speaker who only sends comfort noise has no slot yet, and must not
-    // take one just for being silent.
     if (typeof rawVid !== "number" || !Number.isInteger(rawVid)) return;
+    // A speaker who only sends comfort noise has no slot yet, and must not take
+    // one just for being silent.
     const slot = this.slots.find(candidate => candidate.clientId === data.clientId);
     if (!slot) return;
-    slot.lastVid = rawVid & 0xffff;
-    slot.vidWhisper = data.isWhisper === true;
-    slot.vidRejected = 0;
+    noteSkippedPacket(slot, rawVid & 0xffff, data.isWhisper === true);
   }
 
   /** Relays one TeamSpeak voice frame to the speaker's downstream slot. The
@@ -426,60 +424,16 @@ export class WebRtcAudioSession {
     }
   }
 
-  /** Places the frame on the slot's RTP timeline. Returns false when the frame
-   *  must not be forwarded (a duplicate, or a packet that arrived after a later
-   *  one — putting it back in time would make the browser play the audio out of
-   *  order). A sender-sequence gap is turned into a sequence/timestamp hole so
-   *  the browser conceals the missing audio instead of playing the rest of the
-   *  speech slightly fast. */
+  /** Places the frame on the slot's RTP timeline (see webrtc-rtp-timeline). */
   private placeOnTimeline(slot: DownstreamSlot, data: TSVoiceData, samples: number, continuation: boolean): boolean {
-    const whisper = data.isWhisper === true;
     const rawVid = data.vid;
-    const vid = typeof rawVid === "number" && Number.isInteger(rawVid) ? rawVid & 0xffff : null;
-    if (continuation) {
-      // Another Opus frame of the packet already on the timeline: it shares
-      // that packet's sender sequence, so no gap and no new baseline.
-      return true;
-    }
-    if (vid === null) {
-      // No sender sequence to key on (legacy SDK event): keep the arrival-order
-      // timeline this path has always used.
-      slot.lastVid = null;
-      slot.vidRejected = 0;
-      slot.vidWhisper = whisper;
-      return true;
-    }
-    let advance = 1;
-    if (slot.lastVid !== null && slot.vidWhisper === whisper) {
-      // RFC-equivalent comparison for a 16-bit counter: the signed difference,
-      // never `a < b` (it wraps from 65535 to 0).
-      const delta = ((vid - slot.lastVid) << 16) >> 16;
-      if (delta <= 0) {
-        // A repeat forwards the same syllable twice; a packet that arrived
-        // after a later one would move the audio backwards in time. Either way
-        // the receiver cannot use it. Ten rejects in a row are not reordering
-        // but a restarted counter: rebase so the member is heard again instead
-        // of being dropped forever.
-        slot.vidRejected += 1;
-        if (slot.vidRejected < VID_REBASE_AFTER_REJECTS) return false;
-        slot.vidRejected = 0;
-        slot.lastVid = vid;
-        slot.vidWhisper = whisper;
-        return true;
-      }
-      if (delta <= MAX_VID_GAP_FRAMES) advance = delta;
-      // A larger jump is a counter restart, not loss: rebase (advance stays 1).
-    }
-    slot.vidRejected = 0;
-    if (advance > 1) {
-      // Leave the hole *before* this packet: the receiver then sees the gap
-      // between the previous packet and this one, and this packet's timestamp
-      // lands delta frame durations later.
-      slot.sequenceNumber = (slot.sequenceNumber + (advance - 1)) & 0xffff;
-      slot.timestamp = (slot.timestamp + (advance - 1) * samples) >>> 0;
-    }
-    slot.lastVid = vid;
-    slot.vidWhisper = whisper;
+    const placement = placeOnTimeline(slot, {
+      vid: typeof rawVid === "number" && Number.isInteger(rawVid) ? rawVid & 0xffff : null,
+      whisper: data.isWhisper === true,
+      continuation,
+    });
+    if (!placement.accepted) return false;
+    openGap(slot, placement.advance, samples);
     return true;
   }
 
@@ -538,9 +492,9 @@ export class WebRtcAudioSession {
     slot.clientId = 0;
     slot.markerPending = true;
     // The RTP timeline is not reset here: the slot keeps its sequence space
-    // and the next speaker continues it (see slotFor).
-    slot.lastVid = null;
-    slot.vidRejected = 0;
+    // and the next speaker continues it (see slotFor). The sender-sequence
+    // baselines belong to the departed speaker and must start over.
+    resetSenderBaseline(slot);
     this.onVoiceRoutes(this.slots.map(assigned => assigned.clientId));
   }
 
@@ -572,8 +526,7 @@ export class WebRtcAudioSession {
     // SSRC; the previous random restart made the browser's jitter buffer read
     // the new speaker as loss or reordering. The marker bit is what tells the
     // receiver a new talk spurt starts here.
-    slot.lastVid = null;
-    slot.vidRejected = 0;
+    resetSenderBaseline(slot);
     slot.lastUsedAt = now;
     this.onVoiceRoutes(this.slots.map(assigned => assigned.clientId));
     return slot;

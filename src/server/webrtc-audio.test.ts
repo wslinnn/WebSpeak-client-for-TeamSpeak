@@ -127,9 +127,11 @@ test("TeamSpeak frames are relayed byte-identically with rewritten RTP framing",
   // stream must simply advance continuously from it.
   assert.equal(second!.header.sequenceNumber, (first!.header.sequenceNumber + 1) & 0xffff);
   assert.equal(third!.header.sequenceNumber, (first!.header.sequenceNumber + 2) & 0xffff);
-  // A packet's timestamp offset equals the *previous* packet's audio duration.
-  assert.equal(second!.header.timestamp, (first!.header.timestamp + 960) >>> 0, "the 20 ms frame advances 20 ms of samples");
-  assert.equal(third!.header.timestamp, (second!.header.timestamp + 1_920) >>> 0, "the 40 ms frame advances 40 ms of samples");
+  // A packet's timestamp is the start of its own audio: it advances by the
+  // duration of the packet before it (RFC 3550 — the timestamp marks the first
+  // sample of the payload).
+  assert.equal(second!.header.timestamp, (first!.header.timestamp + 960) >>> 0, "the second packet starts one 20 ms frame in");
+  assert.equal(third!.header.timestamp, (second!.header.timestamp + 1_920) >>> 0, "the third packet starts 40 ms after the second");
   assert.equal(f.resources.slots[0].clientId, 7);
   assert.equal(f.resources.stats.webrtcDownlinkForwardedFrames, 3);
 });
