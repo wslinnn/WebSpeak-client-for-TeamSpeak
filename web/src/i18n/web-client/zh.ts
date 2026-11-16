@@ -290,6 +290,7 @@ export const zh: Record<string, string> = {
     defaultOutput: "默认浏览器输出",
     outputVolume: "输出音量",
     outputDeviceUnsupported: "当前浏览器不支持扬声器设备选择，将使用默认输出设备。",
+    outputDeviceGainLimit: "当前浏览器（含 Chrome）只允许把播放元素路由到指定设备，选择非默认输出时超过 100% 的音量增强不可用；衰减仍正常。",
     notificationVolume: "通知音量",
     desktopNotifications: "桌面通知",
     desktopNotificationsHint: "页面在后台时，通过系统通知提醒戳一戳",

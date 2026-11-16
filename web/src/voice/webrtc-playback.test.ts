@@ -357,3 +357,23 @@ test("returning to the tab resumes an interrupted audio session", async () => {
     playback.stop();
   }
 });
+
+test("a suspended context is not rebuilt and torn down on every volume tick", async () => {
+  // While the context cannot run (no gesture yet, iOS interruption) every apply
+  // used to create an audio node pair and immediately destroy it again — on
+  // each slider tick, slot binding and speaker refresh.
+  const { playback, attach } = harness({ master: 0.5 });
+  const element = attach(0, () => 5);
+  playback.setSlotClients([7]);
+  await pollOnce();
+  const context = AudioContextStub.instances.at(-1)!;
+  // Keep it down: this stub refuses to resume.
+  context.resume = async () => undefined;
+  context.state = "suspended";
+  context.dispatchEvent(new Event("statechange"));
+  const gainsBefore = AudioContextStub.gains.length;
+  for (let tick = 0; tick < 5; tick++) playback.setVolume();
+  assert.equal(AudioContextStub.gains.length, gainsBefore, "no pipe is built while the context cannot render");
+  assert.equal(element.muted, false, "the element carries the gain meanwhile");
+  playback.stop();
+});

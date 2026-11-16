@@ -215,16 +215,27 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       return;
     }
     // A pipe that cannot be routed (the browser has no AudioContext.setSinkId
-    // while a non-default sink is chosen) or that is not running must not be
-    // left connected: it would keep rendering on the default device while the
-    // element renders on the chosen one — the member heard twice, once at full
-    // volume. Tear it down and let the element carry the gain; a later
-    // applySlotPlayback rebuilds the pipe once the context can render again.
+    // while a non-default sink is chosen) must not be left connected: it would
+    // keep rendering on the default device while the element renders on the
+    // chosen one — the member heard twice, once at full volume. Tear it down and
+    // let the element carry the gain; a later applySlotPlayback rebuilds the
+    // pipe once it can render again.
     if (!ampUsable(sinkDevice)) {
       teardownAmp(slot);
       slot.element.muted = false;
       slot.element.volume = clamp01(combined);
       if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "pipe unusable, element", clamp01(combined));
+      return;
+    }
+    // A context that exists but is not running (autoplay policy, an iOS call)
+    // cannot render: check before building a pipe, so a suspended window does
+    // not create and immediately destroy an audio node pair on every volume
+    // tick, slot binding or speaker refresh.
+    if (ampContext && !ampRunning(ampContext)) {
+      teardownAmp(slot);
+      slot.element.muted = false;
+      slot.element.volume = clamp01(combined);
+      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "pipe not running, element", clamp01(combined));
       return;
     }
     const pipe = ensureAmp(slot);
