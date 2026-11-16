@@ -302,25 +302,31 @@ test("uplink silence gate fails open when no decoder is wired (legacy constructi
 
 test("backpressure tolerates a per-speaker jitter backlog and drops beyond it without a retained queue", () => {
   const f = fixture();
-  // The socket buffers Opus packets (3-byte header + payload), not PCM frames:
-  // a 42-byte payload is a realistic TeamSpeak voice packet. One speaker may
-  // queue 2 KiB (~16 frames / 320 ms) before the gateway starts dropping.
-  const payload = 42;
-  f.socket.bufferedAmount = 2_048;
+  // The socket buffers Opus packets (3-byte header + payload), not PCM frames.
+  // At the quality-10 rate the WebRTC path targets (~112 B payload, 115 B per
+  // packet) 1.5 KiB is ~13 frames ≈ 260 ms — the browser's decoder-queue
+  // window. (At the 45 B packets measured on the wire it is ~34 frames, i.e.
+  // deliberately loose: dropping a cheap-payload burst costs more than a
+  // little latency.)
+  const payload = 112;
+  const cap = 1_536;
+  const packetBytes = 3 + payload;
+  f.socket.bufferedAmount = cap;
   f.transport.receiveTeamSpeak(f.remote(513, payload));
-  f.socket.bufferedAmount = 2_049;
+  f.socket.bufferedAmount = cap + 1;
   for (let i = 0; i < 100; i++) f.transport.receiveTeamSpeak(f.remote(513, payload));
   assert.equal(f.packets.length, 1);
   assert.equal(f.audio.egressDroppedFrames, 100);
-  // A second speaker doubles the budget: the browser's jitter window is per
-  // speaker, so the backlog it can absorb is too.
-  f.socket.bufferedAmount = 3_000;
+  assert.ok(Math.round(cap / packetBytes) >= 12 && Math.round(cap / packetBytes) <= 14, "the cap lands in the jitter-window range");
+  // A second speaker doubles the budget: the browser's window is per speaker,
+  // so the backlog it can absorb is too.
+  f.socket.bufferedAmount = cap + packetBytes;
   f.transport.receiveTeamSpeak(f.remote(777, payload));
   assert.equal(f.packets.length, 2, "a second speaker may use the doubled budget");
   f.socket.bufferedAmount = 0;
   f.transport.receiveTeamSpeak(f.remote(513, payload));
   assert.equal(f.packets.length, 3);
-  assert.equal(f.audio.egressPeakBufferedBytes, 3_000);
+  assert.equal(f.audio.egressPeakBufferedBytes, cap + packetBytes);
 });
 
 test("the per-client egress table prunes speakers silent for ten minutes (报告 21 L7)", () => {

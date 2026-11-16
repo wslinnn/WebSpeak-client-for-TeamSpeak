@@ -8,14 +8,18 @@ import { splitVoicePayload } from "./voice-payload.js";
 
 const AUDIO_FRAME_BYTES = 1_920; // 20 ms of 48 kHz mono Int16 PCM.
 // Compatibility egress is one ordered TCP stream: a stalled socket turns into
-// queue growth, and the browser plays this path through a 250 ms per-speaker
-// jitter window. The backlog guard therefore measures what the socket actually
-// buffers — *Opus* packets (3-byte header + payload, tens to a few hundred
-// bytes each), never the 1920-byte PCM frames the uplink uses — and scales with
-// the number of speakers being relayed, because the browser's window is per
-// speaker: one speaker may queue ~16 frames (320 ms), eight speakers may queue
-// eight times that before anyone hears stale audio.
-const MAX_EGRESS_BACKLOG_BYTES_PER_SPEAKER = 2_048;
+// queue growth, and the browser plays this path through a 240 ms per-speaker
+// decoder-queue window, so the gateway must not queue much deeper than that.
+// The backlog guard measures what the socket actually buffers — *Opus* packets
+// (3-byte header + payload), never the 1920-byte PCM frames the uplink uses —
+// and scales with the number of speakers being relayed, because the browser's
+// window is per speaker.
+//
+// 1.5 KiB is chosen to match that window at the TeamSpeak quality-10 rate the
+// WebRTC path targets: ~115 B/packet → ~13 frames ≈ 260 ms. It is deliberately
+// loose at low bitrates (~45 B/packet → ~34 frames ≈ 680 ms), where the audio
+// is cheap and dropping a burst costs more than a little latency.
+const MAX_EGRESS_BACKLOG_BYTES_PER_SPEAKER = 1_536;
 const EGRESS_SPEAKER_WINDOW_MS = 1_000;
 // A malformed frame at voice rate is one error per 20 ms; replying per frame
 // turns a bad client into a 100x reply amplifier. Report at most once per
@@ -435,11 +439,6 @@ export class SessionAudioTransport {
     const key = String(data.clientId);
     stats.egressFramesByClient[key] = (stats.egressFramesByClient[key] ?? 0) + frames.length;
     this.egressClientLastSeen.set(key, now);
-    if (now - this.egressSpeakerWindowStart >= EGRESS_SPEAKER_WINDOW_MS) {
-      this.egressSpeakerWindowStart = now;
-      this.egressSpeakers.clear();
-    }
-    this.egressSpeakers.add(key);
     if (this.egressClientLastSeen.size > EGRESS_CLIENT_PRUNE_THRESHOLD
       && now - this.egressClientsPrunedAt >= EGRESS_CLIENT_PRUNE_INTERVAL_MS) {
       this.egressClientsPrunedAt = now;
@@ -465,6 +464,13 @@ export class SessionAudioTransport {
       }
       return;
     }
+    // The backlog budget is per speaker, and this is the only path that queues
+    // on a socket: the WebRTC branch never reads it.
+    if (now - this.egressSpeakerWindowStart >= EGRESS_SPEAKER_WINDOW_MS) {
+      this.egressSpeakerWindowStart = now;
+      this.egressSpeakers.clear();
+    }
+    this.egressSpeakers.add(key);
     const backlogCap = MAX_EGRESS_BACKLOG_BYTES_PER_SPEAKER * Math.max(1, this.egressSpeakers.size);
     for (const frame of frames) {
       const bufferedBytes = this.options.socket.bufferedAmount;
