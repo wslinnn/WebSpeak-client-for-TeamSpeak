@@ -415,3 +415,58 @@ test("a blocked bus element keeps the slots on element volume instead of muting 
   assert.ok(element.volume <= 0.5 + 1e-9, "at its own volume, not muted");
   playback.stop();
 });
+
+test("a blocked room is still reported while a mix bus exists", async () => {
+  // The real autoplay rule (measured in Chromium): an unmuted element's play()
+  // is refused, a muted one's succeeds. The bus is muted until a pipe unmutes
+  // it, so its play() can succeed while the room is silent — which is exactly
+  // why its result must not be folded into the slot verdict.
+  const events: string[] = [];
+  const endpoints: Array<{ muted: boolean; play(): Promise<void> }> = [];
+  const playback = createWebRtcPlayback({
+    volume: () => 0.5,
+    speakerVolume: () => 1,
+    onEndpoint: element => endpoints.push(element as unknown as { muted: boolean; play(): Promise<void> }),
+    onBlocked: blocked => events.push(blocked ? "blocked" : "clear"),
+    onPlaying: () => events.push("playing"),
+    onSlotActivity() {},
+  });
+  playback.attach(new MediaStream(), 0, receiverStub(() => 5));
+  playback.setSlotClients([7]);
+  await pollOnce();
+  // Every element obeys the browser rule from now on.
+  for (const element of [...audioElements] as Array<{ muted: boolean; play(): Promise<void> }>) {
+    element.play = function play(this: { muted: boolean }) {
+      return this.muted ? Promise.resolve() : Promise.reject(new DOMException("blocked", "NotAllowedError"));
+    };
+  }
+  events.length = 0;
+  await playback.play();
+  assert.deepEqual(events, ["blocked"], "the notice is raised even though the muted bus 'played'");
+  playback.stop();
+});
+
+test("a bus blocked while the slot element plays is not a blocked room", async () => {
+  // The slot element carries the member's audio when the pipe is unavailable,
+  // so a refused bus alone must not raise the banner.
+  const events: string[] = [];
+  const endpoints: Array<{ muted: boolean; play(): Promise<void> }> = [];
+  const playback = createWebRtcPlayback({
+    volume: () => 0.5,
+    speakerVolume: () => 1,
+    onEndpoint: element => endpoints.push(element as unknown as { muted: boolean; play(): Promise<void> }),
+    onBlocked: blocked => events.push(blocked ? "blocked" : "clear"),
+    onPlaying: () => events.push("playing"),
+    onSlotActivity() {},
+  });
+  playback.attach(new MediaStream(), 0, receiverStub(() => 5));
+  playback.setSlotClients([7]);
+  await pollOnce();
+  const slots = new Set(endpoints);
+  const mix = ([...audioElements] as Array<{ muted: boolean; play(): Promise<void> }>)
+    .find(candidate => !slots.has(candidate as never))!;
+  mix.play = () => Promise.reject(new DOMException("blocked", "NotAllowedError"));
+  await playback.play();
+  assert.equal(events.includes("blocked"), false, "the member is still audible through the element");
+  playback.stop();
+});

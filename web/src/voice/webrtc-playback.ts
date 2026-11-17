@@ -1,5 +1,6 @@
 import { playbackDebugEnabled } from "./playback-debug";
 import { createSlotActivityMonitor } from "./webrtc-slot-activity";
+import { decideRoute } from "./webrtc-playback-route";
 
 export type SinkAudioElement = HTMLAudioElement & { setSinkId?: (deviceId: string) => Promise<void> };
 
@@ -182,78 +183,45 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     void play();
   }
 
-  function clamp01(value: number): number {
-    return Math.max(0, Math.min(1, value));
-  }
-
   function applySlotPlayback(slot: SlotChannel): void {
+    const speaker = slot.clientId > 0 ? options.speakerVolume(slot.clientId) : 1;
     const master = options.volume();
-    if (master <= 0) {
-      // iOS Safari ignores element.volume; `muted` is honored everywhere.
+    const combined = master * Math.max(0, Math.min(4, speaker));
+    // A context that exists but cannot render must not have a pipe built for it:
+    // doing so created and immediately destroyed an audio node pair on every
+    // volume tick while the context stayed suspended.
+    const contextReady = ampContext === null || ampRunning(ampContext);
+    const decision = decideRoute({
+      master,
+      speaker,
+      flowed: slot.flowed,
+      contextRunning: contextReady,
+      busBlocked: ampMixBlocked,
+      // An established pipe counts as available even when the context is not
+      // ready yet (the check above only avoids *building* a new one).
+      pipeAvailable: slot.amp !== null || contextReady,
+    });
+    if (decision.route !== "pipe") {
       teardownAmp(slot);
-      slot.element.muted = true;
-      slot.element.volume = 1;
-      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "master muted");
-      return;
-    }
-    const perSpeaker = slot.clientId > 0 ? options.speakerVolume(slot.clientId) : 1;
-    const combined = master * Math.max(0, Math.min(4, perSpeaker));
-    if (combined === 0) {
-      // Per-speaker mute. element.volume = 0 is ignored on iOS Safari, so the
-      // member would keep playing at full volume there; `muted` is honored
-      // everywhere and needs no gain pipe.
-      teardownAmp(slot);
-      slot.element.muted = true;
-      slot.element.volume = 1;
-      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "speaker muted");
-      return;
-    }
-    if (combined === 1) {
-      teardownAmp(slot);
-      slot.element.muted = false;
-      slot.element.volume = 1;
-      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "element unity");
-      return;
-    }
-    // Every other gain (attenuation and amplification alike) rides the gain
-    // pipe: element.volume is ignored on iOS Safari, so an element-level 0.5
-    // would leave the member at full volume and the master slider inert there.
-    // The pipe's context is only trustworthy once the slot has received RTP:
-    // created earlier it would be bound dead. Until then the element volume is
-    // the best effort, and the flow poll upgrades the slot the moment packets
-    // arrive.
-    if (!slot.flowed) {
-      teardownAmp(slot);
-      slot.element.muted = false;
-      slot.element.volume = clamp01(combined);
-      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "awaiting flow, element", clamp01(combined));
-      return;
-    }
-    // A context that exists but is not running (autoplay policy, an iOS call)
-    // cannot render: check before building a pipe, so a suspended window does
-    // not create and immediately destroy an audio node pair on every volume
-    // tick, slot binding or speaker refresh.
-    if (ampContext && !ampRunning(ampContext)) {
-      teardownAmp(slot);
-      slot.element.muted = false;
-      slot.element.volume = clamp01(combined);
-      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "pipe not running, element", clamp01(combined));
+      // `muted` rather than volume 0: iOS Safari ignores element.volume writes.
+      slot.element.muted = decision.route === "muted";
+      slot.element.volume = decision.elementVolume;
+      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, decision.route, decision.elementVolume);
       return;
     }
     const pipe = ensureAmp(slot);
     if (!pipe || !ampRunning(pipe.context) || ampMixBlocked) {
-      // The context refused to come up (autoplay policy, iOS interruption) or
-      // the bus element's own playback was blocked: keep the element audible
-      // rather than muting it for a pipe nobody plays.
+      // The pipe could not be built or the bus refused to play: keep the element
+      // audible rather than muting it for a pipe nobody plays.
       teardownAmp(slot);
       slot.element.muted = false;
-      slot.element.volume = clamp01(combined);
-      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "pipe not playing, element", clamp01(combined));
+      slot.element.volume = Math.max(0, Math.min(1, combined));
+      if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "pipe unavailable, element");
       return;
     }
     // The pipe renders into its own playout element (the mix bus): that element
     // is a media element, so it follows the selected output device even on
-    // browsers where `AudioContext` cannot. The slot element stays attached and
+    // browsers where AudioContext cannot. The slot element stays attached and
     // muted — it is the puller Chrome keeps alive for the remote track.
     slot.element.muted = true;
     slot.element.volume = 1;
@@ -305,14 +273,21 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
 
   /** Attempts the bus element's playback and records whether the room can be
    *  heard through it. A blocked bus (autoplay policy) must leave the slots on
-   *  element volume — muting them for a pipe nobody plays is a silent room. */
-  function tryPlayBus(): Promise<void> {
+   *  element volume — muting them for a pipe nobody plays is a silent room.
+   *  Resolves with the attempt's outcome: the caller needs it, because a bus
+   *  element that is muted-by-construction plays successfully even when the
+   *  browser blocked everything (only unmuted playback is refused), so a
+   *  fulfilled promise here must NOT be read as "the room is audible". */
+  function tryPlayBus(): Promise<"playing" | "blocked"> {
     const element = ampElement;
-    if (!element) return Promise.resolve();
+    if (!element) return Promise.resolve("playing");
     return Promise.resolve(element.play()).then(
-      () => { ampMixBlocked = false; },
-      () => { ampMixBlocked = true; },
-    ).then(() => { for (const slot of slots.values()) applySlotPlayback(slot); });
+      () => { ampMixBlocked = false; return "playing" as const; },
+      () => { ampMixBlocked = true; return "blocked" as const; },
+    ).then((outcome) => {
+      for (const slot of slots.values()) applySlotPlayback(slot);
+      return outcome;
+    });
   }
 
   /** The shared mix bus and its player element, created once per context. The
@@ -419,7 +394,6 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     if (playPending) return playPending;
     const attempt = (async () => {
       const generation = playbackGeneration;
-      const elements = [...slots.values()].map(slot => slot.element);
       // A gain pipe's context starts suspended on iOS Safari (and on any page
       // without a gesture yet); this runs from the gesture retry too, so a tap
       // resumes it and the slots upgrade from element volume to the pipe.
@@ -427,16 +401,27 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       if (amp && amp.state !== "running" && amp.state !== "closed") {
         try { await amp.resume(); } catch { /* the gesture policy refused it */ }
       }
-      if (elements.length === 0) return;
-      // The bus goes through tryPlayBus so its own blocked state stays in sync;
-      // the slot elements are played directly.
-      const results = await Promise.allSettled([
-        ...[...slots.values()].map(slot => slot.element.play()),
-        ...(ampElement ? [tryPlayBus()] : []),
-      ]);
+      if (slots.size === 0) return;
+      // The bus is attempted first: its outcome decides whether a piped slot is
+      // audible at all, so the re-apply below must run with the new verdict (a
+      // blocked bus makes every piped slot fall back to element volume).
+      // Its result is kept apart from the slot results because the bus element
+      // is muted while it has nothing to play, so its own play() succeeds even
+      // when the browser refused every audible element.
+      const busOutcome = ampElement ? await tryPlayBus() : null;
       if (generation !== playbackGeneration) return;
       for (const slot of slots.values()) applySlotPlayback(slot);
-      const blocked = results.every(result => result.status === "rejected");
+      if (generation !== playbackGeneration) return;
+      const slotsNow = [...slots.values()];
+      const results = await Promise.allSettled(slotsNow.map(slot => slot.element.play()));
+      if (generation !== playbackGeneration) return;
+      // A slot is only lost when no path carries it: an unmuted element speaks
+      // for itself, a muted one depends on the bus.
+      const blocked = slotsNow.every((slot, index) => (
+        slot.element.muted
+          ? busOutcome === "blocked" || results[index]?.status === "rejected"
+          : results[index]?.status === "rejected"
+      ));
       if (blocked) {
         options.onBlocked(true);
         installRetry();
