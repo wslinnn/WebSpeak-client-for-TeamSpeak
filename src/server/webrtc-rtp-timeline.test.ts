@@ -7,10 +7,9 @@ import {
   VID_REBASE_AFTER_REJECTS,
 } from "./webrtc-rtp-timeline.js";
 
-// The skipped-packet accounting, exercised as a pure function: only the exact
-// counter values the gateway discarded are discounted from a gap, so a pause is
-// never reported as loss while real loss — even one buried inside the pause —
-// still is.
+// The skipped-packet accounting, exercised as a pure function: a pause is
+// counted and discounted from the next gap, so it is never reported as loss —
+// while real loss in the same stretch still is.
 
 function place(timeline: ReturnType<typeof createTimeline>, vid: number, whisper = false) {
   const result = placeOnTimeline(timeline, { vid, whisper, continuation: false });
@@ -37,9 +36,20 @@ test("a pause filled with skipped packets is not reported as loss", () => {
   assert.equal(place(timeline, 126), 1, "a 25-packet pause carries no audio to conceal");
 });
 
+test("a pause is not turned into loss at any length", () => {
+  // A capped set once made pauses of 129-177 packets emit up to a second of
+  // concealment noise, while shorter and longer pauses were fine. A counted
+  // pause has no such band.
+  const pauses = [1, 25, 50, 125, 128, 129, 150, 170, 177, 178, 200, 400, 1_000];
+  for (const pause of pauses) {
+    const timeline = createTimeline();
+    place(timeline, 100);
+    for (let vid = 1; vid <= pause; vid++) noteSkippedPacket(timeline, 100 + vid, false);
+    assert.equal(place(timeline, 101 + pause), 1, "pause of " + pause + " packets must not be concealed");
+  }
+});
+
 test("real loss buried inside a paused stretch is still reported", () => {
-  // The round-4 §3.1 case: speech, two packets genuinely lost, then the speaker
-  // goes quiet (comfort noise) and resumes.
   const timeline = createTimeline();
   place(timeline, 100);
   // 101 and 102 never arrive; 103 and 104 are comfort noise.
@@ -48,10 +58,18 @@ test("real loss buried inside a paused stretch is still reported", () => {
   assert.equal(place(timeline, 105), 3, "the two lost speech packets keep their hole");
 });
 
+test("a real loss inside a very long pause is still reported", () => {
+  // Counting must not become "discount everything": the gap is reduced by the
+  // skips that fit inside it, so a lost frame keeps its hole even after a
+  // multi-second pause.
+  const timeline = createTimeline();
+  place(timeline, 100);
+  for (let vid = 101; vid <= 300; vid++) noteSkippedPacket(timeline, vid, false);
+  // 301 and 302 were speech that never arrived; 303 resumes.
+  assert.equal(place(timeline, 303), 3, "the two lost speech frames stay visible");
+});
+
 test("a skipped packet overtaking speech does not leave a false hole", () => {
-  // The round-4 §3.2 case: comfort noise numbered 105 arrives before the speech
-  // it follows. Once the speech catches up, 105 is a packet the timeline no
-  // longer owes — it must not be counted as loss.
   const timeline = createTimeline();
   place(timeline, 100);
   noteSkippedPacket(timeline, 105, false);
@@ -63,7 +81,6 @@ test("a skipped packet behind the speech baseline is ignored", () => {
   const timeline = createTimeline();
   place(timeline, 100);
   place(timeline, 101);
-  // A reordered leftover: the voice stream has already covered this value.
   noteSkippedPacket(timeline, 99, false);
   assert.equal(place(timeline, 102), 1);
 });
@@ -71,8 +88,6 @@ test("a skipped packet behind the speech baseline is ignored", () => {
 test("whisper and normal voice keep separate skipped accounting", () => {
   const timeline = createTimeline();
   place(timeline, 100);
-  // Comfort noise arriving in the whisper counter must not discount a normal
-  // voice gap, and vice versa.
   for (let vid = 101; vid <= 110; vid++) noteSkippedPacket(timeline, vid, true);
   assert.equal(place(timeline, 111), 11, "normal-voice loss is not discounted by whisper skips");
 });
@@ -88,8 +103,6 @@ test("a duplicate is rejected and repeated rejects rebase the counter", () => {
   place(timeline, 100);
   place(timeline, 101);
   assert.equal(place(timeline, 101), null, "a repeat is not forwarded");
-  // The counter keeps going backwards: that is a restarted client, not
-  // reordering, so after VID_REBASE_AFTER_REJECTS the member is heard again.
   let rebased = false;
   for (let attempt = 0; attempt < VID_REBASE_AFTER_REJECTS; attempt++) {
     if (place(timeline, 50) !== null) { rebased = true; break; }
@@ -98,11 +111,12 @@ test("a duplicate is rejected and repeated rejects rebase the counter", () => {
   assert.equal(place(timeline, 51), 1);
 });
 
-test("the skipped set stays bounded however many packets a sender skips", () => {
+test("the reordering window stays bounded however long a sender pauses", () => {
   const timeline = createTimeline();
   place(timeline, 0);
   for (let vid = 1; vid <= 500; vid++) noteSkippedPacket(timeline, vid, false);
-  assert.ok(timeline.skippedVids.size <= 128, `bounded, got ${timeline.skippedVids.size}`);
+  assert.ok(timeline.skippedAhead.size <= 32, "bounded, got " + timeline.skippedAhead.size);
+  assert.equal(timeline.skippedSinceAccept, 500, "the count itself is not truncated");
 });
 
 test("without a sender counter the arrival-order timeline keeps working", () => {
