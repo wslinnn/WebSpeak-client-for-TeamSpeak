@@ -23,9 +23,10 @@ export interface RouteInput {
   flowed: boolean;
   /** The context exists but cannot render (autoplay policy, an iOS call). */
   contextRunning: boolean;
-  /** The bus element's own playback was refused. Its slots must fall back to
-   *  element volume instead of being muted for a pipe nobody plays. */
-  busBlocked: boolean;
+  /** Whether a piped gain can still reach the chosen output. The pipe renders
+   *  through `AudioContext.destination`, which always plays on the default
+   *  device (no `AudioContext.setSinkId` in Chromium, measured 2026-11-18). */
+  sinkRoutable: boolean;
   /** The pipe could not be built at all (no AudioContext, allocation failed). */
   pipeAvailable: boolean;
   /** Whether this platform renders HTMLMediaElement volume writes. iOS Safari
@@ -57,12 +58,15 @@ export function decideRoute(input: RouteInput): RouteDecision {
   if (combined < 1 && input.elementVolumeHonored) {
     return { route: "element", elementVolume: Math.max(0, Math.min(1, combined)) };
   }
-  // Any other gain needs the pipe, but only when the pipe can actually render.
-  const pipeUsable = input.flowed && input.contextRunning && !input.busBlocked && input.pipeAvailable;
+  // Any other gain needs the pipe, but only when the pipe can actually render
+  // on the device that was chosen.
+  const pipeUsable = input.flowed && input.contextRunning && input.sinkRoutable && input.pipeAvailable;
   if (pipeUsable) return { route: "pipe", elementVolume: 1 };
-  // Best effort without the pipe. On iOS this is silent for attenuation
-  // (element.volume is ignored there), but the member is still routed and the
-  // recovery paths (statechange, visibility, gesture) re-apply the pipe.
+  // Best effort without the pipe: a boost cannot be expressed at all (element
+  // volume stops at 1), so it is clamped rather than silently applied at full
+  // level. On iOS the attenuation case is also inert here (element volume is
+  // ignored), but the member is still routed and the recovery paths
+  // (statechange, visibility, gesture) re-apply the pipe.
   return { route: "element", elementVolume: Math.max(0, Math.min(1, combined)) };
 }
 

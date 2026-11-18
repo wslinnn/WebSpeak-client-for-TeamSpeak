@@ -165,31 +165,59 @@ test("a replaced stream re-arms the flow gate", async () => {
   playback.stop();
 });
 
-test("a piped gain still follows the chosen output when the context cannot route", async () => {
-  // Chromium has no AudioContext.setSinkId (measured 2026-11-16: absent on the
-  // prototype and the instance), so a pipe rendered into context.destination
-  // could not follow a chosen device: the muted slot would sit on that device
-  // while the gain played through the default one. The pipe renders into a
-  // MediaStreamAudioDestinationNode instead, whose player IS a media element
-  // and therefore routable — gain and device selection hold together.
-  const contextWithSink = Object.getOwnPropertyDescriptor(AudioContextStub.prototype, "setSinkId");
-  try {
-    Object.defineProperty(AudioContextStub.prototype, "setSinkId", { value: undefined, configurable: true });
-    const { playback, attach, endpoints } = harness({ master: 1, speakers: { 7: 2 } });
-    const element = attach(0, () => 5);
-    playback.setSlotClients([7]);
-    await pollOnce();
-    const mix = mixElement(endpoints) as unknown as { muted: boolean; sinkIds: string[] } | null;
-    assert.ok(mix, "a mix-bus player element exists once a slot is piped");
-    await playback.setSinkDevice("headphones");
-    assert.equal(mix!.sinkIds.includes("headphones"), true, "the bus element was routed to the chosen device");
-    assert.equal(element.muted, true, "the slot element stays muted as the puller");
-    assert.equal(mix!.muted, false, "the bus element carries the room's audio");
-    playback.stop();
-  } finally {
-    if (contextWithSink) Object.defineProperty(AudioContextStub.prototype, "setSinkId", contextWithSink);
-    else delete (AudioContextStub.prototype as unknown as Record<string, unknown>).setSinkId;
-  }
+test("a piped gain renders into the audio destination, with no second element", async () => {
+  // The pipe used to feed a shared MediaStreamAudioDestinationNode played by a
+  // second hidden element, so a boosted member could follow a non-default sink.
+  // That detour crossed three clock domains and stretched playback (measured
+  // 2026-11-18, desktop and mobile). It now renders straight into
+  // AudioContext.destination; only the per-slot elements remain.
+  const { playback, attach, endpoints } = harness({ master: 1, speakers: { 7: 2 } });
+  const element = attach(0, () => 5);
+  playback.setSlotClients([7]);
+  await pollOnce();
+  assert.equal(element.muted, true, "the slot element is muted while the pipe renders");
+  assert.equal(endpoints.length, 1, "only the slot element exists");
+  assert.equal(mixElement(endpoints), null, "no mix-bus player element was created");
+  const gain = AudioContextStub.gains.at(-1) as unknown as { gain: { value: number } };
+  assert.equal(gain.gain.value, 2, "the boost is applied at the gain node");
+  playback.stop();
+});
+
+test("a boosted member returns to the element at unity gain", async () => {
+  // Exactly one of {element, pipe} may render a member: leaving both live meant
+  // hearing them twice, once at full volume.
+  let master = 2;
+  const endpoints: Array<{ muted: boolean }> = [];
+  const playback = createWebRtcPlayback({
+    volume: () => master,
+    speakerVolume: () => 1,
+    onEndpoint: element => endpoints.push(element as unknown as { muted: boolean }),
+    onBlocked() {},
+    onPlaying() {},
+    onSlotActivity() {},
+  });
+  playback.attach(new MediaStream(), 0, receiverStub(() => 5));
+  const element = endpoints.at(-1)! as { muted: boolean };
+  playback.setSlotClients([7]);
+  await pollOnce();
+  assert.equal(element.muted, true, "the slot element is muted while the pipe renders");
+  master = 1;
+  playback.setVolume();
+  assert.equal(element.muted, false, "unity gain returns to the element");
+  playback.stop();
+});
+
+test("a non-default sink clamps a boost to unity instead of going silent", async () => {
+  // destination always plays on the default device, so piping a boosted gain
+  // while another sink is selected would leave that member inaudible. The route
+  // clamps to 100% and stays on the routable element.
+  const { playback, attach } = harness({ master: 1, speakers: { 7: 2 } });
+  const element = attach(0, () => 5);
+  playback.setSlotClients([7]);
+  await playback.setSinkDevice("headphones");
+  assert.equal(element.muted, false, "the element stays audible");
+  assert.equal(element.volume, 1, "the boost is clamped to unity");
+  playback.stop();
 });
 
 test("a context suspended mid-session falls back to the element and restores the pipe on resume", async () => {
@@ -329,36 +357,6 @@ test("a source entry that outlives its last packet does not keep the badge lit",
   playback.stop();
 });
 
-test("a piped slot is never played twice", async () => {
-  // The whole point of muting the slot element: exactly one of {element, pipe}
-  // may render a member. Leaving both connected meant hearing them twice, once
-  // at full volume.
-  let master = 2;
-  const endpoints: Array<{ muted: boolean }> = [];
-  const playback = createWebRtcPlayback({
-    volume: () => master,
-    speakerVolume: () => 1,
-    onEndpoint: element => endpoints.push(element as unknown as { muted: boolean }),
-    onBlocked() {},
-    onPlaying() {},
-    onSlotActivity() {},
-  });
-  playback.attach(new MediaStream(), 0, receiverStub(() => 5));
-  const element = endpoints.at(-1)! as { muted: boolean };
-  playback.setSlotClients([7]);
-  await pollOnce();
-  const slots = new Set(endpoints);
-  const mix = ([...audioElements] as Array<{ muted: boolean }>).find(candidate => !slots.has(candidate as never))!;
-  assert.equal(element.muted, true, "the slot element is muted while the pipe renders");
-  assert.equal(mix.muted, false);
-  // Back to unity gain: the pipe is torn down and the element takes over.
-  master = 1;
-  playback.setVolume();
-  assert.equal(element.muted, false, "unity gain returns to the element");
-  assert.equal(mix.muted, true, "and the bus element stops rendering, so nothing plays twice");
-  playback.stop();
-});
-
 test("returning to the tab resumes an interrupted audio session", async () => {
   // Safari's non-standard \`interrupted\` state (a call, another app) needs the
   // same resume as \`suspended\`. It also matters on iOS because element.volume is
@@ -413,43 +411,10 @@ test("a suspended context is not rebuilt and torn down on every volume tick", as
   playback.stop();
 });
 
-test("a blocked bus element keeps the slots on element volume instead of muting the room", async () => {
-  // If the mix-bus player cannot autoplay, the slots must not be muted for a
-  // pipe nobody hears — that combination is a silent room.
-  const endpoints: Array<{ muted: boolean; volume: number; play(): Promise<void> }> = [];
-  const playback = createWebRtcPlayback({
-    volume: () => 2,
-    speakerVolume: () => 1,
-    onEndpoint: element => endpoints.push(element as unknown as { muted: boolean; volume: number; play(): Promise<void> }),
-    onBlocked() {},
-    onPlaying() {},
-    onSlotActivity() {},
-  });
-  playback.attach(new MediaStream(), 0, receiverStub(() => 5));
-  playback.setSlotClients([7]);
-  await pollOnce();
-  const slots = new Set(endpoints);
-  const mix = ([...audioElements] as Array<{ muted: boolean; play(): Promise<void> }>)
-    .find(candidate => !slots.has(candidate as never));
-  assert.ok(mix, "a bus element exists");
-  // Refuse autoplay on the bus only (the slot elements keep their own behaviour).
-  mix!.play = () => Promise.reject(new DOMException("blocked", "NotAllowedError"));
-  // Re-drive the pipe so the slot applies the bus state it now reports.
-  await playback.play();
-  playback.setVolume();
-  await Promise.resolve();
-  await Promise.resolve();
-  const element = endpoints.at(-1)!;
-  assert.equal(element.muted, false, "the slot element stays audible");
-  assert.ok(element.volume <= 1 + 1e-9, "clamped to unity without a pipe, not muted");
-  playback.stop();
-});
-
-test("a blocked room is still reported while a mix bus exists", async () => {
-  // The real autoplay rule (measured in Chromium): an unmuted element's play()
-  // is refused, a muted one's succeeds. The bus is muted until a pipe unmutes
-  // it, so its play() can succeed while the room is silent — which is exactly
-  // why its result must not be folded into the slot verdict.
+test("a piped member is never reported as a blocked room", async () => {
+  // A piped slot mutes its element, but the gain pipe renders into the audio
+  // device and the autoplay policy cannot refuse it. Folding the muted
+  // element's play() result into the verdict would raise a false banner.
   const events: string[] = [];
   const endpoints: Array<{ muted: boolean; play(): Promise<void> }> = [];
   const playback = createWebRtcPlayback({
@@ -471,19 +436,18 @@ test("a blocked room is still reported while a mix bus exists", async () => {
   }
   events.length = 0;
   await playback.play();
-  assert.deepEqual(events, ["blocked"], "the notice is raised even though the muted bus 'played'");
+  assert.equal(events.includes("blocked"), false, "the pipe carries the member, so the room is not blocked");
   playback.stop();
 });
 
-test("a bus blocked while the slot element plays is not a blocked room", async () => {
-  // The slot element carries the member's audio when the pipe is unavailable,
-  // so a refused bus alone must not raise the banner.
+test("a refused slot element raises the blocked notice", async () => {
+  // With no bus in the picture an unmuted element is the member's only path, so
+  // its refusal must surface instead of leaving a silent room unexplained.
   const events: string[] = [];
-  const endpoints: Array<{ muted: boolean; play(): Promise<void> }> = [];
   const playback = createWebRtcPlayback({
-    volume: () => 2,
+    volume: () => 1,
     speakerVolume: () => 1,
-    onEndpoint: element => endpoints.push(element as unknown as { muted: boolean; play(): Promise<void> }),
+    onEndpoint() {},
     onBlocked: blocked => events.push(blocked ? "blocked" : "clear"),
     onPlaying: () => events.push("playing"),
     onSlotActivity() {},
@@ -491,11 +455,12 @@ test("a bus blocked while the slot element plays is not a blocked room", async (
   playback.attach(new MediaStream(), 0, receiverStub(() => 5));
   playback.setSlotClients([7]);
   await pollOnce();
-  const slots = new Set(endpoints);
-  const mix = ([...audioElements] as Array<{ muted: boolean; play(): Promise<void> }>)
-    .find(candidate => !slots.has(candidate as never))!;
-  mix.play = () => Promise.reject(new DOMException("blocked", "NotAllowedError"));
+  for (const element of [...audioElements] as Array<{ muted: boolean; play(): Promise<void> }>) {
+    element.play = () => Promise.reject(new DOMException("blocked", "NotAllowedError"));
+  }
+  events.length = 0;
   await playback.play();
-  assert.equal(events.includes("blocked"), false, "the member is still audible through the element");
+  assert.deepEqual(events, ["blocked"]);
   playback.stop();
 });
+

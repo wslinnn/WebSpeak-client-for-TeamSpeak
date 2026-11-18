@@ -14,7 +14,7 @@ function input(overrides: Partial<RouteInput> = {}): RouteInput {
     speaker: 1,
     flowed: true,
     contextRunning: true,
-    busBlocked: false,
+    sinkRoutable: true,
     pipeAvailable: true,
     elementVolumeHonored: true,
     ...overrides,
@@ -75,9 +75,14 @@ test("a suspended context keeps the element audible", () => {
   );
 });
 
-test("a blocked bus falls back to element volume instead of muting", () => {
-  // Muting the element for a pipe nobody plays would silence the room.
-  assert.deepEqual(decideRoute(input({ speaker: 2, busBlocked: true })), { route: "element", elementVolume: 1 });
+test("a pipe that cannot reach the chosen sink clamps the boost to unity", () => {
+  // The pipe renders through AudioContext.destination, which always plays on the
+  // default device (Chromium has no AudioContext.setSinkId, measured
+  // 2026-11-18). A boost there would leave the chosen device silent for that
+  // member, so it is clamped instead of silently applied at full level.
+  assert.deepEqual(decideRoute(input({ speaker: 2, sinkRoutable: false })), { route: "element", elementVolume: 1 });
+  // Attenuation and unity are unaffected: they stay on the routable element.
+  assert.deepEqual(decideRoute(input({ master: 0.5, sinkRoutable: false })), { route: "element", elementVolume: 0.5 });
 });
 
 test("an unavailable pipe falls back to element volume", () => {

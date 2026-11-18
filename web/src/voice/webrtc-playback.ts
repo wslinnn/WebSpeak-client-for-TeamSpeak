@@ -51,29 +51,23 @@ interface SlotChannel {
 // gain other than 1 builds a gain pipe — never before the slot's first RTP
 // packet, so a persisted >100% volume cannot poison itself at bind time.
 //
-// The pipe does NOT render through `AudioContext.destination`. Chromium has no
-// `AudioContext.setSinkId` (verified 2026-11-16: absent on both the prototype
-// and the instance), so a pipe rendered there could not follow the chosen
-// output device: with a non-default device selected, the muted slot element
-// would sit on the chosen device while the pipe played the room through the
-// default one. Every slot's gain node therefore feeds one shared
-// MediaStreamAudioDestinationNode, and a single hidden <audio> element plays
-// that mix — an element can be routed, so per-member gain and device selection
-// hold at the same time.
+// The pipe renders into `AudioContext.destination` and nothing else. It used to
+// run through a shared MediaStreamAudioDestinationNode played by a second hidden
+// <audio> element, so that a boosted member could still follow a non-default
+// output device (Chromium exposes no `AudioContext.setSinkId` here — verified
+// 2026-11-18: `typeof AudioContext.prototype.setSinkId === "undefined"`). That
+// detour drove the stream through three independent clock domains (receiver →
+// AudioContext → media element) with no resampling anywhere between them, and
+// the drift made every boosted member audibly change pitch and speed for as
+// long as the pipe stayed up — on desktop as well as mobile. `destination` is
+// driven by the audio device itself, so it shares the browser's clock handling.
+// The cost is that a boosted gain cannot follow a non-default sink; the route
+// therefore clamps it to 100% there and says so, instead of silently degrading.
 export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
   let playbackGeneration = 0;
   const slots = new Map<number, SlotChannel>();
   let removeRetry: (() => void) | null = null;
   let ampContext: AudioContext | null = null;
-  /** Shared mix bus: every piped slot's gain node feeds it, and one routable
-   *  element plays it (see the module note on why not
-   *  `AudioContext.destination`). */
-  let ampMix: MediaStreamAudioDestinationNode | null = null;
-  let ampElement: SinkAudioElement | null = null;
-  /** True while the bus element's autoplay is blocked. Its slots must keep
-   *  using element volume then: muting them for a pipe nobody plays would
-   *  silence the room. */
-  let ampMixBlocked = false;
   let sinkDevice = "";
   const clean = (operation: () => void): void => { try { operation(); } catch { /* continue teardown */ } };
   // F8（报告 21）：350ms 是说话徽标边沿延迟（≤350ms）与 getStats 频率（24 槽
@@ -199,9 +193,11 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       speaker,
       flowed: slot.flowed,
       contextRunning: contextReady,
-      busBlocked: ampMixBlocked,
-      // An established pipe counts as available even when the context is not
-      // ready yet (the check above only avoids *building* a new one).
+      // A non-default sink cannot be reached through `AudioContext.destination`,
+      // and routing a boosted gain through an element-played bus stretched
+      // playback (see the module note). Clamping to 100% on that device is the
+      // honest trade: audible and on the chosen device beats boosted and broken.
+      sinkRoutable: sinkDevice === "",
       pipeAvailable: slot.amp !== null || contextReady,
       elementVolumeHonored: elementVolumeHonored(slot.element),
     });
@@ -214,23 +210,20 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       return;
     }
     const pipe = ensureAmp(slot);
-    if (!pipe || !ampRunning(pipe.context) || ampMixBlocked) {
-      // The pipe could not be built or the bus refused to play: keep the element
-      // audible rather than muting it for a pipe nobody plays.
+    if (!pipe || !ampRunning(pipe.context)) {
+      // The pipe could not be built or cannot render: keep the element audible
+      // rather than muting it for a pipe nobody hears.
       teardownAmp(slot);
       slot.element.muted = false;
       slot.element.volume = Math.max(0, Math.min(1, combined));
       if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "pipe unavailable, element");
       return;
     }
-    // The pipe renders into its own playout element (the mix bus): that element
-    // is a media element, so it follows the selected output device even on
-    // browsers where AudioContext cannot. The slot element stays attached and
-    // muted — it is the puller Chrome keeps alive for the remote track.
+    // The element stays attached and muted: the pipe carries the gain through
+    // `AudioContext.destination`, so leaving both live would double the member.
     slot.element.muted = true;
     slot.element.volume = 1;
     pipe.gain.gain.value = Math.min(4, combined);
-    if (ampElement) ampElement.muted = false;
     if (playbackDebug) console.info("[playback-debug] apply", slot.clientId, "pipe", pipe.gain.gain.value);
   }
 
@@ -249,23 +242,20 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     if (slot.amp) return slot.amp;
     if (typeof AudioContext === "undefined") return null;
     try {
-      // No explicit sampleRate: the context must adopt the device's own rate.
-      // Forcing 48 kHz here made the bus resample against a hardware clock that
-      // commonly runs 44.1 kHz, and since the bus's player element has its own
-      // clock there was nothing to absorb the drift — playback stretched and
-      // stuttered on Android Chrome. The remote streams are 48 kHz already;
-      // Web Audio resamples them once inside the adopting context instead.
+      // No explicit sampleRate: the context adopts the device's own rate, which
+      // is also the rate `destination` renders at. Pinning 48 kHz here made the
+      // graph resample against hardware that commonly runs 44.1 kHz.
       ampContext ??= new AudioContext();
       applySink(ampContext);
       installVisibilityResume();
-      const mix = ensureAmpMix(ampContext);
-      if (!mix) return null;      const source = ampContext.createMediaStreamSource(slot.stream);
+      const source = ampContext.createMediaStreamSource(slot.stream);
       const gain = ampContext.createGain();
       gain.gain.value = 1;
       source.connect(gain);
-      // Into the shared bus, never straight into `destination`: only the bus's
-      // element can follow the chosen output device.
-      gain.connect(mix);
+      // Straight into the device, never through a MediaStreamAudioDestinationNode
+      // played by another element: that detour crosses three clock domains and
+      // stretches playback (see the module note).
+      gain.connect(ampContext.destination);
       const pipe: AmpPipe = { context: ampContext, source, gain };
       slot.amp = pipe;
       watchAmpContext();
@@ -276,52 +266,6 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
         void ampContext.resume().then(() => { if (slot.amp === pipe) applySlotPlayback(slot); }).catch(() => undefined);
       }
       return pipe;
-    } catch {
-      return null;
-    }
-  }
-
-  /** Attempts the bus element's playback and records whether the room can be
-   *  heard through it. A blocked bus (autoplay policy) must leave the slots on
-   *  element volume — muting them for a pipe nobody plays is a silent room.
-   *  Resolves with the attempt's outcome: the caller needs it, because a bus
-   *  element that is muted-by-construction plays successfully even when the
-   *  browser blocked everything (only unmuted playback is refused), so a
-   *  fulfilled promise here must NOT be read as "the room is audible". */
-  function tryPlayBus(): Promise<"playing" | "blocked"> {
-    const element = ampElement;
-    if (!element) return Promise.resolve("playing");
-    return Promise.resolve(element.play()).then(
-      () => { ampMixBlocked = false; return "playing" as const; },
-      () => { ampMixBlocked = true; return "blocked" as const; },
-    ).then((outcome) => {
-      for (const slot of slots.values()) applySlotPlayback(slot);
-      return outcome;
-    });
-  }
-
-  /** The shared mix bus and its player element, created once per context. The
-   *  element is what makes the piped gain routable; it is muted while it has
-   *  nothing connected and unmuted by the first pipe. */
-  function ensureAmpMix(context: AudioContext): MediaStreamAudioDestinationNode | null {
-    if (ampMix && ampElement) return ampMix;
-    try {
-      const element = document.createElement("audio") as SinkAudioElement;
-      element.autoplay = true;
-      element.muted = true;
-      element.setAttribute("playsinline", "");
-      element.setAttribute("aria-hidden", "true");
-      element.tabIndex = -1;
-      const mix = context.createMediaStreamDestination();
-      element.srcObject = mix.stream;
-      document.body.append(element);
-      applySink(element);
-      ampMix = mix;
-      ampElement = element;
-      // A blocked autoplay here must not mute the room: the slots keep using
-      // element volume until a gesture (play()) resumes the bus.
-      void tryPlayBus();
-      return mix;
     } catch {
       return null;
     }
@@ -374,12 +318,6 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     if (!pipe) return;
     clean(() => pipe.source.disconnect());
     clean(() => pipe.gain.disconnect());
-    // The bus element has nothing left to play: mute it rather than tear it
-    // down (the next pipe reuses it), so a slot returning to unity does not
-    // restart an audio element.
-    if (![...slots.values()].some(candidate => candidate.amp)) {
-      if (ampElement) clean(() => { ampElement!.muted = true; });
-    }
   }
 
   function installRetry(): void {
@@ -412,25 +350,16 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
         try { await amp.resume(); } catch { /* the gesture policy refused it */ }
       }
       if (slots.size === 0) return;
-      // The bus is attempted first: its outcome decides whether a piped slot is
-      // audible at all, so the re-apply below must run with the new verdict (a
-      // blocked bus makes every piped slot fall back to element volume).
-      // Its result is kept apart from the slot results because the bus element
-      // is muted while it has nothing to play, so its own play() succeeds even
-      // when the browser refused every audible element.
-      const busOutcome = ampElement ? await tryPlayBus() : null;
-      if (generation !== playbackGeneration) return;
       for (const slot of slots.values()) applySlotPlayback(slot);
       if (generation !== playbackGeneration) return;
       const slotsNow = [...slots.values()];
       const results = await Promise.allSettled(slotsNow.map(slot => slot.element.play()));
       if (generation !== playbackGeneration) return;
-      // A slot is only lost when no path carries it: an unmuted element speaks
-      // for itself, a muted one depends on the bus.
+      // A muted element depends entirely on the gain pipe, which renders into
+      // the audio device and cannot be refused by the autoplay policy; an
+      // unmuted one speaks for itself.
       const blocked = slotsNow.every((slot, index) => (
-        slot.element.muted
-          ? busOutcome === "blocked" || results[index]?.status === "rejected"
-          : results[index]?.status === "rejected"
+        slot.element.muted ? false : results[index]?.status === "rejected"
       ));
       if (blocked) {
         options.onBlocked(true);
@@ -468,14 +397,6 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     removeVisibilityResume?.();
     removeAmpStateListener?.();
     activity.stop();
-    if (ampElement) {
-      const element = ampElement;
-      ampElement = null;
-      ampMix = null;
-      clean(() => { element.pause(); });
-      clean(() => { element.srcObject = null; });
-      clean(() => element.remove());
-    }
     if (ampContext) {
       const context = ampContext;
       ampContext = null;
@@ -487,32 +408,26 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
   return {
     attach, stop, play,
     get output(): SinkAudioElement | null { return [...slots.values()].at(-1)?.element ?? null; },
-    /** Routes every slot element and the amplification context to the given
-     *  output device ("": default output). Elements created later pick it up
-     *  from the stored value. Rejects if any target rejects, after every
-     *  target was attempted, so callers can roll back their committed choice. */
+    /** Routes every slot element to the given output device ("": default).
+     *  Elements created later pick it up from the stored value. Rejects if any
+     *  target rejects, after every target was attempted, so callers can roll
+     *  back their committed choice. A boosted gain is clamped to 100% while a
+     *  non-default device is selected — the pipe plays on `destination`, which
+     *  is always the default device (see the module note). */
     async setSinkDevice(deviceId: string): Promise<void> {
       sinkDevice = deviceId;
       // "" means "default output"; the sink API spells it "default".
       const requested = deviceId || "default";
-      const targets: Array<SinkAudioElement | (AudioContext & { setSinkId?: (deviceId: string) => Promise<void> })> = [
-        ...[...slots.values()].map(slot => slot.element),
-      ];
-      // The mix bus's element is where the piped gain actually plays, so it is
-      // the target that matters most on browsers whose AudioContext cannot
-      // route at all.
-      if (ampElement) targets.push(ampElement);
-      if (ampContext) targets.push(ampContext);
       // undefined = nothing failed: a `null` sentinel here would be thrown on
       // complete success (null !== undefined), failing every sink change that
       // actually worked.
       let firstFailure: unknown = undefined;
-      for (const target of targets) {
-        if (!target.setSinkId) continue;
-        try { await target.setSinkId(requested); } catch (error) { firstFailure ??= error; }
+      for (const element of slots.values()) {
+        if (!element.element.setSinkId) continue;
+        try { await element.element.setSinkId(requested); } catch (error) { firstFailure ??= error; }
       }
       // Re-apply so slots that could not render through the pipe (it was not
-      // running yet) claim it now, and vice versa.
+      // running yet) claim it now, and a boost clamps once a sink is chosen.
       for (const slot of slots.values()) applySlotPlayback(slot);
       if (firstFailure !== undefined) throw firstFailure;
     },
