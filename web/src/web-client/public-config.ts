@@ -31,7 +31,7 @@ export function createPublicConfig(options: Options) {
     accessMode: "fixed",
     initialized: false,
     siteName: "WebSpeak",
-    appVersion: "0.2.6",
+    appVersion: "",
     serverConfigLoading: true,
     publicConfigFailed: false,
     openTargetPrefillBlocked: false,

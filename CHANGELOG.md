@@ -1,17 +1,24 @@
 # Changelog
 
-## [Unreleased]
+## [0.3.0] — 2026-11-18
+
+本仓库首个正式版本。相对 0.2.6 累计 746 次提交，主线为语音链路质量、屏幕共享跨网可达性、安全基线与工程结构。发布说明见 [docs/releases/v0.3.0.md](./docs/releases/v0.3.0.md)。
 
 ### Changed
 
-- 安全：首次启动不再有默认管理员口令，改为日志中打印的一次性设置令牌（登录后强制修改）；新增 WEBSPEAK_TRUST_PROXY 反代信任开关、安全响应头（CSP/HSTS 等）、WebSocket 控制消息令牌桶限流、TeamSpeak 服务器密码错误按目标退避；fixed 模式不再向普通用户暴露真实目标地址。
-- 删除：加速中继、Android 客户端、DemoView、访客计数（延续 fork 裁剪方向）；删除管理端邀请功能——fixed 模式下站点链接本身即可免密进入，可撤销/过期的邀请链接无法构成真正的门禁，只留下频道深链（可用 `?channel=` 参数替代）；数据库迁移至 schema 12 并删除 `managed_invites` 表。
-- 运维：新增 WEBSPEAK_LOG_LEVEL、WEBSPEAK_SDK_DEBUG 环境变量；`npm run benchmark` 音频管线基准脚本；诊断端点新增 voiceTransports/rssMb。
+- 语音：增益管线改走共享混音总线（输出设备与 >100% 增益可同时成立）；两个 Opus 编码器钉参对齐官方客户端；静音跨度改为计数实现；出站积压按说话者定容；说话检测改用 `getSynchronizationSources`；上行降噪换装 GTCRN，回声消除默认开启。
+- 屏幕共享：网关内置 STUN 服务（UDP `3478`，`WEBSPEAK_STUN_PORT` 可改/关闭）；协商失败透出发现服务、候选计数与首帧证明；屏幕共享音频走伴奏式音乐链路，不经 TeamSpeak 上行预算。
+- 安全：首次启动不再有默认口令，改为日志中打印的一次性设置令牌（登录后强制修改）；安全响应头（CSP/HSTS）、WebSocket 控制消息令牌桶限流、服务器密码错误按目标退避；同机回环反代信任默认开启，`WEBSPEAK_TRUST_PROXY` / `WEBSPEAK_TRUSTED_PROXIES` 控制；fixed 模式不向普通用户返回真实目标。
+- 前端与管理台：迁移 React 19 + Vite，交互原语迁至 Radix/shadcn；产品 CSS 按组件族 `@layer` 化，浮层层级收敛到 `--ws-z-*`；事件流与日志按「什么事/严重吗/多久前」重构；运营页分区页签化并支持 `?section=` 深链。
+- 删除：加速中继、Android 客户端、DemoView、访客计数、皮肤系统，以及管理端邀请功能——fixed 模式下站点链接本身即可免密进入，可撤销/过期的邀请链接无法构成真正的门禁；数据库迁移至 schema 12 并删除 `managed_invites` 表。
+- 运维：新增 `WEBSPEAK_LOG_LEVEL`、`WEBSPEAK_SDK_DEBUG`、`WEBSPEAK_STUN_PORT` 环境变量；`npm run benchmark` 音频管线基准脚本；诊断端点新增 voiceTransports/rssMb。
 
 ### Fixed
 
+- 修复静音帧制造假丢包洞、切设备后增益不可路由、自动播放被拦截时误判静音等语音问题。
 - 修复皮肤切换器实时切换不生效、弹窗遮罩层级低于页头、成员音量条拖动被拖拽换频道劫持等交互问题。
-- 文档：移除已删除功能的残留章节与失效链接；补齐 ru/ja 界面翻译。
+- 修复切服后旧会话迟到事件污染新连接、聊天消息刷新后丢失等生命周期问题。
+- 文档：移除已删除功能的残留章节与失效链接，README 与双语文档重写。
 
 > 以下 [0.2.6] 及更早的条目为上游时期的历史记录：本仓库已移除其中部分能力（加速中继、Android 客户端、访客编号等），相关功能描述不代表当前版本仍提供这些能力。
 

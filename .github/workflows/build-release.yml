@@ -47,7 +47,6 @@ jobs:
           $releaseVersion = $env:RELEASE_REF -replace '^v', ''
           npm ci --ignore-scripts --no-audit --no-fund
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm rebuild @discordjs/opus --foreground-scripts --no-audit --no-fund
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           npm --prefix web ci --no-audit --no-fund
