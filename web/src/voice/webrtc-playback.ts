@@ -1,6 +1,7 @@
 import { playbackDebugEnabled } from "./playback-debug";
 import { createSlotActivityMonitor } from "./webrtc-slot-activity";
 import { decideRoute } from "./webrtc-playback-route";
+import { elementVolumeHonored } from "./element-volume-probe";
 
 export type SinkAudioElement = HTMLAudioElement & { setSinkId?: (deviceId: string) => Promise<void> };
 
@@ -151,6 +152,8 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     element.setAttribute("aria-hidden", "true");
     element.tabIndex = -1;
     document.body.append(element);
+    // Probes the media element on the first slot only; the answer is page-wide.
+    elementVolumeHonored(element);
     applySink(element);
     options.onEndpoint(element);
     return element;
@@ -200,6 +203,7 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
       // An established pipe counts as available even when the context is not
       // ready yet (the check above only avoids *building* a new one).
       pipeAvailable: slot.amp !== null || contextReady,
+      elementVolumeHonored: elementVolumeHonored(slot.element),
     });
     if (decision.route !== "pipe") {
       teardownAmp(slot);
@@ -245,7 +249,13 @@ export function createWebRtcPlayback(options: WebRtcPlaybackOptions) {
     if (slot.amp) return slot.amp;
     if (typeof AudioContext === "undefined") return null;
     try {
-      ampContext ??= new AudioContext({ sampleRate: 48_000 });
+      // No explicit sampleRate: the context must adopt the device's own rate.
+      // Forcing 48 kHz here made the bus resample against a hardware clock that
+      // commonly runs 44.1 kHz, and since the bus's player element has its own
+      // clock there was nothing to absorb the drift — playback stretched and
+      // stuttered on Android Chrome. The remote streams are 48 kHz already;
+      // Web Audio resamples them once inside the adopting context instead.
+      ampContext ??= new AudioContext();
       applySink(ampContext);
       installVisibilityResume();
       const mix = ensureAmpMix(ampContext);

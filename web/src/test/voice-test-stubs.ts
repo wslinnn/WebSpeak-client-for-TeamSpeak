@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+import { resetElementVolumeProbe } from "@/voice/element-volume-probe";
 
 /** Ported verbatim from web/test/voice-session.test.mjs: the spec's network and
  *  media doubles. Only browser/network boundaries are simulated; these stubs
@@ -100,6 +101,8 @@ export function receiveAudio(socket: TestSocket, clientId = 7) {
 
 export class AudioContextStub extends EventTarget {
   static instances: AudioContextStub[] = [];
+  /** Constructor options per instance, in creation order. */
+  static options: Array<Record<string, unknown> | undefined> = [];
   static processors: AudioNodeStub[] = [];
   static sources: AudioSourceStub[] = [];
   static gains: AudioNodeStub[] = [];
@@ -110,9 +113,10 @@ export class AudioContextStub extends EventTarget {
   sampleRate = 48000;
   destination = new AudioNodeStub();
   sinkId: string | undefined;
-  constructor() {
+  constructor(options?: Record<string, unknown>) {
     super();
     AudioContextStub.instances.push(this);
+    AudioContextStub.options.push(options);
   }
   async setSinkId(id: string) { this.sinkId = id; }
   // 与真实 AudioContext 对齐：suspended/interrupted 上下文需要 resume 恢复。
@@ -222,12 +226,18 @@ export const browserTimers = new Set<ReturnType<typeof setTimeout>>();
 export const audioElements = new Set<unknown>();
 
 export class TestAudioElement extends EventTarget {
+  static ignoreVolumeWrites = false;
   style: Record<string, string> = {};
   muted = false;
-  volume = 1;
+  #volume = 1;
   srcObject: unknown = null;
   /** Recorded sink routes, like the real element's setSinkId. */
   sinkIds: string[] = [];
+  /** iOS Safari leaves the backing value untouched when `volume` is written, so
+   *  the read-back probe in webrtc-playback sees no change. The switch lets the
+   *  tests cover both platforms. */
+  get volume(): number { return this.#volume; }
+  set volume(value: number) { if (!TestAudioElement.ignoreVolumeWrites) this.#volume = value; }
   async play() {}
   pause() {}
   setAttribute() {}
@@ -253,11 +263,14 @@ export function fakeStorage(): FakeStorage {
 /** Installs every browser boundary the controller touches. Call in
  *  beforeEach; pair with uninstallVoiceStubs() in afterEach. */
 export function installVoiceStubs(): void {
+  TestAudioElement.ignoreVolumeWrites = false;
+  resetElementVolumeProbe();
   TestSocket.instances.length = 0;
   TestPeer.instances.length = 0;
   TestPeer.senderParameters.length = 0;
   AudioContextStub.processors.length = 0;
   AudioContextStub.instances.length = 0;
+  AudioContextStub.options.length = 0;
   AudioContextStub.sources.length = 0;
   AudioContextStub.gains.length = 0;
   AudioContextStub.mediaSources.length = 0;

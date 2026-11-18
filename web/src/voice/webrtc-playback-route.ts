@@ -28,6 +28,10 @@ export interface RouteInput {
   busBlocked: boolean;
   /** The pipe could not be built at all (no AudioContext, allocation failed). */
   pipeAvailable: boolean;
+  /** Whether this platform renders HTMLMediaElement volume writes. iOS Safari
+   *  (and iPadOS under a desktop UA) route playback through the system audio
+   *  session and ignore them, so only there does attenuation need a pipe. */
+  elementVolumeHonored: boolean;
 }
 
 export interface RouteDecision {
@@ -46,6 +50,13 @@ export function decideRoute(input: RouteInput): RouteDecision {
     return { route: "muted", elementVolume: 1 };
   }
   if (combined === 1) return { route: "element", elementVolume: 1 };
+  // Attenuation needs the pipe only where element volume is ignored: the pipe
+  // plays through a second media element whose clock is independent of the
+  // receiver's, so on hardware that does not run the context's rate it drifts
+  // and audibly stretches playback (measured on Android Chrome, 2026-11-18).
+  if (combined < 1 && input.elementVolumeHonored) {
+    return { route: "element", elementVolume: Math.max(0, Math.min(1, combined)) };
+  }
   // Any other gain needs the pipe, but only when the pipe can actually render.
   const pipeUsable = input.flowed && input.contextRunning && !input.busBlocked && input.pipeAvailable;
   if (pipeUsable) return { route: "pipe", elementVolume: 1 };

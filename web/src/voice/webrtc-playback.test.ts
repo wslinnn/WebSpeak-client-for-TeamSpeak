@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { afterEach, beforeEach, test, vi } from "vitest";
 import { createWebRtcPlayback } from "./webrtc-playback";
-import { audioElements, AudioContextStub, installVoiceStubs, uninstallVoiceStubs } from "../test/voice-test-stubs";
+import { audioElements, AudioContextStub, installVoiceStubs, TestAudioElement, uninstallVoiceStubs } from "../test/voice-test-stubs";
 
 // The playback layer is the only place where member and master volume meet the
 // platform: element.volume is ignored on iOS Safari, `muted` is honored
 // everywhere, and a Web Audio gain pipe is the only way to render a gain other
-// than 1 there.
+// than 1 there — and the only way to boost past 100% anywhere.
 
 interface ElementProbe {
   muted: boolean;
@@ -20,9 +20,10 @@ function receiverStub(packets: () => number) {
   } as unknown as RTCRtpReceiver;
 }
 
-function harness(options: { master?: number; speakers?: Record<number, number> } = {}) {
+function harness(options: { master?: number; speakers?: Record<number, number>; volumeIgnored?: boolean } = {}) {
   // onEndpoint fires only for slot elements, never for the mix-bus player, so
   // it is the reliable way to tell the two kinds apart.
+  TestAudioElement.ignoreVolumeWrites = options.volumeIgnored === true;
   const endpoints: ElementProbe[] = [];
   const playback = createWebRtcPlayback({
     volume: () => options.master ?? 1,
@@ -38,6 +39,20 @@ function harness(options: { master?: number; speakers?: Record<number, number> }
   };
   return { playback, attach, endpoints };
 }
+
+test("the gain pipe adopts the device sample rate instead of forcing 48 kHz", async () => {
+  // Forcing 48 kHz made the bus resample against hardware that commonly runs
+  // 44.1 kHz; the bus's player element has its own clock, so nothing absorbed
+  // the resulting drift and playback stretched (Android Chrome, 2026-11-18).
+  const { playback, attach } = harness({ master: 1, speakers: { 7: 2 } });
+  attach(0, () => 5);
+  playback.setSlotClients([7]);
+  await pollOnce();
+  assert.equal(AudioContextStub.instances.length, 1, "the pipe built one context");
+  const options = AudioContextStub.options.at(-1);
+  assert.equal(options?.sampleRate, undefined, "no sampleRate is pinned on the context");
+  playback.stop();
+});
 
 /** The mix-bus player element: the last audio element that is not a slot. */
 function mixElement(endpoints: ElementProbe[]): ElementProbe | null {
@@ -93,10 +108,10 @@ test("unity gain plays the element at full volume with no pipe", async () => {
   assert.equal(AudioContextStub.instances.length, 0);
 });
 
-test("attenuation rides a gain pipe once the slot has flowed", async () => {
-  // element.volume = 0.5 is ignored on iOS Safari (the member stays at full
-  // volume and the master slider does nothing); the gain pipe works there.
-  const { playback, attach } = harness({ master: 0.5 });
+test("attenuation rides a gain pipe only where element volume is ignored", async () => {
+  // iOS Safari drops element.volume = 0.5 (the member stays at full volume and
+  // the master slider does nothing); the gain pipe works there.
+  const { playback, attach } = harness({ master: 0.5, volumeIgnored: true });
   const element = attach(0, () => 5);
   playback.setSlotClients([7]);
   await pollOnce();
@@ -105,6 +120,20 @@ test("attenuation rides a gain pipe once the slot has flowed", async () => {
   assert.equal(context.state, "running");
   const gain = AudioContextStub.gains.at(-1)! as unknown as { gain: { value: number } };
   assert.equal(gain.gain.value, 0.5);
+  playback.stop();
+});
+
+test("attenuation stays on the element where element volume is honoured", async () => {
+  // The pipe plays through a second media element with an independent clock, so
+  // routing plain attenuation through it stretched playback on Android Chrome
+  // (measured 2026-11-18). Engines that render element volume must not pay that.
+  const { playback, attach } = harness({ master: 0.5 });
+  const element = attach(0, () => 5);
+  playback.setSlotClients([7]);
+  await pollOnce();
+  assert.equal(element.muted, false, "the element keeps rendering the member");
+  assert.equal(element.volume, 0.5);
+  assert.equal(AudioContextStub.instances.length, 0, "no pipe for plain attenuation");
   playback.stop();
 });
 
@@ -122,7 +151,7 @@ test("attenuation before the first packet stays on element volume", async () => 
 
 test("a replaced stream re-arms the flow gate", async () => {
   let packets = 5;
-  const { playback, attach } = harness({ master: 0.5 });
+  const { playback, attach } = harness({ master: 1, speakers: { 7: 2 } });
   const first = attach(0, () => packets);
   playback.setSlotClients([7]);
   await pollOnce();
@@ -132,7 +161,7 @@ test("a replaced stream re-arms the flow gate", async () => {
   packets = 0;
   const second = attach(0, () => packets);
   assert.equal(second.muted, false, "before the new stream's first packet the element stays audible");
-  assert.equal(second.volume, 0.5);
+  assert.equal(second.volume, 1, "the element is clamped to unity until the pipe can bind");
   playback.stop();
 });
 
@@ -146,7 +175,7 @@ test("a piped gain still follows the chosen output when the context cannot route
   const contextWithSink = Object.getOwnPropertyDescriptor(AudioContextStub.prototype, "setSinkId");
   try {
     Object.defineProperty(AudioContextStub.prototype, "setSinkId", { value: undefined, configurable: true });
-    const { playback, attach, endpoints } = harness({ master: 0.5 });
+    const { playback, attach, endpoints } = harness({ master: 1, speakers: { 7: 2 } });
     const element = attach(0, () => 5);
     playback.setSlotClients([7]);
     await pollOnce();
@@ -164,7 +193,7 @@ test("a piped gain still follows the chosen output when the context cannot route
 });
 
 test("a context suspended mid-session falls back to the element and restores the pipe on resume", async () => {
-  const { playback, attach } = harness({ master: 0.5 });
+  const { playback, attach } = harness({ master: 1, speakers: { 7: 2 } });
   const element = attach(0, () => 5);
   playback.setSlotClients([7]);
   await pollOnce();
@@ -175,7 +204,7 @@ test("a context suspended mid-session falls back to the element and restores the
   context.state = "suspended";
   context.dispatchEvent(new Event("statechange"));
   assert.equal(element.muted, false, "the element takes over while the context is suspended");
-  assert.equal(element.volume, 0.5);
+  assert.equal(element.volume, 1, "the boost is clamped to unity without a pipe");
   context.state = "running";
   context.dispatchEvent(new Event("statechange"));
   assert.equal(element.muted, true, "the pipe renders again once the context resumes");
@@ -304,7 +333,7 @@ test("a piped slot is never played twice", async () => {
   // The whole point of muting the slot element: exactly one of {element, pipe}
   // may render a member. Leaving both connected meant hearing them twice, once
   // at full volume.
-  let master = 0.5;
+  let master = 2;
   const endpoints: Array<{ muted: boolean }> = [];
   const playback = createWebRtcPlayback({
     volume: () => master,
@@ -335,7 +364,7 @@ test("returning to the tab resumes an interrupted audio session", async () => {
   // same resume as \`suspended\`. It also matters on iOS because element.volume is
   // ignored there: while the pipe is down the member plays at full volume and
   // the slider is inert, so the session must come back without a new gesture.
-  const { playback, attach } = harness({ master: 0.5 });
+  const { playback, attach } = harness({ master: 1, speakers: { 7: 2 } });
   const element = attach(0, () => 5);
   playback.setSlotClients([7]);
   await pollOnce();
@@ -368,7 +397,7 @@ test("a suspended context is not rebuilt and torn down on every volume tick", as
   // While the context cannot run (no gesture yet, iOS interruption) every apply
   // used to create an audio node pair and immediately destroy it again — on
   // each slider tick, slot binding and speaker refresh.
-  const { playback, attach } = harness({ master: 0.5 });
+  const { playback, attach } = harness({ master: 1, speakers: { 7: 2 } });
   const element = attach(0, () => 5);
   playback.setSlotClients([7]);
   await pollOnce();
@@ -389,7 +418,7 @@ test("a blocked bus element keeps the slots on element volume instead of muting 
   // pipe nobody hears — that combination is a silent room.
   const endpoints: Array<{ muted: boolean; volume: number; play(): Promise<void> }> = [];
   const playback = createWebRtcPlayback({
-    volume: () => 0.5,
+    volume: () => 2,
     speakerVolume: () => 1,
     onEndpoint: element => endpoints.push(element as unknown as { muted: boolean; volume: number; play(): Promise<void> }),
     onBlocked() {},
@@ -412,7 +441,7 @@ test("a blocked bus element keeps the slots on element volume instead of muting 
   await Promise.resolve();
   const element = endpoints.at(-1)!;
   assert.equal(element.muted, false, "the slot element stays audible");
-  assert.ok(element.volume <= 0.5 + 1e-9, "at its own volume, not muted");
+  assert.ok(element.volume <= 1 + 1e-9, "clamped to unity without a pipe, not muted");
   playback.stop();
 });
 
@@ -424,7 +453,7 @@ test("a blocked room is still reported while a mix bus exists", async () => {
   const events: string[] = [];
   const endpoints: Array<{ muted: boolean; play(): Promise<void> }> = [];
   const playback = createWebRtcPlayback({
-    volume: () => 0.5,
+    volume: () => 2,
     speakerVolume: () => 1,
     onEndpoint: element => endpoints.push(element as unknown as { muted: boolean; play(): Promise<void> }),
     onBlocked: blocked => events.push(blocked ? "blocked" : "clear"),
@@ -452,7 +481,7 @@ test("a bus blocked while the slot element plays is not a blocked room", async (
   const events: string[] = [];
   const endpoints: Array<{ muted: boolean; play(): Promise<void> }> = [];
   const playback = createWebRtcPlayback({
-    volume: () => 0.5,
+    volume: () => 2,
     speakerVolume: () => 1,
     onEndpoint: element => endpoints.push(element as unknown as { muted: boolean; play(): Promise<void> }),
     onBlocked: blocked => events.push(blocked ? "blocked" : "clear"),
