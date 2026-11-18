@@ -2,35 +2,32 @@
 
 [Project home](../README.md) · [简体中文](./README.zh-CN.md)
 
-WebSpeak is a self-hosted browser client and voice gateway for TeamSpeak 3 and TeamSpeak 6. Visitors can join channels without installing a desktop client, while administrators manage the target servers, access policy, and runtime state from the web console.
+WebSpeak is a self-hosted browser client and voice gateway for TeamSpeak 3 and TeamSpeak 6. Visitors join channels without installing a desktop client, while administrators manage target servers, access policy, and runtime state from the web console.
 
 ## Live demo
 
-No public live demo is available at the moment. To try WebSpeak, deploy your own instance using the instructions below.
+No public live demo is available. Deploy your own instance using the instructions below.
 
-## ✨ Features
+## Features
 
 | Capability | Description |
 | --- | --- |
 | TeamSpeak compatibility | Supports TeamSpeak 3 and TeamSpeak 6 and automatically detects the target protocol. |
-| Cross-platform P2P screen sharing | Browser users and native TeamSpeak 6 clients can start and watch each other's screen shares; WebRTC/ICE carries media directly while WebSpeak relays negotiation signaling only. |
-| IPv6 targets | IPv6 TeamSpeak targets and IPv6 addresses resolved from hostnames are supported by default. |
-| Channels and members | Browse the channel tree, see live member states, and switch channels. |
-| Realtime voice | Opus audio with a compatibility transport and optional bundled WebRTC low-latency transport. |
-| Audio controls | Select microphones and speakers, adjust volume, test the microphone, mute, use VOX, and control member volume. |
-| Browser-side noise suppression | Optional microphone noise suppression runs at the browser capture stage, without adding server-side audio processing. |
+| IPv6 targets | IPv6 literal targets and IPv6 addresses resolved from hostnames are supported by default. |
+| Realtime voice | Opus audio. WebRTC is the primary low-latency transport, with a WebSocket compatibility transport available. |
+| Channels and members | Browse the channel tree, see live member states, switch channels, and move members when permitted. |
+| Audio controls | Microphone and speaker selection, per-member volume, VOX, microphone test, microphone gain, and echo cancellation. |
+| Browser-side noise suppression | Optional GTCRN suppression runs at the browser capture stage, without adding server-side audio processing. |
 | Messaging and actions | Channel chat, server chat, private messages, poke actions, and whisper targets. |
 | Desktop accompaniment | Select an audio-enabled window or browser tab and share its sound with the current channel. |
-| Identity and access | Remembered identity, visitor-defined targets, and TeamSpeak 3 identity import, conversion, validation, and export. |
-| Administration | Manage targets, access policy, public media address, IPv6 candidates, voice STUN, sessions, logs, diagnostics, and backups. |
-| Engineering structure | In 0.2.6, gateway voice, session events, audio, and screen-share coordination were split into modules; frontend voice and admin pages were decomposed into components, composables, and services, with lifecycle and reconnect tests. |
-| Administration | Manage targets, access policy, public media address, IPv6 candidates, voice STUN, sessions, logs, diagnostics, and backups. |
-| User experience | Chinese and English UI with responsive desktop/mobile layouts and built-in Day/Night themes. |
-| Self-hosting | Data stays with the operator; packages include Windows x64 and Linux x64/ARM64, and Docker supports amd64/arm64. |
+| Cross-platform screen sharing | Media travels end to end over WebRTC between browsers and native TeamSpeak 6 clients; the gateway only relays negotiation signaling. |
+| Identity and access | Remembered identity, TeamSpeak 3 identity import/conversion/validation/export, and visitor-defined targets. |
+| Administration | Manage targets, access policy, WebRTC, sessions, audit logs, diagnostics, and backups. |
+| UI and deployment | Chinese and English interfaces, responsive desktop/mobile layouts, and Day/Night themes; self-hosting via Docker or release packages. |
 
-## 🖼️ Screenshots
+## Screenshots
 
-The screenshots show the English welcome page, voice workspace, audio controls, and member menu.
+The screenshots below show the English welcome page, voice workspace, audio controls, and member menu.
 
 ### Welcome page
 
@@ -48,79 +45,70 @@ The screenshots show the English welcome page, voice workspace, audio controls, 
 
 <p align="center"><img src="./screenshots/webspeak-en-menu.png" alt="WebSpeak English member menu" width="100%" /></p>
 
-## 🧩 Advanced features
+## Advanced features
 
-These features are optional. WebSpeak continues to work with the compatibility voice transport when they are disabled. Configure them under **Administration → Servers**; saved changes apply to new connections.
+Every advanced feature is optional. Configure them under Server in the administration console; changes apply to new connections.
 
-### WebRTC low-latency voice
+### Low-latency voice over WebRTC
 
-WebRTC moves browser voice to a realtime media path and also enables desktop accompaniment. The current WebSpeak gateway provides it directly; no separate media server is required.
+WebRTC moves browser voice onto a realtime media channel and also carries desktop accompaniment. The current WebSpeak gateway provides the media service; no separate media server is required.
 
-1. Sign in at `/admin` and open **Advanced settings** on the **Servers** page.
-2. While WebRTC is disabled, choose the UDP start and end ports. The default range is `40000–41999`.
-3. Allow the complete UDP range in the WebSpeak host's security group and firewall.
-4. Enable **WebRTC** and save. New visitors will negotiate WebRTC; unsupported browsers and networks fall back to the compatibility transport.
+1. Sign in to `/admin` and open the advanced parameters under Server.
+2. While WebRTC is disabled, set the UDP port range — `40000–41999` by default.
+3. Allow the entire UDP range in the WebSpeak host's security group and firewall.
+4. Enable WebRTC and save. Visitors negotiate it after reconnecting.
 
-The port range is locked while WebRTC is enabled. Disable and save WebRTC before changing it, then update the firewall rules. Public deployments also need HTTPS.
+The port range locks while WebRTC is enabled. To change it, disable WebRTC and save first, then adjust the range and firewall rules. Public deployments also need HTTPS.
 
-### Voice WebRTC behind a reverse proxy or TCP tunnel
+### Voice behind a reverse proxy or TCP tunnel
 
-The WebRTC advanced settings now include a **public media address**, **IPv6 candidates**, and a **voice STUN server**. The media address must be a gateway IP or hostname reachable over UDP, without a scheme, path or port. It overrides the address inferred from `Origin`, `X-Forwarded-Host`, or `Host`; DNS names are resolved into IP candidates. IPv6 is opt-in and retains IPv4 candidates.
+The WebRTC advanced parameters expose:
 
-Set a UDP STUN URL such as `stun:turn.teamspeak.com:3478` to use the same discovery service in the browser and gateway. Empty preserves the previous behavior: the gateway library uses its built-in STUN service while the browser has none. The gateway requires an IPv4-reachable UDP STUN hostname or IPv4 address; IPv6 literals and TURN credentials are not accepted. IPv6 media candidates work independently of STUN. Save and reconnect to apply changes.
+- **Public media address**: an IP or hostname the gateway is reachable at over UDP, without scheme, path, or port. When empty, it is inferred from `Origin`, `X-Forwarded-Host`, or `Host`. A proxy hostname is not necessarily the media address.
+- **Enable IPv6 candidates**: off by default; when on, IPv4 is retained and IPv6 is collected too. Requires routable IPv6 and matching UDP firewall rules.
+- **Voice STUN server**: for example `stun:turn.teamspeak.com:3478`, used by both the browser and the gateway to discover public mappings. When empty, the gateway keeps using its built-in STUN and the browser configures none. This field only accepts IPv4-reachable UDP STUN hostnames or addresses — not IPv6 literals, TURN, or credentials.
 
-HTTP/WebSocket reachability does not imply media reachability. Allow the complete configured UDP range and preserve port numbers when using static port forwarding. STUN discovers mappings but cannot relay audio or traverse every NAT. Deployments with only a TCP tunnel and no usable UDP/IPv6 path still fall back to compatibility transport.
+Reconnect after saving. HTTP/WebSocket reachability does not imply media reachability over UDP; STUN only discovers addresses and never relays audio. With a TCP tunnel and no usable UDP/IPv6 path, voice stays on the compatibility transport.
 
-### Screen-share ICE candidates
+### ICE candidates for screen sharing
 
-Screen-share media still prefers a direct browser-to-browser path; WebSpeak only relays negotiation signaling. The gateway ships its own STUN service (UDP `3478`; `WEBSPEAK_STUN_PORT` changes the port, `0` disables it): when the **public media address** is configured, screen share prefers `stun:<public media address>:3478` for reflexive-candidate discovery, with TeamSpeak's public STUN as fallback. STUN only discovers addresses and never carries media. Cross-LAN direct connections require UDP `3478` to be allowed in the firewall. STUN cannot traverse symmetric NATs (including carrier-grade NAT): when both ends sit behind such networks without IPv6 there is no direct path — that is a network property, not a defect.
+Screen-share media always takes a direct path between browsers; WebSpeak only relays negotiation signaling. The gateway answers STUN itself (UDP `3478`; `WEBSPEAK_STUN_PORT` changes it, `0` disables it). With a **Public media address** configured, screen sharing prefers `stun:<address>:3478` to discover public candidates and falls back to TeamSpeak's public STUN. Cross-network direct connections require UDP `3478` to be open.
 
-To override the candidate list entirely (including an external TURN service), set `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` before starting WebSpeak with a JSON array or a comma-separated URL list; it replaces the defaults, for example:
+STUN cannot traverse symmetric NAT, including carrier-grade NAT. When both peers sit behind such a network with no IPv6, no direct path exists — that is a network-condition limit.
+
+To define a fully custom candidate list, including an external TURN server, set `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` before starting WebSpeak. The value is a JSON array or a comma-separated URL list:
 
 ```json
 [{"urls":"stun:turn.teamspeak.com:3478"},{"urls":"turns:turn.example.com:5349","username":"<username>","credential":"<credential>"}]
 ```
 
-With TURN configured, media may use that external TURN service but never the WebSpeak gateway; without it, only direct ICE paths and STUN are used.
+With TURN configured, media may traverse that external service but never the WebSpeak gateway; without it, only direct paths and STUN are used.
 
-### Cross-platform P2P screen sharing
+### Cross-platform screen sharing
 
-Browser users and native TeamSpeak 6 clients can discover, start, and watch each other's screen shares. Screen media between browsers, and between a browser and a native client, is sent over a WebRTC/ICE peer-to-peer path whenever possible; WebSpeak handles session authorization, share state, and SDP/ICE signaling, but does not carry the screen media. The UI includes live status, viewer count, player volume, fullscreen, and exit controls. Share settings support up to 1080p and 60 FPS, with live WebRTC statistics for diagnosis.
+Browser users and native TeamSpeak 6 clients can discover, start, and watch each other's shares. The page provides live status, viewer counts, player volume, fullscreen and exit controls, capture resolution and frame-rate selection, and WebRTC statistics. When negotiation fails it reports the discovery servers actually tried, the candidate count, and first-frame proof, so cross-network problems can be located.
 
 ### Dependencies and attribution
 
-- WebRTC uses [werift](https://github.com/shinyoshiaki/werift-webrtc) `0.24.4`, whose upstream project is licensed under MIT.
-- TeamSpeak protocol connectivity uses the [EchoSixHIYA/teamspeak-js](https://github.com/EchoSixHIYA/teamspeak-js) SDK; its build output is vendored into the repository at `vendor/teamspeak-client/`.
+- WebRTC uses [werift](https://github.com/shinyoshiaki/werift-webrtc) `0.24.4`, MIT licensed upstream.
+- The TeamSpeak protocol uses the build output of `@honeybbq/teamspeak` 1.0.0-beta.26, vendored under `vendor/teamspeak/` (MIT); see `VENDOR.md` there before upgrading.
+- Noise suppression uses the GTCRN model from [@sapphi-red/web-noise-suppressor](https://github.com/sapphi-red/web-noise-suppressor) (MIT).
 
-## 🧾 Changelog
+## Changelog
 
-> The version history below reflects the upstream era of the project; this fork has removed some of the capabilities it mentions (acceleration relay, Android client, and visitor numbering).
+See [CHANGELOG.md](../CHANGELOG.md) for the complete history.
 
 | Version | Date | Summary |
 | --- | --- | --- |
-| [v0.2.6](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.6) | 2026-10-08 | Relative to 0.2.5, broadly refactored gateway voice, shared protocol, frontend voice workspace, and admin modules; fixed #6/#7/#10, implemented #9/#12 settings, and fixed the existing-TS6-share discovery case reported in PR #13. Improved Opus/session lifecycles and mobile controls. Packages: Windows x64, Linux x64/ARM64, Docker amd64/arm64, and Android arm64-v8a/armeabi-v7a/x86_64. |
-| [v0.2.5](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.5) | 2026-09-27 | Added `.wskin` skins, administrator enable/default controls, and protected Day/Night/ILLUSIA built-ins; removed the unfinished Aurora Voice sample, fixed skin-load flashes, dark-control contrast, and voice-room artwork layering, and added the official skin-development Agent Skill. |
-| [v0.2.4](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.4) | 2026-09-22 | Added cross-platform P2P screen sharing between browsers and native TeamSpeak 6 clients; added STUN/external-TURN configuration, live player and viewer state, 1080p/60 FPS capture settings, and WebRTC statistics; refined screen-share interactions and added visitor numbering. |
-| [v0.2.3](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.3) | 2026-09-19 | Added channel member scheduling and permission-aware direct moves; added avatar, mute-state, and remembered-identity support; refreshed feature screenshots and documentation for all five languages. |
-| [v0.2.2](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.2) | 2026-09-17 | Added browser-side microphone noise suppression, Russian and Japanese UI, and per-language welcome text; refined volume interaction and error messages/codes on top of PR #2. |
-| [v0.2.1](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.1) | 2026-09-13 | Improved welcome-page connection errors, preserved and safely truncated error codes, and added default IPv6 target support. |
-| [v0.2.0](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.2.0) | 2026-09-10 | Added server-password prompts, formal relay mode, multiple relay selection, and administrator connection-reason reporting. |
-| [v0.1.8](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.1.8) | 2026-09-08 | Simplified Docker deployment, supported local TeamSpeak targets, added a 15-second connection timeout, and made network monitoring continuous. |
-| [v0.1.7](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.1.7) | 2026-09-06 | Added German, Telegram, network performance, and master-volume features; fixed accompaniment volume fluctuation. |
-| [v0.1.6](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.1.6) | 2026-09-04 | Added desktop accompaniment, remembered-identity guidance, and the site icon; fixed WebRTC member volume. |
-| [v0.1.5](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.1.5) | 2026-09-04 | Fixed identity persistence and refined the theme toggle. |
-| [v0.1.4](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.1.4) | 2026-09-03 | Fixed WebRTC and channel chat and refined administration, logs, and mobile layouts. |
-| [v0.1.3](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.1.3) | 2026-09-03 | Added bundled WebRTC, migrated the TeamSpeak SDK, and improved member synchronization and voice buffering. |
+| [v0.3.0](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/tag/v0.3.0) | 2026-11-18 | First official release of this repository. Voice path reworked (shared mixing bus, encoder alignment with the official client, silence timeline, bounded egress); screen sharing gained a built-in STUN server and cross-network diagnostics; security baseline (one-time setup token, security headers, rate limits, proxy trust); administration and frontend moved to React 19 with UI primitives. Removed accelerated relay, Android client, DemoView, visitor counter, and skin system. |
 
-See the complete history in [CHANGELOG.md](../CHANGELOG.md).
+## Deployment
 
-## 🚀 Deployment
-
-| Method | Best for | Environment |
+| Option | Best for | Requirements |
 | --- | --- | --- |
-| Docker Compose (recommended) | Long-running servers, simple upgrades, and persistent data | Docker Engine + Docker Compose |
-| Release package | Running without Node.js or build dependencies | Windows x64 or Linux x64/ARM64 |
-| From source | Development, debugging, and customization | Node.js 22.5+, Git, and native build tools |
+| Docker Compose (recommended) | Long-running instances, simple upgrades, persistent data | Docker Engine + Docker Compose |
+| Release packages | No Node.js or build toolchain on the host | Windows x64 or Linux x64/ARM64 |
+| From source | Development, debugging, and customization | Node.js 22.22.2+, Git, and local build tools |
 
 ### Docker Compose (recommended)
 
@@ -131,14 +119,14 @@ docker compose pull
 docker compose up -d
 ```
 
-Open `http://<your-host>:3040` after startup. If using a reverse proxy, point it to that address: a same-host loopback proxy is trusted by default (set `WEBSPEAK_TRUST_PROXY=0` to opt out), and a proxy on another host or container network is declared with `WEBSPEAK_TRUSTED_PROXIES` — rate limits and logs then see the real client address and proxy-terminated HTTPS keeps secure cookies. When WebRTC is enabled, allow the UDP range shown in the administration console. Data is stored in the `webspeak-data` volume.
+Open `http://<your-host>:3040`. Behind a reverse proxy, point it at that address: a loopback proxy on the same host is trusted by default (`WEBSPEAK_TRUST_PROXY=0` opts out); for a proxy on another host or container network, declare it with `WEBSPEAK_TRUSTED_PROXIES`. When WebRTC is enabled, allow the UDP range shown in the console. Data lives in the `webspeak-data` volume.
 
 ```bash
 docker compose ps
 docker compose logs -f webspeak
 ```
 
-Upgrade:
+Upgrading:
 
 ```bash
 git pull --ff-only
@@ -146,12 +134,11 @@ docker compose pull
 docker compose up -d
 ```
 
-Do not run `docker compose down -v`; it removes the database and administrator settings.
+Never run `docker compose down -v`, which deletes the database and administrator settings.
 
-### Release package
+### Release packages
 
-Download the matching `windows-x64.zip`, `linux-x64.tar.gz`, or `linux-arm64.tar.gz` from [GitHub Releases](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/latest). Extract it and run the included launcher. Packages include the Node.js runtime and production dependencies. Docker images support amd64/arm64.
-
+Download the `windows-x64.zip`, `linux-x64.tar.gz`, or `linux-arm64.tar.gz` matching your platform from [Releases](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/latest) and run the bundled launcher. Packages include the Node.js runtime and production dependencies. Docker images cover amd64 and arm64.
 
 ### From source
 
@@ -168,39 +155,48 @@ npm start
 
 Building `@discordjs/opus` requires Python, Make, and a C/C++ toolchain.
 
-### First-time setup
+### First-time configuration
 
 1. Open `http://<your-host>:3040/admin`.
-2. Read the one-time setup token printed to the service log at first start (`Admin setup token: ws-setup-…`), sign in at `/admin` with it, and immediately set a new password of at least 12 characters; the token stops working afterwards.
-3. Configure the TeamSpeak target and access mode under **Servers**, for example `voice.example.com#9987`.
-4. Configure HTTPS for public access; when WebRTC is enabled, allow the UDP range shown in the console.
+2. Read the one-time setup token that the first start prints to the log (`Admin setup token: ws-setup-…`), sign in with it, and immediately set a new password of at least 12 characters. The token stops working once a password exists.
+3. On the Server page, configure the TeamSpeak target and access policy, for example `voice.example.com#9987`.
+4. For public use, configure HTTPS; when WebRTC is enabled, allow the UDP range shown in the console.
 
-### FAQ
+### Troubleshooting
 
-- **"Banned from the TeamSpeak server" after a refresh or a network drop**: that is the TeamSpeak server's anti-flood protection reacting to rapid reconnects; it is temporary (usually a few minutes) — wait a moment and try again. WebSpeak keeps the session alive for 60 seconds after a drop, so a refresh or network recovery returns you straight to the room with zero TeamSpeak reconnects; clicking Disconnect leaves immediately.
-- **Client IPs in the logs are all 127.0.0.1**: the gateway believes forwarded headers only from declared (or loopback) proxies — a same-host loopback proxy is **trusted by default**, so this usually means `WEBSPEAK_TRUST_PROXY=0` was set explicitly (remove it) or the proxy does not send `X-Forwarded-For` (nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`). For a proxy on another host or container network declare its IP/CIDR with `WEBSPEAK_TRUSTED_PROXIES=10.0.0.5,172.16.0.0/12`. Without a declaration the logs and limits see the proxy address instead, and the gateway logs a hint once when it detects this misconfiguration.
-- **How do I get back into the room after a refresh?**: within 60 seconds the session resumes automatically — no password re-entry. Clicking Disconnect leaves immediately and clears the resume state.
+- **"Banned by the TeamSpeak server" after a refresh or network drop**: this is the target server's anti-flood protection after rapid reconnects and usually clears within minutes. WebSpeak keeps a session for 60 seconds after a disconnect, so a refresh or restored network returns you to the same room with no reconnect on the TeamSpeak side. Choosing Disconnect leaves immediately.
+- **Every logged client IP is 127.0.0.1**: the gateway only believes forwarding headers from a declared or loopback proxy. This usually means `WEBSPEAK_TRUST_PROXY=0` was set explicitly, or the proxy does not send `X-Forwarded-For` (nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`). For a proxy on another host, declare it with `WEBSPEAK_TRUSTED_PROXIES=10.0.0.5,172.16.0.0/12`.
+- **Returning to the room after a refresh**: reopening the page within 60 seconds restores the previous room without re-entering a password. Choosing Disconnect leaves immediately and clears the resume information.
+- **Screen sharing only works on the same network**: confirm a Public media address is set and UDP `3478` is open. Behind symmetric NAT with no IPv6 there is no direct path; configure an external TURN server.
 
-## ⚠️ Requirements and notes
+## Requirements and caveats
 
-| Area | Requirement or note |
+| Item | Requirement or caveat |
 | --- | --- |
-| Browser | Use a current Chrome, Edge, or other modern browser with WebRTC support. Microphone and window audio normally require HTTPS. |
+| Browser | A current Chrome, Edge, or other modern browser with WebRTC. Microphone and window audio usually require HTTPS. |
 | TeamSpeak network | The WebSpeak host must reach the target TeamSpeak server; the default voice port is `9987`. |
-| Web network | The service uses `3040/TCP`; public deployments should expose the page and WebSocket through an HTTPS reverse proxy. |
-| IPv6 | Write literal targets as `[2001:db8::1]#9987`. The host/container needs routed IPv6, IPv6 enabled in the OS and Node.js, and the relevant firewall rules. |
-| WebRTC | The default range is `40000–41999/UDP`; allow it and disable WebRTC before changing the range. |
-| Remembered identity | One browser identity can hold one active remembered connection. Disable it for parallel connections or use another browser profile. |
-| Accompaniment | Desktop only and requires WebRTC. Enable audio sharing when selecting a window or tab. |
-| Data | Docker data is in `webspeak-data`; release packages and source installs use `data/`. Back up before upgrades. |
-| Session limit | One instance accepts up to 100 active browser sessions. |
-| Deployment security boundary | The same-origin check (the `Origin` header must match `Host`, also enforced on the voice WebSocket upgrade) stops cross-site requests only. It does **not** stop DNS rebinding: when an attacker's domain later resolves to the gateway IP, Origin and Host still agree. Expose the gateway only inside a trusted network (firewall/ACL, intranet or VPN) and put the public entry point on a reverse proxy you control on a different host; never expose `3040/TCP` directly to an untrusted network. The admin console additionally uses SameSite=strict cookies and CSRF tokens, which lowers but does not remove that risk. **Reverse-proxy note**: both the HTTP and the **WebSocket** location must preserve the public Host — nginx's default `proxy_pass` rewrites Host to the upstream address, so set `proxy_set_header Host $host;` explicitly (plus the `Upgrade`/`Connection` headers); otherwise voice connections are refused with 1008 `ORIGIN_REJECTED`. |
-| Browser storage and passwords | Remembering the TeamSpeak server password is always on for this device: open mode writes it into the IndexedDB favorite record, fixed mode ("this server only") into the `localStorage` key `webspeak:fixed-server-password`. Both are **plaintext**, scoped to this device and this origin, and removed by "Clear local data". The trust boundary is therefore anyone who can read this browser profile; the page's CSP (`script-src 'self'`) narrows the XSS surface but does not encrypt browser storage. Avoid relying on password memory on shared computers. |
-| Admin password hashing | The administrator password is stored with scrypt (`N=2^15, r=8, p=1`, about 32 MiB and tens of milliseconds per attempt). The parameters travel with the credential row, so raising the cost later never invalidates an existing password. OWASP currently suggests `N=2^17`; this gateway targets small self-hosted VPS hosts that also run TeamSpeak clients and Opus encoders, where 128 MiB and the extra CPU per login is a poor trade — hence the 32 MiB compromise recorded here. Deployments with memory to spare may raise `N` in `src/security/admin-password.ts` and raise `maxmem` with it (`N=2^16` needs at least 64 MiB). |
+| Web service | The gateway listens on `3040/TCP`; public deployments should serve HTTP and WebSocket through an HTTPS reverse proxy. |
+| IPv6 | Write IPv6 literals as `[2001:db8::1]#9987`. The host or container needs routable IPv6, an IPv6-enabled OS and Node.js, plus matching firewall rules. |
+| WebRTC | Uses `40000–41999/UDP` by default; allow the entire range when enabled, and disable WebRTC before changing it. |
+| Screen sharing | Cross-network direct connections require UDP `3478`. |
+| Remembered identity | One browser identity holds a single active connection at a time; disable remember-me for the second connection or use another browser profile. |
+| Accompaniment | Desktop only and requires WebRTC; tick the audio option when picking a window or tab. |
+| Data | Docker keeps data in the `webspeak-data` volume; packages and source runs use `data/`. Back up before upgrading. |
+| Session ceiling | Up to 100 active browser sessions per instance. |
+| Deployment security boundary | Same-origin checks (`Origin` must match `Host`, enforced on the voice WebSocket upgrade too) only stop cross-origin requests — they do **not** prevent DNS rebinding. Expose the gateway only on a trusted network (firewall/ACL, intranet, or VPN) and put a reverse proxy you control, on a different host, at the public edge. Do not expose `3040/TCP` to an untrusted network. **Proxy note**: both HTTP and WebSocket locations must preserve the public Host — nginx rewrites Host to the upstream address by default, so set `proxy_set_header Host $host;` explicitly (with the `Upgrade`/`Connection` headers), or voice connections are rejected with 1008 `ORIGIN_REJECTED`. |
+| Browser storage and passwords | Remembering a server password is always a local behaviour: open mode stores it in the IndexedDB favourites record, fixed mode in a dedicated `localStorage` key. Both are **plaintext**, scoped to this device and origin, and removable via Clear local data. Page-side CSP narrows the XSS surface but does not encrypt browser storage — do not rely on password memory on shared or public computers. |
+| Administrator password hashing | Passwords use scrypt (`N=2^15, r=8, p=1`, about 32 MiB per attempt), with parameters stored alongside the credential so raising the cost later does not invalidate old passwords. Deployments with spare memory may raise `N` in `src/security/admin-password.ts` together with `maxmem`. |
 
-## Recent contributors
+## Environment variables
 
-- Listed from GitHub's merge records; the version summaries above describe only changes included in each release.
-- [LainHE](https://github.com/LainHE) — [PR #2](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/pull/2) improved browser error translations; [PR #8](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/pull/8) fixed scaling, floating layout, and the homepage footer.
-- [TimmySheep](https://github.com/TimmySheep) — [merged PRs #13 and #15–#24](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/pulls?q=is%3Apr+is%3Amerged+author%3ATimmySheep), covering existing TS6 share discovery, share aspect ratio, mobile voice/wake/skin-menu behavior, identity channel options, PWA/theme work, chat history, member audio states, and microphone permission.
-- [yichen11818](https://github.com/yichen11818) — [PR #25](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/pull/25) added connections through registered TeamSpeak nicknames and preserved nickname targets in settings, favorites, and invitations.
+| Variable | Purpose |
+| --- | --- |
+| `WEBSPEAK_DATA_DIR` | Persistent data directory; defaults to the project `data/`, Docker uses `/data` |
+| `WEBSPEAK_PORT` | HTTP port, `3040` by default |
+| `WEBSPEAK_LOG_LEVEL` | Set to `debug` for verbose logging |
+| `WEBSPEAK_SDK_DEBUG` | Set to `1` to enable TeamSpeak SDK protocol logging (may contain credentials; off by default) |
+| `WEBSPEAK_TRUST_PROXY` | Set to `0` to stop trusting loopback proxies (trust is on by default) |
+| `WEBSPEAK_TRUSTED_PROXIES` | Comma-separated trusted proxy IPs/CIDRs, overriding the previous setting |
+| `WEBSPEAK_STUN_PORT` | Built-in STUN port, `3478` by default; set to `0` to disable |
+| `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` | Overrides the screen-share ICE server list |
+| `WEBSPEAK_RTP_DEBUG` | Enables the RTP lab diagnostics used for voice troubleshooting |

@@ -1,84 +1,112 @@
-<div align="center">
-  <a id="readme-top"></a>
+# WebSpeak
 
-  <img src="./image.png" alt="WebSpeak 项目横幅" width="100%" />
+**让 TeamSpeak 自然地进入浏览器。** 自托管的 TeamSpeak 3 / TeamSpeak 6 网页客户端与语音网关。
 
-  <h1>WebSpeak</h1>
+用户无需安装桌面客户端，打开网页即可加入语音频道；部署者仍然掌控目标服务器、访问策略和数据。
 
-  <p><strong>让 TeamSpeak 自然地进入浏览器。</strong></p>
-  <p>A self-hosted browser voice client for TeamSpeak 3 and TeamSpeak 6.</p>
+## 能力
 
-  [![Latest Release](https://img.shields.io/github/v/release/wslinnn/WebSpeak-client-for-TeamSpeak?sort=semver&display_name=tag&style=flat-square&color=0f766e)](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/latest)
-  [![Docker Image](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/actions/workflows/docker-publish.yml/badge.svg?branch=master)](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/actions/workflows/docker-publish.yml)
-  [![License](https://img.shields.io/badge/license-AGPL--3.0--only-0f766e?style=flat-square)](./LICENSE)
-  [![GitHub Stars](https://img.shields.io/github/stars/wslinnn/WebSpeak-client-for-TeamSpeak?style=flat-square&logo=github&color=0f766e)](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/stargazers)
-  <br />
-  [![TeamSpeak](https://img.shields.io/badge/TeamSpeak-3%20%7C%206-2580C3?style=flat-square)](https://www.teamspeak.com/)
-  [![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22.5-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-  [![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
-  [![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-  [![Docker](https://img.shields.io/badge/Docker-GHCR-2496ED?style=flat-square&logo=docker&logoColor=white)](https://github.com/users/wslinnn/packages/container/package/webspeak)
+| 能力 | 说明 |
+| --- | --- |
+| TeamSpeak 3 / 6 | 自动探测目标服务器协议，同时支持 IPv4 与 IPv6 目标。 |
+| 实时语音 | Opus 编码。WebRTC 低延迟传输为主路径，另有 WebSocket 兼容传输。 |
+| 频道与成员 | 浏览频道树、查看实时成员状态、切换频道、按权限调度成员。 |
+| 屏幕共享 | 浏览器之间以及浏览器与 TeamSpeak 6 原生客户端之间经 WebRTC 端到端直传，网关只转发协商信令。 |
+| 音频控制 | 麦克风与扬声器选择、成员独立音量、VOX、麦克风测试、浏览器端 GTCRN 降噪。 |
+| 消息与互动 | 频道消息、服务器消息、私聊、戳一戳与耳语。 |
+| 桌面端伴奏 | 选择带音频的窗口或标签页，把声音分享给当前频道。 |
+| 身份与访问 | 身份保持、TeamSpeak 3 身份导入与导出、访客自定义目标。 |
+| 管理控制台 | 目标、访问策略、WebRTC、会话、审计日志、诊断与备份。 |
 
-  <p>
-    <a href="./docs/README.zh-CN.md">简体中文文档</a> ·
-    <a href="./docs/README.en.md">English documentation</a>
-  </p>
-</div>
+## 部署
 
-## 项目简介 · Overview
+三种方式，任选其一。
 
-| 逻辑 | 中文 | English |
-| --- | --- | --- |
-| **WHAT** | WebSpeak 是一个可自行部署的 TeamSpeak 3 / TeamSpeak 6 网页客户端与语音网关。 | WebSpeak is a self-hosted browser client and voice gateway for TeamSpeak 3 and TeamSpeak 6. |
-| **WHY** | 无需安装桌面客户端，用户打开网页即可加入频道；部署者仍然掌控目标服务器、访问策略和数据。 | Users can join a voice channel from a browser without installing a desktop client, while the operator keeps control of servers, access, and data. |
-| **HOW** | 部署后在管理员控制台配置 TeamSpeak 目标和访问方式，浏览器负责交互与音频，WebSpeak 负责网关连接。 | Configure the TeamSpeak target and access policy in the administration console. The browser handles interaction and audio; WebSpeak provides the gateway connection. |
+### Docker Compose（推荐）
 
-## 文档 · Documentation
+```bash
+git clone --depth 1 https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak.git
+cd WebSpeak-client-for-TeamSpeak
+docker compose pull
+docker compose up -d
+```
 
-- [简体中文](./docs/README.zh-CN.md)
-- [English](./docs/README.en.md)
-- [设计系统 / Design System](./docs/DESIGN.md)
+启动后访问 `http://<你的主机>:3040`。数据保存在 `webspeak-data` volume 中；升级用 `docker compose pull && docker compose up -d`。
 
-## 社区 · Community
+不要执行 `docker compose down -v`，否则会删除数据库和管理员设置。
 
-<div align="center">
+### 发布包
 
-[Telegram 群组 / Telegram group](https://t.me/+8qShpTcuN9A3MWY9)
+从 [Releases](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/releases/latest) 下载对应平台的包，解压后运行 `start-webspeak.cmd`（Windows）或 `start-webspeak.sh`（Linux）。发布包自带 Node.js 运行时和生产依赖，无需另行安装环境。
 
-</div>
+下载 `SHA256SUMS.txt` 可校验附件完整性。
 
-## 友链项目 · Friend projects
+### 源码运行
 
-### [NeteaseTSBot](https://github.com/yichen11818/NeteaseTSBot)
+需要 Node.js 22.22.2 或更高版本，以及用于构建 `@discordjs/opus` 的 Python、Make 和 C/C++ 编译工具：
 
-面向 TeamSpeak 3/6 的多平台音乐点播机器人，支持网易云音乐、QQ 音乐和 Bilibili 音频播放，并提供 Web 控制台。<br />
-A multi-platform music bot for TeamSpeak 3/6 with Netease Cloud Music, QQ Music, and Bilibili playback, plus a web console.<br />
-Ein plattformübergreifender Musikbot für TeamSpeak 3/6 mit Netease Cloud Music, QQ Music und Bilibili sowie Webkonsole.
+```bash
+git clone https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak.git
+cd WebSpeak-client-for-TeamSpeak
+npm ci --ignore-scripts
+npm rebuild @discordjs/opus --foreground-scripts
+npm --prefix web ci
+npm --prefix web run build
+npm run build
+npm start
+```
 
-## Contributors · 贡献者
+## 首次配置
 
-感谢通过 PR 改进 WebSpeak 的贡献者。以下按 GitHub 的合并记录列出；上方 0.2.6 摘要只描述本版本实际纳入的改动。
+1. 打开 `http://<你的主机>:3040/admin`。
+2. 在服务日志中找到一次性设置令牌（`Admin setup token: ws-setup-…`），用它登录并立即设置新密码。令牌在你设置密码后失效。
+3. 在「服务器」页配置 TeamSpeak 目标和访问方式，例如 `voice.example.com#9987`。
+4. 公网使用请配置 HTTPS —— 麦克风、屏幕采集等媒体能力通常要求安全来源。
 
-- [LainHE](https://github.com/LainHE) — [PR #2](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/pull/2) 改进浏览器端报错翻译；[PR #8](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/pull/8) 修正缩放、浮动布局和首页脚注。
-- [TimmySheep](https://github.com/TimmySheep) — [已合并 PR #13、#15–#24](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/pulls?q=is%3Apr+is%3Amerged+author%3ATimmySheep)，涉及 TS6 既有屏幕共享发现、屏幕比例、移动端语音/常亮/皮肤菜单、身份频道选项、PWA/主题、聊天历史、成员音频状态和麦克风权限等改进。
-- [yichen11818](https://github.com/yichen11818) — [PR #25](https://github.com/wslinnn/WebSpeak-client-for-TeamSpeak/pull/25) 支持通过 TeamSpeak 注册昵称连接，并在设置、收藏和邀请中保留昵称目标。
+启用 WebRTC 时，需在防火墙放行控制台显示的 UDP 端口范围（默认 `40000–41999`）。
 
-## 许可证 · License · Lizenz · Лицензия · ライセンス
+## 运行要求
 
-WebSpeak 使用 [GNU Affero General Public License v3.0 only](./LICENSE) 发布。你可以使用、研究、修改和再分发本项目；如果修改后的版本通过网络向用户提供服务，需要按照 AGPL-3.0 向这些用户提供对应源代码。
+| 项目 | 要求 |
+| --- | --- |
+| Node.js | 22.22.2 及以上 |
+| 浏览器 | 支持 WebRTC 的现代浏览器（Chrome、Edge 等） |
+| Web 端口 | `3040/tcp`，公网建议经 HTTPS 反向代理 |
+| TeamSpeak | 网关主机须能访问目标服务器，默认语音端口 `9987` |
+| WebRTC | 默认 `40000–41999/udp`；修改端口范围前先关闭 WebRTC |
+| 屏幕共享 | 跨网直连需放行 UDP `3478`（内置 STUN）；对称 NAT 无 IPv6 时无直连路径 |
+| 会话上限 | 单实例最多 100 个活动网页会话 |
 
-WebSpeak is released under the [GNU Affero General Public License v3.0 only](./LICENSE). If a modified version is offered to users over a network, its corresponding source code must be offered under AGPL-3.0.
+## 安全边界
 
-WebSpeak wird unter der [GNU Affero General Public License v3.0 only](./LICENSE) veröffentlicht. Bei Bereitstellung einer veränderten Version über ein Netzwerk muss der entsprechende Quellcode unter AGPL-3.0 angeboten werden.
+同源校验（`Origin` 必须与 `Host` 一致，语音 WebSocket upgrade 同样校验）只能防跨源请求，**不能防 DNS rebinding**。网关应只在受信网络内暴露，公网入口交给受控的反向代理并与网关分处不同主机；不要把 `3040/tcp` 直接暴露给不可信网络。
 
-WebSpeak распространяется по лицензии [GNU Affero General Public License v3.0 only](./LICENSE). Если изменённая версия предоставляется пользователям через сеть, соответствующий исходный код должен быть доступен этим пользователям на условиях AGPL-3.0.
+同机回环反代默认被信任（`WEBSPEAK_TRUST_PROXY=0` 可显式关闭）；反代位于其它机器或容器网段时，用 `WEBSPEAK_TRUSTED_PROXIES` 声明其 IP/CIDR。转发头只采信已声明或回环代理所发的值。
 
-WebSpeak は [GNU Affero General Public License v3.0 only](./LICENSE) の下で公開されています。変更版をネットワーク経由でユーザーに提供する場合は、対応するソースコードを AGPL-3.0 に従ってユーザーに提供する必要があります。
+使用反向代理时，HTTP 与 WebSocket 两个 location 都必须保留公网 Host（nginx 默认会改写为上游地址），否则语音连接会以 `1008 ORIGIN_REJECTED` 被拒。
 
-## Star History
+## 环境变量
 
-<a href="https://star-history.com/#wslinnn/WebSpeak-client-for-TeamSpeak&Date">
-  <img src="https://api.star-history.com/svg?repos=wslinnn/WebSpeak-client-for-TeamSpeak&type=Date" alt="WebSpeak Star History" width="100%" />
-</a>
+| 变量 | 用途 |
+| --- | --- |
+| `WEBSPEAK_DATA_DIR` | 持久化数据目录，默认项目内 `data/`，Docker 使用 `/data` |
+| `WEBSPEAK_PORT` | HTTP 端口，默认 `3040` |
+| `WEBSPEAK_LOG_LEVEL` | 设为 `debug` 恢复详细日志 |
+| `WEBSPEAK_SDK_DEBUG` | 设为 `1` 打开 TeamSpeak SDK 协议日志（可能含凭据，默认关闭） |
+| `WEBSPEAK_TRUST_PROXY` | 设为 `0` 关闭回环反代信任 |
+| `WEBSPEAK_TRUSTED_PROXIES` | 逗号分隔的受信代理 IP/CIDR，覆盖上一项 |
+| `WEBSPEAK_STUN_PORT` | 内置 STUN 端口，默认 `3478`，设为 `0` 关闭 |
+| `WEBSPEAK_SCREEN_SHARE_ICE_SERVERS` | 覆盖屏幕共享 ICE 服务器列表（JSON 数组或逗号分隔 URL） |
 
-<div align="right"><a href="#readme-top">返回顶部 · Back to top ↑</a></div>
+## 文档
+
+- [简体中文完整文档](docs/README.zh-CN.md)
+- [English documentation](docs/README.en.md)
+- [设计系统](docs/DESIGN.md)
+- [更新日志](CHANGELOG.md)
+
+## 许可证
+
+本项目以 [GNU Affero General Public License v3.0 only](LICENSE) 发布。你可以使用、研究、修改和再分发；如果修改后的版本通过网络向用户提供服务，需按 AGPL-3.0 向这些用户提供对应源代码。
+
+WebSpeak 基于 [EchoSixHIYA/WebSpeak-client-for-TeamSpeak](https://github.com/EchoSixHIYA/WebSpeak-client-for-TeamSpeak) 二次开发，本项目为独立维护的自托管裁剪版本。
