@@ -531,13 +531,24 @@ export class WebRtcAudioSession {
 // gateway forwards the payload as codec 4 (mono). The downstream m-lines keep
 // whatever the browser offered — codec 5 (stereo accompaniment) is relayed
 // untouched and must stay allowed there.
+//
+// maxplaybackrate is pinned in both directions for the same reason as
+// maxaveragebitrate: it is a receiver-declared playback ceiling, and echoing
+// the browser's own conservative value back would keep that ceiling in place.
+// Mobile browsers commonly offer 16000 or 24000 to save power and to match
+// their voice-processing audio route, which caps the decoded Opus bandwidth at
+// 8 kHz/12 kHz — audible as the "muffled, low-bitrate" character that never
+// appears on desktop Chrome (it offers 48000 or omits the parameter). The
+// downstream payload is TeamSpeak full-band Opus relayed byte-identically, so
+// 48000 is the truthful declaration; it costs no bandwidth because the payload
+// already carries that spectrum.
 export function pinOpusCodecParameters(existing: string | undefined, role: "uplink" | "downstream" = "uplink"): string {
   const kept = (existing ?? "")
     .split(";")
     .map(part => part.trim())
-    .filter(part => part && !/^(maxaveragebitrate|usedtx)=/i.test(part))
+    .filter(part => part && !/^(maxaveragebitrate|usedtx|maxplaybackrate)=/i.test(part))
     .filter(part => role === "downstream" || !/^(stereo|sprop-stereo)=/i.test(part));
-  kept.push(`maxaveragebitrate=${WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS}`, "usedtx=0");
+  kept.push(`maxaveragebitrate=${WEBRTC_UPLINK_OPUS_MAX_BITRATE_BPS}`, "usedtx=0", "maxplaybackrate=48000");
   if (role === "uplink") kept.push("stereo=0");
   return kept.join(";");
 }
